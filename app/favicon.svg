@@ -1,0 +1,24 @@
+<svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Infinity symbol with elegant curves -->
+  <path
+    d="M20 50C20 35 30 25 42 25C48 25 53 27.5 56 32C59 27.5 64 25 70 25C82 25 92 35 92 50C92 65 82 75 70 75C64 75 59 72.5 56 68C53 72.5 48 75 42 75C30 75 20 65 20 50Z"
+    fill="url(#gradient)"
+    stroke="url(#gradientStroke)"
+    stroke-width="3"
+  />
+  
+  <!-- Center dot - signature mark -->
+  <circle cx="56" cy="50" r="5" fill="white" opacity="0.5" />
+  
+  <defs>
+    <linearGradient id="gradient" x1="20" y1="25" x2="92" y2="75" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="50%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+    <linearGradient id="gradientStroke" x1="20" y1="25" x2="92" y2="75" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A78BFA" />
+      <stop offset="100%" stop-color="#60A5FA" />
+    </linearGradient>
+  </defs>
+</svg>

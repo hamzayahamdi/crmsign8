@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Lead {
+  id             String       @id @default(cuid())
+  nom            String
+  telephone      String
+  ville          String
+  typeBien       String
+  statut         LeadStatus
+  statutDetaille String
+  assignePar     String
+  derniereMaj    DateTime     @default(now())
+  source         LeadSource
+  priorite       LeadPriority
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([createdAt(sort: Desc)])
+  @@index([statut])
+  @@index([ville])
+  @@index([priorite])
+  @@index([assignePar])
+  @@map("leads")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("user")
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([email])
+  @@index([createdAt(sort: Desc)], map: "users_createdat_idx")
+  @@map("users")
+}
+
+enum LeadStatus {
+  nouveau
+  a_recontacter
+  en_cours
+  signe
+  perdu
+}
+
+enum LeadSource {
+  magasin
+  recommandation
+  site_web
+  reseaux_sociaux
+}
+
+enum LeadPriority {
+  haute
+  moyenne
+  basse
+}
