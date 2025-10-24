@@ -391,7 +391,10 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, searchQuery, filt
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDeleteLead(lead.id)}>
+                            <AlertDialogAction
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                              onClick={() => onDeleteLead(lead.id)}
+                            >
                               Supprimer
                             </AlertDialogAction>
                           </AlertDialogFooter>

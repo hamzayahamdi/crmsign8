@@ -355,7 +355,9 @@ export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadMo
                   </AlertDialogHeader>
                   <AlertDialogFooterRoot>
                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={onDelete}>Supprimer</AlertDialogAction>
+                    <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white" onClick={onDelete}>
+                      Supprimer
+                    </AlertDialogAction>
                   </AlertDialogFooterRoot>
                 </AlertDialogContent>
               </AlertDialog>

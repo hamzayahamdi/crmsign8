@@ -580,25 +580,13 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                     </span>
                   )}
                   <ChevronDown className={cn(
-                    "w-4 h-4 text-muted-foreground transition-transform ml-auto",
+                    "w-4 h-4 text-white transition-transform ml-auto",
                     isFiltersOpen && "rotate-180"
                   )} />
                 </div>
 
                 {/* Right: View Toggle and Clear Filters */}
                 <div className="flex items-center gap-3">
-                  {/* Refresh Button */}
-                  <button
-                    onClick={() => {
-                      console.log('[KanbanBoard] Manual refresh - reloading page')
-                      window.location.reload()
-                    }}
-                    className="text-xs text-muted-foreground hover:text-white flex items-center gap-1.5 transition-colors px-2 py-1 rounded hover:bg-slate-700/50"
-                    title="Actualiser les données"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Actualiser
-                  </button>
 
                   {getActiveFiltersCount() > 0 && (
                     <button
@@ -693,10 +681,10 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
 
               {/* Filter Content */}
               {isFiltersOpen && (
-                <div className="border-t border-slate-600/30 p-4">
+                <div className="border-t border-slate-600/30 p-4 bg-slate-800/60">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Status Filter */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 bg-slate-800/60 rounded-md p-3 border border-slate-600/40">
                       <label className="text-sm font-medium text-white">Statut</label>
                       <select
                         value={filters.status}
@@ -713,7 +701,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                     </div>
 
                     {/* City Filter */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 bg-slate-800/60 rounded-md p-3 border border-slate-600/40">
                       <label className="text-sm font-medium text-white">Ville</label>
                       <select
                         value={filters.city}
@@ -730,7 +718,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                     </div>
 
                     {/* Type Filter */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 bg-slate-800/60 rounded-md p-3 border border-slate-600/40">
                       <label className="text-sm font-medium text-white">Type de bien</label>
                       <select
                         value={filters.type}
@@ -747,7 +735,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                     </div>
 
                     {/* Assigned Filter */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 bg-slate-800/60 rounded-md p-3 border border-slate-600/40">
                       <label className="text-sm font-medium text-white">Assigné par</label>
                       <select
                         value={filters.assigned}
@@ -764,7 +752,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                     </div>
 
                     {/* Priority Filter */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 bg-slate-800/60 rounded-md p-3 border border-slate-600/40">
                       <label className="text-sm font-medium text-white">Priorité</label>
                       <select
                         value={filters.priority}

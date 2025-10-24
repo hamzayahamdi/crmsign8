@@ -16,8 +16,9 @@ export const metadata: Metadata = {
   description: "CRM de suivi des leads pour Signature8 by Sketch",
   generator: "v0.app",
   icons: {
-    icon: '/infnite-logo.png',
-    apple: '/infnite-logo.png',
+    icon: '/favicon-32x32.png',
+    shortcut: '/favicon-32x32.png',
+    apple: '/favicon-32x32.png',
   },
 }
 
