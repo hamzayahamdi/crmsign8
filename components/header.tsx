@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
+import { usePathname } from "next/navigation"
 
 interface HeaderProps {
   onCreateLead?: () => void
@@ -24,6 +25,7 @@ interface HeaderProps {
 export function Header({ onCreateLead, searchQuery = "", onSearchChange }: HeaderProps) {
   const [localQuery, setLocalQuery] = useState(searchQuery)
   const { user, logout } = useAuth()
+  const pathname = usePathname()
 
   const getInitials = (name: string) => {
     return name
@@ -55,7 +57,7 @@ export function Header({ onCreateLead, searchQuery = "", onSearchChange }: Heade
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          {user?.role?.toLowerCase() === "admin" && (
+          {user?.role?.toLowerCase() === "admin" && pathname === "/" && (
             <Button
               onClick={onCreateLead}
               className="bg-linear-to-r from-primary to-premium hover:opacity-90 transition-opacity glow"
