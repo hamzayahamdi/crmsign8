@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate",
+    "prebuild": "prisma generate",
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint .",
