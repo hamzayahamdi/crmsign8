@@ -225,16 +225,7 @@ export default function LoginPage() {
                   <Label htmlFor="password" className="text-sm font-medium">
                     Mot de passe
                   </Label>
-                  <button
-                    type="button"
-                    className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
-                    onClick={() => {
-                      // TODO: Implement forgot password
-                      alert("Fonctionnalité à venir")
-                    }}
-                  >
-                    Mot de passe oublié ?
-                  </button>
+                
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
