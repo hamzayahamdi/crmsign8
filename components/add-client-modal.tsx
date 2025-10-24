@@ -127,29 +127,29 @@ export function AddClientModal({ isOpen, onClose, onSave, editingClient }: AddCl
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[oklch(22%_0.03_260)] border-slate-600/30">
+      <DialogContent className="w-[98vw] !max-w-7xl max-h-[92vh] overflow-y-auto bg-[oklch(22%_0.03_260)] border-slate-600/30 rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
+          <DialogTitle className="text-3xl font-bold text-white flex items-center gap-3">
             <User className="w-6 h-6 text-primary" />
             {editingClient ? "Modifier le client" : "Nouveau client"}
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-slate-400 text-base">
             {editingClient 
               ? "Modifiez les informations du client" 
               : "Ajoutez un nouveau client confirmé au système"}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-8 mt-4">
           {/* Informations de base */}
-          <div className="glass rounded-xl p-6 border border-slate-600/30 space-y-4">
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-3">
+          <div className="glass rounded-2xl p-7 border border-slate-600/30 space-y-6">
+            <h3 className="text-base font-semibold text-white uppercase tracking-wider">
               Informations de base
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="nom" className="text-slate-300">
+                <Label htmlFor="nom" className="text-slate-200 font-medium">
                   Nom du client *
                 </Label>
                 <div className="relative">
@@ -160,13 +160,13 @@ export function AddClientModal({ isOpen, onClose, onSave, editingClient }: AddCl
                     onChange={(e) => handleChange("nom", e.target.value)}
                     placeholder="Ex: Ahmed Benali"
                     required
-                    className="pl-10 bg-slate-700/50 border-slate-600/50 text-white placeholder:text-slate-500"
+                    className="pl-10 h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white placeholder:text-slate-500 text-base"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="telephone" className="text-slate-300">
+                <Label htmlFor="telephone" className="text-slate-200 font-medium">
                   Téléphone *
                 </Label>
                 <div className="relative">
@@ -177,13 +177,13 @@ export function AddClientModal({ isOpen, onClose, onSave, editingClient }: AddCl
                     onChange={(e) => handleChange("telephone", e.target.value)}
                     placeholder="Ex: 212 661-234567"
                     required
-                    className="pl-10 bg-slate-700/50 border-slate-600/50 text-white placeholder:text-slate-500"
+                    className="pl-10 h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white placeholder:text-slate-500 text-base"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-300">
+                <Label htmlFor="email" className="text-slate-200 font-medium">
                   Email
                 </Label>
                 <div className="relative">
@@ -194,13 +194,13 @@ export function AddClientModal({ isOpen, onClose, onSave, editingClient }: AddCl
                     value={formData.email}
                     onChange={(e) => handleChange("email", e.target.value)}
                     placeholder="Ex: client@example.com"
-                    className="pl-10 bg-slate-700/50 border-slate-600/50 text-white placeholder:text-slate-500"
+                    className="pl-10 h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white placeholder:text-slate-500 text-base"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ville" className="text-slate-300">
+                <Label htmlFor="ville" className="text-slate-200 font-medium">
                   Ville *
                 </Label>
                 <div className="relative">
@@ -211,14 +211,14 @@ export function AddClientModal({ isOpen, onClose, onSave, editingClient }: AddCl
                     onChange={(e) => handleChange("ville", e.target.value)}
                     placeholder="Ex: Casablanca"
                     required
-                    className="pl-10 bg-slate-700/50 border-slate-600/50 text-white placeholder:text-slate-500"
+                    className="pl-10 h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white placeholder:text-slate-500 text-base"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="adresse" className="text-slate-300">
+            <div className="space-y-2 lg:col-span-3">
+              <Label htmlFor="adresse" className="text-slate-200 font-medium">
                 Adresse complète
               </Label>
               <div className="relative">
@@ -228,28 +228,28 @@ export function AddClientModal({ isOpen, onClose, onSave, editingClient }: AddCl
                   value={formData.adresse}
                   onChange={(e) => handleChange("adresse", e.target.value)}
                   placeholder="Ex: 123 Rue Mohammed V, Casablanca"
-                  className="pl-10 bg-slate-700/50 border-slate-600/50 text-white placeholder:text-slate-500"
+                  className="pl-10 h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white placeholder:text-slate-500 text-base"
                 />
               </div>
             </div>
           </div>
 
           {/* Détails du projet */}
-          <div className="glass rounded-xl p-6 border border-slate-600/30 space-y-4">
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-3">
+          <div className="glass rounded-2xl p-7 border border-slate-600/30 space-y-6">
+            <h3 className="text-base font-semibold text-white uppercase tracking-wider">
               Détails du projet
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="typeProjet" className="text-slate-300">
+                <Label htmlFor="typeProjet" className="text-slate-200 font-medium">
                   Type de projet *
                 </Label>
                 <Select
                   value={formData.typeProjet}
                   onValueChange={(value) => handleChange("typeProjet", value)}
                 >
-                  <SelectTrigger className="bg-slate-700/50 border-slate-600/50 text-white">
+                  <SelectTrigger className="h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white text-base">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600/50">
@@ -265,14 +265,14 @@ export function AddClientModal({ isOpen, onClose, onSave, editingClient }: AddCl
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="statutProjet" className="text-slate-300">
+                <Label htmlFor="statutProjet" className="text-slate-200 font-medium">
                   Statut du projet *
                 </Label>
                 <Select
                   value={formData.statutProjet}
                   onValueChange={(value) => handleChange("statutProjet", value)}
                 >
-                  <SelectTrigger className="bg-slate-700/50 border-slate-600/50 text-white">
+                  <SelectTrigger className="h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white text-base">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600/50">
@@ -284,14 +284,14 @@ export function AddClientModal({ isOpen, onClose, onSave, editingClient }: AddCl
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="architecteAssigne" className="text-slate-300">
+                <Label htmlFor="architecteAssigne" className="text-slate-200 font-medium">
                   Architecte assigné *
                 </Label>
                 <Select
                   value={formData.architecteAssigne}
                   onValueChange={(value) => handleChange("architecteAssigne", value)}
                 >
-                  <SelectTrigger className="bg-slate-700/50 border-slate-600/50 text-white">
+                  <SelectTrigger className="h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white text-base">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600/50">
@@ -305,7 +305,7 @@ export function AddClientModal({ isOpen, onClose, onSave, editingClient }: AddCl
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="budget" className="text-slate-300">
+                <Label htmlFor="budget" className="text-slate-200 font-medium">
                   Budget (MAD)
                 </Label>
                 <div className="relative">
@@ -316,7 +316,7 @@ export function AddClientModal({ isOpen, onClose, onSave, editingClient }: AddCl
                     value={formData.budget}
                     onChange={(e) => handleChange("budget", e.target.value)}
                     placeholder="Ex: 500000"
-                    className="pl-10 bg-slate-700/50 border-slate-600/50 text-white placeholder:text-slate-500"
+                    className="pl-10 h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white placeholder:text-slate-500 text-base"
                   />
                 </div>
               </div>
@@ -324,13 +324,13 @@ export function AddClientModal({ isOpen, onClose, onSave, editingClient }: AddCl
           </div>
 
           {/* Notes */}
-          <div className="glass rounded-xl p-6 border border-slate-600/30 space-y-4">
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-3">
+          <div className="glass rounded-2xl p-7 border border-slate-600/30 space-y-6">
+            <h3 className="text-base font-semibold text-white uppercase tracking-wider">
               Notes additionnelles
             </h3>
 
             <div className="space-y-2">
-              <Label htmlFor="notes" className="text-slate-300">
+              <Label htmlFor="notes" className="text-slate-200 font-medium">
                 Notes
               </Label>
               <div className="relative">
@@ -340,27 +340,27 @@ export function AddClientModal({ isOpen, onClose, onSave, editingClient }: AddCl
                   value={formData.notes}
                   onChange={(e) => handleChange("notes", e.target.value)}
                   placeholder="Ajoutez des notes sur le client ou le projet..."
-                  rows={4}
-                  className="pl-10 bg-slate-700/50 border-slate-600/50 text-white placeholder:text-slate-500 resize-none"
+                  rows={5}
+                  className="pl-10 rounded-xl bg-slate-700/60 border-slate-500/50 text-white placeholder:text-slate-500 resize-none text-base"
                 />
               </div>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 justify-end pt-4 border-t border-slate-600/30">
+          <div className="flex gap-4 justify-end pt-4 border-t border-slate-600/30">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
+              className="h-12 px-6 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 text-base"
             >
               <X className="w-4 h-4 mr-2" />
               Annuler
             </Button>
             <Button
               type="submit"
-              className="bg-primary hover:bg-primary/90 text-white"
+              className="h-12 px-6 bg-primary hover:bg-primary/90 text-white text-base"
             >
               <Save className="w-4 h-4 mr-2" />
               {editingClient ? "Enregistrer" : "Créer le client"}
