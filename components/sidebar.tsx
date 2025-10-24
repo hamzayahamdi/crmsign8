@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Users, Settings, LogOut, UserCog } from "lucide-react"
+import { Home, Users, LogOut, UserCog } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -24,7 +24,6 @@ const navigation = [
   { name: "Leads", href: "/", icon: Home },
   { name: "Clients", href: "/clients", icon: Users },
   { name: "Utilisateurs", href: "/users", icon: UserCog },
-  { name: "Paramètres", href: "/settings", icon: Settings },
 ]
 
 export function Sidebar() {

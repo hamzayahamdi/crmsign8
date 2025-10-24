@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "sonner"
+import { Sidebar } from "@/components/sidebar"
+import { AuthGuard } from "@/components/auth-guard"
 
 interface User {
   id: string
@@ -38,13 +40,21 @@ export default function UsersPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [showEditDialog, setShowEditDialog] = useState(false)
   
   // Form state
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     name: "",
-    role: "user",
+    role: "architect",
+  })
+
+  const [editFormData, setEditFormData] = useState({
+    email: "",
+    password: "",
+    name: "",
+    role: "architect",
   })
 
   // Fetch users
@@ -66,6 +76,50 @@ export default function UsersPage() {
     }
   }
 
+  // Open edit dialog
+  const openEditUser = (user: User) => {
+    setSelectedUser(user)
+    setEditFormData({
+      email: user.email,
+      password: "",
+      name: user.name,
+      role: user.role as any,
+    })
+    setShowEditDialog(true)
+  }
+
+  // Update user
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedUser) return
+
+    try {
+      const response = await fetch(`/api/users/${selectedUser.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: editFormData.email,
+          name: editFormData.name,
+          role: editFormData.role,
+          password: editFormData.password || undefined,
+        }),
+      })
+
+      if (response.ok) {
+        toast.success("Utilisateur mis à jour")
+        setShowEditDialog(false)
+        setSelectedUser(null)
+        fetchUsers()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || "Erreur lors de la mise à jour")
+      }
+    } catch (error) {
+      console.error("Error updating user:", error)
+      toast.error("Erreur de connexion")
+    }
+  }
+
   useEffect(() => {
     fetchUsers()
   }, [])
@@ -84,7 +138,7 @@ export default function UsersPage() {
       if (response.ok) {
         toast.success("Utilisateur créé avec succès")
         setShowCreateDialog(false)
-        setFormData({ email: "", password: "", name: "", role: "user" })
+        setFormData({ email: "", password: "", name: "", role: "architect" })
         fetchUsers() // Refresh the list
       } else {
         const data = await response.json()
@@ -133,7 +187,7 @@ export default function UsersPage() {
     switch (role) {
       case "admin":
         return "bg-red-500/20 text-red-400 border-red-500/30"
-      case "manager":
+      case "architect":
         return "bg-blue-500/20 text-blue-400 border-blue-500/30"
       default:
         return "bg-green-500/20 text-green-400 border-green-500/30"
@@ -141,7 +195,11 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-screen overflow-hidden">
+    <AuthGuard>
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <main className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col h-screen overflow-hidden">
       {/* Header */}
       <div className="glass border-b border-border/40 p-6">
         <div className="flex items-center justify-between">
@@ -251,6 +309,14 @@ export default function UsersPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => openEditUser(user)}
+                            className="hover:bg-blue-500/10"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => {
                               setSelectedUser(user)
                               setShowDeleteDialog(true)
@@ -327,9 +393,8 @@ export default function UsersPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass border-border/40">
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="architect">Architect</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -348,6 +413,87 @@ export default function UsersPage() {
                 className="bg-gradient-to-r from-primary to-premium"
               >
                 Créer
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="glass border-border/40">
+          <DialogHeader>
+            <DialogTitle className="text-white">Modifier l'utilisateur</DialogTitle>
+            <DialogDescription>
+              Mettez à jour les informations de l'utilisateur
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateUser}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name" className="text-white">Nom complet</Label>
+                <Input
+                  id="edit-name"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  placeholder="John Doe"
+                  required
+                  className="glass border-border/40"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email" className="text-white">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                  placeholder="john@example.com"
+                  required
+                  className="glass border-border/40"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-password" className="text-white">Nouveau mot de passe (optionnel)</Label>
+                <Input
+                  id="edit-password"
+                  type="password"
+                  value={editFormData.password}
+                  onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
+                  placeholder="Laisser vide pour ne pas changer"
+                  className="glass border-border/40"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-role" className="text-white">Rôle</Label>
+                <Select
+                  value={editFormData.role}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, role: value })}
+                >
+                  <SelectTrigger className="glass border-border/40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="glass border-border/40">
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="architect">Architect</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowEditDialog(false)}
+                className="glass border-border/40"
+              >
+                Annuler
+              </Button>
+              <Button
+                type="submit"
+                className="bg-gradient-to-r from-primary to-premium"
+              >
+                Enregistrer
               </Button>
             </DialogFooter>
           </form>
@@ -382,6 +528,9 @@ export default function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+          </div>
+        </main>
+      </div>
+    </AuthGuard>
   )
 }

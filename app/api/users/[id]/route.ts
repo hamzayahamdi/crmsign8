@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/database"
 import bcrypt from "bcryptjs"
 
+const ALLOWED_ROLES = new Set(["admin", "architect"])
 // GET single user
 export async function GET(
   request: NextRequest,
@@ -44,13 +45,15 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json()
-    const { email, password, name, role } = body
+    const { email, password, name } = body
 
     const updateData: any = {}
     
     if (email) updateData.email = email.toLowerCase()
     if (name) updateData.name = name
-    if (role) updateData.role = role
+    if (typeof body.role === 'string' && ALLOWED_ROLES.has(body.role)) {
+      updateData.role = body.role
+    }
     if (password) {
       updateData.password = await bcrypt.hash(password, 10)
     }

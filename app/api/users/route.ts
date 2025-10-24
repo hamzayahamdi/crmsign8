@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/database"
 import bcrypt from "bcryptjs"
 
+const ALLOWED_ROLES = new Set(["admin", "architect"])
+
 // GET all users - sorted by most recent first
 export async function GET(request: NextRequest) {
   try {
@@ -34,7 +36,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password, name, role = "user" } = body
+    const { email, password, name } = body
+    let role: string = typeof body.role === 'string' ? body.role : 'architect'
+    if (!ALLOWED_ROLES.has(role as any)) {
+      role = 'architect'
+    }
 
     // Validate input
     if (!email || !password || !name) {

@@ -308,6 +308,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
   const [isFiltersOpen, setIsFiltersOpen] = useAccordionState(false)
   const [viewMode, setViewMode] = useState<"table" | "kanban">("table")
   const [newlyAddedLeadId, setNewlyAddedLeadId] = useState<string | null>(null)
+  const [architectAssignees, setArchitectAssignees] = useState<string[]>([])
 
   // Use infinite scroll hook with eager loading
   // Note: No filter dependencies - we do client-side filtering
@@ -345,6 +346,29 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
   )
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
+
+  // Load architect users (assignees) for filter options
+  useEffect(() => {
+    const loadArchitects = async () => {
+      try {
+        const res = await fetch('/api/users')
+        if (res.ok) {
+          const users = (await res.json()) as any[]
+          const architects: string[] = users
+            .filter((u: any) => (u.role || '').toLowerCase() === 'architect')
+            .map((u: any) => (u.name || '').trim())
+            .filter((n: string) => n)
+          const unique: string[] = Array.from(new Set(architects)) as string[]
+          setArchitectAssignees(unique.length > 0 ? unique : ['TAZI'])
+        } else {
+          setArchitectAssignees(['TAZI'])
+        }
+      } catch {
+        setArchitectAssignees(['TAZI'])
+      }
+    }
+    loadArchitects()
+  }, [])
 
   const passesSearch = (lead: Lead) => {
     if (!normalizedQuery) return true
@@ -743,9 +767,9 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                         className="h-10 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
                       >
                         <option value="all">Tous les assignés</option>
-                        {[...new Set(leads.map((l) => l.assignePar))].map((a) => (
-                          <option key={a} value={a}>
-                            {a}
+                        {architectAssignees.map((name) => (
+                          <option key={name} value={name}>
+                            {name.toUpperCase()}
                           </option>
                         ))}
                       </select>

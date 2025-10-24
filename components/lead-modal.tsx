@@ -89,6 +89,7 @@ const calculatePriority = (source: LeadSource): LeadPriority => {
 }
 
 export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadModalProps) {
+  const [architects, setArchitects] = useState<string[]>([])
   const initialForm = {
     nom: lead?.nom || "",
     telephone: lead?.telephone || "",
@@ -102,6 +103,34 @@ export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadMo
   }
 
   const [formData, setFormData] = useState(initialForm)
+
+  // Load architects from Users API
+  useEffect(() => {
+    const loadArchitects = async () => {
+      try {
+        const res = await fetch('/api/users')
+        if (res.ok) {
+          const users = (await res.json()) as any[]
+          const list: string[] = Array.from(new Set(
+            users
+              .filter((u: any) => (u.role || '').toLowerCase() === 'architect')
+              .map((u: any) => (u.name || '').trim())
+              .filter((n: string) => n)
+          ))
+          setArchitects(list.length ? list : ['TAZI'])
+          // If no assignee chosen yet, default it
+          setFormData((prev) => ({ ...prev, assignePar: prev.assignePar || (list[0] || 'TAZI') }))
+        } else {
+          setArchitects(['TAZI'])
+          setFormData((prev) => ({ ...prev, assignePar: prev.assignePar || 'TAZI' }))
+        }
+      } catch {
+        setArchitects(['TAZI'])
+        setFormData((prev) => ({ ...prev, assignePar: prev.assignePar || 'TAZI' }))
+      }
+    }
+    loadArchitects()
+  }, [])
 
   const resetForm = () => setFormData({
     nom: "",
@@ -117,26 +146,29 @@ export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadMo
 
   useEffect(() => {
     if (lead) {
-      setFormData({
+      setFormData((prev) => ({
+        ...prev,
         nom: lead.nom,
         telephone: lead.telephone,
         ville: lead.ville,
         typeBien: lead.typeBien,
         statut: lead.statut,
         statutDetaille: lead.statutDetaille || "",
-        assignePar: lead.assignePar,
+        assignePar: lead.assignePar || prev.assignePar || (architects[0] || 'TAZI'),
         source: lead.source,
         priorite: lead.priorite,
-      })
+      }))
     }
-  }, [lead])
+  }, [lead, architects])
 
   // When opening for a new lead (no lead provided), clear the form
   useEffect(() => {
     if (open && !lead) {
       resetForm()
+      // ensure default assignee is available when creating
+      setFormData((prev) => ({ ...prev, assignePar: architects[0] || 'TAZI' }))
     }
-  }, [open, lead])
+  }, [open, lead, architects])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -280,8 +312,11 @@ export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadMo
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-border/60">
-                  <SelectItem value="TAZI">TAZI</SelectItem>
-                  <SelectItem value="AZI">AZI</SelectItem>
+                  {architects.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name.toUpperCase()}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -180,11 +180,6 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, searchQuery, filt
             <h3 className="text-lg font-semibold text-white">Liste des Leads</h3>
             <p className="text-sm text-muted-foreground">
               {sortedLeads.length} lead{sortedLeads.length > 1 ? 's' : ''} trouvé{sortedLeads.length > 1 ? 's' : ''}
-              {leads.length !== sortedLeads.length && (
-                <span className="text-xs text-yellow-400 ml-2">
-                  ({leads.length} total, {leads.length - sortedLeads.length} filtered out)
-                </span>
-              )}
             </p>
           </div>
         </div>
