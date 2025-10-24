@@ -55,13 +55,15 @@ export function Header({ onCreateLead, searchQuery = "", onSearchChange }: Heade
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          <Button
-            onClick={onCreateLead}
-            className="bg-linear-to-r from-primary to-premium hover:opacity-90 transition-opacity glow"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nouveau lead
-          </Button>
+          {user?.role?.toLowerCase() === "admin" && (
+            <Button
+              onClick={onCreateLead}
+              className="bg-linear-to-r from-primary to-premium hover:opacity-90 transition-opacity glow"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nouveau lead
+            </Button>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -31,10 +31,12 @@ export class LeadsService {
         url.searchParams.set('cursorId', cursorId)
       }
       
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
       const response = await fetch(url.toString(), {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-store',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       })
       if (!response.ok) {
@@ -61,10 +63,12 @@ export class LeadsService {
   // Get a specific lead
   static async getLead(id: string): Promise<Lead> {
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
       const response = await fetch(`${API_BASE}/${id}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-store',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       })
       if (!response.ok) {
@@ -80,10 +84,12 @@ export class LeadsService {
   // Create a new lead
   static async createLead(lead: Omit<Lead, 'id'>): Promise<Lead> {
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
       const response = await fetch(API_BASE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(lead),
       })
@@ -102,10 +108,12 @@ export class LeadsService {
   // Update a lead
   static async updateLead(id: string, lead: Partial<Lead>): Promise<Lead> {
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
       const response = await fetch(`${API_BASE}/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(lead),
       })
@@ -124,8 +132,12 @@ export class LeadsService {
   // Delete a lead
   static async deleteLead(id: string): Promise<void> {
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
       const response = await fetch(`${API_BASE}/${id}`, {
         method: 'DELETE',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       })
       
       if (!response.ok) {

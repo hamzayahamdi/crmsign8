@@ -8,6 +8,7 @@ import { Signature8Logo } from "@/components/signature8-logo"
 import { useAuth } from "@/contexts/auth-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { useMemo } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,9 +57,22 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {navigation.map((item) => {
+        {useMemo(() => {
+          const role = (user?.role || '').toLowerCase()
+          if (role === 'architect') {
+            return [
+              { name: 'Mes Leads', href: '/', icon: Home },
+              { name: 'Clients', href: '/clients', icon: Users },
+            ]
+          }
+          if (role === 'admin' || role === 'operator') {
+            return navigation
+          }
+          return [
+            { name: 'Leads', href: '/', icon: Home },
+          ]
+        }, [user?.role]).map((item) => {
           const isActive = pathname === item.href
           return (
             <Link
@@ -81,11 +95,9 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* User Profile & Logout Section - Bottom */}
       {user && (
         <div className="shrink-0 border-t border-border/40 bg-background/50 backdrop-blur-sm">
           <div className="p-4 space-y-3">
-            {/* User Info Card */}
             <div className="glass rounded-xl p-3 space-y-1.5 border border-border/40">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10 border-2 border-primary/30 ring-2 ring-primary/10">
@@ -100,11 +112,15 @@ export function Sidebar() {
                   <p className="text-xs text-muted-foreground truncate">
                     {user.email}
                   </p>
+                  {user.role && (
+                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
+                      {(user.role || '').toLowerCase() === 'admin' ? 'Administrateur' : (user.role || '').toLowerCase() === 'operator' ? 'Opérateur' : 'Architecte'}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Logout Button */}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
