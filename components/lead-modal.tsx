@@ -100,6 +100,7 @@ export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadMo
     typeBien: lead?.typeBien || "",
     statut: lead?.statut || ("nouveau" as LeadStatus),
     statutDetaille: lead?.statutDetaille || "",
+    message: lead?.message || "",
     assignePar: lead?.assignePar || "TAZI",
     source: lead?.source || ("site_web" as LeadSource),
     priorite: lead?.priorite || ("moyenne" as LeadPriority),
@@ -142,6 +143,7 @@ export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadMo
     typeBien: "",
     statut: "nouveau" as LeadStatus,
     statutDetaille: "",
+    message: "",
     assignePar: "TAZI",
     source: "site_web" as LeadSource,
     priorite: "moyenne" as LeadPriority,
@@ -157,6 +159,7 @@ export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadMo
         typeBien: lead.typeBien,
         statut: lead.statut,
         statutDetaille: lead.statutDetaille || "",
+        message: lead.message || "",
         assignePar: lead.assignePar || prev.assignePar || (architects[0] || 'TAZI'),
         source: lead.source,
         priorite: lead.priorite,
@@ -288,6 +291,19 @@ export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadMo
               onChange={(e) => setFormData({ ...formData, statutDetaille: e.target.value })}
               className="border-border/60 focus:border-primary/60 min-h-[80px]"
               placeholder="Ex: En deplacement à recontacter dans 10 jours"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="message" className="text-foreground">
+              Message / Note importante
+            </Label>
+            <Textarea
+              id="message"
+              value={formData.message}
+              onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+              className="border-border/60 focus:border-primary/60 min-h-[80px]"
+              placeholder="Ex: ELLE va m envoyer la video et le plan"
             />
           </div>
 

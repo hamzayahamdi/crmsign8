@@ -67,6 +67,7 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, searchQuery, filt
       lead.typeBien,
       lead.assignePar,
       lead.statutDetaille ?? "",
+      lead.message ?? "",
     ]
       .join(" ")
       .toLowerCase()
@@ -292,8 +293,19 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, searchQuery, filt
                             <span className="text-xs text-slate-300">{lead.ville}</span>
                           </div>
                         </div>
+                        {lead.message && (
+                          <div className="mt-1 text-[11px] leading-snug text-amber-200/90 truncate" title={lead.message}>
+                            <span className="inline-block border-l-2 border-amber-400/60 pl-2">
+                              {lead.message}
+                            </span>
+                          </div>
+                        )}
                         {lead.statutDetaille && (
-                          <p className="text-xs text-slate-400 line-clamp-1 leading-relaxed">{lead.statutDetaille}</p>
+                          <div className="mt-1 text-[11px] leading-snug text-slate-300/90 truncate" title={lead.statutDetaille}>
+                            <span className="inline-block border-l-2 border-blue-400/50 pl-2">
+                              {lead.statutDetaille}
+                            </span>
+                          </div>
                         )}
                       </div>
                     </div>

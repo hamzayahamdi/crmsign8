@@ -89,8 +89,20 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
           <span className="text-xs">{lead.ville}</span>
         </div>
 
+        {lead.message && (
+          <div className="mt-1 text-[12px] leading-snug text-amber-200/90">
+            <span className="inline-block border-l-2 border-amber-400/60 pl-2">
+              {lead.message}
+            </span>
+          </div>
+        )}
+
         {lead.statutDetaille && (
-          <div className="text-xs text-muted-foreground italic line-clamp-2 mt-2">{lead.statutDetaille}</div>
+          <div className="mt-1 text-[12px] leading-snug text-slate-300/90">
+            <span className="inline-block border-l-2 border-blue-400/50 pl-2">
+              {lead.statutDetaille}
+            </span>
+          </div>
         )}
       </div>
 

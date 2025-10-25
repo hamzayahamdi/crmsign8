@@ -10,6 +10,7 @@ export interface Lead {
   typeBien: string
   statut: LeadStatus
   statutDetaille: string
+  message?: string
   assignePar: string
   derniereMaj: string
   source: LeadSource

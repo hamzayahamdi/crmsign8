@@ -16,6 +16,7 @@ model Lead {
   typeBien       String
   statut         LeadStatus
   statutDetaille String
+  message        String?
   assignePar     String
   derniereMaj    DateTime     @default(now())
   source         LeadSource

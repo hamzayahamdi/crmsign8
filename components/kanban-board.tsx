@@ -417,6 +417,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
       lead.typeBien,
       lead.assignePar,
       lead.statutDetaille ?? "",
+      lead.message ?? "",
     ]
       .join(" ")
       .toLowerCase()
@@ -932,8 +933,19 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                       <MapPin className="w-3.5 h-3.5 text-primary" />
                       <span className="text-xs">{activeLead.ville}</span>
                     </div>
+                    {activeLead.message && (
+                      <div className="mt-1 text-[11px] leading-snug text-amber-200/90">
+                        <span className="inline-block border-l-2 border-amber-400/60 pl-2">
+                          {activeLead.message}
+                        </span>
+                      </div>
+                    )}
                     {activeLead.statutDetaille && (
-                      <div className="text-xs text-slate-300 italic line-clamp-2 mt-2 bg-slate-600/30 p-2 rounded">{activeLead.statutDetaille}</div>
+                      <div className="mt-1 text-[11px] leading-snug text-slate-300/90">
+                        <span className="inline-block border-l-2 border-blue-400/50 pl-2">
+                          {activeLead.statutDetaille}
+                        </span>
+                      </div>
                     )}
                   </div>
                 </div>
