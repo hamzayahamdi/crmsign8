@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CreatableSelect } from "@/components/creatable-select"
 import { Textarea } from "@/components/ui/textarea"
 import type { Lead, LeadStatus, LeadSource, LeadPriority } from "@/types/lead"
 import { Trash2 } from "lucide-react"
@@ -31,7 +32,7 @@ interface LeadModalProps {
   onDelete?: () => void
 }
 
-const villes = [
+const defaultVilles = [
   "Marrakech",
   "Casablanca",
   "Rabat",
@@ -45,7 +46,7 @@ const villes = [
   "Benslimane",
   "Casa",
 ]
-const typesBien = [
+const defaultTypesBien = [
   "Appartement",
   "Villa",
   "Bureau",
@@ -90,6 +91,8 @@ const calculatePriority = (source: LeadSource): LeadPriority => {
 
 export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadModalProps) {
   const [architects, setArchitects] = useState<string[]>([])
+  const [villes, setVilles] = useState<string[]>(defaultVilles)
+  const [typesBien, setTypesBien] = useState<string[]>(defaultTypesBien)
   const initialForm = {
     nom: lead?.nom || "",
     telephone: lead?.telephone || "",
@@ -229,39 +232,28 @@ export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadMo
               <Label htmlFor="ville" className="text-foreground">
                 Ville
               </Label>
-              <Select value={formData.ville} onValueChange={(value) => setFormData({ ...formData, ville: value })}>
-                <SelectTrigger className="border-border/60 focus:border-primary/60">
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent className="border-border/60">
-                  {villes.map((ville) => (
-                    <SelectItem key={ville} value={ville}>
-                      {ville}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CreatableSelect
+                value={formData.ville}
+                onValueChange={(value) => setFormData({ ...formData, ville: value })}
+                options={villes}
+                placeholder="Choisir ou créer..."
+                searchPlaceholder="Rechercher..."
+                emptyText="Tapez pour créer une nouvelle ville"
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="typeBien" className="text-foreground">
                 Type de bien
               </Label>
-              <Select
+              <CreatableSelect
                 value={formData.typeBien}
                 onValueChange={(value) => setFormData({ ...formData, typeBien: value })}
-              >
-                <SelectTrigger className="border-border/60 focus:border-primary/60">
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent className="border-border/60">
-                  {typesBien.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={typesBien}
+                placeholder="Choisir ou créer..."
+                searchPlaceholder="Rechercher..."
+                emptyText="Tapez pour créer un nouveau type"
+              />
             </div>
           </div>
 
