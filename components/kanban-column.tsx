@@ -4,7 +4,6 @@ import { LeadCard } from "@/components/lead-card"
 import type { Lead, LeadStatus } from "@/types/lead"
 import { cn } from "@/lib/utils"
 import { useDroppable } from "@dnd-kit/core"
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 
 interface KanbanColumnProps {
   status: LeadStatus
@@ -44,25 +43,29 @@ export function KanbanColumn({ status, label, color, leads, onLeadClick }: Kanba
         </div>
       </div>
 
-      <SortableContext items={leads.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-        <div
-          ref={setNodeRef}
-          className={cn(
-            "flex-1 space-y-3 overflow-y-auto rounded-lg p-2 transition-all duration-200",
-            isOver && "bg-primary/20 ring-2 ring-primary/60 border-2 border-primary/40",
-          )}
-        >
-          {leads.map((lead) => (
-            <LeadCard key={lead.id} lead={lead} onClick={() => onLeadClick?.(lead)} />
-          ))}
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "flex-1 space-y-3 overflow-y-auto rounded-lg p-3 transition-all duration-200 min-h-[400px]",
+          isOver && "bg-primary/10 ring-2 ring-primary/50 border-2 border-primary/40 shadow-lg",
+          "border border-slate-700/50"
+        )}
+      >
+        {leads.map((lead) => (
+          <LeadCard key={lead.id} lead={lead} onClick={() => onLeadClick?.(lead)} />
+        ))}
 
-          {leads.length === 0 && (
-            <div className="glass rounded-lg p-8 text-center">
-              <p className="text-sm text-muted-foreground">Aucun lead</p>
-            </div>
-          )}
-        </div>
-      </SortableContext>
+        {leads.length === 0 && (
+          <div className={cn(
+            "glass rounded-lg p-8 text-center transition-all",
+            isOver && "bg-primary/20 border-2 border-primary/60"
+          )}>
+            <p className="text-sm text-muted-foreground">
+              {isOver ? "Déposer ici" : "Aucun lead"}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

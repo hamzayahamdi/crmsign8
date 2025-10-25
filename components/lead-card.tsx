@@ -2,8 +2,7 @@
 
 import type { Lead } from "@/types/lead"
 import { Phone, MapPin, User, Calendar } from "lucide-react"
-import { useSortable } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
+import { useDraggable } from "@dnd-kit/core"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 
@@ -43,14 +42,16 @@ const formatRelativeDate = (dateString: string) => {
 }
 
 export function LeadCard({ lead, onClick }: LeadCardProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: lead.id,
+    data: {
+      lead,
+    },
   })
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.8 : 1,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: isDragging ? 'grabbing' : 'grab',
   }
 
   return (
@@ -62,7 +63,7 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
       onClick={onClick}
       className={cn(
         "glass rounded-lg p-4 cursor-grab active:cursor-grabbing glass-hover hover:scale-[1.02] transition-all duration-200",
-        isDragging && "shadow-lg border-2 border-primary/40"
+        isDragging && "opacity-50 shadow-2xl border-2 border-primary/60 scale-105"
       )}
     >
       {/* Header */}

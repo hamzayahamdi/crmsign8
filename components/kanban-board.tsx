@@ -9,9 +9,14 @@ import {
   DragOverlay,
   type DragStartEvent,
   PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   closestCorners,
+  closestCenter,
+  rectIntersection,
+  pointerWithin,
 } from "@dnd-kit/core"
 import { LeadCard } from "@/components/lead-card"
 import { LeadModal } from "@/components/lead-modal"
@@ -22,6 +27,7 @@ import { cn } from "@/lib/utils"
 import { LeadsService } from "@/lib/leads-service"
 import { useEnhancedInfiniteScroll } from "@/hooks/useEnhancedInfiniteScroll"
 import { Loader2, AlertCircle } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 // Dummy data - not used anymore, fetching from database instead
 const initialLeads: any[] = [
@@ -295,6 +301,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps) {
+  const { toast } = useToast()
   const [activeLead, setActiveLead] = useState<Lead | null>(null)
   const [editingLead, setEditingLead] = useState<Lead | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -343,7 +350,38 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         distance: 5,
       },
     }),
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 150,
+        tolerance: 5,
+      },
+    })
   )
+
+  // Custom collision detection that prioritizes droppable containers
+  const customCollisionDetection = (args: any) => {
+    // First, try to find intersecting droppable containers
+    const pointerCollisions = pointerWithin(args)
+    
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions
+    }
+    
+    // Fall back to rectangle intersection
+    const rectCollisions = rectIntersection(args)
+    
+    if (rectCollisions.length > 0) {
+      return rectCollisions
+    }
+    
+    // Finally, use closest center as last resort
+    return closestCenter(args)
+  }
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
 
@@ -439,17 +477,25 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
-    setActiveLead(null)
-
-    if (!over) return
+    
+    console.log('[Drag] Drag ended', { activeId: active.id, overId: over?.id })
+    
+    if (!over) {
+      console.log('[Drag] No drop target detected')
+      setActiveLead(null)
+      return
+    }
 
     const draggedId = String(active.id)
+    const draggedLead = leads.find((l: Lead) => l.id === draggedId)
 
-    // Determine the target status:
-    // - If dropped over a column, over.id is the status
-    // - If dropped over a card, infer its column by looking up that card
-    let targetStatus: LeadStatus | null = null
+    if (!draggedLead) {
+      console.log('[Drag] Dragged lead not found:', draggedId)
+      setActiveLead(null)
+      return
+    }
 
+    // Determine the target status from the droppable column
     const overId = String(over.id)
     const possibleStatuses: LeadStatus[] = [
       "nouveau",
@@ -459,16 +505,36 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
       "perdu",
     ]
 
+    let targetStatus: LeadStatus | null = null
+
+    // Check if dropped directly on a column
     if (possibleStatuses.includes(overId as LeadStatus)) {
       targetStatus = overId as LeadStatus
-    } else {
-      const overLead = leads.find((l: Lead) => l.id === overId)
-      if (overLead) {
-        targetStatus = overLead.statut
-      }
+      console.log('[Drag] Dropped on column:', targetStatus)
     }
 
-    if (!targetStatus) return
+    if (!targetStatus) {
+      console.log('[Drag] Could not determine target status from:', overId)
+      setActiveLead(null)
+      return
+    }
+
+    // Don't update if dropped in the same column
+    if (draggedLead.statut === targetStatus) {
+      console.log('[Drag] Dropped in same column, no update needed')
+      setActiveLead(null)
+      return
+    }
+
+    console.log('[Drag] Moving lead from', draggedLead.statut, 'to', targetStatus)
+
+    // Optimistic update - update UI immediately
+    const previousStatus = draggedLead.statut
+    updateLead(draggedId, {
+      statut: targetStatus,
+      derniereMaj: new Date().toISOString()
+    })
+    setActiveLead(null)
 
     try {
       // Update in database
@@ -476,15 +542,36 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         statut: targetStatus,
         derniereMaj: new Date().toISOString()
       })
+
+      // Show success toast
+      const statusLabels: Record<LeadStatus, string> = {
+        nouveau: "Nouveau",
+        a_recontacter: "À recontacter",
+        en_cours: "En cours",
+        signe: "Signé",
+        perdu: "Perdu"
+      }
       
-      // Update in list immediately
+      toast({
+        title: "Lead déplacé",
+        description: `${draggedLead.nom} a été déplacé vers ${statusLabels[targetStatus]}`
+      })
+      
+      console.log('[Drag] Successfully updated lead status in database')
+    } catch (error) {
+      console.error("[Drag] Error updating lead status:", error)
+      
+      // Revert optimistic update on error
       updateLead(draggedId, {
-        statut: targetStatus,
+        statut: previousStatus,
         derniereMaj: new Date().toISOString()
       })
-    } catch (error) {
-      console.error("Error updating lead status:", error)
-      alert("Échec de la mise à jour du statut. Veuillez réessayer.")
+      
+      toast({
+        title: "Erreur",
+        description: "Échec de la mise à jour du statut. Veuillez réessayer.",
+        variant: "destructive"
+      })
     }
   }
 
@@ -572,7 +659,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     <>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={customCollisionDetection}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
@@ -821,25 +908,32 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
             </div>
           )}
 
-          <DragOverlay>
+          <DragOverlay dropAnimation={null}>
             {activeLead ? (
-              <div className="rotate-2 scale-110 opacity-100 shadow-2xl border-2 border-primary/80 bg-slate-800/98 backdrop-blur-sm rounded-lg p-1">
-                <div className="bg-slate-700/90 rounded-lg p-4">
+              <div 
+                className="rotate-3 scale-110 shadow-2xl border-2 border-primary/80 bg-slate-800 backdrop-blur-md rounded-lg p-1 cursor-grabbing"
+                style={{ 
+                  opacity: 1,
+                  pointerEvents: 'none',
+                  zIndex: 9999
+                }}
+              >
+                <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-lg p-4 border border-primary/30">
                   <div className="flex items-start justify-between mb-3">
                     <h4 className="font-semibold text-white">{activeLead.nom}</h4>
-                    <span className="text-xs text-slate-300">{activeLead.typeBien}</span>
+                    <span className="text-xs text-slate-300 bg-slate-600/50 px-2 py-1 rounded">{activeLead.typeBien}</span>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-slate-300">
-                      <Phone className="w-3.5 h-3.5" />
+                      <Phone className="w-3.5 h-3.5 text-primary" />
                       <span className="text-xs">{activeLead.telephone}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-300">
-                      <MapPin className="w-3.5 h-3.5" />
+                      <MapPin className="w-3.5 h-3.5 text-primary" />
                       <span className="text-xs">{activeLead.ville}</span>
                     </div>
                     {activeLead.statutDetaille && (
-                      <div className="text-xs text-slate-300 italic line-clamp-2 mt-2">{activeLead.statutDetaille}</div>
+                      <div className="text-xs text-slate-300 italic line-clamp-2 mt-2 bg-slate-600/30 p-2 rounded">{activeLead.statutDetaille}</div>
                     )}
                   </div>
                 </div>
