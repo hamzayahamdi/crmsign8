@@ -6,12 +6,14 @@ import type { Client, ProjectStatus } from "@/types/client"
 import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
 import { ClientsTable } from "@/components/clients-table"
+import { ClientsListMobile } from "@/components/clients-list-mobile"
 import { ClientDetailPanel } from "@/components/client-detail-panel"
-import { AddClientModal } from "@/components/add-client-modal"
+import { AddClientModalImproved } from "@/components/add-client-modal-improved"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Header } from "@/components/header"
+import { motion } from "framer-motion"
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
@@ -169,7 +171,12 @@ export default function ClientsPage() {
           {/* Stats Cards */}
           <div className="p-6 pb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="glass rounded-2xl p-5 border border-slate-600/30">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="glass rounded-2xl p-5 border border-slate-600/30"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-400 mb-1">Total Clients</p>
@@ -179,9 +186,14 @@ export default function ClientsPage() {
                     <Users className="w-6 h-6 text-blue-400" />
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="glass rounded-2xl p-5 border border-slate-600/30">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="glass rounded-2xl p-5 border border-slate-600/30"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-400 mb-1">Projets actifs</p>
@@ -191,9 +203,14 @@ export default function ClientsPage() {
                     <TrendingUp className="w-6 h-6 text-orange-400" />
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="glass rounded-2xl p-5 border border-slate-600/30">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="glass rounded-2xl p-5 border border-slate-600/30"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-400 mb-1">Projets terminés</p>
@@ -203,9 +220,14 @@ export default function ClientsPage() {
                     <TrendingUp className="w-6 h-6 text-green-400" />
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="glass rounded-2xl p-5 border border-slate-600/30">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="glass rounded-2xl p-5 border border-slate-600/30"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-400 mb-1">Budget total</p>
@@ -215,7 +237,7 @@ export default function ClientsPage() {
                     <DollarSign className="w-6 h-6 text-purple-400" />
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
 
@@ -395,12 +417,27 @@ export default function ClientsPage() {
                 </div>
               </div>
             ) : (
-              <ClientsTable
-                clients={clients}
-                onClientClick={handleClientClick}
-                searchQuery={searchQuery}
-                filters={filters}
-              />
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden lg:block">
+                  <ClientsTable
+                    clients={clients}
+                    onClientClick={handleClientClick}
+                    searchQuery={searchQuery}
+                    filters={filters}
+                  />
+                </div>
+                
+                {/* Mobile List View */}
+                <div className="block lg:hidden">
+                  <ClientsListMobile
+                    clients={clients}
+                    onClientClick={handleClientClick}
+                    searchQuery={searchQuery}
+                    filters={filters}
+                  />
+                </div>
+              </>
             )}
           </div>
         </main>
@@ -415,7 +452,7 @@ export default function ClientsPage() {
         />
 
         {/* Add/Edit Client Modal */}
-        <AddClientModal
+        <AddClientModalImproved
           isOpen={isAddModalOpen}
           onClose={() => {
             setIsAddModalOpen(false)

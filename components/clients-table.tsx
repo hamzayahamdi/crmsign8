@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
+import { motion } from "framer-motion"
 
 interface ClientsTableProps {
   clients: Client[]
@@ -237,11 +238,14 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-600/30">
-            {sortedClients.map((client) => {
+            {sortedClients.map((client, index) => {
               const statutInfo = statutConfig[client.statutProjet]
               return (
-                <tr 
-                  key={client.id} 
+                <motion.tr 
+                  key={client.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.03, duration: 0.2 }}
                   className="hover:bg-slate-700/20 transition-all duration-200 group cursor-pointer"
                   onClick={() => onClientClick(client)}
                 >
@@ -330,7 +334,7 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
                       </Button>
                     </div>
                   </td>
-                </tr>
+                </motion.tr>
               )
             })}
           </tbody>
