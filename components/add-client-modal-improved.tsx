@@ -403,8 +403,11 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent position="popper" sideOffset={8} className="bg-slate-800 border-slate-600/50 z-[90]">
+                        <SelectItem value="nouveau">Nouveau</SelectItem>
+                        <SelectItem value="acompte_verse">Acompte versé</SelectItem>
                         <SelectItem value="en_conception">En conception</SelectItem>
-                        <SelectItem value="en_travaux">En travaux</SelectItem>
+                        <SelectItem value="en_chantier">En chantier</SelectItem>
+                        <SelectItem value="livraison">Livraison</SelectItem>
                         <SelectItem value="termine">Terminé</SelectItem>
                       </SelectContent>
                     </Select>

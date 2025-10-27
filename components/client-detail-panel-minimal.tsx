@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react"
 import type { Client, ProjectStatus } from "@/types/client"
-import { X, Phone, Mail, MessageCircle, Plus, ChevronDown, ChevronUp, MapPin, Building2, User, Calendar, DollarSign } from "lucide-react"
+import { X, Phone, Mail, MessageCircle, Plus, ChevronDown, ChevronUp, MapPin, Building2, User, Calendar, DollarSign, Briefcase, ClipboardList, CheckCircle2, ListTodo } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/hooks/use-toast"
+import { ProjectStatusStepper } from "@/components/project-status-stepper"
 
 interface ClientDetailPanelProps {
   client: Client | null
@@ -17,21 +18,39 @@ interface ClientDetailPanelProps {
   onUpdate?: (client: Client) => void
 }
 
-const statusConfig = {
+const statusConfig: Record<ProjectStatus, { label: string; icon: string; progress: number; color: string }> = {
+  nouveau: { 
+    label: "Nouveau", 
+    icon: "✨",
+    progress: 10,
+    color: "bg-slate-100 text-slate-700 border-slate-200"
+  },
+  acompte_verse: { 
+    label: "Acompte versé", 
+    icon: "💰",
+    progress: 25,
+    color: "bg-orange-100 text-orange-700 border-orange-200"
+  },
   en_conception: { 
     label: "En conception", 
     icon: "📐",
-    progress: 30,
+    progress: 40,
     color: "bg-blue-100 text-blue-700 border-blue-200"
   },
-  en_travaux: { 
-    label: "En travaux", 
+  en_chantier: { 
+    label: "En chantier", 
     icon: "🏗️",
     progress: 65,
-    color: "bg-orange-100 text-orange-700 border-orange-200"
+    color: "bg-purple-100 text-purple-700 border-purple-200"
+  },
+  livraison: { 
+    label: "Livraison", 
+    icon: "🚚",
+    progress: 85,
+    color: "bg-teal-100 text-teal-700 border-teal-200"
   },
   termine: { 
-    label: "Livré", 
+    label: "Terminé", 
     icon: "🏁",
     progress: 100,
     color: "bg-green-100 text-green-700 border-green-200"
@@ -190,14 +209,17 @@ export function ClientDetailPanelMinimal({
             className="fixed right-0 top-0 h-full w-full md:w-[600px] bg-white shadow-2xl z-50 flex flex-col font-['Inter',sans-serif]"
           >
             {/* Header */}
-            <div className="bg-white border-b border-slate-200 px-6 py-5">
-              <div className="flex items-start justify-between mb-3">
+            <div className="bg-white border-b border-slate-200 px-6 py-6">
+              <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-1">{localClient.nom}</h2>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2">{localClient.nom}</h2>
                   <div className="flex items-center gap-2">
-                    <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border", statusInfo.color)}>
+                    <span className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border", statusInfo.color)}>
                       <span>{statusInfo.icon}</span>
                       <span>{statusInfo.label}</span>
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {statusInfo.progress}% complété
                     </span>
                   </div>
                 </div>
@@ -211,24 +233,15 @@ export function ClientDetailPanelMinimal({
                 </Button>
               </div>
               
-              {/* Progress Bar */}
-              <div className="mt-4">
-                <div className="flex items-center justify-between text-xs text-slate-600 mb-2">
-                  <span className="font-medium">{currentStage?.name || "Démarrage"}</span>
-                  <span>{statusInfo.progress}%</span>
-                </div>
-                <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${statusInfo.progress}%` }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className={cn("h-full rounded-full", 
-                      localClient.statutProjet === "termine" ? "bg-green-600" :
-                      localClient.statutProjet === "en_travaux" ? "bg-orange-600" :
-                      "bg-blue-600"
-                    )}
-                  />
-                </div>
+              {/* Project Status Stepper */}
+              <div className="mt-6 pt-6 border-t border-slate-100">
+                <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">État du projet</h3>
+                <ProjectStatusStepper
+                  currentStatus={localClient.statutProjet}
+                  onStatusChange={handleStatusChange}
+                  interactive={true}
+                  size="md"
+                />
               </div>
             </div>
 
@@ -237,43 +250,32 @@ export function ClientDetailPanelMinimal({
               <div className="p-6 space-y-6">
                 
                 {/* Client Info Card */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-                  <h3 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wide">Informations client</h3>
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                  <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-5 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Informations client
+                  </h3>
                   <div className="space-y-3">
                     <div className="flex items-start gap-3">
                       <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="flex-1">
-                        <p className="text-xs text-slate-500">Ville</p>
+                          <p className="text-xs text-slate-500 mb-1">Ville</p>
                         <p className="text-sm font-medium text-slate-900">{localClient.ville}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="flex-1">
-                        <p className="text-xs text-slate-500">Téléphone</p>
+                        <p className="text-xs text-slate-500 mb-1">Téléphone</p>
                         <p className="text-sm font-medium text-slate-900">{localClient.telephone}</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <User className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-xs text-slate-500">Architecte responsable</p>
-                        <p className="text-sm font-medium text-slate-900">{localClient.architecteAssigne}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Building2 className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-xs text-slate-500">Type de projet</p>
-                        <p className="text-sm font-medium text-slate-900 capitalize">{localClient.typeProjet}</p>
-                      </div>
-                    </div>
-                    {localClient.budget && (
+                    {localClient.email && (
                       <div className="flex items-start gap-3">
-                        <DollarSign className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                        <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
-                          <p className="text-xs text-slate-500">Budget</p>
-                          <p className="text-sm font-medium text-slate-900">{formatCurrency(localClient.budget)}</p>
+                          <p className="text-xs text-slate-500 mb-1">Email</p>
+                          <p className="text-sm font-medium text-slate-900">{localClient.email}</p>
                         </div>
                       </div>
                     )}
@@ -287,45 +289,95 @@ export function ClientDetailPanelMinimal({
                   </div>
                 </div>
 
+                {/* Project Info Card */}
+                <div className="bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-200 shadow-sm p-6">
+                  <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-5 flex items-center gap-2">
+                    <Briefcase className="w-4 h-4" />
+                    Informations projet
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {localClient.budget && (
+                      <div className="col-span-2 bg-white rounded-lg p-4 border border-slate-200">
+                        <p className="text-xs text-slate-500 mb-1">Budget total</p>
+                        <p className="text-2xl font-bold text-slate-900">{formatCurrency(localClient.budget)}</p>
+                      </div>
+                    )}
+                    <div className="bg-white rounded-lg p-3 border border-slate-200">
+                      <p className="text-xs text-slate-500 mb-1">Type</p>
+                      <p className="text-sm font-semibold text-slate-900 capitalize">{localClient.typeProjet}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border border-slate-200">
+                      <p className="text-xs text-slate-500 mb-1">Architecte</p>
+                      <p className="text-sm font-semibold text-slate-900">{localClient.architecteAssigne}</p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Actions Rapides */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-                  <h3 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wide">Actions rapides</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button
-                      onClick={handleEmail}
-                      disabled={!localClient.email}
-                      className={cn("h-11 rounded-lg font-medium shadow-sm text-white",
-                        !localClient.email ? "bg-blue-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700")}
-                    >
-                      <Mail className="w-4 h-4 mr-2" />
-                      Email
-                    </Button>
-                    <Button
-                      onClick={handleWhatsApp}
-                      className="bg-green-600 hover:bg-green-700 text-white h-11 rounded-lg font-medium shadow-sm"
-                    >
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      WhatsApp
-                    </Button>
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                  <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-5 flex items-center gap-2">
+                    <ClipboardList className="w-4 h-4" />
+                    Actions rapides
+                  </h3>
+                  <div className="space-y-3">
+                    {/* Communication Actions */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        onClick={handleEmail}
+                        disabled={!localClient.email}
+                        className={cn("h-12 rounded-lg font-medium shadow-sm text-white",
+                          !localClient.email ? "bg-blue-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700")}
+                      >
+                        <Mail className="w-4 h-4 mr-2" />
+                        Email
+                      </Button>
+                      <Button
+                        onClick={handleWhatsApp}
+                        className="bg-green-600 hover:bg-green-700 text-white h-12 rounded-lg font-medium shadow-sm"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        WhatsApp
+                      </Button>
+                    </div>
+
+                    {/* Project Management Actions */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        onClick={() => {
+                          toast({
+                            title: "Acompte",
+                            description: "Fonctionnalité en développement",
+                          })
+                        }}
+                        variant="outline"
+                        className="h-12 rounded-lg font-medium bg-white text-orange-700 border-orange-300 hover:bg-orange-50"
+                      >
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        Ajouter acompte
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          toast({
+                            title: "Tâche",
+                            description: "Fonctionnalité en développement",
+                          })
+                        }}
+                        variant="outline"
+                        className="h-12 rounded-lg font-medium bg-white text-purple-700 border-purple-300 hover:bg-purple-50"
+                      >
+                        <ListTodo className="w-4 h-4 mr-2" />
+                        Créer tâche
+                      </Button>
+                    </div>
+
+                    {/* Note Action */}
                     <Button
                       onClick={() => setIsAddingNote(!isAddingNote)}
                       variant="outline"
-                      className="h-11 rounded-lg font-medium bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                      className="w-full h-12 rounded-lg font-medium bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Ajouter note
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        const statuses: ProjectStatus[] = ["en_conception", "en_travaux", "termine"]
-                        const currentIndex = statuses.indexOf(localClient.statutProjet)
-                        const nextStatus = statuses[(currentIndex + 1) % statuses.length]
-                        handleStatusChange(nextStatus)
-                      }}
-                      variant="outline"
-                      className="h-11 rounded-lg font-medium bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-                    >
-                      Changer statut
+                      Ajouter une note
                     </Button>
                   </div>
 
@@ -367,7 +419,7 @@ export function ClientDetailPanelMinimal({
                 </div>
 
                 {/* Notes & Historique - Tabs */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <button
                       className={cn(

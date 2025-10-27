@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Users, LogOut, UserCog } from "lucide-react"
+import { Home, Users, LogOut, Settings, CalendarDays } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -8,7 +8,9 @@ import { Signature8Logo } from "@/components/signature8-logo"
 import { useAuth } from "@/contexts/auth-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { useMemo } from "react"
+import { useMemo, useEffect, useState } from "react"
+import { TasksService } from "@/lib/tasks-service"
+import { toast } from "sonner"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,15 +23,83 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-const navigation = [
-  { name: "Leads", href: "/", icon: Home },
-  { name: "Clients", href: "/clients", icon: Users },
-  { name: "Utilisateurs", href: "/users", icon: UserCog },
-]
+const baseNav = [
+  { name: "Tableau des Leads", href: "/", icon: Home },
+  { name: "Clients & Projets", href: "/clients", icon: Users },
+  { name: "Tâches & Rappels", href: "/tasks", icon: CalendarDays },
+  { name: "Calendrier", href: "/calendar", icon: CalendarDays },
+] as const
+
+const adminOperatorExtras = [
+  { name: "Utilisateurs", href: "/users", icon: Users },
+] as const
 
 export function Sidebar() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+
+  // Tasks badge state
+  const [myPendingTasks, setMyPendingTasks] = useState<number>(0)
+  const [myNewTasks, setMyNewTasks] = useState<number>(0)
+  const [adminUpdatesCount, setAdminUpdatesCount] = useState<number>(0)
+
+  // Load tasks count for the signed-in user and compute new tasks since last seen
+  useEffect(() => {
+    const loadMyTasks = async () => {
+      if (!user?.name) return
+
+      // If user is on tasks page, mark as seen
+      const lastSeenKey = `tasks_last_seen_${user.name}`
+      if (pathname === "/tasks") {
+        localStorage.setItem(lastSeenKey, new Date().toISOString())
+      }
+
+      try {
+        const tasks = await TasksService.getMyTasks(user.name)
+        const pending = tasks.filter(t => t.status !== "termine").length
+        setMyPendingTasks(pending)
+
+        const lastSeenStr = localStorage.getItem(lastSeenKey)
+        const lastSeen = lastSeenStr ? new Date(lastSeenStr) : new Date(0)
+        const newlyCreated = tasks.filter(t => new Date(t.createdAt) > lastSeen).length
+        setMyNewTasks(newlyCreated)
+      } catch (e) {
+        setMyPendingTasks(0)
+        setMyNewTasks(0)
+      }
+    }
+
+    loadMyTasks()
+
+    // Admin/operator: compute tasks updated since last seen, and toast
+    const loadAdminUpdates = async () => {
+      const role = (user?.role || '').toLowerCase()
+      if (role !== 'admin' && role !== 'operator') {
+        setAdminUpdatesCount(0)
+        return
+      }
+
+      const adminSeenKey = `tasks_admin_last_seen`
+      if (pathname === '/tasks') {
+        localStorage.setItem(adminSeenKey, new Date().toISOString())
+      }
+
+      try {
+        const allTasks = await TasksService.getTasks()
+        const lastSeenStr = localStorage.getItem(adminSeenKey)
+        const lastSeen = lastSeenStr ? new Date(lastSeenStr) : new Date(0)
+        const updates = allTasks.filter(t => new Date(t.updatedAt) > lastSeen).length
+        setAdminUpdatesCount(updates)
+        if (updates > 0 && pathname !== '/tasks') {
+          toast.info(`${updates} mise(s) à jour de tâches depuis votre dernière visite`, { duration: 3500 })
+        }
+      } catch {
+        setAdminUpdatesCount(0)
+      }
+    }
+
+    loadAdminUpdates()
+  }, [user?.name, pathname])
 
   const getInitials = (name: string) => {
     return name
@@ -62,16 +132,19 @@ export function Sidebar() {
           const role = (user?.role || '').toLowerCase()
           if (role === 'architect') {
             return [
-              { name: 'Mes Leads', href: '/', icon: Home },
-              { name: 'Clients', href: '/clients', icon: Users },
+              baseNav[0], // Tableau des Leads
+              baseNav[1], // Clients & Projets
+              baseNav[2], // Tâches & Rappels
             ]
           }
           if (role === 'admin' || role === 'operator') {
-            return navigation
+            return [
+              ...baseNav,
+              ...adminOperatorExtras,
+              ...(role === 'admin' ? [{ name: 'Paramètres', href: '/settings', icon: Settings }] : []),
+            ]
           }
-          return [
-            { name: 'Leads', href: '/', icon: Home },
-          ]
+          return [baseNav[0]]
         }, [user?.role]).map((item) => {
           const isActive = pathname === item.href
           return (
@@ -89,7 +162,34 @@ export function Sidebar() {
                 "w-5 h-5 transition-transform duration-200",
                 isActive ? "scale-110" : "group-hover:scale-105"
               )} />
-              <span className="font-medium text-sm">{item.name}</span>
+              <span className="font-medium text-sm flex-1">{item.name}</span>
+              {item.href === "/tasks" && (
+                <span className="ml-auto inline-flex items-center gap-2">
+                  {myNewTasks > 0 && (
+                    <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_0_3px_rgba(239,68,68,0.25)]" />
+                  )}
+                  {myPendingTasks > 0 && (
+                    <span className={cn(
+                      "min-w-[1.5rem] h-6 px-2 inline-flex items-center justify-center rounded-full text-xs font-semibold border",
+                      isActive
+                        ? "bg-white/15 border-white/30 text-white"
+                        : "bg-primary/15 border-primary/30 text-primary"
+                    )}>
+                      {myPendingTasks}
+                    </span>
+                  )}
+                  {((user?.role || '').toLowerCase() === 'admin' || (user?.role || '').toLowerCase() === 'operator') && adminUpdatesCount > 0 && (
+                    <span className={cn(
+                      "min-w-[1.5rem] h-6 px-2 inline-flex items-center justify-center rounded-full text-xs font-semibold border",
+                      isActive
+                        ? "bg-blue-400/20 border-blue-400/40 text-blue-100"
+                        : "bg-blue-400/15 border-blue-400/30 text-blue-300"
+                    )}>
+                      {adminUpdatesCount}
+                    </span>
+                  )}
+                </span>
+              )}
             </Link>
           )
         })}

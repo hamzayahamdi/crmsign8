@@ -21,9 +21,12 @@ interface ClientsTableProps {
   isLoading?: boolean
 }
 
-const statutConfig = {
+const statutConfig: Record<ProjectStatus, { label: string; color: string }> = {
+  nouveau: { label: "Nouveau", color: "bg-slate-500/20 text-slate-400 border-slate-500/40" },
+  acompte_verse: { label: "Acompte versé", color: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
   en_conception: { label: "En conception", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
-  en_travaux: { label: "En travaux", color: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
+  en_chantier: { label: "En chantier", color: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
+  livraison: { label: "Livraison", color: "bg-teal-500/20 text-teal-400 border-teal-500/40" },
   termine: { label: "Terminé", color: "bg-green-500/20 text-green-400 border-green-500/40" },
 }
 
@@ -260,7 +263,15 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
                         </div>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-white truncate">{client.nom}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-white truncate">{client.nom}</p>
+                          {client.payments && client.payments.length > 0 && (
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              <span className="text-xs font-medium text-emerald-400">{client.payments.length}</span>
+                            </div>
+                          )}
+                        </div>
                         {client.email && (
                           <p className="text-xs text-slate-400 truncate">{client.email}</p>
                         )}

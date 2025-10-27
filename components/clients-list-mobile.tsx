@@ -19,9 +19,12 @@ interface ClientsListMobileProps {
   isLoading?: boolean
 }
 
-const statutConfig = {
+const statutConfig: Record<ProjectStatus, { label: string; color: string }> = {
+  nouveau: { label: "Nouveau", color: "bg-slate-500/20 text-slate-400 border-slate-500/40" },
+  acompte_verse: { label: "Acompte versé", color: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
   en_conception: { label: "En conception", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
-  en_travaux: { label: "En travaux", color: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
+  en_chantier: { label: "En chantier", color: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
+  livraison: { label: "Livraison", color: "bg-teal-500/20 text-teal-400 border-teal-500/40" },
   termine: { label: "Terminé", color: "bg-green-500/20 text-green-400 border-green-500/40" },
 }
 

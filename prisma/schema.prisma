@@ -66,3 +66,37 @@ enum LeadPriority {
   moyenne
   basse
 }
+
+model Task {
+  id              String       @id @default(cuid())
+  title           String
+  description     String
+  dueDate         DateTime
+  assignedTo      String
+  linkedType      LinkedType
+  linkedId        String
+  linkedName      String?
+  status          TaskStatus
+  reminderEnabled Boolean      @default(false)
+  reminderDays    Int?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  createdBy       String
+
+  @@index([assignedTo])
+  @@index([status])
+  @@index([dueDate])
+  @@index([linkedType, linkedId])
+  @@map("tasks")
+}
+
+enum TaskStatus {
+  a_faire
+  en_cours
+  termine
+}
+
+enum LinkedType {
+  lead
+  client
+}

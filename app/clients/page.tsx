@@ -7,8 +7,9 @@ import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
 import { ClientsTable } from "@/components/clients-table"
 import { ClientsListMobile } from "@/components/clients-list-mobile"
-import { ClientDetailPanelMinimal } from "@/components/client-detail-panel-minimal"
+import { ClientDetailPanelLuxe } from "@/components/client-detail-panel-luxe"
 import { AddClientModalImproved } from "@/components/add-client-modal-improved"
+import { ClientAutocomplete } from "@/components/client-autocomplete"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -148,7 +149,7 @@ export default function ClientsPage() {
 
   // Calculate statistics
   const totalClients = clients.length
-  const activeProjects = clients.filter(c => c.statutProjet !== "termine").length
+  const activeProjects = clients.filter(c => c.statutProjet !== "termine" && c.statutProjet !== "livraison").length
   const completedProjects = clients.filter(c => c.statutProjet === "termine").length
   const totalBudget = clients.reduce((sum, c) => sum + (c.budget || 0), 0)
 
@@ -251,18 +252,16 @@ export default function ClientsPage() {
           <div className="px-6 pb-4 space-y-3">
             {/* Search Bar and Add Button */}
             <div className="flex gap-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher par nom, ville, téléphone..."
-                  className="pl-12 h-12 bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-500 rounded-xl"
+              <div className="flex-1">
+                <ClientAutocomplete
+                  clients={clients}
+                  onSelectClient={handleClientClick}
+                  placeholder="Rechercher un client par nom, ville, téléphone..."
                 />
               </div>
               <Button
                 onClick={handleAddClient}
-                className="h-12 px-6 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium"
+                className="h-12 px-6 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium shadow-lg shadow-primary/20"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 Nouveau Client
@@ -310,7 +309,13 @@ export default function ClientsPage() {
                   <div className="flex flex-wrap gap-2">
                     {filters.statut !== "all" && (
                       <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
-                        Statut: {filters.statut === "en_conception" ? "En conception" : filters.statut === "en_travaux" ? "En travaux" : "Terminé"}
+                        Statut: {
+                          filters.statut === "nouveau" ? "Nouveau" :
+                          filters.statut === "acompte_verse" ? "Acompte versé" :
+                          filters.statut === "en_conception" ? "En conception" :
+                          filters.statut === "en_chantier" ? "En chantier" :
+                          filters.statut === "livraison" ? "Livraison" : "Terminé"
+                        }
                         <button onClick={() => removeFilter('statut')} className="hover:text-primary/70">
                           <X className="w-3 h-3" />
                         </button>
@@ -357,8 +362,11 @@ export default function ClientsPage() {
                         className="h-10 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
                       >
                         <option value="all">Tous les statuts</option>
+                        <option value="nouveau">Nouveau</option>
+                        <option value="acompte_verse">Acompte versé</option>
                         <option value="en_conception">En conception</option>
-                        <option value="en_travaux">En travaux</option>
+                        <option value="en_chantier">En chantier</option>
+                        <option value="livraison">Livraison</option>
                         <option value="termine">Terminé</option>
                       </select>
                     </div>
@@ -449,7 +457,7 @@ export default function ClientsPage() {
         </main>
 
         {/* Client Detail Panel */}
-        <ClientDetailPanelMinimal
+        <ClientDetailPanelLuxe
           client={selectedClient}
           isOpen={isDetailPanelOpen}
           onClose={() => setIsDetailPanelOpen(false)}
