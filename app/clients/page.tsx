@@ -7,13 +7,14 @@ import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
 import { ClientsTable } from "@/components/clients-table"
 import { ClientsListMobile } from "@/components/clients-list-mobile"
-import { ClientDetailPanel } from "@/components/client-detail-panel"
+import { ClientDetailPanelMinimal } from "@/components/client-detail-panel-minimal"
 import { AddClientModalImproved } from "@/components/add-client-modal-improved"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Header } from "@/components/header"
 import { motion } from "framer-motion"
+import { ensureIssamInLocalStorage } from "@/lib/seed-issam"
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
@@ -30,15 +31,14 @@ export default function ClientsPage() {
     typeProjet: "all" as string,
   })
 
-  // Load clients from localStorage
+  // Seed demo client and load clients from localStorage
   useEffect(() => {
-    const loadClients = () => {
-      const storedClients = localStorage.getItem("signature8-clients")
-      if (storedClients) {
-        setClients(JSON.parse(storedClients))
-      }
-    }
-    loadClients()
+    try {
+      ensureIssamInLocalStorage()
+    } catch {}
+
+    const storedClients = localStorage.getItem("signature8-clients")
+    setClients(storedClients ? JSON.parse(storedClients) : [])
   }, [])
 
   // Save clients to localStorage whenever they change
@@ -90,27 +90,33 @@ export default function ClientsPage() {
     setEditingClient(null)
   }
 
+  const handleUpdateClient = (updatedClient: Client) => {
+    setClients(prev => prev.map(c => 
+      c.id === updatedClient.id ? updatedClient : c
+    ))
+    setSelectedClient(updatedClient)
+  }
+
   const handleMarkComplete = (client: Client) => {
     const now = new Date().toISOString()
+    const updatedClient = {
+      ...client,
+      statutProjet: "termine" as ProjectStatus, 
+      derniereMaj: now,
+      updatedAt: now,
+      historique: [
+        ...(client.historique || []),
+        {
+          id: `hist-${Date.now()}`,
+          date: now,
+          type: "statut" as const,
+          description: "Projet marqué comme terminé",
+          auteur: "Système"
+        }
+      ]
+    }
     setClients(prev => prev.map(c => 
-      c.id === client.id 
-        ? { 
-            ...c, 
-            statutProjet: "termine" as ProjectStatus, 
-            derniereMaj: now,
-            updatedAt: now,
-            historique: [
-              ...(c.historique || []),
-              {
-                id: `hist-${Date.now()}`,
-                date: now,
-                type: "statut" as const,
-                description: "Projet marqué comme terminé",
-                auteur: "Système"
-              }
-            ]
-          }
-        : c
+      c.id === client.id ? updatedClient : c
     ))
     setIsDetailPanelOpen(false)
   }
@@ -443,12 +449,11 @@ export default function ClientsPage() {
         </main>
 
         {/* Client Detail Panel */}
-        <ClientDetailPanel
+        <ClientDetailPanelMinimal
           client={selectedClient}
           isOpen={isDetailPanelOpen}
           onClose={() => setIsDetailPanelOpen(false)}
-          onEdit={handleEditClient}
-          onMarkComplete={handleMarkComplete}
+          onUpdate={handleUpdateClient}
         />
 
         {/* Add/Edit Client Modal */}

@@ -17,12 +17,46 @@ export interface Client {
   budget?: number
   notes?: string
   historique?: ClientHistoryEntry[]
+  documents?: ClientDocument[]
+  stages?: ProjectStage[]
+  rendezVous?: Appointment[]
 }
 
 export interface ClientHistoryEntry {
   id: string
   date: string
-  type: "note" | "appel" | "whatsapp" | "modification" | "statut"
+  type: "note" | "appel" | "whatsapp" | "modification" | "statut" | "document" | "rendez-vous" | "devis" | "validation"
   description: string
   auteur: string
+  metadata?: Record<string, any>
+}
+
+export interface ClientDocument {
+  id: string
+  name: string
+  type: "pdf" | "image" | "dwg" | "other"
+  size: number
+  uploadedAt: string
+  uploadedBy: string
+  url?: string
+  category?: "devis" | "plan" | "photo" | "contrat" | "autre"
+}
+
+export interface ProjectStage {
+  id: string
+  name: string
+  status: "completed" | "in_progress" | "pending"
+  completedAt?: string
+  description?: string
+  order: number
+}
+
+export interface Appointment {
+  id: string
+  date: string
+  title: string
+  description?: string
+  location?: string
+  status: "scheduled" | "completed" | "cancelled"
+  createdAt: string
 }
