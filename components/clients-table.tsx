@@ -22,13 +22,16 @@ interface ClientsTableProps {
 }
 
 const statutConfig: Record<ProjectStatus, { label: string; color: string }> = {
-  prospection: { label: "Nouveau", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40" },
-  nouveau: { label: "Nouveau", color: "bg-slate-500/20 text-slate-400 border-slate-500/40" },
+  prospection: { label: "Prospection", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40" },
+  nouveau: { label: "Nouveau projet", color: "bg-green-500/20 text-green-400 border-green-500/40" },
   acompte_verse: { label: "Acompte versé", color: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
   en_conception: { label: "En conception", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
-  en_chantier: { label: "En chantier", color: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
+  en_validation: { label: "En validation", color: "bg-amber-500/20 text-amber-400 border-amber-500/40" },
+  en_chantier: { label: "En réalisation", color: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
   livraison: { label: "Livraison", color: "bg-teal-500/20 text-teal-400 border-teal-500/40" },
-  termine: { label: "Terminé", color: "bg-green-500/20 text-green-400 border-green-500/40" },
+  termine: { label: "Terminé", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" },
+  annule: { label: "Annulé", color: "bg-red-500/20 text-red-400 border-red-500/40" },
+  suspendu: { label: "Suspendu", color: "bg-slate-500/20 text-slate-400 border-slate-500/40" },
 }
 
 type SortField = 'nom' | 'ville' | 'typeProjet' | 'architecteAssigne' | 'statutProjet' | 'derniereMaj'
@@ -141,7 +144,7 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
   }
 
   return (
-    <div className="glass rounded-2xl border border-slate-600/30 overflow-hidden relative">
+    <div className="glass rounded-lg border border-slate-600/30 overflow-hidden relative">
       {/* Loading overlay */}
       {isLoading && sortedClients.length > 0 && (
         <div className="absolute top-0 left-0 right-0 z-10 bg-slate-900/30 backdrop-blur-[1px] border-b border-blue-500/30">
@@ -153,12 +156,12 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
       )}
       
       {/* Table Header */}
-      <div className="bg-slate-800/50 px-6 py-4 border-b border-slate-600/30">
+      <div className="bg-slate-800/30 px-6 py-4 border-b border-slate-200/10">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-white">Liste des Clients</h3>
             <p className="text-sm text-muted-foreground">
-              {sortedClients.length} client{sortedClients.length > 1 ? 's' : ''} trouvé{sortedClients.length > 1 ? 's' : ''}
+              {sortedClients.length} client{sortedClients.length > 1 ? 's' : ''}
             </p>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
@@ -181,7 +184,7 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
             <col className="w-[10%]" />
             <col className="w-[8%]" />
           </colgroup>
-          <thead className="bg-slate-700/30">
+          <thead className="bg-slate-800/20 border-b border-slate-200/10">
             <tr>
               <th className="px-6 py-4 text-left">
                 <button
@@ -236,11 +239,11 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
                   onClick={() => handleSort('derniereMaj')}
                   className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
                 >
-                  Mis à jour
+                  Dernière MAJ
                   {getSortIcon('derniereMaj')}
                 </button>
               </th>
-              <th className="px-4 py-4 text-right text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -261,98 +264,73 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
                   onClick={() => onClientClick(client)}
                 >
                   {/* Nom du client */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center space-x-3">
-                      <div className="shrink-0">
-                        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-premium flex items-center justify-center shadow-lg">
-                          <span className="text-sm font-semibold text-white">
-                            {client.nom.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold text-white truncate">{client.nom}</p>
-                          {client.payments && client.payments.length > 0 && (
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                              <span className="text-xs font-medium text-emerald-400">{client.payments.length}</span>
-                            </div>
-                          )}
-                        </div>
-                        {client.email && (
-                          <p className="text-xs text-slate-400 truncate">{client.email}</p>
-                        )}
-                      </div>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm font-semibold text-white truncate">{client.nom}</p>
+                      {client.email && (
+                        <p className="text-xs text-slate-400 truncate">{client.email}</p>
+                      )}
                     </div>
                   </td>
 
                   {/* Téléphone */}
-                  <td className="px-4 py-5">
-                    <div className="flex items-center space-x-1.5">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="text-xs text-slate-300">{client.telephone}</span>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <Phone className="w-3.5 h-3.5" />
+                      <span className="text-xs">{client.telephone}</span>
                     </div>
                   </td>
 
                   {/* Ville */}
-                  <td className="px-4 py-5">
-                    <div className="flex items-center space-x-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="text-sm text-slate-200">{client.ville}</span>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span className="text-sm text-white">{client.ville}</span>
                     </div>
                   </td>
 
                   {/* Type de projet */}
-                  <td className="px-4 py-5">
-                    <div className="flex items-center space-x-1.5">
-                      <Building2 className="w-4 h-4 text-slate-400" />
-                      <span className="text-sm font-medium text-white">{formatProjectType(client.typeProjet)}</span>
-                    </div>
+                  <td className="px-4 py-4">
+                    <span className="text-sm font-medium text-white">{formatProjectType(client.typeProjet)}</span>
                   </td>
 
                   {/* Architecte */}
-                  <td className="px-4 py-5">
-                    <div className="flex items-center space-x-2">
-                      <User className="w-4 h-4 text-slate-400" />
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-2">
+                      <User className="w-3.5 h-3.5 text-slate-400" />
                       <span className="text-sm font-medium text-white">{client.architecteAssigne}</span>
                     </div>
                   </td>
 
                   {/* Statut */}
-                  <td className="px-4 py-5">
+                  <td className="px-4 py-4">
                     <Badge className={cn("border text-xs font-medium px-2.5 py-1", statutInfo.color)}>
                       {statutInfo.label}
                     </Badge>
                   </td>
 
                   {/* Dernière MAJ */}
-                  <td className="px-4 py-5">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                      <span className="text-sm text-slate-300 whitespace-nowrap">
-                        {formatDate(client.derniereMaj)}
-                      </span>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="text-xs text-slate-300">{formatDate(client.derniereMaj)}</span>
                     </div>
                   </td>
 
                   {/* Actions */}
-                  <td className="px-4 py-5 text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onClientClick(client)
-                        }}
-                        className="h-8 px-3 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 transition-all"
-                        title="Voir les détails"
-                      >
-                        <Eye className="w-4 h-4 mr-1.5" />
-                        Voir
-                      </Button>
-                    </div>
+                  <td className="px-4 py-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-3 text-xs hover:bg-slate-700/50"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onClientClick(client)
+                      }}
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1.5" />
+                      Voir
+                    </Button>
                   </td>
                 </motion.tr>
               )

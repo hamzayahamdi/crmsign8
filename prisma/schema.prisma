@@ -55,6 +55,7 @@ model User {
   password  String
   name      String
   role      String   @default("user")
+  magasin   String?
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 

@@ -91,9 +91,7 @@ export function Sidebar() {
         const lastSeen = lastSeenStr ? new Date(lastSeenStr) : new Date(0)
         const updates = allTasks.filter(t => new Date(t.updatedAt) > lastSeen).length
         setAdminUpdatesCount(updates)
-        if (updates > 0 && pathname !== '/tasks') {
-          toast.info(`${updates} mise(s) à jour de tâches depuis votre dernière visite`, { duration: 3500 })
-        }
+        // Removed toast notification - using sidebar badge instead
       } catch {
         setAdminUpdatesCount(0)
       }
@@ -138,6 +136,11 @@ export function Sidebar() {
               baseNav[3], // Tâches & Rappels
             ]
           }
+          if (role === 'commercial') {
+            return [
+              { name: "Mes Leads", href: "/commercial", icon: Home },
+            ]
+          }
           if (role === 'admin' || role === 'operator') {
             return [
               ...baseNav,
@@ -166,25 +169,31 @@ export function Sidebar() {
               <span className="font-medium text-sm flex-1">{item.name}</span>
               {item.href === "/tasks" && (
                 <span className="ml-auto inline-flex items-center gap-2">
+                  {/* New Tasks - Red Pulse Dot */}
                   {myNewTasks > 0 && (
-                    <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_0_3px_rgba(239,68,68,0.25)]" />
+                    <span className="relative inline-flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-lg shadow-red-500/50"></span>
+                    </span>
                   )}
+                  {/* Pending Tasks - Badge */}
                   {myPendingTasks > 0 && (
                     <span className={cn(
-                      "min-w-[1.5rem] h-6 px-2 inline-flex items-center justify-center rounded-full text-xs font-semibold border",
+                      "min-w-[1.75rem] h-7 px-2.5 inline-flex items-center justify-center rounded-full text-xs font-bold shadow-lg",
                       isActive
-                        ? "bg-white/15 border-white/30 text-white"
-                        : "bg-primary/15 border-primary/30 text-primary"
+                        ? "bg-white text-primary shadow-white/20"
+                        : "bg-gradient-to-r from-primary to-blue-500 text-white shadow-primary/30 animate-pulse"
                     )}>
                       {myPendingTasks}
                     </span>
                   )}
+                  {/* Admin Updates - Toaster Style Badge */}
                   {((user?.role || '').toLowerCase() === 'admin' || (user?.role || '').toLowerCase() === 'operator') && adminUpdatesCount > 0 && (
                     <span className={cn(
-                      "min-w-[1.5rem] h-6 px-2 inline-flex items-center justify-center rounded-full text-xs font-semibold border",
+                      "min-w-[1.75rem] h-7 px-2.5 inline-flex items-center justify-center rounded-full text-xs font-bold shadow-lg border-2",
                       isActive
-                        ? "bg-blue-400/20 border-blue-400/40 text-blue-100"
-                        : "bg-blue-400/15 border-blue-400/30 text-blue-300"
+                        ? "bg-orange-500 border-orange-300 text-white shadow-orange-500/30"
+                        : "bg-gradient-to-r from-orange-400 to-amber-500 border-orange-300 text-white shadow-orange-500/40 animate-pulse"
                     )}>
                       {adminUpdatesCount}
                     </span>
@@ -215,7 +224,7 @@ export function Sidebar() {
                   </p>
                   {user.role && (
                     <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
-                      {(user.role || '').toLowerCase() === 'admin' ? 'Administrateur' : (user.role || '').toLowerCase() === 'operator' ? 'Opérateur' : 'Architecte'}
+                      {(user.role || '').toLowerCase() === 'admin' ? 'Administrateur' : (user.role || '').toLowerCase() === 'operator' ? 'Opérateur' : (user.role || '').toLowerCase() === 'commercial' ? 'Commercial' : 'Architecte'}
                     </span>
                   )}
                 </div>

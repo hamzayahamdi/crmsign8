@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         name: user.name,
         role: user.role,
+        magasin: user.magasin,
       },
       JWT_SECRET,
       { expiresIn: TOKEN_EXPIRY }
@@ -64,14 +65,20 @@ export async function POST(request: NextRequest) {
           email: user.email,
           name: user.name,
           role: user.role,
+          magasin: user.magasin,
         },
       },
       { status: 200 }
     )
   } catch (error) {
     console.error("Login error:", error)
+    console.error("Error details:", error instanceof Error ? error.message : String(error))
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace")
     return NextResponse.json(
-      { error: "Erreur serveur. Veuillez réessayer." },
+      { 
+        error: "Erreur serveur. Veuillez réessayer.",
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+      },
       { status: 500 }
     )
   }

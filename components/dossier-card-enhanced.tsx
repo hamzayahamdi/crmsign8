@@ -19,6 +19,12 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
     bgColor: string
     borderColor: string
   }> = {
+    prospection: {
+      label: "Prospection",
+      color: "text-yellow-400",
+      bgColor: "bg-yellow-500/10",
+      borderColor: "border-yellow-500/30"
+    },
     nouveau: {
       label: "Nouveau",
       color: "text-blue-400",
@@ -37,6 +43,12 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
       bgColor: "bg-purple-500/10",
       borderColor: "border-purple-500/30"
     },
+    en_validation: {
+      label: "En validation",
+      color: "text-orange-400",
+      bgColor: "bg-orange-500/10",
+      borderColor: "border-orange-500/30"
+    },
     en_chantier: {
       label: "En chantier",
       color: "text-amber-400",
@@ -45,9 +57,9 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
     },
     livraison: {
       label: "Livraison",
-      color: "text-yellow-400",
-      bgColor: "bg-yellow-500/10",
-      borderColor: "border-yellow-500/30"
+      color: "text-teal-400",
+      bgColor: "bg-teal-500/10",
+      borderColor: "border-teal-500/30"
     },
     termine: {
       label: "Terminé",
@@ -55,9 +67,26 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
       bgColor: "bg-green-500/10",
       borderColor: "border-green-500/30"
     },
+    annule: {
+      label: "Annulé",
+      color: "text-red-400",
+      bgColor: "bg-red-500/10",
+      borderColor: "border-red-500/30"
+    },
+    suspendu: {
+      label: "Suspendu",
+      color: "text-slate-400",
+      bgColor: "bg-slate-500/10",
+      borderColor: "border-slate-500/30"
+    },
   }
 
-  const statusInfo = statusConfig[client.statutProjet]
+  const statusInfo = statusConfig[client.statutProjet] || {
+    label: client.statutProjet || "Inconnu",
+    color: "text-slate-400",
+    bgColor: "bg-slate-500/10",
+    borderColor: "border-slate-500/30"
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)

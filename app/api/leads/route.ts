@@ -36,6 +36,9 @@ export async function GET(request: NextRequest) {
     if (user?.role === 'architect') {
       // Filter by assigned name
       where.assignePar = user.name
+    } else if (user?.role === 'commercial') {
+      // Filter by createdBy (commercial can only see their own leads)
+      where.createdBy = user.name
     }
     
     // Fetch total count (respecting role filter)
@@ -86,32 +89,43 @@ export async function GET(request: NextRequest) {
 // POST /api/leads - Create new lead
 export async function POST(request: NextRequest) {
   try {
-    // Auth: only Admin can create leads
+    // Auth: Admin and Commercial can create leads
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const token = authHeader.substring(7)
-    let role = ''
+    let user: { userId: string; email: string; name: string; role: string; magasin?: string } | null = null
     try {
       const decoded = verify(token, JWT_SECRET) as any
-      role = (decoded.role || '').toLowerCase()
+      user = {
+        userId: decoded.userId,
+        email: decoded.email,
+        name: decoded.name,
+        role: (decoded.role || '').toLowerCase(),
+        magasin: decoded.magasin
+      }
     } catch (err) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
-    if (role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Admins only' }, { status: 403 })
+    if (user.role !== 'admin' && user.role !== 'commercial') {
+      return NextResponse.json({ error: 'Forbidden: Admins and Commercials only' }, { status: 403 })
     }
 
     const body = await request.json()
     
     // Get user info from token for createdBy
-    let createdBy = body.assignePar
-    try {
-      const decoded = verify(token, JWT_SECRET) as any
-      createdBy = decoded.name || body.assignePar
-    } catch (_) {
-      // Use assignePar as fallback
+    let createdBy = user.name
+    let assignePar = body.assignePar || 'Non assigné'
+    let magasin = body.magasin || user.magasin
+    let commercialMagasin = body.commercialMagasin || (user.role === 'commercial' ? user.name : undefined)
+    
+    // For commercial users, force status to "nouveau" and set default values
+    let statut = body.statut
+    let statutDetaille = body.statutDetaille
+    if (user.role === 'commercial') {
+      statut = 'nouveau'
+      statutDetaille = 'Nouveau lead'
     }
     
     const lead = await prisma.lead.create({
@@ -120,14 +134,14 @@ export async function POST(request: NextRequest) {
         telephone: body.telephone,
         ville: body.ville,
         typeBien: body.typeBien,
-        statut: body.statut,
-        statutDetaille: body.statutDetaille,
+        statut: statut,
+        statutDetaille: statutDetaille,
         message: body.message,
-        assignePar: body.assignePar,
-        source: body.source,
-        priorite: body.priorite,
-        magasin: body.magasin,
-        commercialMagasin: body.commercialMagasin,
+        assignePar: assignePar,
+        source: body.source || 'magasin',
+        priorite: body.priorite || 'moyenne',
+        magasin: magasin,
+        commercialMagasin: commercialMagasin,
         createdBy: createdBy,
         derniereMaj: new Date()
       },

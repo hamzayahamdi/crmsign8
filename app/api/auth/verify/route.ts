@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
         email: string
         name: string
         role: string
+        magasin?: string
       }
 
       return NextResponse.json(
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
             email: decoded.email,
             name: decoded.name,
             role: decoded.role,
+            magasin: decoded.magasin,
           },
         },
         { status: 200 }

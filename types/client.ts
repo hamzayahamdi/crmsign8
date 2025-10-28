@@ -1,4 +1,14 @@
-export type ProjectStatus = "prospection" | "nouveau" | "acompte_verse" | "en_conception" | "en_chantier" | "livraison" | "termine"
+export type ProjectStatus = 
+  | "prospection" 
+  | "nouveau" 
+  | "acompte_verse" 
+  | "en_conception" 
+  | "en_validation"
+  | "en_chantier" 
+  | "livraison" 
+  | "termine"
+  | "annule"
+  | "suspendu"
 export type ProjectType = "appartement" | "villa" | "magasin" | "bureau" | "riad" | "studio" | "autre"
 
 export interface Client {

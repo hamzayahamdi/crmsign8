@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Plus, Filter, X, ChevronDown, Users, TrendingUp, DollarSign } from "lucide-react"
+import { Search, Plus, Filter, X, ChevronDown, Users, TrendingUp, DollarSign, LayoutGrid, Table as TableIcon } from "lucide-react"
 import type { Client, ProjectStatus } from "@/types/client"
 import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
@@ -10,6 +10,8 @@ import { ClientsListMobile } from "@/components/clients-list-mobile"
 import { ClientDetailPanelLuxe } from "@/components/client-detail-panel-luxe"
 import { AddClientModalImproved } from "@/components/add-client-modal-improved"
 import { ClientAutocomplete } from "@/components/client-autocomplete"
+import { ClientKanbanBoard } from "@/components/client-kanban-board"
+import { ViewStore, type ViewMode } from "@/stores/view-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -35,6 +37,18 @@ export default function ClientsPage() {
     ville: "all" as string,
     typeProjet: "all" as string,
   })
+  const [viewMode, setViewMode] = useState<ViewMode>('table')
+
+  // Load view mode from localStorage on mount
+  useEffect(() => {
+    setViewMode(ViewStore.getViewMode())
+  }, [])
+
+  // Save view mode to localStorage when it changes
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode)
+    ViewStore.setViewMode(mode)
+  }
 
   // Seed demo client and load clients from localStorage
   useEffect(() => {
@@ -182,73 +196,72 @@ export default function ClientsPage() {
         <main className="flex-1 flex flex-col">
           <Header />
           
-          {/* Stats Cards */}
-          <div className="p-6 pb-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Stats Cards - Compact */}
+          <div className="px-6 pb-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <motion.div 
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass rounded-lg p-3 border border-slate-600/30"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
+                    <Users className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-400">Clients</p>
+                    <p className="text-xl font-bold text-white">{clients.length}</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="glass rounded-lg p-3 border border-slate-600/30"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
+                    <TrendingUp className="w-4 h-4 text-orange-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-400">Actifs</p>
+                    <p className="text-xl font-bold text-white">{activeProjects}</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="glass rounded-2xl p-5 border border-slate-600/30"
+                className="glass rounded-lg p-3 border border-slate-600/30"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Total Clients</p>
-                    <p className="text-3xl font-bold text-white">{totalClients}</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
+                    <TrendingUp className="w-4 h-4 text-green-400" />
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <Users className="w-6 h-6 text-blue-400" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-400">Terminés</p>
+                    <p className="text-xl font-bold text-white">{completedProjects}</p>
                   </div>
                 </div>
               </motion.div>
 
               <motion.div 
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="glass rounded-2xl p-5 border border-slate-600/30"
+                transition={{ delay: 0.15 }}
+                className="glass rounded-lg p-3 border border-slate-600/30"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Projets actifs</p>
-                    <p className="text-3xl font-bold text-white">{activeProjects}</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
+                    <DollarSign className="w-4 h-4 text-purple-400" />
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-orange-400" />
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="glass rounded-2xl p-5 border border-slate-600/30"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Projets terminés</p>
-                    <p className="text-3xl font-bold text-white">{completedProjects}</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-green-400" />
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="glass rounded-2xl p-5 border border-slate-600/30"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Budget total</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(totalBudget)}</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <DollarSign className="w-6 h-6 text-purple-400" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-400">Budget</p>
+                    <p className="text-lg font-bold text-white truncate">{formatCurrency(totalBudget)}</p>
                   </div>
                 </div>
               </motion.div>
@@ -256,8 +269,8 @@ export default function ClientsPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="px-6 pb-4 space-y-3">
-            {/* Search Bar and Add Button */}
+          <div className="px-6 pb-3 space-y-2">
+            {/* Search Bar, View Toggle, and Add Button */}
             <div className="flex gap-3">
               <div className="flex-1">
                 <ClientAutocomplete
@@ -266,19 +279,49 @@ export default function ClientsPage() {
                   placeholder="Rechercher un client par nom, ville, téléphone..."
                 />
               </div>
+              
+              {/* View Toggle */}
+              <div className="glass rounded-lg p-1 flex border border-slate-600/30">
+                <button
+                  onClick={() => handleViewModeChange('table')}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all duration-200",
+                    viewMode === 'table'
+                      ? "bg-primary text-white"
+                      : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                  )}
+                >
+                  <TableIcon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Table</span>
+                </button>
+                <button
+                  onClick={() => handleViewModeChange('kanban')}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all duration-200",
+                    viewMode === 'kanban'
+                      ? "bg-primary text-white"
+                      : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                  )}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Kanban</span>
+                </button>
+              </div>
+
               <Button
                 onClick={handleAddClient}
-                className="h-12 px-6 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium shadow-lg shadow-primary/20"
+                className="h-10 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium text-sm"
               >
-                <Plus className="w-5 h-5 mr-2" />
-                Nouveau Client
+                <Plus className="w-4 h-4 mr-1.5" />
+                <span className="hidden sm:inline">Nouveau</span>
+                <span className="sm:hidden">+</span>
               </Button>
             </div>
 
             {/* Filters */}
-            <div className="glass rounded-xl border border-slate-600/30">
+            <div className="glass rounded-lg border border-slate-600/30">
               {/* Filter Header */}
-              <div className="flex items-center justify-between p-4 gap-4">
+              <div className="flex items-center justify-between p-3 gap-3">
                 <div 
                   className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1"
                   onClick={() => setIsFiltersOpen(!isFiltersOpen)}
@@ -358,8 +401,8 @@ export default function ClientsPage() {
 
               {/* Filter Content */}
               {isFiltersOpen && (
-                <div className="border-t border-slate-600/30 p-4 bg-slate-800/60">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="px-3 pb-3 pt-2 border-t border-slate-600/30">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* Statut Filter */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-white">Statut du projet</label>
@@ -372,9 +415,12 @@ export default function ClientsPage() {
                         <option value="nouveau">Nouveau</option>
                         <option value="acompte_verse">Acompte versé</option>
                         <option value="en_conception">En conception</option>
+                        <option value="en_validation">En validation</option>
                         <option value="en_chantier">En chantier</option>
                         <option value="livraison">Livraison</option>
                         <option value="termine">Terminé</option>
+                        <option value="annule">Annulé</option>
+                        <option value="suspendu">Suspendu</option>
                       </select>
                     </div>
 
@@ -409,8 +455,8 @@ export default function ClientsPage() {
                     </div>
 
                     {/* Architecte Filter */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-white">Architecte</label>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-white">Équipe</label>
                       <select
                         value={filters.architecte}
                         onChange={(e) => setFilters(f => ({ ...f, architecte: e.target.value }))}
@@ -428,36 +474,70 @@ export default function ClientsPage() {
             </div>
           </div>
 
-          {/* Clients Table or Empty State */}
+          {/* Clients Content - Table or Kanban */}
           <div className="flex-1 px-6 pb-6 overflow-hidden">
             {clients.length === 0 ? (
               <div className="h-full flex items-center justify-center">
-                <div className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center"
+                >
+                  <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-10 h-10 text-primary" />
+                  </div>
                   <h2 className="text-2xl font-bold text-white mb-2">Aucun client pour le moment</h2>
-                  <p className="text-slate-400">Ajoutez un nouveau client pour commencer.</p>
-                </div>
+                  <p className="text-slate-400 mb-6">Ajoutez un nouveau client pour commencer à gérer vos projets.</p>
+                  <Button
+                    onClick={handleAddClient}
+                    className="bg-primary hover:bg-primary/90 text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Créer un client
+                  </Button>
+                </motion.div>
               </div>
             ) : (
               <>
-                {/* Desktop Table View */}
-                <div className="hidden lg:block">
-                  <ClientsTable
-                    clients={clients}
-                    onClientClick={handleClientClick}
-                    searchQuery={searchQuery}
-                    filters={filters}
-                  />
-                </div>
-                
-                {/* Mobile List View */}
-                <div className="block lg:hidden">
-                  <ClientsListMobile
-                    clients={clients}
-                    onClientClick={handleClientClick}
-                    searchQuery={searchQuery}
-                    filters={filters}
-                  />
-                </div>
+                {viewMode === 'table' ? (
+                  <>
+                    {/* Desktop Table View */}
+                    <div className="hidden lg:block">
+                      <ClientsTable
+                        clients={clients}
+                        onClientClick={handleClientClick}
+                        searchQuery={searchQuery}
+                        filters={filters}
+                      />
+                    </div>
+                    
+                    {/* Mobile List View */}
+                    <div className="block lg:hidden">
+                      <ClientsListMobile
+                        clients={clients}
+                        onClientClick={handleClientClick}
+                        searchQuery={searchQuery}
+                        filters={filters}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  /* Kanban View - Project Management */
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="h-full"
+                  >
+                    <ClientKanbanBoard
+                      clients={clients}
+                      onClientClick={handleClientClick}
+                      onUpdateClient={handleUpdateClient}
+                      searchQuery={searchQuery}
+                      filters={filters}
+                    />
+                  </motion.div>
+                )}
               </>
             )}
           </div>

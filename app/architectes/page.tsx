@@ -208,83 +208,72 @@ export default function ArchitectesPage() {
         <main className="flex-1 flex flex-col">
           <Header />
           
-          {/* Page Header */}
-          <div className="p-6 pb-4 border-b border-slate-600/30">
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <h1 className="text-3xl font-bold text-white">Gestion des Architectes</h1>
-            </motion.div>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="p-6 pb-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Stats Cards - Compact */}
+          <div className="px-6 pb-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <motion.div 
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass rounded-lg p-3 border border-slate-600/30"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
+                    <Users className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-400">Architectes</p>
+                    <p className="text-xl font-bold text-white">{totalArchitects}</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="glass rounded-lg p-3 border border-slate-600/30"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
+                    <TrendingUp className="w-4 h-4 text-green-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-400">Actifs</p>
+                    <p className="text-xl font-bold text-white">{activeArchitects}</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="glass rounded-2xl p-5 border border-slate-600/30"
+                className="glass rounded-lg p-3 border border-slate-600/30"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Total Architectes</p>
-                    <p className="text-3xl font-bold text-white">{totalArchitects}</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
+                    <FolderOpen className="w-4 h-4 text-purple-400" />
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <Users className="w-6 h-6 text-blue-400" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-400">Dossiers</p>
+                    <p className="text-xl font-bold text-white">{totalDossiers}</p>
                   </div>
                 </div>
               </motion.div>
 
               <motion.div 
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="glass rounded-2xl p-5 border border-slate-600/30"
+                transition={{ delay: 0.15 }}
+                className="glass rounded-lg p-3 border border-slate-600/30"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Architectes actifs</p>
-                    <p className="text-3xl font-bold text-white">{activeArchitects}</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
+                    <Briefcase className="w-4 h-4 text-orange-400" />
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-green-400" />
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="glass rounded-2xl p-5 border border-slate-600/30"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Total dossiers</p>
-                    <p className="text-3xl font-bold text-white">{totalDossiers}</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <FolderOpen className="w-6 h-6 text-purple-400" />
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="glass rounded-2xl p-5 border border-slate-600/30"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Moyenne / architecte</p>
-                    <p className="text-3xl font-bold text-white">{avgDossiersPerArchitect}</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
-                    <Briefcase className="w-6 h-6 text-orange-400" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-400">Moyenne</p>
+                    <p className="text-xl font-bold text-white">{avgDossiersPerArchitect}</p>
                   </div>
                 </div>
               </motion.div>
@@ -292,71 +281,72 @@ export default function ArchitectesPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="px-6 pb-4 space-y-3">
+          <div className="px-6 pb-3 space-y-2">
             {/* Search Bar and Actions */}
             <div className="flex gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher un architecte par nom, email, ville..."
-                  className="h-12 pl-12 pr-4 bg-slate-800/60 border-slate-600/60 text-white placeholder:text-slate-400 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  placeholder="Rechercher un architecte..."
+                  className="h-10 pl-11 pr-4 bg-slate-800/60 border-slate-600/60 text-white placeholder:text-slate-400 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary/20 text-sm"
                 />
               </div>
               
               {/* View Mode Toggle */}
-              <div className="glass rounded-xl border border-slate-600/30 p-1 flex gap-1">
+              <div className="glass rounded-lg border border-slate-600/30 p-1 flex gap-1">
                 <Button
                   variant={viewMode === "grid" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("grid")}
                   className={cn(
-                    "h-10 px-4",
+                    "h-8 px-3",
                     viewMode === "grid" && "bg-primary text-white"
                   )}
                 >
-                  <Grid3x3 className="w-4 h-4" />
+                  <Grid3x3 className="w-3.5 h-3.5" />
                 </Button>
                 <Button
                   variant={viewMode === "table" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("table")}
                   className={cn(
-                    "h-10 px-4",
+                    "h-8 px-3",
                     viewMode === "table" && "bg-primary text-white"
                   )}
                 >
-                  <List className="w-4 h-4" />
+                  <List className="w-3.5 h-3.5" />
                 </Button>
               </div>
 
               <Button
                 onClick={() => setIsAddModalOpen(true)}
-                className="h-12 px-6 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white rounded-xl font-medium shadow-lg shadow-primary/20"
+                className="h-10 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium text-sm"
               >
-                <Plus className="w-5 h-5 mr-2" />
-                Ajouter un architecte
+                <Plus className="w-4 h-4 mr-1.5" />
+                <span className="hidden sm:inline">Ajouter</span>
+                <span className="sm:hidden">+</span>
               </Button>
             </div>
 
             {/* Filters */}
-            <div className="glass rounded-xl border border-slate-600/30">
+            <div className="glass rounded-lg border border-slate-600/30">
               {/* Filter Header */}
-              <div className="flex items-center justify-between p-4 gap-4">
+              <div className="flex items-center justify-between p-3 gap-3">
                 <div 
-                  className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1"
+                  className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity flex-1"
                   onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                 >
-                  <Filter className="w-5 h-5 text-primary" />
-                  <span className="font-medium text-white">Filtres</span>
+                  <Filter className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-white">Filtres</span>
                   {getActiveFiltersCount() > 0 && (
-                    <span className="bg-primary/20 text-primary px-2 py-1 rounded-full text-xs font-medium">
-                      {getActiveFiltersCount()} actif{getActiveFiltersCount() > 1 ? 's' : ''}
+                    <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-xs font-medium">
+                      {getActiveFiltersCount()}
                     </span>
                   )}
                   <ChevronDown className={cn(
-                    "w-4 h-4 text-white transition-transform ml-auto",
+                    "w-3.5 h-3.5 text-white transition-transform ml-auto",
                     isFiltersOpen && "rotate-180"
                   )} />
                 </div>
@@ -369,8 +359,8 @@ export default function ArchitectesPage() {
                     }}
                     className="text-xs text-muted-foreground hover:text-white flex items-center gap-1.5 transition-colors px-2 py-1 rounded hover:bg-slate-700/50"
                   >
-                    <X className="w-3.5 h-3.5" />
-                    Effacer filtres
+                    <X className="w-3 h-3" />
+                    Effacer
                   </button>
                 )}
               </div>

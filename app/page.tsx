@@ -1,18 +1,40 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { KanbanBoard } from "@/components/kanban-board"
 import { Sidebar } from "@/components/sidebar"
 import { Header } from "@/components/header"
 import { AuthGuard } from "@/components/auth-guard"
+import { useAuth } from "@/contexts/auth-context"
+import { Loader2 } from "lucide-react"
 
 export default function HomePage() {
   const [search, setSearch] = useState("")
+  const { user, isLoading } = useAuth()
+  const router = useRouter()
+
+  // Redirect commercial users to their dashboard
+  useEffect(() => {
+    if (!isLoading && user?.role === "commercial") {
+      router.push("/commercial")
+    }
+  }, [user, isLoading, router])
+
   const handleCreateLead = () => {
     // Trigger the create lead modal in KanbanBoard
     if (typeof window !== "undefined" && (window as any).__signature8CreateLead) {
       ;(window as any).__signature8CreateLead()
     }
+  }
+
+  // Show loading while checking role
+  if (isLoading || user?.role === "commercial") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
   }
 
   return (
