@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -10,8 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CreatableSelect } from "@/components/creatable-select"
 import { Textarea } from "@/components/ui/textarea"
-import type { Lead, LeadStatus, LeadSource, LeadPriority } from "@/types/lead"
-import { Trash2 } from "lucide-react"
+import type { Lead, LeadStatus, LeadSource, LeadPriority, LeadNote } from "@/types/lead"
+import { Trash2, UserPlus, XCircle, Save } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +22,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { cn } from "@/lib/utils"
+import { toast } from "@/hooks/use-toast"
 
 interface LeadModalProps {
   open: boolean
@@ -30,69 +31,95 @@ interface LeadModalProps {
   lead?: Lead
   onSave: (lead: Omit<Lead, "id"> & { id?: string }) => void
   onDelete?: () => void
+  onConvertToClient?: (lead: Lead) => void
+  onMarkAsNotInterested?: (lead: Lead) => void
+  currentUserRole?: string
+  currentUserName?: string
 }
 
 const defaultVilles = [
-  "Marrakech",
   "Casablanca",
   "Rabat",
-  "Fès",
+  "Marrakech",
   "Tanger",
+  "Fès",
   "Agadir",
   "Meknès",
   "Oujda",
+  "Bouskoura",
   "Sale",
-  "Ain Sbai",
-  "Benslimane",
-  "Casa",
 ]
+
 const defaultTypesBien = [
-  "Appartement",
   "Villa",
-  "Bureau",
+  "Appartement",
   "Terrain",
+  "Bureau",
   "Riad",
   "Commerce",
-  "Appartement (travaux)",
-  "Appartement et plateau bureau",
-  "Studio 45 M²",
-  "Appartement secondaire",
-  "3 Appartements (travaux)",
 ]
+
 const statuts: { value: LeadStatus; label: string }[] = [
-  { value: "nouveau", label: "Nouveau" },
-  { value: "a_recontacter", label: "À recontacter" },
-  { value: "en_cours", label: "En cours d'acquisition" },
-  { value: "signe", label: "Signé" },
-  { value: "perdu", label: "Perdu / Sans réponse" },
+  { value: "nouveau", label: "🟢 Nouveau" },
+  { value: "a_recontacter", label: "🟡 À recontacter" },
+  { value: "sans_reponse", label: "🟠 Sans réponse" },
+  { value: "non_interesse", label: "🔴 Non intéressé" },
+  { value: "converti", label: "🔵 Converti" },
 ]
 
 const sources: { value: LeadSource; label: string }[] = [
-  { value: "magasin", label: "Magasin" },
-  { value: "recommandation", label: "Recommandation" },
-  { value: "site_web", label: "Site web" },
-  { value: "reseaux_sociaux", label: "Réseaux sociaux" },
+  { value: "magasin", label: "🏢 Magasin" },
+  { value: "site_web", label: "🌐 Site web" },
+  { value: "facebook", label: "📘 Facebook" },
+  { value: "instagram", label: "📷 Instagram" },
+  { value: "tiktok", label: "🎵 TikTok" },
+  { value: "reference_client", label: "👥 Recommandation" },
+  { value: "autre", label: "📦 Autre" },
 ]
 
-// Function to calculate priority based on source
+const magasins = [
+  "📍 Casablanca",
+  "📍 Rabat",
+  "📍 Tanger",
+  "📍 Marrakech",
+  "📍 Bouskoura",
+]
+
 const calculatePriority = (source: LeadSource): LeadPriority => {
   switch (source) {
     case "magasin":
-    case "recommandation":
+    case "reference_client":
       return "haute"
     case "site_web":
       return "moyenne"
-    case "reseaux_sociaux":
+    case "facebook":
+    case "instagram":
+    case "tiktok":
+    case "autre":
       return "basse"
     default:
       return "moyenne"
   }
 }
 
-export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadModalProps) {
-  const [architects, setArchitects] = useState<string[]>([])
+export function LeadModal({ 
+  open, 
+  onOpenChange, 
+  lead, 
+  onSave, 
+  onDelete,
+  onConvertToClient,
+  onMarkAsNotInterested,
+  currentUserRole = "admin",
+  currentUserName = "Admin"
+}: LeadModalProps) {
+  const [commercials, setCommercials] = useState<string[]>(["Radia"])
   const [villes, setVilles] = useState<string[]>(defaultVilles)
   const [typesBien, setTypesBien] = useState<string[]>(defaultTypesBien)
+  const [architects, setArchitects] = useState<string[]>(['TAZI'])
+  const [newNote, setNewNote] = useState("")
+  const [showConvertDialog, setShowConvertDialog] = useState(false)
+  const [showNotInterestedDialog, setShowNotInterestedDialog] = useState(false)
   const initialForm = {
     nom: lead?.nom || "",
     telephone: lead?.telephone || "",
@@ -101,9 +128,12 @@ export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadMo
     statut: lead?.statut || ("nouveau" as LeadStatus),
     statutDetaille: lead?.statutDetaille || "",
     message: lead?.message || "",
-    assignePar: lead?.assignePar || "TAZI",
+    assignePar: lead?.assignePar || "Radia",
     source: lead?.source || ("site_web" as LeadSource),
     priorite: lead?.priorite || ("moyenne" as LeadPriority),
+    magasin: lead?.magasin || "",
+    commercialMagasin: lead?.commercialMagasin || "",
+    notes: lead?.notes || [],
   }
 
   const [formData, setFormData] = useState(initialForm)
@@ -147,10 +177,13 @@ export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadMo
     assignePar: "TAZI",
     source: "site_web" as LeadSource,
     priorite: "moyenne" as LeadPriority,
+    magasin: "",
+    commercialMagasin: "",
+    notes: [],
   })
 
   useEffect(() => {
-    if (lead) {
+    if (lead && open) {
       setFormData((prev) => ({
         ...prev,
         nom: lead.nom,
@@ -163,9 +196,12 @@ export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadMo
         assignePar: lead.assignePar || prev.assignePar || (architects[0] || 'TAZI'),
         source: lead.source,
         priorite: lead.priorite,
+        magasin: lead.magasin || "",
+        commercialMagasin: lead.commercialMagasin || "",
+        notes: lead.notes || [],
       }))
     }
-  }, [lead, architects])
+  }, [lead, architects, open])
 
   // When opening for a new lead (no lead provided), clear the form
   useEffect(() => {
@@ -320,7 +356,7 @@ export function LeadModal({ open, onOpenChange, lead, onSave, onDelete }: LeadMo
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-border/60">
-                  {architects.map((name) => (
+                  {architects.map((name: string) => (
                     <SelectItem key={name} value={name}>
                       {name.toUpperCase()}
                     </SelectItem>

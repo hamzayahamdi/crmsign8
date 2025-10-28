@@ -1,0 +1,84 @@
+═══════════════════════════════════════════════════════════════
+🧹 QUICK CLEANUP - Copy & Paste Into Browser Console
+═══════════════════════════════════════════════════════════════
+
+STEP 1: Open your CRM in browser
+STEP 2: Press F12 (Developer Console)
+STEP 3: Copy ALL code below and paste it
+STEP 4: Press Enter
+STEP 5: Review the list and click OK to confirm
+
+═══════════════════════════════════════════════════════════════
+
+async function cleanClientsData() {
+  console.log('🧹 Starting cleanup...\n')
+  
+  const storedClients = localStorage.getItem('signature8-clients')
+  if (!storedClients) {
+    console.log('✅ No clients to clean')
+    return
+  }
+  
+  const clients = JSON.parse(storedClients)
+  console.log(`📊 Found ${clients.length} clients\n`)
+  
+  const token = localStorage.getItem('token')
+  if (!token) {
+    console.error('❌ Please login first')
+    return
+  }
+  
+  console.log('📡 Fetching leads...')
+  const response = await fetch('/api/leads?page=1&limit=10000', {
+    headers: { 'Authorization': `Bearer ${token}` }
+  })
+  
+  const data = await response.json()
+  const allLeads = data.leads || []
+  const convertedLeads = allLeads.filter(l => l.statut === 'converti')
+  const validLeadIds = new Set(convertedLeads.map(l => l.id))
+  
+  console.log(`✅ Found ${convertedLeads.length} converted leads\n`)
+  
+  const validClients = []
+  const removedClients = []
+  
+  clients.forEach(client => {
+    if (!client.leadId) {
+      console.log(`❌ Remove: "${client.nom}" (no leadId)`)
+      removedClients.push(client)
+    } else if (validLeadIds.has(client.leadId)) {
+      console.log(`✅ Keep: "${client.nom}" (converted lead)`)
+      validClients.push(client)
+    } else {
+      const lead = allLeads.find(l => l.id === client.leadId)
+      if (lead) {
+        console.log(`❌ Remove: "${client.nom}" (lead status: ${lead.statut})`)
+      } else {
+        console.log(`❌ Remove: "${client.nom}" (lead not found)`)
+      }
+      removedClients.push(client)
+    }
+  })
+  
+  console.log(`\n📊 Summary:`)
+  console.log(`   Keep: ${validClients.length}`)
+  console.log(`   Remove: ${removedClients.length}`)
+  
+  if (removedClients.length === 0) {
+    console.log('\n✅ Data is clean!')
+    return
+  }
+  
+  if (confirm(`Remove ${removedClients.length} invalid clients?`)) {
+    localStorage.setItem('signature8-clients', JSON.stringify(validClients))
+    console.log('\n✅ Cleanup complete!')
+    setTimeout(() => location.reload(), 1000)
+  } else {
+    console.log('\n❌ Cancelled')
+  }
+}
+
+cleanClientsData()
+
+═══════════════════════════════════════════════════════════════

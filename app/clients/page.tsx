@@ -16,8 +16,12 @@ import { cn } from "@/lib/utils"
 import { Header } from "@/components/header"
 import { motion } from "framer-motion"
 import { ensureIssamInLocalStorage } from "@/lib/seed-issam"
+import { useAuth } from "@/contexts/auth-context"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ClientsPage() {
+  const { user } = useAuth()
+  const { toast } = useToast()
   const [clients, setClients] = useState<Client[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
@@ -97,6 +101,9 @@ export default function ClientsPage() {
     ))
     setSelectedClient(updatedClient)
   }
+
+  // Note: Clients from converted leads should be deleted from the Leads table
+  // This ensures data consistency and maintains the lead-to-client workflow
 
   const handleMarkComplete = (client: Client) => {
     const now = new Date().toISOString()

@@ -22,6 +22,7 @@ interface ClientsTableProps {
 }
 
 const statutConfig: Record<ProjectStatus, { label: string; color: string }> = {
+  prospection: { label: "Nouveau", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40" },
   nouveau: { label: "Nouveau", color: "bg-slate-500/20 text-slate-400 border-slate-500/40" },
   acompte_verse: { label: "Acompte versé", color: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
   en_conception: { label: "En conception", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
@@ -160,6 +161,10 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
               {sortedClients.length} client{sortedClients.length > 1 ? 's' : ''} trouvé{sortedClients.length > 1 ? 's' : ''}
             </p>
           </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <Eye className="w-4 h-4 text-blue-400" />
+            <span className="text-xs text-blue-300">Vue consultation uniquement</span>
+          </div>
         </div>
       </div>
 
@@ -167,14 +172,14 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
       <div className="overflow-x-auto">
         <table className="w-full table-fixed">
           <colgroup>
-            <col className="w-[25%]" /> {/* Nom du client */}
-            <col className="w-[12%]" /> {/* Téléphone */}
-            <col className="w-[12%]" /> {/* Ville */}
-            <col className="w-[13%]" /> {/* Type de projet */}
-            <col className="w-[13%]" /> {/* Architecte */}
-            <col className="w-[12%]" /> {/* Statut */}
-            <col className="w-[10%]" /> {/* Dernière MAJ */}
-            <col className="w-[8%]" />  {/* Actions */}
+            <col className="w-[25%]" />
+            <col className="w-[12%]" />
+            <col className="w-[12%]" />
+            <col className="w-[13%]" />
+            <col className="w-[13%]" />
+            <col className="w-[12%]" />
+            <col className="w-[10%]" />
+            <col className="w-[8%]" />
           </colgroup>
           <thead className="bg-slate-700/30">
             <tr>
@@ -242,7 +247,10 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
           </thead>
           <tbody className="divide-y divide-slate-600/30">
             {sortedClients.map((client, index) => {
-              const statutInfo = statutConfig[client.statutProjet]
+              const statutInfo = statutConfig[client.statutProjet] || {
+                label: client.statutProjet || "Inconnu",
+                color: "bg-gray-500/20 text-gray-400 border-gray-500/40"
+              }
               return (
                 <motion.tr 
                   key={client.id}
@@ -329,8 +337,8 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
                   </td>
 
                   {/* Actions */}
-                  <td className="px-4 py-5 text-right">
-                    <div className="flex items-center justify-end space-x-1.5">
+                  <td className="px-4 py-5 text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -338,10 +346,11 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
                           e.stopPropagation()
                           onClientClick(client)
                         }}
-                        className="h-9 w-9 p-0 hover:bg-slate-600/50 transition-all"
+                        className="h-8 px-3 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 transition-all"
                         title="Voir les détails"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-4 h-4 mr-1.5" />
+                        Voir
                       </Button>
                     </div>
                   </td>

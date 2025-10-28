@@ -41,13 +41,20 @@ export async function GET(request: NextRequest) {
     // Fetch total count (respecting role filter)
     const totalCount = await prisma.lead.count({ where })
     
-    // Fetch leads - newest first
+    // Fetch leads - newest first, include notes
     const leads = await prisma.lead.findMany({
       skip,
       take: limit,
       where,
       orderBy: {
         createdAt: 'desc'
+      },
+      include: {
+        notes: {
+          orderBy: {
+            createdAt: 'desc'
+          }
+        }
       }
     })
     
@@ -98,6 +105,15 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     
+    // Get user info from token for createdBy
+    let createdBy = body.assignePar
+    try {
+      const decoded = verify(token, JWT_SECRET) as any
+      createdBy = decoded.name || body.assignePar
+    } catch (_) {
+      // Use assignePar as fallback
+    }
+    
     const lead = await prisma.lead.create({
       data: {
         nom: body.nom,
@@ -106,10 +122,17 @@ export async function POST(request: NextRequest) {
         typeBien: body.typeBien,
         statut: body.statut,
         statutDetaille: body.statutDetaille,
+        message: body.message,
         assignePar: body.assignePar,
         source: body.source,
         priorite: body.priorite,
+        magasin: body.magasin,
+        commercialMagasin: body.commercialMagasin,
+        createdBy: createdBy,
         derniereMaj: new Date()
+      },
+      include: {
+        notes: true
       }
     })
     

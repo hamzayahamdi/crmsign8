@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/database"
 import bcrypt from "bcryptjs"
 
-const ALLOWED_ROLES = new Set(["admin", "architect"])
+const ALLOWED_ROLES = new Set(["admin", "architect", "commercial"])
 // GET single user
 export async function GET(
   request: NextRequest,

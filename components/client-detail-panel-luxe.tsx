@@ -6,7 +6,7 @@ import {
   X, Phone, Mail, MessageCircle, Plus, MapPin, Building2, 
   User, Calendar, DollarSign, Briefcase, Clock, Copy,
   FileText, Send, Archive, Check, Sparkles, TrendingUp,
-  FolderOpen, ListTodo, ChevronDown, ChevronUp, Newspaper
+  FolderOpen, ListTodo, ChevronDown, ChevronUp, Newspaper, Edit
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -17,7 +17,6 @@ import { useAuth } from "@/contexts/auth-context"
 import { AddPaymentModal, type PaymentData } from "@/components/add-payment-modal"
 import { CreateTaskModal, type TaskData } from "@/components/create-task-modal"
 import { DocumentsModal } from "@/components/documents-modal"
-import { NewProjectModal, type NewProjectData } from "@/components/new-project-modal"
 import { StatusChangeConfirmationModal } from "@/components/status-change-confirmation-modal"
 import { PaymentTracker } from "@/components/payment-tracker"
 
@@ -34,6 +33,12 @@ const statusConfig: Record<ProjectStatus, {
   gradient: string
   glowColor: string
 }> = {
+  prospection: { 
+    label: "Nouveau", 
+    progress: 5,
+    gradient: "from-gray-400 to-gray-500",
+    glowColor: "shadow-gray-500/20"
+  },
   nouveau: { 
     label: "Nouveau", 
     progress: 10,
@@ -74,6 +79,7 @@ const statusConfig: Record<ProjectStatus, {
 
 // Project stage icons and colors
 const stageConfig = [
+  { key: "prospection", label: "Nouveau", icon: User, color: "text-gray-400" },
   { key: "nouveau", label: "Nouveau", icon: Sparkles, color: "text-slate-400" },
   { key: "acompte_verse", label: "Acompte", icon: DollarSign, color: "text-orange-400" },
   { key: "en_conception", label: "Conception", icon: Briefcase, color: "text-blue-400" },
@@ -100,8 +106,8 @@ export function ClientDetailPanelLuxe({
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false)
-  const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false)
   const [isStatusConfirmModalOpen, setIsStatusConfirmModalOpen] = useState(false)
+  const [isStatusUpdateModalOpen, setIsStatusUpdateModalOpen] = useState(false)
   const [pendingStatus, setPendingStatus] = useState<ProjectStatus | null>(null)
   
   // Check if user can edit status (Admin or Architecte)
@@ -128,7 +134,7 @@ export function ClientDetailPanelLuxe({
       setIsPaymentModalOpen(false)
       setIsTaskModalOpen(false)
       setIsDocumentsModalOpen(false)
-      setIsNewProjectModalOpen(false)
+      //
     }
   }, [client])
 
@@ -259,11 +265,7 @@ export function ClientDetailPanelLuxe({
     window.open(`https://wa.me/${phone}`, '_blank')
   }
 
-  const handleEmail = () => {
-    if (!localClient.email) return
-    const subject = encodeURIComponent(`Projet ${localClient.typeProjet} - ${localClient.nom}`)
-    window.location.href = `mailto:${localClient.email}?subject=${subject}`
-  }
+  // Email quick action removed to reduce clutter
 
   const handleAddPayment = (payment: PaymentData) => {
     const now = new Date().toISOString()
@@ -340,33 +342,7 @@ export function ClientDetailPanelLuxe({
     })
   }
 
-  const handleCreateProject = (project: NewProjectData) => {
-    const now = new Date().toISOString()
-    const updatedClient = {
-      ...localClient,
-      historique: [
-        {
-          id: `hist-${Date.now()}`,
-          date: now,
-          type: 'projet' as const,
-          description: `Nouveau projet créé: ${project.type} (Budget: ${formatCurrency(project.budget)})`,
-          auteur: 'Admin'
-        },
-        ...(localClient.historique || [])
-      ],
-      derniereMaj: now,
-      updatedAt: now
-    }
-
-    setLocalClient(updatedClient)
-    onUpdate?.(updatedClient)
-    setIsNewProjectModalOpen(false)
-
-    toast({
-      title: "Projet créé",
-      description: `Nouveau projet ${project.type} ajouté`,
-    })
-  }
+  // New project creation removed from quick actions
 
   const allNotes = [...(localClient.historique || [])]
     .filter(h => h.type === 'note')
@@ -474,20 +450,14 @@ export function ClientDetailPanelLuxe({
                     État du projet
                   </h3>
                   {canEditStatus ? (
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-emerald-400/70 hidden sm:flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        Modifiable
-                      </span>
-                      <Button
-                        onClick={handleAdvanceStatus}
-                        disabled={!nextStage}
-                        className="h-8 px-3 text-xs rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={nextStage ? `Avancer vers: ${nextStage.label}` : "Déjà à l'étape finale"}
-                      >
-                        Mettre à jour
-                      </Button>
-                    </div>
+                    <Button
+                      onClick={() => setIsStatusUpdateModalOpen(true)}
+                      className="relative h-9 px-4 text-xs rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border border-white/10 shadow-[0_0_24px_rgba(99,102,241,0.45)] transition-all overflow-hidden"
+                    >
+                      <span className="pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-500/20 blur-md animate-pulse" />
+                      <Edit className="relative w-3.5 h-3.5 mr-1.5" />
+                      <span className="relative">Modifier le statut</span>
+                    </Button>
                   ) : (
                     <span className="text-xs text-white/30">Lecture seule</span>
                   )}
@@ -690,26 +660,17 @@ export function ClientDetailPanelLuxe({
                   </div>
 
                   <div className="space-y-3">
-                    {/* Communication actions */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <ActionButton
-                        icon={<Mail className="w-4 h-4" />}
-                        label="Email"
-                        onClick={handleEmail}
-                        disabled={!localClient.email}
-                        variant="primary"
-                        gradient="from-blue-500 to-blue-600"
-                      />
-                      <ActionButton
-                        icon={<MessageCircle className="w-4 h-4" />}
-                        label="WhatsApp"
-                        onClick={handleWhatsApp}
-                        variant="primary"
-                        gradient="from-green-500 to-green-600"
-                      />
-                    </div>
+                    {/* Communication */}
+                    <ActionButton
+                      icon={<MessageCircle className="w-4 h-4" />}
+                      label="WhatsApp"
+                      onClick={handleWhatsApp}
+                      variant="primary"
+                      gradient="from-green-500 to-green-600"
+                      fullWidth
+                    />
 
-                    {/* Project management actions */}
+                    {/* Project management */}
                     <div className="grid grid-cols-2 gap-3">
                       <ActionButton
                         icon={<DollarSign className="w-4 h-4" />}
@@ -725,21 +686,14 @@ export function ClientDetailPanelLuxe({
                       />
                     </div>
 
-                    {/* Document & project actions */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <ActionButton
-                        icon={<FolderOpen className="w-4 h-4" />}
-                        label="Voir documents"
-                        onClick={() => setIsDocumentsModalOpen(true)}
-                        variant="secondary"
-                      />
-                      <ActionButton
-                        icon={<Building2 className="w-4 h-4" />}
-                        label="Nouveau projet"
-                        onClick={() => setIsNewProjectModalOpen(true)}
-                        variant="secondary"
-                      />
-                    </div>
+                    {/* Documents */}
+                    <ActionButton
+                      icon={<FolderOpen className="w-4 h-4" />}
+                      label="Voir documents"
+                      onClick={() => setIsDocumentsModalOpen(true)}
+                      variant="secondary"
+                      fullWidth
+                    />
                   </div>
                 </motion.div>
 
@@ -886,13 +840,6 @@ export function ClientDetailPanelLuxe({
             client={localClient}
           />
 
-          <NewProjectModal
-            isOpen={isNewProjectModalOpen}
-            onClose={() => setIsNewProjectModalOpen(false)}
-            client={localClient}
-            onCreateProject={handleCreateProject}
-          />
-
           <StatusChangeConfirmationModal
             isOpen={isStatusConfirmModalOpen}
             onClose={() => {
@@ -904,6 +851,123 @@ export function ClientDetailPanelLuxe({
             newStatus={pendingStatus || localClient.statutProjet}
             clientName={localClient.nom}
           />
+
+          {/* Status Update Modal */}
+          <AnimatePresence>
+            {isStatusUpdateModalOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+                onClick={() => setIsStatusUpdateModalOpen(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-slate-700/50 shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+                >
+                  {/* Modal Header */}
+                  <div className="sticky top-0 bg-gradient-to-br from-slate-900 to-slate-800 border-b border-slate-700/50 px-6 py-4 flex items-center justify-between z-10">
+                    <div>
+                      <h3 className="text-xl font-semibold text-white">Modifier l'état du projet</h3>
+                      <p className="text-sm text-slate-400 mt-1">Sélectionnez le nouveau statut pour {localClient.nom}</p>
+                    </div>
+                    <button
+                      onClick={() => setIsStatusUpdateModalOpen(false)}
+                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5 text-slate-400 hover:text-white" />
+                    </button>
+                  </div>
+
+                  {/* Current Status */}
+                  <div className="px-6 py-4 bg-slate-800/50">
+                    <p className="text-xs text-slate-400 mb-2">Statut actuel</p>
+                    <div className={cn(
+                      "inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r font-semibold text-sm",
+                      statusInfo.gradient,
+                      "text-white"
+                    )}>
+                      {statusInfo.label}
+                      <span className="text-xs opacity-75">({statusInfo.progress}%)</span>
+                    </div>
+                  </div>
+
+                  {/* Status Options */}
+                  <div className="px-6 py-6 space-y-3">
+                    <p className="text-sm font-medium text-slate-300 mb-4">Choisir un nouveau statut</p>
+                    {stageConfig.map((stage) => {
+                      const Icon = stage.icon
+                      const stageStatus = statusConfig[stage.key as ProjectStatus]
+                      const isCurrent = stage.key === localClient.statutProjet
+                      
+                      return (
+                        <motion.button
+                          key={stage.key}
+                          whileHover={!isCurrent ? { scale: 1.02, x: 4 } : {}}
+                          whileTap={!isCurrent ? { scale: 0.98 } : {}}
+                          onClick={() => {
+                            if (!isCurrent) {
+                              setPendingStatus(stage.key as ProjectStatus)
+                              setIsStatusUpdateModalOpen(false)
+                              setIsStatusConfirmModalOpen(true)
+                            }
+                          }}
+                          disabled={isCurrent}
+                          className={cn(
+                            "w-full p-4 rounded-xl border transition-all flex items-center gap-4",
+                            isCurrent 
+                              ? "bg-slate-800/50 border-slate-700/50 cursor-default opacity-60" 
+                              : "bg-slate-800/30 border-slate-700/30 hover:bg-slate-800/60 hover:border-slate-600/50 cursor-pointer"
+                          )}
+                        >
+                          {/* Icon */}
+                          <div className={cn(
+                            "w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br",
+                            stageStatus.gradient,
+                            "shadow-lg"
+                          )}>
+                            <Icon className="w-6 h-6 text-white" />
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 text-left">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-white">{stage.label}</p>
+                              {isCurrent && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                  Actuel
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-slate-400 mt-0.5">{stageStatus.progress}% de progression</p>
+                          </div>
+
+                          {/* Arrow */}
+                          {!isCurrent && (
+                            <ChevronDown className="w-5 h-5 text-slate-400 rotate-[-90deg]" />
+                          )}
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Modal Footer */}
+                  <div className="sticky bottom-0 bg-gradient-to-br from-slate-900 to-slate-800 border-t border-slate-700/50 px-6 py-4">
+                    <Button
+                      onClick={() => setIsStatusUpdateModalOpen(false)}
+                      className="w-full h-11 bg-slate-700/50 hover:bg-slate-700 text-white rounded-xl transition-all"
+                    >
+                      Annuler
+                    </Button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </>
       )}
     </AnimatePresence>
@@ -911,13 +975,13 @@ export function ClientDetailPanelLuxe({
 }
 
 // Helper component for info rows
-function InfoRow({ 
-  icon, 
-  label, 
-  value, 
-  onCopy, 
-  copied 
-}: { 
+function InfoRow({
+  icon,
+  label,
+  value,
+  onCopy,
+  copied,
+}: {
   icon: React.ReactNode
   label: string
   value: string
@@ -926,9 +990,7 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-start gap-3 group">
-      <div className="text-white/40 mt-0.5">
-        {icon}
-      </div>
+      <div className="text-white/40 mt-0.5">{icon}</div>
       <div className="flex-1 min-w-0">
         <div className="text-xs text-white/40 mb-0.5">{label}</div>
         <div className="text-sm font-medium text-[#EAEAEA]">{value}</div>
@@ -976,7 +1038,7 @@ function ActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "h-12 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 relative overflow-hidden",
+        "h-12 w-full px-4 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 relative overflow-hidden focus:outline-none",
         fullWidth && "col-span-2",
         variant === "primary" && gradient && `bg-gradient-to-r ${gradient} text-white shadow-lg`,
         variant === "secondary" && "bg-white/5 hover:bg-white/10 text-[#EAEAEA] border border-white/10",

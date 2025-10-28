@@ -1,7 +1,7 @@
 "use client"
 
 import type { Lead, LeadStatus, LeadPriority } from "@/types/lead"
-import { Phone, MapPin, User, Calendar, Edit, Trash2, Eye, ArrowUpDown, ArrowUp, ArrowDown, Store, Globe, Facebook, Instagram, Users, Package, Music2, MessageSquarePlus } from "lucide-react"
+import { Phone, MapPin, User, Calendar, Edit, Trash2, Store, Globe, Facebook, Instagram, Users, Package, Music2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -19,11 +19,10 @@ import { cn } from "@/lib/utils"
 import { LeadsTableSkeleton } from "@/components/leads-table-skeleton"
 import { useState } from "react"
 
-interface LeadsTableProps {
+interface LeadsTableImprovedProps {
   leads: Lead[]
   onLeadClick: (lead: Lead) => void
   onDeleteLead: (leadId: string) => void
-  onViewHistory?: (lead: Lead) => void
   searchQuery: string
   filters: {
     status: "all" | LeadStatus
@@ -31,12 +30,13 @@ interface LeadsTableProps {
     type: string
     assigned: string
     priority: "all" | LeadPriority
+    source: string
   }
   isLoading?: boolean
   newlyAddedLeadId?: string | null
 }
 
-const statusConfig: Record<LeadStatus, { label: string; color: string; icon: string }> = {
+const statusConfig = {
   nouveau: { label: "Nouveau", color: "bg-green-500/20 text-green-400 border-green-500/40", icon: "🟢" },
   a_recontacter: { label: "À recontacter", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40", icon: "🟡" },
   sans_reponse: { label: "Sans réponse", color: "bg-orange-500/20 text-orange-400 border-orange-500/40", icon: "🟠" },
@@ -60,13 +60,15 @@ const sourceIcons = {
   autre: { icon: Package, label: "Autre", color: "text-gray-400" },
 }
 
-type SortField = 'nom' | 'statut' | 'ville' | 'typeBien' | 'priorite' | 'derniereMaj' | 'createdAt'
-type SortOrder = 'asc' | 'desc'
-
-export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, searchQuery, filters, isLoading = false, newlyAddedLeadId = null }: LeadsTableProps) {
-  const [sortField, setSortField] = useState<SortField>('createdAt')
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
-
+export function LeadsTableImproved({ 
+  leads, 
+  onLeadClick, 
+  onDeleteLead, 
+  searchQuery, 
+  filters, 
+  isLoading = false, 
+  newlyAddedLeadId = null 
+}: LeadsTableImprovedProps) {
   const normalizedQuery = searchQuery.trim().toLowerCase()
 
   const passesSearch = (lead: Lead) => {
@@ -91,59 +93,17 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
     if (filters.type !== "all" && lead.typeBien !== filters.type) return false
     if (filters.assigned !== "all" && lead.assignePar !== filters.assigned) return false
     if (filters.priority !== "all" && lead.priorite !== filters.priority) return false
+    if (filters.source !== "all" && lead.source !== filters.source) return false
     return true
-  }
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortOrder('desc')
-    }
-  }
-
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) {
-      return <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
-    }
-    return sortOrder === 'asc' ? 
-      <ArrowUp className="w-3.5 h-3.5 text-primary" /> : 
-      <ArrowDown className="w-3.5 h-3.5 text-primary" />
   }
 
   const filteredLeads = leads.filter(lead => passesSearch(lead) && passesFilters(lead))
   
-  // Debug logging
-  console.log(`[LeadsTable] Total leads received: ${leads.length}`)
-  console.log(`[LeadsTable] After filtering: ${filteredLeads.length}`)
-  console.log(`[LeadsTable] Filtered out: ${leads.length - filteredLeads.length}`)
-  console.log(`[LeadsTable] Active filters:`, filters)
-  console.log(`[LeadsTable] Search query: "${searchQuery}"`)
-
-  // Sort leads
+  // Sort by creation date (newest first)
   const sortedLeads = [...filteredLeads].sort((a, b) => {
-    let aValue: any = a[sortField as keyof Lead]
-    let bValue: any = b[sortField as keyof Lead]
-
-    // Handle date fields
-    if (sortField === 'derniereMaj' || sortField === 'createdAt') {
-      aValue = new Date(aValue).getTime()
-      bValue = new Date(bValue).getTime()
-    }
-
-    // Handle string fields
-    if (typeof aValue === 'string') {
-      aValue = aValue.toLowerCase()
-      bValue = bValue.toLowerCase()
-    }
-
-    if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1
-    if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
-    return 0
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   })
 
-  // Show skeleton on initial load
   if (isLoading && leads.length === 0) {
     return <LeadsTableSkeleton rows={8} />
   }
@@ -152,20 +112,16 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
     const date = new Date(dateString)
     const now = new Date()
     
-    // Reset time to midnight for accurate day comparison
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const compareDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
     
     const diffTime = today.getTime() - compareDate.getTime()
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
     
-    // Show relative time for recent dates
     if (diffDays === 0) return "Aujourd'hui"
     if (diffDays === 1) return "Hier"
     if (diffDays > 0 && diffDays < 7) return `Il y a ${diffDays}j`
-    if (diffDays < 0 && diffDays > -2) return "Aujourd'hui" // Handle timezone edge cases
     
-    // Otherwise show formatted date
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: 'short',
@@ -174,42 +130,34 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
   }
 
   const getSourceDisplay = (lead: Lead) => {
-    const sourceInfo = sourceIcons[lead.source as keyof typeof sourceIcons] || sourceIcons.autre
+    const sourceInfo = sourceIcons[lead.source] || sourceIcons.autre
     const Icon = sourceInfo.icon
     
     if (lead.source === 'magasin' && lead.magasin) {
       return (
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1.5">
-            <Icon className={cn("w-4 h-4 flex-shrink-0", sourceInfo.color)} />
-            <span className="text-sm font-semibold text-slate-200 truncate">
-              Magasin {lead.magasin.replace('📍 ', '')}
-            </span>
+        <div className="flex items-center gap-2">
+          <Icon className={cn("w-4 h-4", sourceInfo.color)} />
+          <div className="flex flex-col">
+            <span className="text-sm text-slate-200">{lead.magasin}</span>
+            {lead.commercialMagasin && (
+              <span className="text-xs text-slate-400">{lead.commercialMagasin}</span>
+            )}
           </div>
-          {lead.commercialMagasin && (
-            <div className="ml-5">
-              <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] border bg-slate-700/40 border-slate-600/60 text-slate-300">
-                <User className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="opacity-80">Commercial:</span>
-                <span className="font-medium text-slate-200 truncate max-w-[160px]">{lead.commercialMagasin}</span>
-              </span>
-            </div>
-          )}
         </div>
       )
     }
     
     return (
-      <div className="flex items-center gap-1.5">
-        <Icon className={cn("w-4 h-4 flex-shrink-0", sourceInfo.color)} />
-        <span className="text-sm text-slate-200 capitalize truncate">{sourceInfo.label}</span>
+      <div className="flex items-center gap-2">
+        <Icon className={cn("w-4 h-4", sourceInfo.color)} />
+        <span className="text-sm text-slate-200">{sourceInfo.label}</span>
       </div>
     )
   }
 
   return (
-    <div className="rounded-lg border border-slate-200/20 overflow-hidden bg-white/5 backdrop-blur-sm relative">
-      {/* Subtle loading overlay when refetching with existing data */}
+    <div className="rounded-lg border border-slate-200/20 overflow-hidden bg-white/5 backdrop-blur-sm">
+      {/* Loading overlay */}
       {isLoading && filteredLeads.length > 0 && (
         <div className="absolute top-0 left-0 right-0 z-10 bg-slate-900/30 backdrop-blur-[1px] border-b border-blue-500/30">
           <div className="flex items-center gap-2 px-6 py-2">
@@ -233,69 +181,29 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full table-fixed">
-          <colgroup>
-            <col className="w-[22%]" />
-            <col className="w-[10%]" />
-            <col className="w-[10%]" />
-            <col className="w-[13%]" />
-            <col className="w-[11%]" />
-            <col className="w-[11%]" />
-            <col className="w-[11%]" />
-            <col className="w-[12%]" />
-          </colgroup>
+        <table className="w-full">
           <thead className="bg-slate-800/20 border-b border-slate-200/10">
             <tr>
-              <th className="px-6 py-4 text-left">
-                <button
-                  onClick={() => handleSort('nom')}
-                  className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
-                >
-                  👤 Contact
-                  {getSortIcon('nom')}
-                </button>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                👤 Nom & Téléphone
               </th>
-              <th className="px-4 py-4 text-left">
-                <button
-                  onClick={() => handleSort('ville')}
-                  className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
-                >
-                  🏙️ Ville
-                  {getSortIcon('ville')}
-                </button>
+              <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                🏙️ Ville
               </th>
-              <th className="px-4 py-4 text-left">
-                <button
-                  onClick={() => handleSort('typeBien')}
-                  className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
-                >
-                  🏠 Bien
-                  {getSortIcon('typeBien')}
-                </button>
+              <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                🏠 Type de bien
               </th>
               <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
                 🧭 Source
               </th>
               <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                👤 Assigné par
+                🧑‍💼 Commercial
               </th>
-              <th className="px-4 py-4 text-left">
-                <button
-                  onClick={() => handleSort('statut')}
-                  className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
-                >
-                  🔖 Statut
-                  {getSortIcon('statut')}
-                </button>
+              <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                🔖 État
               </th>
-              <th className="px-4 py-4 text-left">
-                <button
-                  onClick={() => handleSort('createdAt')}
-                  className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
-                >
-                  📅 Créé le
-                  {getSortIcon('createdAt')}
-                </button>
+              <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                📅 Date création
               </th>
               <th className="px-4 py-4 text-right text-xs font-semibold text-slate-300 uppercase tracking-wider">
                 ⚙️ Actions
@@ -312,15 +220,15 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                   className={cn(
                     "hover:bg-slate-700/10 transition-all duration-300 group",
                     isNewlyAdded && "bg-primary/10 ring-2 ring-primary/50"
-                  )}  
+                  )}
                 >
-                  {/* Contact (Nom & Téléphone) */}
+                  {/* Nom & Téléphone */}
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
-                      <p className="text-sm font-semibold text-white truncate">{lead.nom}</p>
+                      <p className="text-sm font-semibold text-white">{lead.nom}</p>
                       <div className="flex items-center gap-1.5 text-slate-400">
-                        <Phone className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="text-xs truncate">{lead.telephone}</span>
+                        <Phone className="w-3.5 h-3.5" />
+                        <span className="text-xs">{lead.telephone}</span>
                       </div>
                     </div>
                   </td>
@@ -328,14 +236,14 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                   {/* Ville */}
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                      <span className="text-sm text-slate-200 truncate">{lead.ville}</span>
+                      <MapPin className="w-4 h-4 text-slate-400" />
+                      <span className="text-sm text-slate-200">{lead.ville}</span>
                     </div>
                   </td>
 
                   {/* Type de bien */}
                   <td className="px-4 py-4">
-                    <span className="text-sm text-slate-200 truncate">{lead.typeBien}</span>
+                    <span className="text-sm text-slate-200">{lead.typeBien}</span>
                   </td>
 
                   {/* Source */}
@@ -343,17 +251,17 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                     {getSourceDisplay(lead)}
                   </td>
 
-                  {/* Assigné à */}
+                  {/* Commercial assigné */}
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                      <span className="text-sm text-slate-200 font-medium truncate">{lead.assignePar}</span>
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-slate-400" />
+                      <span className="text-sm font-medium text-white">{lead.assignePar}</span>
                     </div>
                   </td>
 
-                  {/* Statut */}
+                  {/* État */}
                   <td className="px-4 py-4">
-                    <Badge className={cn("border text-xs font-medium px-2.5 py-1 whitespace-nowrap", statusInfo.color)}>
+                    <Badge className={cn("border text-xs font-medium px-2.5 py-1", statusInfo.color)}>
                       {statusInfo.icon} {statusInfo.label}
                     </Badge>
                   </td>
@@ -361,8 +269,8 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                   {/* Date création */}
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                      <span className="text-sm text-slate-300 whitespace-nowrap">
+                      <Calendar className="w-4 h-4 text-slate-400" />
+                      <span className="text-sm text-slate-300">
                         {formatDate(lead.createdAt)}
                       </span>
                     </div>
@@ -371,17 +279,6 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                   {/* Actions */}
                   <td className="px-4 py-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      {onViewHistory && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onViewHistory(lead)}
-                          className="h-9 w-9 p-0 hover:bg-gradient-to-br hover:from-primary/20 hover:to-purple-500/20 transition-all text-primary hover:text-white border border-transparent hover:border-primary/30 hover:shadow-lg hover:shadow-primary/20"
-                          title="📝 Notes & Historique"
-                        >
-                          <MessageSquarePlus className="w-4 h-4" />
-                        </Button>
-                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -432,15 +329,13 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
         {sortedLeads.length === 0 && (
           <div className="text-center py-12">
             {isLoading ? (
-              <div className="glass rounded-lg p-8 max-w-md mx-auto">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full border-4 border-slate-700"></div>
-                    <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin absolute top-0 left-0"></div>
-                  </div>
-                  <p className="text-white font-medium">Chargement des leads...</p>
-                  <p className="text-sm text-muted-foreground">Veuillez patienter</p>
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full border-4 border-slate-700"></div>
+                  <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin absolute top-0 left-0"></div>
                 </div>
+                <p className="text-white font-medium">Chargement des leads...</p>
+                <p className="text-sm text-slate-400">Veuillez patienter</p>
               </div>
             ) : (
               <div className="p-8">

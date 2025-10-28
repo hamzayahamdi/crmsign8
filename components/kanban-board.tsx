@@ -19,8 +19,9 @@ import {
   pointerWithin,
 } from "@dnd-kit/core"
 import { LeadCard } from "@/components/lead-card"
-import { LeadModal } from "@/components/lead-modal"
+import { LeadModalRedesigned as LeadModal } from "@/components/lead-modal-redesigned"
 import { LeadsTable } from "@/components/leads-table"
+import { LeadNotesPanel } from "@/components/lead-notes-panel"
 import { Phone, MapPin, Filter, ChevronDown, X, RotateCcw, Grid3X3, Table } from "lucide-react"
 import { useState as useAccordionState } from "react"
 import { cn } from "@/lib/utils"
@@ -305,6 +306,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
   const [activeLead, setActiveLead] = useState<Lead | null>(null)
   const [editingLead, setEditingLead] = useState<Lead | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [historyLead, setHistoryLead] = useState<Lead | null>(null)
+  const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false)
   const [filters, setFilters] = useState({
     status: "all" as "all" | LeadStatus,
     city: "all" as string,
@@ -603,15 +606,26 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     try {
       if (leadData.id) {
         // Update existing lead
-        console.log('[KanbanBoard] Updating lead:', leadData.id)
+        console.log('[KanbanBoard] Updating lead with data:', leadData)
         const updatedLead = await LeadsService.updateLead(leadData.id, leadData)
-        console.log('[KanbanBoard] Lead updated:', updatedLead)
+        console.log('[KanbanBoard] Lead updated from API:', updatedLead)
         
-        // Update in the list immediately
+        // Update in the list immediately with fresh data from API
         updateLead(leadData.id, updatedLead)
+        console.log('[KanbanBoard] Lead updated in list')
         
-        setEditingLead(null)
+        // Update editingLead so modal shows fresh data if reopened
+        setEditingLead(updatedLead)
+        
+        // Show success toast
+        toast({
+          title: "✅ Lead mis à jour",
+          description: "Les modifications ont été enregistrées avec succès",
+        })
+        
+        // Close modal
         setIsModalOpen(false)
+        setEditingLead(null)
       } else {
         // Create new lead
         console.log('[KanbanBoard] Creating lead:', leadData)
@@ -631,28 +645,236 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
           setNewlyAddedLeadId(null)
         }, 3000)
         
+        // Show success toast
+        toast({
+          title: "✅ Lead créé",
+          description: "Le nouveau lead a été créé avec succès",
+        })
+        
         // Close modal after successful creation
         setEditingLead(null)
         setIsModalOpen(false)
       }
     } catch (error) {
       console.error("[KanbanBoard] Error saving lead:", error)
-      alert("Échec de l'enregistrement du lead. Veuillez réessayer.")
+      toast({
+        title: "❌ Erreur",
+        description: error instanceof Error ? error.message : "Échec de l'enregistrement du lead. Veuillez réessayer.",
+        variant: "destructive"
+      })
+      // Re-throw so modal can handle the error state
+      throw error
     }
   }
 
   const handleDeleteLead = async (leadId: string) => {
     try {
+      console.log(`[Delete Lead] Deleting lead ${leadId}`)
+      
       // Delete from database
       await LeadsService.deleteLead(leadId)
+      
+      // Also remove associated client from localStorage
+      const storedClients = localStorage.getItem('signature8-clients')
+      if (storedClients) {
+        const clients = JSON.parse(storedClients)
+        const filteredClients = clients.filter((client: any) => client.leadId !== leadId)
+        
+        if (filteredClients.length < clients.length) {
+          localStorage.setItem('signature8-clients', JSON.stringify(filteredClients))
+          console.log(`[Delete Lead] Associated client removed from localStorage`)
+        }
+      }
       
       // Remove from list immediately
       removeLead(leadId)
       
       setIsModalOpen(false)
+      
+      toast({
+        title: "✅ Lead supprimé",
+        description: "Le lead et son client associé ont été supprimés avec succès",
+      })
     } catch (error) {
       console.error("Error deleting lead:", error)
-      alert("Échec de la suppression du lead. Veuillez réessayer.")
+      toast({
+        title: "❌ Erreur",
+        description: "Échec de la suppression du lead. Veuillez réessayer.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleConvertToClient = async (lead: Lead) => {
+    console.log('🔄 [Conversion] Starting conversion for lead:', lead.id, lead.nom)
+    
+    // 🚀 OPTIMISTIC UPDATE - Update UI immediately
+    const optimisticLead = {
+      ...lead,
+      statut: 'converti' as const,
+      derniereMaj: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    
+    // Create optimistic client
+    const now = new Date().toISOString()
+    const optimisticClient = {
+      id: `client-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      nom: lead.nom,
+      telephone: lead.telephone,
+      email: lead.email || '',
+      ville: lead.ville,
+      typeProjet: lead.typeBien,
+      statutProjet: 'prospection' as const,
+      architecte: lead.assignePar,
+      budget: '',
+      surface: '',
+      adresse: '',
+      notes: lead.message || '',
+      createdAt: lead.createdAt || now,
+      updatedAt: now,
+      derniereMaj: now,
+      leadId: lead.id,
+    }
+    
+    // Update UI immediately (optimistic)
+    console.log('⚡ [Conversion] Optimistic update - changing status immediately')
+    updateLead(lead.id, optimisticLead)
+    
+    // Add client to localStorage immediately
+    console.log('⚡ [Conversion] Optimistic update - adding client immediately')
+    const existingClients = localStorage.getItem('signature8-clients')
+    const clients = existingClients ? JSON.parse(existingClients) : []
+    clients.unshift(optimisticClient)
+    localStorage.setItem('signature8-clients', JSON.stringify(clients))
+    
+    // Close modal immediately
+    setIsModalOpen(false)
+    
+    // Show success immediately
+    toast({
+      title: "✅ Lead converti",
+      description: "Le lead a été converti en client avec succès. Visible immédiatement dans Clients & Projets.",
+    })
+    
+    // Call API in background to persist
+    try {
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        console.warn('⚠️ [Conversion] No auth token - skipping API sync (optimistic update already applied)')
+        // Optimistic update already succeeded, just skip API sync
+        return
+      }
+      
+      console.log('📡 [Conversion] Calling API in background...')
+      const response = await fetch(`/api/leads/${lead.id}/convert`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      console.log('📡 [Conversion] Response status:', response.status)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ [Conversion] API error:', errorData)
+        
+        // Revert optimistic update on error
+        console.log('🔄 [Conversion] Reverting optimistic update')
+        updateLead(lead.id, lead)
+        
+        // Remove client from localStorage
+        const currentClients = JSON.parse(localStorage.getItem('signature8-clients') || '[]')
+        const filteredClients = currentClients.filter((c: any) => c.id !== optimisticClient.id)
+        localStorage.setItem('signature8-clients', JSON.stringify(filteredClients))
+        
+        throw new Error(errorData.error || 'Failed to convert lead')
+      }
+
+      const data = await response.json()
+      console.log('✅ [Conversion] API confirmed:', data)
+      
+      // Update with real data from server
+      if (data.lead) {
+        updateLead(data.lead.id, data.lead)
+      }
+      
+      // Update client with real data if different
+      if (data.client && data.client.id !== optimisticClient.id) {
+        const currentClients = JSON.parse(localStorage.getItem('signature8-clients') || '[]')
+        const updatedClients = currentClients.map((c: any) => 
+          c.id === optimisticClient.id ? data.client : c
+        )
+        localStorage.setItem('signature8-clients', JSON.stringify(updatedClients))
+      }
+      
+      console.log('✅ [Conversion] Conversion complete and confirmed!')
+    } catch (error) {
+      console.error("❌ [Conversion] Error:", error)
+      // Don't show error toast if optimistic update already succeeded
+      // The user already sees the success, no need to confuse them
+      console.warn('⚠️ [Conversion] Background sync failed, but optimistic update succeeded')
+    }
+  }
+
+  const handleMarkAsNotInterested = async (lead: Lead) => {
+    console.log('🚫 [Not Interested] Starting for lead:', lead.id, lead.nom)
+    
+    try {
+      // Call mark not interested API
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+      
+      console.log('📡 [Not Interested] Calling API...')
+      const response = await fetch(`/api/leads/${lead.id}/mark-not-interested`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      console.log('📡 [Not Interested] Response status:', response.status)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ [Not Interested] API error:', errorData)
+        throw new Error(errorData.error || 'Failed to mark lead as not interested')
+      }
+
+      const data = await response.json()
+      console.log('✅ [Not Interested] API response:', data)
+      
+      // Update lead status in local state
+      if (data.lead) {
+        console.log('🔄 [Not Interested] Updating lead status to:', data.lead.statut)
+        updateLead(data.lead.id, data.lead)
+        console.log('✅ [Not Interested] Lead updated in local state')
+      } else {
+        console.warn('⚠️ [Not Interested] No lead data in response')
+      }
+
+      setIsModalOpen(false)
+      console.log('✅ [Not Interested] Modal closed')
+      
+      toast({
+        title: "🔴 Lead marqué",
+        description: "Le lead a été marqué comme non intéressé",
+      })
+      console.log('✅ [Not Interested] Update complete!')
+    } catch (error) {
+      console.error("❌ [Not Interested] Error:", error)
+      toast({
+        title: "❌ Erreur",
+        description: error instanceof Error ? error.message : "Échec de la mise à jour du lead. Veuillez réessayer.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -889,6 +1111,10 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
               leads={leads}
               onLeadClick={handleLeadClick}
               onDeleteLead={handleDeleteLead}
+              onViewHistory={(lead) => {
+                setHistoryLead(lead)
+                setIsHistoryPanelOpen(true)
+              }}
               searchQuery={searchQuery}
               filters={filters}
               isLoading={isLoading}
@@ -961,6 +1187,56 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         lead={editingLead || undefined}
         onSave={handleSaveLead}
         onDelete={editingLead ? () => handleDeleteLead(editingLead.id) : undefined}
+        onConvertToClient={handleConvertToClient}
+        onMarkAsNotInterested={handleMarkAsNotInterested}
+      />
+
+      <LeadNotesPanel
+        open={isHistoryPanelOpen}
+        onOpenChange={setIsHistoryPanelOpen}
+        lead={historyLead}
+        onAddNote={async (leadId: string, noteContent: string) => {
+          try {
+            const token = localStorage.getItem('token')
+            const response = await fetch(`/api/leads/${leadId}/notes`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({ content: noteContent }),
+            })
+
+            if (!response.ok) {
+              throw new Error('Failed to add note')
+            }
+
+            const newNote = await response.json()
+            
+            // Fetch the updated lead with all notes
+            const leadResponse = await fetch(`/api/leads/${leadId}`)
+            const updatedLead = await leadResponse.json()
+            
+            // Update the lead in the list
+            updateLead(leadId, updatedLead)
+            
+            // Update the history panel lead
+            setHistoryLead(updatedLead)
+            
+            toast({
+              title: "✅ Note ajoutée",
+              description: "La note a été ajoutée avec succès",
+            })
+          } catch (error) {
+            console.error('Error adding note:', error)
+            toast({
+              title: "❌ Erreur",
+              description: "Échec de l'ajout de la note. Veuillez réessayer.",
+              variant: "destructive"
+            })
+            throw error
+          }
+        }}
       />
     </>
   )

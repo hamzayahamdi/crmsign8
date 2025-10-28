@@ -23,84 +23,95 @@ export function LeadsTableSkeleton({ rows = 5 }: LeadsTableSkeletonProps) {
       <div className="overflow-x-auto">
         <table className="w-full table-fixed">
           <colgroup>
-            <col className="w-[28%]" />
+            <col className="w-[22%]" />
             <col className="w-[10%]" />
             <col className="w-[10%]" />
+            <col className="w-[13%]" />
             <col className="w-[11%]" />
-            <col className="w-[10%]" />
-            <col className="w-[9%]" />
+            <col className="w-[11%]" />
+            <col className="w-[11%]" />
             <col className="w-[12%]" />
-            <col className="w-[10%]" />
           </colgroup>
           <thead className="bg-slate-700/30">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Contact
+                👤 Contact
               </th>
               <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Statut
+                🏙️ Ville
               </th>
               <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Bien
+                🏠 Bien
               </th>
               <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Source
+                🧭 Source
               </th>
               <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Priorité
+                👤 Assigné à
               </th>
               <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Assigné
+                🔖 Statut
               </th>
               <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Mis à jour
+                📅 Créé le
               </th>
               <th className="px-4 py-4 text-right text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Actions
+                ⚙️ Actions
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-600/30">
             {Array.from({ length: rows }).map((_, index) => (
               <tr key={index} className="animate-pulse">
-                {/* Contact Info */}
+                {/* Contact (Nom & Téléphone) */}
                 <td className="px-6 py-5">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-11 h-11 rounded-full bg-slate-700/50"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 w-32 bg-slate-700/50 rounded"></div>
-                      <div className="h-3 w-24 bg-slate-700/30 rounded"></div>
-                      <div className="h-3 w-40 bg-slate-700/20 rounded"></div>
-                    </div>
+                  <div className="flex flex-col gap-2">
+                    <div className="h-4 w-32 bg-slate-700/50 rounded"></div>
+                    <div className="h-3 w-28 bg-slate-700/30 rounded"></div>
                   </div>
                 </td>
 
-                {/* Status */}
-                <td className="px-4 py-5">
-                  <div className="h-6 w-20 bg-slate-700/50 rounded-full"></div>
-                </td>
-
-                {/* Property */}
+                {/* Ville */}
                 <td className="px-4 py-5">
                   <div className="h-4 w-20 bg-slate-700/50 rounded"></div>
                 </td>
 
-                {/* Source */}
+                {/* Bien */}
                 <td className="px-4 py-5">
                   <div className="h-4 w-24 bg-slate-700/50 rounded"></div>
                 </td>
 
-                {/* Priority */}
+                {/* Source */}
                 <td className="px-4 py-5">
-                  <div className="h-6 w-16 bg-slate-700/50 rounded-full"></div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 bg-slate-700/50 rounded"></div>
+                      <div className="h-4 w-28 bg-slate-700/50 rounded"></div>
+                    </div>
+                    <div className="ml-5">
+                      <div className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 border bg-slate-700/40 border-slate-600/60">
+                        <div className="h-3.5 w-3.5 rounded-full bg-slate-600/70"></div>
+                        <div className="h-2.5 w-12 rounded bg-slate-600/60"></div>
+                        <div className="h-2.5 w-16 rounded bg-slate-600/50"></div>
+                      </div>
+                    </div>
+                  </div>
                 </td>
 
-                {/* Assigned */}
+                {/* Assigné à */}
                 <td className="px-4 py-5">
-                  <div className="h-4 w-16 bg-slate-700/50 rounded"></div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-3.5 w-3.5 bg-slate-700/50 rounded"></div>
+                    <div className="h-4 w-16 bg-slate-700/50 rounded"></div>
+                  </div>
                 </td>
 
-                {/* Last Update */}
+                {/* Statut */}
+                <td className="px-4 py-5">
+                  <div className="h-6 w-24 bg-slate-700/50 rounded-full"></div>
+                </td>
+
+                {/* Date création */}
                 <td className="px-4 py-5">
                   <div className="h-4 w-20 bg-slate-700/50 rounded"></div>
                 </td>
@@ -108,8 +119,7 @@ export function LeadsTableSkeleton({ rows = 5 }: LeadsTableSkeletonProps) {
                 {/* Actions */}
                 <td className="px-4 py-5">
                   <div className="flex items-center justify-end space-x-1.5">
-                    <div className="h-9 w-9 bg-slate-700/50 rounded"></div>
-                    <div className="h-9 w-9 bg-slate-700/50 rounded"></div>
+                    <div className="h-9 w-20 bg-slate-700/50 rounded"></div>
                     <div className="h-9 w-9 bg-slate-700/50 rounded"></div>
                   </div>
                 </td>

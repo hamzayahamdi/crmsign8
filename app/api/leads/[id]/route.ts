@@ -27,7 +27,14 @@ export async function GET(
     }
     
     const lead = await prisma.lead.findUnique({
-      where: { id: leadId }
+      where: { id: leadId },
+      include: {
+        notes: {
+          orderBy: {
+            createdAt: 'desc'
+          }
+        }
+      }
     })
     
     if (!lead) {
@@ -50,7 +57,7 @@ export async function GET(
     console.error('Error fetching lead:', error)
     return NextResponse.json(
       { error: 'Failed to fetch lead' },
-      { status: 500 }
+        { status: 500 }
     )
   }
 }
@@ -60,10 +67,12 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
+  let body: any
   try {
     const resolvedParams = await Promise.resolve(params)
     const leadId = resolvedParams.id
-    const body = await request.json()
+
+    body = await request.json()
 
     // Verify JWT for update permissions
     const authHeader = request.headers.get('authorization')
@@ -96,28 +105,51 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     
+    // Build update data with only valid fields
+    const updateData: any = {
+      nom: body.nom,
+      telephone: body.telephone,
+      ville: body.ville,
+      typeBien: body.typeBien,
+      statut: body.statut,
+      statutDetaille: body.statutDetaille || '',
+      message: body.message || null,
+      // Prevent architects from reassigning; keep existing assignment
+      assignePar: user?.role === 'architect' ? existing.assignePar : body.assignePar,
+      source: body.source as any, // Cast to any to bypass enum validation
+      priorite: body.priorite,
+      derniereMaj: new Date(body.derniereMaj || new Date())
+    }
+    
+    // Only include magasin fields if source is magasin
+    if (body.source === 'magasin') {
+      updateData.magasin = body.magasin || null
+      updateData.commercialMagasin = body.commercialMagasin || null
+    } else {
+      // Clear magasin fields if source changed from magasin to something else
+      updateData.magasin = null
+      updateData.commercialMagasin = null
+    }
+    
     const lead = await prisma.lead.update({
       where: { id: leadId },
-      data: {
-        nom: body.nom,
-        telephone: body.telephone,
-        ville: body.ville,
-        typeBien: body.typeBien,
-        statut: body.statut,
-        statutDetaille: body.statutDetaille,
-        // Prevent architects from reassigning; keep existing assignment
-        assignePar: user?.role === 'architect' ? existing.assignePar : body.assignePar,
-        source: body.source,
-        priorite: body.priorite,
-        derniereMaj: new Date(body.derniereMaj || new Date())
+      data: updateData,
+      include: {
+        notes: {
+          orderBy: {
+            createdAt: 'desc'
+          }
+        }
       }
     })
     
     return NextResponse.json(lead)
   } catch (error) {
     console.error('Error updating lead:', error)
+    console.error('Error details:', error instanceof Error ? error.message : error)
+    console.error('Body received:', body)
     return NextResponse.json(
-      { error: 'Failed to update lead' },
+      { error: 'Failed to update lead', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
@@ -155,11 +187,18 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
+    // Delete the lead from database
     await prisma.lead.delete({
       where: { id: leadId }
     })
     
-    return NextResponse.json({ success: true })
+    console.log(`[Delete Lead] Lead ${leadId} deleted successfully`)
+    
+    return NextResponse.json({ 
+      success: true,
+      leadId: leadId,
+      message: 'Lead supprimé avec succès'
+    })
   } catch (error) {
     console.error('Error deleting lead:', error)
     return NextResponse.json(

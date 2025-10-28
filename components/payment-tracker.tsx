@@ -77,7 +77,7 @@ export function PaymentTracker({ payments = [], budget, className }: PaymentTrac
         )}
       </div>
 
-      {/* Payment List */}
+      {/* Payment List */} 
       {paymentCount > 0 && (
         <div className="space-y-2">
           <div className="text-xs font-semibold text-white/40 uppercase tracking-wider px-1">

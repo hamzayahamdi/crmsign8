@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Users, LogOut, Settings, CalendarDays } from "lucide-react"
+import { Home, Users, LogOut, Settings, CalendarDays, Compass } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -26,6 +26,7 @@ import {
 const baseNav = [
   { name: "Tableau des Leads", href: "/", icon: Home },
   { name: "Clients & Projets", href: "/clients", icon: Users },
+  { name: "Architectes", href: "/architectes", icon: Compass },
   { name: "Tâches & Rappels", href: "/tasks", icon: CalendarDays },
   { name: "Calendrier", href: "/calendar", icon: CalendarDays },
 ] as const
@@ -134,7 +135,7 @@ export function Sidebar() {
             return [
               baseNav[0], // Tableau des Leads
               baseNav[1], // Clients & Projets
-              baseNav[2], // Tâches & Rappels
+              baseNav[3], // Tâches & Rappels
             ]
           }
           if (role === 'admin' || role === 'operator') {
@@ -146,7 +147,7 @@ export function Sidebar() {
           }
           return [baseNav[0]]
         }, [user?.role]).map((item) => {
-          const isActive = pathname === item.href
+          const isActive = pathname === item.href || (item.href === "/architectes" && pathname.startsWith("/architectes/"))
           return (
             <Link
               key={item.name}

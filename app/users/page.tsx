@@ -395,6 +395,7 @@ export default function UsersPage() {
                   <SelectContent className="glass border-border/40">
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="architect">Architect</SelectItem>
+                    <SelectItem value="commercial">Commercial</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -476,6 +477,7 @@ export default function UsersPage() {
                   <SelectContent className="glass border-border/40">
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="architect">Architect</SelectItem>
+                    <SelectItem value="commercial">Commercial</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

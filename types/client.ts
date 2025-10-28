@@ -1,4 +1,4 @@
-export type ProjectStatus = "nouveau" | "acompte_verse" | "en_conception" | "en_chantier" | "livraison" | "termine"
+export type ProjectStatus = "prospection" | "nouveau" | "acompte_verse" | "en_conception" | "en_chantier" | "livraison" | "termine"
 export type ProjectType = "appartement" | "villa" | "magasin" | "bureau" | "riad" | "studio" | "autre"
 
 export interface Client {
@@ -12,6 +12,7 @@ export interface Client {
   derniereMaj: string
   createdAt: string
   updatedAt: string
+  leadId?: string // Link back to original lead for traceability
   email?: string
   adresse?: string
   budget?: number

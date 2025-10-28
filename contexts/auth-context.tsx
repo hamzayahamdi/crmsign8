@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const token = localStorage.getItem("auth_token")
+      const token = localStorage.getItem("token")
       
       if (!token) {
         setUser(null)
@@ -47,12 +47,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json()
         setUser(data.user)
       } else {
-        localStorage.removeItem("auth_token")
+        localStorage.removeItem("token")
         setUser(null)
       }
     } catch (error) {
       console.error("Auth check failed:", error)
-      localStorage.removeItem("auth_token")
+      localStorage.removeItem("token")
       setUser(null)
     } finally {
       setIsLoading(false)
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Store token and set user
-    localStorage.setItem("auth_token", data.token)
+    localStorage.setItem("token", data.token)
     setUser(data.user)
     
     // Show success toast
@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Logout error:", error)
       toast.error("Erreur lors de la déconnexion")
     } finally {
-      localStorage.removeItem("auth_token")
+      localStorage.removeItem("token")
       setUser(null)
       router.push("/login")
     }

@@ -1,11 +1,20 @@
-export type LeadStatus = "nouveau" | "a_recontacter" | "en_cours" | "signe" | "perdu"
-export type LeadSource = "magasin" | "recommandation" | "site_web" | "reseaux_sociaux"
+export type LeadStatus = "nouveau" | "a_recontacter" | "sans_reponse" | "non_interesse" | "converti"
+export type LeadSource = "magasin" | "site_web" | "facebook" | "instagram" | "tiktok" | "reference_client" | "autre"
 export type LeadPriority = "haute" | "moyenne" | "basse"
+
+export interface LeadNote {
+  id: string
+  leadId: string
+  content: string
+  author: string
+  createdAt: string
+}
 
 export interface Lead {
   id: string
   nom: string
   telephone: string
+  email?: string
   ville: string
   typeBien: string
   statut: LeadStatus
@@ -15,6 +24,10 @@ export interface Lead {
   derniereMaj: string
   source: LeadSource
   priorite: LeadPriority
+  magasin?: string
+  commercialMagasin?: string
+  notes?: LeadNote[]
+  createdBy?: string
   createdAt: string
   updatedAt: string
 }

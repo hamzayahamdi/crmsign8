@@ -9,20 +9,24 @@ datasource db {
 }
 
 model Lead {
-  id             String       @id @default(cuid())
-  nom            String
-  telephone      String
-  ville          String
-  typeBien       String
-  statut         LeadStatus
-  statutDetaille String
-  message        String?
-  assignePar     String
-  derniereMaj    DateTime     @default(now())
-  source         LeadSource
-  priorite       LeadPriority
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                  String       @id @default(cuid())
+  nom                 String
+  telephone           String
+  ville               String
+  typeBien            String
+  statut              LeadStatus
+  statutDetaille      String
+  message             String?
+  assignePar          String
+  derniereMaj         DateTime     @default(now())
+  source              LeadSource
+  priorite            LeadPriority
+  magasin             String?
+  commercialMagasin   String?
+  notes               LeadNote[]
+  createdBy           String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
   @@index([createdAt(sort: Desc)])
   @@index([statut])
@@ -30,6 +34,19 @@ model Lead {
   @@index([priorite])
   @@index([assignePar])
   @@map("leads")
+}
+
+model LeadNote {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  content   String
+  author    String
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@index([createdAt(sort: Desc)])
+  @@map("lead_notes")
 }
 
 model User {
@@ -49,16 +66,19 @@ model User {
 enum LeadStatus {
   nouveau
   a_recontacter
-  en_cours
-  signe
-  perdu
+  sans_reponse
+  non_interesse
+  converti
 }
 
 enum LeadSource {
   magasin
-  recommandation
   site_web
-  reseaux_sociaux
+  facebook
+  instagram
+  tiktok
+  reference_client
+  autre
 }
 
 enum LeadPriority {
