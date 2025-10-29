@@ -22,7 +22,7 @@ import { LeadCard } from "@/components/lead-card"
 import { LeadModalRedesigned as LeadModal } from "@/components/lead-modal-redesigned"
 import { LeadsTable } from "@/components/leads-table"
 import { LeadNotesPanel } from "@/components/lead-notes-panel"
-import { Phone, MapPin, Filter, ChevronDown, X, RotateCcw, Grid3X3, Table } from "lucide-react"
+import { Phone, MapPin, Filter, ChevronDown, X, RotateCcw } from "lucide-react"
 import { useState as useAccordionState } from "react"
 import { cn } from "@/lib/utils"
 import { LeadsService } from "@/lib/leads-service"
@@ -291,9 +291,9 @@ const initialLeads: any[] = [
 const columns: { status: LeadStatus; label: string; color: string }[] = [
   { status: "nouveau", label: "Nouveau", color: "success" },
   { status: "a_recontacter", label: "À recontacter", color: "warning" },
-  { status: "en_cours", label: "En cours d'acquisition", color: "primary" },
-  { status: "signe", label: "Signé", color: "premium" },
-  { status: "perdu", label: "Perdu / Sans réponse", color: "destructive" },
+  { status: "sans_reponse", label: "Sans réponse", color: "primary" },
+  { status: "non_interesse", label: "Non intéressé", color: "destructive" },
+  { status: "converti", label: "Converti", color: "premium" },
 ]
 
 interface KanbanBoardProps {
@@ -316,7 +316,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     priority: "all" as "all" | LeadPriority,
   })
   const [isFiltersOpen, setIsFiltersOpen] = useAccordionState(false)
-  const [viewMode, setViewMode] = useState<"table" | "kanban">("table")
+  // Single view mode only: table
   const [newlyAddedLeadId, setNewlyAddedLeadId] = useState<string | null>(null)
   const [architectAssignees, setArchitectAssignees] = useState<string[]>([])
 
@@ -504,9 +504,9 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     const possibleStatuses: LeadStatus[] = [
       "nouveau",
       "a_recontacter",
-      "en_cours",
-      "signe",
-      "perdu",
+      "sans_reponse",
+      "non_interesse",
+      "converti",
     ]
 
     let targetStatus: LeadStatus | null = null
@@ -551,9 +551,9 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
       const statusLabels: Record<LeadStatus, string> = {
         nouveau: "Nouveau",
         a_recontacter: "À recontacter",
-        en_cours: "En cours",
-        signe: "Signé",
-        perdu: "Perdu"
+        sans_reponse: "Sans réponse",
+        non_interesse: "Non intéressé",
+        converti: "Converti",
       }
       
       toast({
@@ -919,7 +919,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                   )} />
                 </div>
 
-                {/* Right: View Toggle and Clear Filters */}
+                {/* Right: Clear Filters */}
                 <div className="flex items-center gap-3">
 
                   {getActiveFiltersCount() > 0 && (
@@ -934,34 +934,6 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                       Effacer filtres
                     </button>
                   )}
-                  
-                  {/* View Toggle */}
-                  <div className="glass rounded-lg p-1 flex">
-                    <button
-                      onClick={() => setViewMode("table")}
-                      className={cn(
-                        "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                        viewMode === "table"
-                          ? "bg-primary/20 text-primary"
-                          : "text-muted-foreground hover:text-white hover:bg-slate-700/50"
-                      )}
-                    >
-                      <Table className="w-3.5 h-3.5" />
-                      Table
-                    </button>
-                    <button
-                      onClick={() => setViewMode("kanban")}
-                      className={cn(
-                        "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                        viewMode === "kanban"
-                          ? "bg-primary/20 text-primary"
-                          : "text-muted-foreground hover:text-white hover:bg-slate-700/50"
-                      )}
-                    >
-                      <Grid3X3 className="w-3.5 h-3.5" />
-                      Kanban
-                    </button>
-                  </div>
                 </div>
               </div>
 
@@ -1105,35 +1077,20 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
             </div>
           </div>
 
-          {/* Conditional Content Rendering */}
-          {viewMode === "table" ? (
-            <LeadsTable
-              leads={leads}
-              onLeadClick={handleLeadClick}
-              onDeleteLead={handleDeleteLead}
-              onViewHistory={(lead) => {
-                setHistoryLead(lead)
-                setIsHistoryPanelOpen(true)
-              }}
-              searchQuery={searchQuery}
-              filters={filters}
-              isLoading={isLoading}
-              newlyAddedLeadId={newlyAddedLeadId}
-            />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              {columns.map((column) => (
-                <KanbanColumn
-                  key={column.status}
-                  status={column.status}
-                  label={column.label}
-                  color={column.color}
-                  leads={getLeadsByStatus(column.status)}
-                  onLeadClick={handleLeadClick}
-                />
-              ))}
-            </div>
-          )}
+          {/* Table View Only */}
+          <LeadsTable
+            leads={leads}
+            onLeadClick={handleLeadClick}
+            onDeleteLead={handleDeleteLead}
+            onViewHistory={(lead) => {
+              setHistoryLead(lead)
+              setIsHistoryPanelOpen(true)
+            }}
+            searchQuery={searchQuery}
+            filters={filters}
+            isLoading={isLoading}
+            newlyAddedLeadId={newlyAddedLeadId}
+          />
 
           <DragOverlay dropAnimation={null}>
             {activeLead ? (
