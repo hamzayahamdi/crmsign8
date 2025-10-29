@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Users, Plus, Trash2, Edit, Mail, Shield, Calendar } from "lucide-react"
+import { Users, Plus, Trash2, Edit, Mail, Shield, Calendar, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,6 +30,7 @@ interface User {
   email: string
   name: string
   role: string
+  magasin?: string
   createdAt: string
   updatedAt: string
 }
@@ -48,6 +49,7 @@ export default function UsersPage() {
     password: "",
     name: "",
     role: "architect",
+    magasin: "",
   })
 
   const [editFormData, setEditFormData] = useState({
@@ -55,7 +57,10 @@ export default function UsersPage() {
     password: "",
     name: "",
     role: "architect",
+    magasin: "",
   })
+
+  const MAGASINS = ["Casa", "Rabat", "Tanger", "Marrakech", "Bouskoura"]
 
   // Fetch users
   const fetchUsers = async () => {
@@ -84,6 +89,7 @@ export default function UsersPage() {
       password: "",
       name: user.name,
       role: user.role as any,
+      magasin: user.magasin || "",
     })
     setShowEditDialog(true)
   }
@@ -101,6 +107,7 @@ export default function UsersPage() {
           email: editFormData.email,
           name: editFormData.name,
           role: editFormData.role,
+        magasin: editFormData.role === "commercial" ? editFormData.magasin : undefined,
           password: editFormData.password || undefined,
         }),
       })
@@ -129,6 +136,10 @@ export default function UsersPage() {
     e.preventDefault()
     
     try {
+      if (formData.role === "commercial" && !formData.magasin) {
+        toast.error("Veuillez sélectionner un magasin pour un commercial")
+        return
+      }
       const response = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -138,7 +149,7 @@ export default function UsersPage() {
       if (response.ok) {
         toast.success("Utilisateur créé avec succès")
         setShowCreateDialog(false)
-        setFormData({ email: "", password: "", name: "", role: "architect" })
+        setFormData({ email: "", password: "", name: "", role: "architect", magasin: "" })
         fetchUsers() // Refresh the list
       } else {
         const data = await response.json()
@@ -276,7 +287,14 @@ export default function UsersPage() {
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-premium flex items-center justify-center text-white font-semibold">
                             {user.name.charAt(0).toUpperCase()}
                           </div>
-                          <span className="text-white font-medium">{user.name}</span>
+                          <div className="flex flex-col">
+                            <span className="text-white font-medium">{user.name}</span>
+                            {user.role === "commercial" && user.magasin && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Building2 className="w-3 h-3" /> {user.magasin}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="p-4">
@@ -399,6 +417,24 @@ export default function UsersPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {formData.role === "commercial" && (
+                <div className="space-y-2">
+                  <Label htmlFor="magasin" className="text-white">Magasin</Label>
+                  <Select
+                    value={formData.magasin}
+                    onValueChange={(value) => setFormData({ ...formData, magasin: value })}
+                  >
+                    <SelectTrigger className="glass border-border/40">
+                      <SelectValue placeholder="Sélectionner un magasin" />
+                    </SelectTrigger>
+                    <SelectContent className="glass border-border/40">
+                      {MAGASINS.map((mag) => (
+                        <SelectItem key={mag} value={mag}>{mag}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button
@@ -481,6 +517,24 @@ export default function UsersPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {editFormData.role === "commercial" && (
+                <div className="space-y-2">
+                  <Label htmlFor="edit-magasin" className="text-white">Magasin</Label>
+                  <Select
+                    value={editFormData.magasin}
+                    onValueChange={(value) => setEditFormData({ ...editFormData, magasin: value })}
+                  >
+                    <SelectTrigger className="glass border-border/40">
+                      <SelectValue placeholder="Sélectionner un magasin" />
+                    </SelectTrigger>
+                    <SelectContent className="glass border-border/40">
+                      {MAGASINS.map((mag) => (
+                        <SelectItem key={mag} value={mag}>{mag}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button

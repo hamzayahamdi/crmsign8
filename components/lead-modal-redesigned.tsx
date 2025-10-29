@@ -49,6 +49,7 @@ interface LeadModalRedesignedProps {
   onMarkAsNotInterested?: (lead: Lead) => void
   currentUserRole?: string
   currentUserName?: string
+  currentUserMagasin?: string
 }
 
 const defaultVilles = [
@@ -92,11 +93,11 @@ const sources: { value: LeadSource; label: string }[] = [
 ]
 
 const magasins = [
-  "📍 Casablanca",
-  "📍 Rabat",
-  "📍 Tanger",
-  "📍 Marrakech",
-  "📍 Bouskoura",
+  "Casa",
+  "Rabat",
+  "Tanger",
+  "Marrakech",
+  "Bouskoura",
 ]
 
 const calculatePriority = (source: LeadSource): LeadPriority => {
@@ -125,7 +126,8 @@ export function LeadModalRedesigned({
   onConvertToClient,
   onMarkAsNotInterested,
   currentUserRole = "admin",
-  currentUserName = "Admin"
+  currentUserName = "Admin",
+  currentUserMagasin
 }: LeadModalRedesignedProps) {
   const [architects, setArchitects] = useState<string[]>(["Radia"])
   const [commercials, setCommercials] = useState<string[]>(["Radia"])
@@ -222,8 +224,8 @@ export function LeadModalRedesigned({
         assignePar: lead.assignePar,
         source: lead.source,
         priorite: lead.priorite,
-        magasin: lead.magasin || "",
-        commercialMagasin: lead.commercialMagasin || "",
+        magasin: lead.magasin || (currentUserRole === 'commercial' ? (currentUserMagasin || "") : ""),
+        commercialMagasin: lead.commercialMagasin || (currentUserRole === 'commercial' ? currentUserName : ""),
         notes: lead.notes || [],
       })
     }
@@ -459,8 +461,12 @@ export function LeadModalRedesigned({
                           ...formData, 
                           source: newSource, 
                           priorite: calculatedPriority,
-                          magasin: newSource !== 'magasin' ? '' : formData.magasin,
-                          commercialMagasin: newSource !== 'magasin' ? '' : formData.commercialMagasin,
+                          magasin: newSource !== 'magasin' 
+                            ? '' 
+                            : (formData.magasin || (currentUserRole === 'commercial' ? (currentUserMagasin || '') : '')),
+                          commercialMagasin: newSource !== 'magasin' 
+                            ? '' 
+                            : (formData.commercialMagasin || (currentUserRole === 'commercial' ? currentUserName : '')),
                         })
                       }}
                     >

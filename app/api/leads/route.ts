@@ -37,8 +37,11 @@ export async function GET(request: NextRequest) {
       // Filter by assigned name
       where.assignePar = user.name
     } else if (user?.role === 'commercial') {
-      // Filter by createdBy (commercial can only see their own leads)
-      where.createdBy = user.name
+      // Commercial can see their own leads; match by creator name or commercialMagasin for robustness
+      where.OR = [
+        { createdBy: user.name },
+        { commercialMagasin: user.name }
+      ]
     }
     
     // Fetch total count (respecting role filter)

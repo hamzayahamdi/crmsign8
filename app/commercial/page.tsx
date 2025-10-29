@@ -236,6 +236,7 @@ export default function CommercialDashboard() {
           onSave={handleSaveLead}
           currentUserRole={user.role}
           currentUserName={user.name}
+          currentUserMagasin={user.magasin}
         />
       )}
     </div>

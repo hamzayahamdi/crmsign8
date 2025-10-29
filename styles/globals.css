@@ -179,7 +179,7 @@
 
 /* Firefox */
 .kanban-scroll {
-  scrollbar-width: thin;
+  scrollbar-width: thin;  
   scrollbar-color: rgba(100, 116, 139, 0.3) rgba(100, 116, 139, 0.1);
 }
 
@@ -193,7 +193,7 @@
 }
 
 .column-orange {
-  background: linear-gradient(135deg, rgba(251, 146, 60, 0.03) 0%, rgba(251, 146, 60, 0.01) 100%);
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.03) 0%, rgba(251, 146, 60, 0.01) 100%); 
 }
 
 .column-purple {

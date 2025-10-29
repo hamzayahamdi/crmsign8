@@ -143,6 +143,12 @@ export function ClientKanbanBoard({
   const filteredClients = clients.filter(client => passesSearch(client) && passesFilters(client))
 
   const getClientsByStatus = (status: ProjectStatus) => {
+    // Map prospection to nouveau for display purposes
+    if (status === "nouveau") {
+      return filteredClients.filter(client => 
+        client.statutProjet === "nouveau" || client.statutProjet === "prospection"
+      )
+    }
     return filteredClients.filter(client => client.statutProjet === status)
   }
 

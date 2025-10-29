@@ -34,16 +34,16 @@ const statusConfig: Record<ProjectStatus, {
   glowColor: string
 }> = {
   prospection: { 
-    label: "Nouveau", 
+    label: "Prospection", 
     progress: 5,
-    gradient: "from-gray-400 to-gray-500",
-    glowColor: "shadow-gray-500/20"
+    gradient: "from-yellow-400 to-yellow-500",
+    glowColor: "shadow-yellow-500/20"
   },
   nouveau: { 
-    label: "Nouveau", 
+    label: "Nouveau projet", 
     progress: 10,
-    gradient: "from-slate-400 to-slate-500",
-    glowColor: "shadow-slate-500/20"
+    gradient: "from-green-400 to-green-500",
+    glowColor: "shadow-green-500/20"
   },
   acompte_verse: { 
     label: "Acompte versé", 
@@ -56,6 +56,12 @@ const statusConfig: Record<ProjectStatus, {
     progress: 40,
     gradient: "from-blue-400 to-blue-600",
     glowColor: "shadow-blue-500/30"
+  },
+  en_validation: { 
+    label: "En validation", 
+    progress: 55,
+    gradient: "from-amber-400 to-amber-600",
+    glowColor: "shadow-amber-500/30"
   },
   en_chantier: { 
     label: "En chantier", 
@@ -75,12 +81,24 @@ const statusConfig: Record<ProjectStatus, {
     gradient: "from-emerald-400 to-emerald-600",
     glowColor: "shadow-emerald-500/30"
   },
+  annule: { 
+    label: "Annulé", 
+    progress: 0,
+    gradient: "from-red-400 to-red-600",
+    glowColor: "shadow-red-500/30"
+  },
+  suspendu: { 
+    label: "Suspendu", 
+    progress: 0,
+    gradient: "from-slate-400 to-slate-600",
+    glowColor: "shadow-slate-500/30"
+  },
 }
 
 // Project stage icons and colors
 const stageConfig = [
-  { key: "prospection", label: "Nouveau", icon: User, color: "text-gray-400" },
-  { key: "nouveau", label: "Nouveau", icon: Sparkles, color: "text-slate-400" },
+  { key: "prospection", label: "Prospection", icon: User, color: "text-yellow-400" },
+  { key: "nouveau", label: "Nouveau projet", icon: Sparkles, color: "text-green-400" },
   { key: "acompte_verse", label: "Acompte", icon: DollarSign, color: "text-orange-400" },
   { key: "en_conception", label: "Conception", icon: Briefcase, color: "text-blue-400" },
   { key: "en_chantier", label: "Chantier", icon: Building2, color: "text-purple-400" },

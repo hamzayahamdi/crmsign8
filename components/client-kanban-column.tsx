@@ -22,6 +22,8 @@ const colorClasses = {
   primary: "bg-primary/20 text-primary border-primary/40",
   premium: "bg-premium/20 text-premium border-premium/40",
   destructive: "bg-destructive/20 text-destructive border-destructive/40",
+  danger: "bg-red-500/20 text-red-400 border-red-500/40",
+  muted: "bg-slate-500/20 text-slate-400 border-slate-500/40",
 }
 
 export function ClientKanbanColumn({

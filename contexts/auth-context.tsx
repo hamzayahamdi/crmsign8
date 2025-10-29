@@ -64,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include", // Important: Include cookies
       body: JSON.stringify({ email, password }),
     })
 
@@ -76,6 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Store token and set user
     localStorage.setItem("token", data.token)
     setUser(data.user)
+    
+    console.log('[Auth] Login successful, cookie should be set')
     
     // Show success toast
     toast.success("Connexion réussie", {
@@ -92,7 +95,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" })
+      await fetch("/api/auth/logout", { 
+        method: "POST",
+        credentials: "include" // Important: Include cookies
+      })
+      
+      console.log('[Auth] Logout successful, cookie cleared')
       
       toast.success("Déconnexion réussie", {
         description: "À bientôt !",

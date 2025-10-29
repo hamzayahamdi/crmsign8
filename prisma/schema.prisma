@@ -121,3 +121,42 @@ enum LinkedType {
   lead
   client
 }
+
+model CalendarEvent {
+  id               String       @id @default(cuid())
+  title            String
+  description      String?
+  startDate        DateTime
+  endDate          DateTime
+  eventType        EventType
+  assignedTo       String
+  location         String?
+  reminderType     ReminderType @default(none)
+  reminderSent     Boolean      @default(false)
+  linkedClientId   String?
+  linkedLeadId     String?
+  linkedArchitectId String?
+  createdBy        String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([startDate(sort: Desc)])
+  @@index([assignedTo])
+  @@index([eventType])
+  @@index([createdBy])
+  @@map("calendar_events")
+}
+
+enum EventType {
+  rendez_vous
+  suivi_projet
+  appel_reunion
+  urgent
+}
+
+enum ReminderType {
+  min_15
+  hour_1
+  day_1
+  none
+}

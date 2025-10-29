@@ -22,12 +22,16 @@ interface StatusChangeConfirmationModalProps {
 }
 
 const statusLabels: Record<ProjectStatus, string> = {
-  nouveau: "Nouveau",
+  prospection: "Prospection",
+  nouveau: "Nouveau projet",
   acompte_verse: "Acompte versé",
   en_conception: "En conception",
+  en_validation: "En validation",
   en_chantier: "En chantier",
   livraison: "Livraison",
   termine: "Terminé",
+  annule: "Annulé",
+  suspendu: "Suspendu",
 }
 
 export function StatusChangeConfirmationModal({

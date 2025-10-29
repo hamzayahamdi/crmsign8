@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
       { expiresIn: TOKEN_EXPIRY }
     )
 
-    // Return success with token and user data
-    return NextResponse.json(
+    // Create response with token in cookie AND body
+    const response = NextResponse.json(
       {
         success: true,
         token,
@@ -70,6 +70,25 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 }
     )
+
+    // Set token as HTTP-only cookie for API authentication
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    };
+    
+    response.cookies.set('token', token, cookieOptions);
+    
+    console.log('[Login] Setting cookie with options:', {
+      ...cookieOptions,
+      tokenLength: token.length,
+      environment: process.env.NODE_ENV
+    });
+
+    return response
   } catch (error) {
     console.error("Login error:", error)
     console.error("Error details:", error instanceof Error ? error.message : String(error))

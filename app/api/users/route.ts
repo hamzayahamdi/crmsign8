@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
         email: true,
         name: true,
         role: true,
+        magasin: true,
         createdAt: true,
         updatedAt: true,
         // Don't return password
@@ -41,11 +42,20 @@ export async function POST(request: NextRequest) {
     if (!ALLOWED_ROLES.has(role as any)) {
       role = 'architect'
     }
+    const magasin: string | undefined = typeof body.magasin === 'string' ? body.magasin : undefined
 
     // Validate input
     if (!email || !password || !name) {
       return NextResponse.json(
         { error: "Email, password, and name are required" },
+        { status: 400 }
+      )
+    }
+
+    // If role is commercial, magasin is required
+    if (role === 'commercial' && !magasin) {
+      return NextResponse.json(
+        { error: "Magasin is required for commercial users" },
         { status: 400 }
       )
     }
@@ -72,12 +82,14 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         name,
         role,
+        magasin: role === 'commercial' ? magasin : undefined,
       },
       select: {
         id: true,
         email: true,
         name: true,
         role: true,
+        magasin: true,
         createdAt: true,
         updatedAt: true,
       }

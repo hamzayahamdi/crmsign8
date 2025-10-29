@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Users, LogOut, Settings, CalendarDays, Compass } from "lucide-react"
+import { Home, Users, LogOut, Settings, CalendarDays, Compass, Calendar } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -28,7 +28,7 @@ const baseNav = [
   { name: "Clients & Projets", href: "/clients", icon: Users },
   { name: "Architectes", href: "/architectes", icon: Compass },
   { name: "Tâches & Rappels", href: "/tasks", icon: CalendarDays },
-  { name: "Calendrier", href: "/calendar", icon: CalendarDays },
+  { name: "Calendrier", href: "/calendrier", icon: Calendar },
 ] as const
 
 const adminOperatorExtras = [
@@ -134,6 +134,7 @@ export function Sidebar() {
               baseNav[0], // Tableau des Leads
               baseNav[1], // Clients & Projets
               baseNav[3], // Tâches & Rappels
+              baseNav[4], // Calendrier
             ]
           }
           if (role === 'commercial') {
