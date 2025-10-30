@@ -107,7 +107,7 @@ export default function UsersPage() {
           email: editFormData.email,
           name: editFormData.name,
           role: editFormData.role,
-        magasin: editFormData.role === "commercial" ? editFormData.magasin : undefined,
+        magasin: editFormData.role === "magasiner" ? editFormData.magasin : undefined,
           password: editFormData.password || undefined,
         }),
       })
@@ -136,8 +136,8 @@ export default function UsersPage() {
     e.preventDefault()
     
     try {
-      if (formData.role === "commercial" && !formData.magasin) {
-        toast.error("Veuillez sélectionner un magasin pour un commercial")
+      if (formData.role === "magasiner" && !formData.magasin) {
+        toast.error("Veuillez sélectionner un magasin pour un magasiner")
         return
       }
       const response = await fetch("/api/users", {
@@ -200,8 +200,27 @@ export default function UsersPage() {
         return "bg-red-500/20 text-red-400 border-red-500/30"
       case "architect":
         return "bg-blue-500/20 text-blue-400 border-blue-500/30"
+      case "magasiner":
+        return "bg-purple-500/20 text-purple-400 border-purple-500/30"
+      case "operator":
+        return "bg-orange-500/20 text-orange-400 border-orange-500/30"
       default:
         return "bg-green-500/20 text-green-400 border-green-500/30"
+    }
+  }
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "admin":
+        return "Administrateur"
+      case "architect":
+        return "Architecte"
+      case "magasiner":
+        return "Magasiner"
+      case "operator":
+        return "Opérateur"
+      default:
+        return role
     }
   }
 
@@ -268,6 +287,7 @@ export default function UsersPage() {
                     <th className="text-left p-4 text-sm font-semibold text-white">Nom</th>
                     <th className="text-left p-4 text-sm font-semibold text-white">Email</th>
                     <th className="text-left p-4 text-sm font-semibold text-white">Rôle</th>
+                    <th className="text-left p-4 text-sm font-semibold text-white">Magasin</th>
                     <th className="text-left p-4 text-sm font-semibold text-white">Date de création</th>
                     <th className="text-left p-4 text-sm font-semibold text-white">Dernière mise à jour</th>
                     <th className="text-right p-4 text-sm font-semibold text-white">Actions</th>
@@ -289,9 +309,9 @@ export default function UsersPage() {
                           </div>
                           <div className="flex flex-col">
                             <span className="text-white font-medium">{user.name}</span>
-                            {user.role === "commercial" && user.magasin && (
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Building2 className="w-3 h-3" /> {user.magasin}
+                            {user.role === "magasiner" && user.magasin && (
+                              <span className="text-xs text-purple-400 flex items-center gap-1 font-medium">
+                                <Building2 className="w-3 h-3" /> 📍 Magasin {user.magasin}
                               </span>
                             )}
                           </div>
@@ -310,8 +330,18 @@ export default function UsersPage() {
                           )}`}
                         >
                           <Shield className="w-3 h-3" />
-                          {user.role}
+                          {getRoleLabel(user.role)}
                         </span>
+                      </td>
+                      <td className="p-4">
+                        {user.magasin ? (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Building2 className="w-4 h-4 text-purple-400" />
+                            <span className="text-purple-300 font-medium">📍 {user.magasin}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -411,15 +441,19 @@ export default function UsersPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass border-border/40">
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="architect">Architect</SelectItem>
-                    <SelectItem value="commercial">Commercial</SelectItem>
+                    <SelectItem value="admin">Administrateur</SelectItem>
+                    <SelectItem value="architect">Architecte</SelectItem>
+                    <SelectItem value="magasiner">Magasiner</SelectItem>
+                    <SelectItem value="operator">Opérateur</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {formData.role === "commercial" && (
+              {formData.role === "magasiner" && (
                 <div className="space-y-2">
-                  <Label htmlFor="magasin" className="text-white">Magasin</Label>
+                  <Label htmlFor="magasin" className="text-white flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-purple-400" />
+                    Magasin <span className="text-red-400">*</span>
+                  </Label>
                   <Select
                     value={formData.magasin}
                     onValueChange={(value) => setFormData({ ...formData, magasin: value })}
@@ -429,10 +463,15 @@ export default function UsersPage() {
                     </SelectTrigger>
                     <SelectContent className="glass border-border/40">
                       {MAGASINS.map((mag) => (
-                        <SelectItem key={mag} value={mag}>{mag}</SelectItem>
+                        <SelectItem key={mag} value={mag}>
+                          📍 {mag}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Le magasiner ne pourra voir que les leads de ce magasin
+                  </p>
                 </div>
               )}
             </div>
@@ -511,15 +550,19 @@ export default function UsersPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass border-border/40">
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="architect">Architect</SelectItem>
-                    <SelectItem value="commercial">Commercial</SelectItem>
+                    <SelectItem value="admin">Administrateur</SelectItem>
+                    <SelectItem value="architect">Architecte</SelectItem>
+                    <SelectItem value="magasiner">Magasiner</SelectItem>
+                    <SelectItem value="operator">Opérateur</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {editFormData.role === "commercial" && (
+              {editFormData.role === "magasiner" && (
                 <div className="space-y-2">
-                  <Label htmlFor="edit-magasin" className="text-white">Magasin</Label>
+                  <Label htmlFor="edit-magasin" className="text-white flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-purple-400" />
+                    Magasin <span className="text-red-400">*</span>
+                  </Label>
                   <Select
                     value={editFormData.magasin}
                     onValueChange={(value) => setEditFormData({ ...editFormData, magasin: value })}
@@ -529,10 +572,15 @@ export default function UsersPage() {
                     </SelectTrigger>
                     <SelectContent className="glass border-border/40">
                       {MAGASINS.map((mag) => (
-                        <SelectItem key={mag} value={mag}>{mag}</SelectItem>
+                        <SelectItem key={mag} value={mag}>
+                          📍 {mag}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Le magasiner ne pourra voir que les leads de ce magasin
+                  </p>
                 </div>
               )}
             </div>

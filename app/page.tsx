@@ -14,10 +14,12 @@ export default function HomePage() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
 
-  // Redirect commercial users to their dashboard
+  // Redirect commercial and magasiner users to their dashboard
   useEffect(() => {
     if (!isLoading && user?.role === "commercial") {
       router.push("/commercial")
+    } else if (!isLoading && user?.role === "magasiner") {
+      router.push("/magasiner")
     }
   }, [user, isLoading, router])
 
@@ -29,7 +31,7 @@ export default function HomePage() {
   }
 
   // Show loading while checking role
-  if (isLoading || user?.role === "commercial") {
+  if (isLoading || user?.role === "commercial" || user?.role === "magasiner") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />

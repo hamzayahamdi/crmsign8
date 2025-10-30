@@ -143,6 +143,11 @@ export function Sidebar() {
               { name: "Mes Leads", href: "/commercial", icon: Home },
             ]
           }
+          if (role === 'magasiner') {
+            return [
+              { name: "Mes Leads", href: "/magasiner", icon: Home },
+            ]
+          }
           if (role === 'admin' || role === 'operator') {
             return [
               ...baseNav,
@@ -233,7 +238,7 @@ export function Sidebar() {
                   </p>
                   {user.role && (
                     <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
-                      {(user.role || '').toLowerCase() === 'admin' ? 'Administrateur' : (user.role || '').toLowerCase() === 'operator' ? 'Opérateur' : (user.role || '').toLowerCase() === 'commercial' ? 'Commercial' : 'Architecte'}
+                      {(user.role || '').toLowerCase() === 'admin' ? 'Administrateur' : (user.role || '').toLowerCase() === 'operator' ? 'Opérateur' : (user.role || '').toLowerCase() === 'commercial' ? 'Commercial' : (user.role || '').toLowerCase() === 'magasiner' ? 'Magasiner' : 'Architecte'}
                     </span>
                   )}
                 </div>

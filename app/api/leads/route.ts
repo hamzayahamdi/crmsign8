@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     
     // Read and verify JWT (optional but used for role-based filtering)
     const authHeader = request.headers.get('authorization')
-    let user: { userId: string; email: string; name: string; role: string } | null = null
+    let user: { userId: string; email: string; name: string; role: string; magasin?: string } | null = null
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7)
       try {
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
           email: decoded.email,
           name: decoded.name,
           role: decoded.role,
+          magasin: decoded.magasin,
         }
       } catch (_) {
         // If token invalid, proceed without user (no filtering). You may choose to return 401 if strict auth is desired.
@@ -42,6 +43,11 @@ export async function GET(request: NextRequest) {
         { createdBy: user.name },
         { commercialMagasin: user.name }
       ]
+    } else if (user?.role === 'magasiner') {
+      // Magasiner can only see leads from their assigned magasin
+      if (user.magasin) {
+        where.magasin = user.magasin
+      }
     }
     
     // Fetch total count (respecting role filter)
@@ -111,8 +117,8 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
-    if (user.role !== 'admin' && user.role !== 'commercial') {
-      return NextResponse.json({ error: 'Forbidden: Admins and Commercials only' }, { status: 403 })
+    if (user.role !== 'admin' && user.role !== 'commercial' && user.role !== 'magasiner') {
+      return NextResponse.json({ error: 'Forbidden: Admins, Commercials, and Magasiniers only' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -123,10 +129,10 @@ export async function POST(request: NextRequest) {
     let magasin = body.magasin || user.magasin
     let commercialMagasin = body.commercialMagasin || (user.role === 'commercial' ? user.name : undefined)
     
-    // For commercial users, force status to "nouveau" and set default values
+    // For commercial and magasiner users, force status to "nouveau" and set default values
     let statut = body.statut
     let statutDetaille = body.statutDetaille
-    if (user.role === 'commercial') {
+    if (user.role === 'commercial' || user.role === 'magasiner') {
       statut = 'nouveau'
       statutDetaille = 'Nouveau lead'
     }

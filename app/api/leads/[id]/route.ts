@@ -15,12 +15,12 @@ export async function GET(
     
     // Verify JWT for role-based access
     const authHeader = request.headers.get('authorization')
-    let user: { name: string; role: string } | null = null
+    let user: { name: string; role: string; magasin?: string } | null = null
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7)
       try {
         const decoded = verify(token, JWT_SECRET) as any
-        user = { name: decoded.name, role: decoded.role }
+        user = { name: decoded.name, role: decoded.role, magasin: decoded.magasin }
       } catch (_) {
         user = null
       }
@@ -80,10 +80,10 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const token = authHeader.substring(7)
-    let user: { name: string; role: string } | null = null
+    let user: { name: string; role: string; magasin?: string } | null = null
     try {
       const decoded = verify(token, JWT_SECRET) as any
-      user = { name: decoded.name, role: (decoded.role || '').toLowerCase() }
+      user = { name: decoded.name, role: (decoded.role || '').toLowerCase(), magasin: decoded.magasin }
     } catch (_) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
@@ -106,8 +106,16 @@ export async function PUT(
         return NextResponse.json({ error: 'Forbidden: You can only update your own leads' }, { status: 403 })
       }
     }
+    // Magasiner: can update leads they created or that belong to their magasin
+    if (user?.role === 'magasiner') {
+      const sameCreator = existing.createdBy === user.name || existing.commercialMagasin === user.name
+      const sameMagasin = !!user.magasin && existing.magasin?.toLowerCase() === user.magasin.toLowerCase()
+      if (!(sameCreator || sameMagasin)) {
+        return NextResponse.json({ error: 'Forbidden: You can only update leads in your magasin or created by you' }, { status: 403 })
+      }
+    }
     // Admin and operator can update any lead; others forbidden
-    if (user && user.role !== 'admin' && user.role !== 'operator' && user.role !== 'architect' && user.role !== 'commercial') {
+    if (user && !['admin','operator','architect','commercial','magasiner'].includes(user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     
@@ -129,7 +137,7 @@ export async function PUT(
       statutDetaille: body.statutDetaille || '',
       message: body.message || null,
       // Prevent architects and commercials from reassigning; keep existing assignment
-      assignePar: (user?.role === 'architect' || user?.role === 'commercial') ? existing.assignePar : body.assignePar,
+      assignePar: (user?.role === 'architect' || user?.role === 'commercial' || user?.role === 'magasiner') ? existing.assignePar : body.assignePar,
       source: body.source as any, // Cast to any to bypass enum validation
       priorite: body.priorite,
       derniereMaj: new Date(body.derniereMaj || new Date())
@@ -185,26 +193,45 @@ export async function DELETE(
       )
     }
     
-    // Verify JWT and restrict delete to Admin only
+    // Verify JWT and check delete permissions
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const token = authHeader.substring(7)
+    let user: { name: string; role: string; magasin?: string } | null = null
     try {
       const decoded = verify(token, JWT_SECRET) as any
-      const role = (decoded.role || '').toLowerCase()
-      if (role !== 'admin') {
-        return NextResponse.json({ error: 'Forbidden: Admins only' }, { status: 403 })
-      }
+      user = { name: decoded.name, role: (decoded.role || '').toLowerCase(), magasin: decoded.magasin }
     } catch (_) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
+    // Load existing lead
+    const existing = await prisma.lead.findUnique({ where: { id: leadId } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
+    }
+
+    // Permission: admin/operator always allowed
+    if (user && (user.role === 'admin' || user.role === 'operator')) {
+      // allowed
+    } else if (user && user.role === 'magasiner') {
+      const sameCreator = existing.createdBy === user.name || existing.commercialMagasin === user.name
+      const sameMagasin = !!user.magasin && existing.magasin?.toLowerCase() === user.magasin.toLowerCase()
+      if (!(sameCreator || sameMagasin)) {
+        return NextResponse.json({ error: 'Forbidden: You can only delete leads in your magasin or created by you' }, { status: 403 })
+      }
+    } else if (user && user.role === 'commercial') {
+      if (existing.createdBy !== user.name && existing.commercialMagasin !== user.name) {
+        return NextResponse.json({ error: 'Forbidden: You can only delete your own leads' }, { status: 403 })
+      }
+    } else {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Delete the lead from database
-    await prisma.lead.delete({
-      where: { id: leadId }
-    })
+    await prisma.lead.delete({ where: { id: leadId } })
     
     console.log(`[Delete Lead] Lead ${leadId} deleted successfully`)
     

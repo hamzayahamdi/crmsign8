@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/database"
 import bcrypt from "bcryptjs"
 
-const ALLOWED_ROLES = new Set(["admin", "architect", "commercial"])
+const ALLOWED_ROLES = new Set(["admin", "architect", "magasiner", "operator"])
 // GET single user
 export async function GET(
   request: NextRequest,
@@ -75,9 +75,13 @@ export async function PATCH(
     if (typeof body.role === 'string' && ALLOWED_ROLES.has(body.role)) {
       updateData.role = body.role
     }
-    // Allow updating magasin; require it if role becomes/commercial
+    // Handle magasin in tandem with role changes
     if (typeof body.magasin === 'string') {
       updateData.magasin = body.magasin
+    }
+    // If role set to non-magasiner and magasin was not explicitly provided, clear magasin
+    if (updateData.role && updateData.role !== 'magasiner' && typeof body.magasin === 'undefined') {
+      updateData.magasin = undefined
     }
     if (password) {
       updateData.password = await bcrypt.hash(password, 10)
@@ -121,9 +125,33 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await prisma.user.delete({
-      where: { id: params.id }
-    })
+    // Resolve id robustly (similar to PATCH)
+    const url = new URL(request.url)
+    const pathname = url.pathname
+    const idFromUrl = (() => {
+      const segments = pathname.split("/")
+      const usersIndex = segments.findIndex((seg) => seg === "users")
+      if (usersIndex !== -1 && segments.length > usersIndex + 1) {
+        return segments[usersIndex + 1]
+      }
+      return undefined
+    })()
+    const userId = params?.id ?? idFromUrl
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User id is required in the route (e.g., /api/users/:id)" },
+        { status: 400 }
+      )
+    }
+
+    // Ensure user exists first to return clean 404
+    const existing = await prisma.user.findUnique({ where: { id: userId } })
+    if (!existing) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    await prisma.user.delete({ where: { id: userId } })
 
     return NextResponse.json(
       { message: "User deleted successfully" },

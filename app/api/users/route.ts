@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/database"
 import bcrypt from "bcryptjs"
 
-const ALLOWED_ROLES = new Set(["admin", "architect", "commercial"])
+const ALLOWED_ROLES = new Set(["admin", "architect", "magasiner", "operator"])
 
 // GET all users - sorted by most recent first
 export async function GET(request: NextRequest) {
@@ -52,10 +52,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If role is commercial, magasin is required
-    if (role === 'commercial' && !magasin) {
+    // If role is magasiner, magasin is required
+    if (role === 'magasiner' && !magasin) {
       return NextResponse.json(
-        { error: "Magasin is required for commercial users" },
+        { error: "Magasin is required for magasiner users" },
         { status: 400 }
       )
     }
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         name,
         role,
-        magasin: role === 'commercial' ? magasin : undefined,
+        magasin: role === 'magasiner' ? magasin : undefined,
       },
       select: {
         id: true,
