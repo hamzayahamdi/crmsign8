@@ -15,11 +15,18 @@ export const metadata: Metadata = {
   title: "Signature8 CRM - Suivi des Leads",
   description: "CRM de suivi des leads pour Signature8 by Sketch",
   generator: "v0.app",
+  manifest: '/manifest.json',
   icons: {
     icon: '/favicon-32x32.png',
     shortcut: '/favicon-32x32.png',
     apple: '/favicon-32x32.png',
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Signature8 CRM',
+  },
+  themeColor: '#667eea',
 }
 
 export default function RootLayout({

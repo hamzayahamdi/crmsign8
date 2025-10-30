@@ -133,7 +133,7 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
         return;
       }
 
-      await createCalendarEvent({
+      const event = await createCalendarEvent({
         title: formData.title,
         description: formData.description || undefined,
         startDate: startDateTime,
@@ -147,7 +147,33 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
         linkedArchitectId: formData.linkedArchitectId || undefined
       });
 
-      toast.success('Événement créé avec succès');
+      // Create reminder if one was selected
+      if (formData.reminderType !== 'none') {
+        try {
+          await fetch('/api/reminders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              eventId: event.id,
+              userId: formData.assignedTo,
+              reminderType: formData.reminderType
+            })
+          });
+          
+          const reminderLabel = REMINDER_TYPE_CONFIG[formData.reminderType].label;
+          toast.success(`Événement créé avec succès! 🎉\nRappel activé: ${reminderLabel}`, {
+            duration: 5000
+          });
+        } catch (reminderError) {
+          console.error('Error creating reminder:', reminderError);
+          toast.success('Événement créé avec succès');
+          toast.warning('Le rappel n\'a pas pu être créé');
+        }
+      } else {
+        toast.success('Événement créé avec succès');
+      }
+
       onEventCreated();
       handleClose();
     } catch (error) {

@@ -7,7 +7,9 @@ import { CalendarView } from '@/components/calendar-view';
 import { AddEventModal } from '@/components/add-event-modal';
 import { EventDetailModal } from '@/components/event-detail-modal';
 import { UpcomingEventsSidebar } from '@/components/upcoming-events-sidebar';
+import { NotificationPermissionDialog } from '@/components/notification-permission-dialog';
 import { useEventReminders } from '@/hooks/useEventReminders';
+import { notificationService } from '@/lib/notification-service';
 import { Sidebar } from '@/components/sidebar';
 import { AuthGuard } from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
@@ -23,7 +25,8 @@ import {
   CalendarDays,
   PanelRightOpen,
   PanelRightClose,
-  User
+  User,
+  Bell
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
@@ -46,6 +49,9 @@ function CalendrierContent() {
   const [showEventDetail, setShowEventDetail] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [users, setUsers] = useState<Array<{ id: string; name: string }>>([]);
+  const [showNotificationDialog, setShowNotificationDialog] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
 
   // Smart reminders
   useEventReminders(events);
@@ -53,6 +59,7 @@ function CalendrierContent() {
   useEffect(() => {
     loadEvents();
     loadUsers();
+    initializeNotifications();
   }, []);
 
   useEffect(() => {
@@ -87,8 +94,10 @@ function CalendrierContent() {
   const loadUsers = async () => {
     try {
       console.log('[Calendar] Loading users...');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const response = await fetch('/api/auth/users', {
         credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (response.ok) {
         const data = await response.json();
@@ -102,6 +111,40 @@ function CalendrierContent() {
     } catch (error) {
       console.error('[Calendar] Error loading users:', error);
       toast.error('Erreur lors du chargement des utilisateurs');
+    }
+  };
+
+  const initializeNotifications = async () => {
+    try {
+      // Get current user info
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        setCurrentUserId(userData.id);
+        setCurrentUserEmail(userData.email);
+
+        // Initialize service worker
+        await notificationService.initServiceWorker();
+
+        // Check if we should show the notification permission dialog
+        const hasSeenDialog = localStorage.getItem('notification-dialog-seen');
+        const permission = notificationService.getPermissionStatus();
+
+        if (!hasSeenDialog && permission === 'default') {
+          // Show dialog after a short delay for better UX
+          setTimeout(() => {
+            setShowNotificationDialog(true);
+            localStorage.setItem('notification-dialog-seen', 'true');
+          }, 2000);
+        }
+      }
+    } catch (error) {
+      console.error('[Calendar] Error initializing notifications:', error);
     }
   };
 
@@ -175,16 +218,27 @@ function CalendrierContent() {
             </div>
           </div>
 
-          <Button
-            onClick={() => {
-              setSelectedDate(undefined);
-              setShowAddModal(true);
-            }}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Nouvel événement
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowNotificationDialog(true)}
+              className="h-10 w-10"
+              title="Paramètres de notification"
+            >
+              <Bell className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => {
+                setSelectedDate(undefined);
+                setShowAddModal(true);
+              }}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Nouvel événement
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -385,6 +439,14 @@ function CalendrierContent() {
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}
         onEventClick={handleEventClick}
+      />
+
+      {/* Notification Permission Dialog */}
+      <NotificationPermissionDialog
+        isOpen={showNotificationDialog}
+        onClose={() => setShowNotificationDialog(false)}
+        userId={currentUserId}
+        userEmail={currentUserEmail}
       />
     </div>
   );

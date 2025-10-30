@@ -155,7 +155,8 @@ enum EventType {
 }
 
 enum ReminderType {
-  min_15
+  min_5
+  min_30
   hour_1
   day_1
   none
@@ -178,4 +179,35 @@ model Document {
   @@index([clientId])
   @@index([uploadedAt(sort: Desc)])
   @@map("documents")
+}
+
+model EventReminder {
+  id                String   @id @default(cuid())
+  eventId           String   @map("event_id")
+  userId            String   @map("user_id")
+  reminderTime      DateTime @map("reminder_time")
+  reminderType      String   @map("reminder_type")
+  notificationSent  Boolean  @default(false) @map("notification_sent")
+  notificationMethod String? @map("notification_method")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@index([reminderTime])
+  @@index([notificationSent])
+  @@map("event_reminders")
+}
+
+model NotificationPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique @map("user_id")
+  pushEnabled     Boolean  @default(false) @map("push_enabled")
+  emailEnabled    Boolean  @default(true) @map("email_enabled")
+  pushSubscription Json?   @map("push_subscription")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_preferences")
 }

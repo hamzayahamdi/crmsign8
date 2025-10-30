@@ -1,0 +1,300 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Bell, Mail, Smartphone, X } from 'lucide-react';
+import { notificationService } from '@/lib/notification-service';
+import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface NotificationPermissionDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userId: string;
+  userEmail?: string;
+}
+
+export function NotificationPermissionDialog({
+  isOpen,
+  onClose,
+  userId,
+  userEmail
+}: NotificationPermissionDialogProps) {
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [email, setEmail] = useState(userEmail || '');
+  const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState<'intro' | 'settings'>('intro');
+
+  useEffect(() => {
+    if (isOpen) {
+      loadPreferences();
+    }
+  }, [isOpen]);
+
+  const loadPreferences = async () => {
+    try {
+      const prefs = await notificationService.getPreferences(userId);
+      if (prefs) {
+        setPushEnabled(prefs.pushEnabled);
+        setEmailEnabled(prefs.emailEnabled);
+        if (prefs.email) setEmail(prefs.email);
+      }
+    } catch (error) {
+      console.error('Error loading preferences:', error);
+    }
+  };
+
+  const handleEnableNotifications = async () => {
+    setIsLoading(true);
+    try {
+      // Initialize service worker
+      await notificationService.initServiceWorker();
+
+      // Request permission
+      const permission = await notificationService.requestPermission();
+
+      if (permission === 'granted') {
+        setPushEnabled(true);
+        setStep('settings');
+        toast.success('Notifications activées avec succès! 🎉');
+      } else if (permission === 'denied') {
+        toast.error('Les notifications ont été refusées. Vous pouvez les activer dans les paramètres de votre navigateur.');
+        setStep('settings');
+      } else {
+        toast.info('Permission de notification en attente');
+      }
+    } catch (error) {
+      console.error('Error enabling notifications:', error);
+      toast.error('Erreur lors de l\'activation des notifications');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    setIsLoading(true);
+    try {
+      const success = await notificationService.updatePreferences(userId, {
+        pushEnabled,
+        emailEnabled,
+        email: emailEnabled ? email : undefined
+      });
+
+      if (success) {
+        toast.success('Préférences enregistrées avec succès! ✅');
+        onClose();
+      } else {
+        toast.error('Erreur lors de l\'enregistrement des préférences');
+      }
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+      toast.error('Erreur lors de l\'enregistrement des préférences');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSkip = () => {
+    // Save default preferences (email only)
+    notificationService.updatePreferences(userId, {
+      pushEnabled: false,
+      emailEnabled: true,
+      email: userEmail
+    });
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden">
+        <AnimatePresence mode="wait">
+          {step === 'intro' ? (
+            <motion.div
+              key="intro"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="p-6"
+            >
+              <DialogHeader>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl">
+                    <Bell className="h-8 w-8 text-primary" />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleSkip}
+                    className="h-8 w-8"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <DialogTitle className="text-2xl">
+                  Ne manquez plus aucun rendez-vous
+                </DialogTitle>
+                <DialogDescription className="text-base mt-2">
+                  Activez les notifications pour recevoir des rappels avant vos événements importants.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="mt-6 space-y-4">
+                <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50">
+                  <div className="p-2 bg-blue-500/10 rounded-lg shrink-0">
+                    <Smartphone className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm mb-1">Notifications push</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Recevez des alertes instantanées sur votre appareil, même quand l'application est fermée.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50">
+                  <div className="p-2 bg-green-500/10 rounded-lg shrink-0">
+                    <Mail className="h-5 w-5 text-green-500" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm mb-1">Rappels par email</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Recevez également des emails de rappel pour ne rien manquer.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="mt-6 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleSkip}
+                  disabled={isLoading}
+                >
+                  Plus tard
+                </Button>
+                <Button
+                  onClick={handleEnableNotifications}
+                  disabled={isLoading}
+                  className="gap-2"
+                >
+                  <Bell className="h-4 w-4" />
+                  Activer les notifications
+                </Button>
+              </DialogFooter>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="settings"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="p-6"
+            >
+              <DialogHeader>
+                <DialogTitle className="text-xl">
+                  Préférences de notification
+                </DialogTitle>
+                <DialogDescription>
+                  Personnalisez comment vous souhaitez recevoir vos rappels.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="mt-6 space-y-6">
+                {/* Push Notifications */}
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Smartphone className="h-4 w-4 text-primary" />
+                      <Label htmlFor="push-enabled" className="font-semibold">
+                        Notifications push
+                      </Label>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Alertes instantanées sur votre appareil
+                    </p>
+                  </div>
+                  <Switch
+                    id="push-enabled"
+                    checked={pushEnabled}
+                    onCheckedChange={setPushEnabled}
+                  />
+                </div>
+
+                {/* Email Notifications */}
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Mail className="h-4 w-4 text-primary" />
+                        <Label htmlFor="email-enabled" className="font-semibold">
+                          Rappels par email
+                        </Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Recevez des emails de rappel
+                      </p>
+                    </div>
+                    <Switch
+                      id="email-enabled"
+                      checked={emailEnabled}
+                      onCheckedChange={setEmailEnabled}
+                    />
+                  </div>
+
+                  {emailEnabled && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                    >
+                      <Label htmlFor="email" className="text-sm">
+                        Adresse email
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="votre@email.com"
+                        className="mt-1.5"
+                      />
+                    </motion.div>
+                  )}
+                </div>
+
+                {!pushEnabled && !emailEnabled && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                    <p className="text-sm text-amber-700 dark:text-amber-400">
+                      ⚠️ Vous ne recevrez aucun rappel si les deux options sont désactivées.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="mt-6 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setStep('intro')}
+                  disabled={isLoading}
+                >
+                  Retour
+                </Button>
+                <Button
+                  onClick={handleSavePreferences}
+                  disabled={isLoading || (emailEnabled && !email)}
+                >
+                  Enregistrer
+                </Button>
+              </DialogFooter>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </DialogContent>
+    </Dialog>
+  );
+}

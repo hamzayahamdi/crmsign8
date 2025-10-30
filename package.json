@@ -14,7 +14,10 @@
     "db:seed": "node scripts/setup-database.js",
     "db:setup": "npm run db:generate && npm run db:push && npm run db:seed",
     "test:pagination": "node scripts/test-pagination.js",
-    "create:admin": "node scripts/create-admin-user.js"
+    "create:admin": "node scripts/create-admin-user.js",
+    "generate:vapid": "node scripts/generate-vapid-keys.js",
+    "supabase:deploy": "supabase functions deploy check-reminders",
+    "supabase:logs": "supabase functions logs check-reminders"
   },
   "dependencies": {
     "@dnd-kit/core": "latest",
@@ -86,6 +89,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "postcss": "^8.5",
+    "supabase": "^2.54.11",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
     "typescript": "^5"

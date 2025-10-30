@@ -7,7 +7,7 @@ import { CalendarEventWithDetails } from '@/types/calendar';
 import { EVENT_TYPE_CONFIG, REMINDER_TYPE_CONFIG } from '@/types/calendar';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Calendar, Clock, MapPin, User, FileText, Bell, Trash2, Edit } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, FileText, Bell, Trash2, Edit, BellOff, X } from 'lucide-react';
 import { deleteCalendarEvent } from '@/lib/calendar-service';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
@@ -39,6 +39,10 @@ export function EventDetailModal({
 }: EventDetailModalProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isCancelingReminder, setIsCancelingReminder] = useState(false);
+  const [hasReminder, setHasReminder] = useState(() => {
+    return event?.reminderType !== 'none';
+  });
 
   if (!event) return null;
 
@@ -48,6 +52,19 @@ export function EventDetailModal({
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
+      // Delete reminder first if exists
+      if (hasReminder) {
+        try {
+          await fetch(`/api/reminders?eventId=${event.id}&userId=${event.assignedTo}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          });
+        } catch (reminderError) {
+          console.error('Error deleting reminder:', reminderError);
+          // Continue with event deletion even if reminder deletion fails
+        }
+      }
+      
       await deleteCalendarEvent(event.id);
       toast.success('Événement supprimé avec succès');
       setShowDeleteDialog(false);
@@ -58,6 +75,31 @@ export function EventDetailModal({
       toast.error('Erreur lors de la suppression de l\'événement');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleCancelReminder = async () => {
+    setIsCancelingReminder(true);
+    try {
+      const response = await fetch(`/api/reminders?eventId=${event.id}&userId=${event.assignedTo}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        setHasReminder(false);
+        toast.success('Rappel annulé avec succès', {
+          description: 'Vous ne recevrez plus de notification pour cet événement',
+          duration: 4000,
+        });
+      } else {
+        throw new Error('Failed to cancel reminder');
+      }
+    } catch (error) {
+      console.error('Error canceling reminder:', error);
+      toast.error('Erreur lors de l\'annulation du rappel');
+    } finally {
+      setIsCancelingReminder(false);
     }
   };
 
@@ -146,11 +188,39 @@ export function EventDetailModal({
             {/* Reminder */}
             <div className="flex items-start gap-3 p-4 rounded-xl bg-background/60 border border-border/40 ring-1 ring-border/30">
               <Bell className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div>
+              <div className="flex-1">
                 <div className="text-sm font-medium text-muted-foreground mb-1">
                   Rappel
                 </div>
-                <div className="font-semibold text-foreground">{reminderConfig.label}</div>
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-foreground">{reminderConfig.label}</div>
+                  {hasReminder && event.reminderType !== 'none' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelReminder}
+                      disabled={isCancelingReminder}
+                      className="gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mr-2"
+                    >
+                      {isCancelingReminder ? (
+                        <>
+                          <span className="animate-spin">⏳</span>
+                          Annulation...
+                        </>
+                      ) : (
+                        <>
+                          <X className="h-4 w-4" />
+                          Annuler le rappel
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+                {!hasReminder && event.reminderType !== 'none' && (
+                  <p className="text-xs text-muted-foreground mt-1 italic">
+                    Rappel annulé
+                  </p>
+                )}
               </div>
             </div>
 

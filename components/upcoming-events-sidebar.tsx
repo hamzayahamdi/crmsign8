@@ -69,26 +69,28 @@ export function UpcomingEventsSidebar({ events, isOpen, onClose, onEventClick }:
                       animate={{ opacity: 1, y: 0 }}
                       whileHover={{ scale: 1.02 }}
                       onClick={() => onEventClick(event)}
-                      className={`p-3 rounded-lg border-l-3 ${eventConfig.borderColor} ${eventConfig.bgLight} backdrop-blur-sm cursor-pointer transition-all hover:shadow-md`}
+                      className={`group relative p-3 rounded-xl border border-border/40 bg-background/60 ring-1 ring-border/30 backdrop-blur cursor-pointer transition-all hover:shadow-lg`}
                     >
+                      {/* Left accent bar */}
+                      <div className={`absolute left-0 top-0 h-full w-1 rounded-l-xl ${eventConfig.color}`} />
                       {/* Date Label */}
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-xs font-medium text-muted-foreground">
                           {getDateLabel(startDate)}
                         </span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${eventConfig.color} text-white`}>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${eventConfig.color} text-white shadow-sm`}>
                           {eventConfig.icon}
                         </span>
                       </div>
 
                       {/* Event Title */}
-                      <h3 className="font-semibold text-sm mb-2 line-clamp-2 text-foreground">
+                      <h3 className="font-semibold text-sm mb-2 line-clamp-2 text-foreground/95">
                         {event.title}
                       </h3>
 
                       {/* Time */}
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                        <Clock className="h-3.5 w-3.5" />
+                        <Clock className="h-3.5 w-3.5 opacity-80" />
                         <span>
                           {format(startDate, 'HH:mm', { locale: fr })}
                           {event.endDate && ` - ${format(new Date(event.endDate), 'HH:mm', { locale: fr })}`}
@@ -98,7 +100,7 @@ export function UpcomingEventsSidebar({ events, isOpen, onClose, onEventClick }:
                       {/* Location */}
                       {event.location && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                          <MapPin className="h-3.5 w-3.5" />
+                          <MapPin className="h-3.5 w-3.5 opacity-80" />
                           <span className="line-clamp-1">{event.location}</span>
                         </div>
                       )}
@@ -106,7 +108,7 @@ export function UpcomingEventsSidebar({ events, isOpen, onClose, onEventClick }:
                       {/* Assigned To */}
                       {event.assignedToName && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <User className="h-3.5 w-3.5" />
+                          <User className="h-3.5 w-3.5 opacity-80" />
                           <span>{event.assignedToName}</span>
                         </div>
                       )}

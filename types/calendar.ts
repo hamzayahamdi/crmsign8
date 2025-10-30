@@ -1,5 +1,5 @@
 export type EventType = 'rendez_vous' | 'suivi_projet' | 'appel_reunion' | 'urgent';
-export type ReminderType = 'min_15' | 'hour_1' | 'day_1' | 'none';
+export type ReminderType = 'min_5' | 'min_30' | 'hour_1' | 'day_1' | 'none';
 
 export interface CalendarEvent {
   id: string;
@@ -71,8 +71,16 @@ export const EVENT_TYPE_CONFIG = {
 } as const;
 
 export const REMINDER_TYPE_CONFIG = {
-  'min_15': { label: '15 minutes avant', minutes: 15 },
+  'min_5': { label: '5 minutes avant', minutes: 5 },
+  'min_30': { label: '30 minutes avant', minutes: 30 },
   'hour_1': { label: '1 heure avant', minutes: 60 },
   'day_1': { label: '1 jour avant', minutes: 1440 },
   'none': { label: 'Aucun rappel', minutes: 0 }
 } as const;
+
+// Notification preferences interface
+export interface NotificationPreferences {
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  email?: string;
+}
