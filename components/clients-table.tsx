@@ -22,7 +22,6 @@ interface ClientsTableProps {
 }
 
 const statutConfig: Record<ProjectStatus, { label: string; color: string }> = {
-  prospection: { label: "Prospection", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40" },
   nouveau: { label: "Nouveau projet", color: "bg-green-500/20 text-green-400 border-green-500/40" },
   acompte_verse: { label: "Acompte versé", color: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
   en_conception: { label: "En conception", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
@@ -163,10 +162,6 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
             <p className="text-sm text-muted-foreground">
               {sortedClients.length} client{sortedClients.length > 1 ? 's' : ''}
             </p>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <Eye className="w-4 h-4 text-blue-400" />
-            <span className="text-xs text-blue-300">Vue consultation uniquement</span>
           </div>
         </div>
       </div>

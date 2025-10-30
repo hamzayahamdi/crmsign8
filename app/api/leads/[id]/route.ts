@@ -100,9 +100,23 @@ export async function PUT(
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
     }
+    // Commercial: can only update their own leads
+    if (user?.role === 'commercial') {
+      if (existing.createdBy !== user.name && existing.commercialMagasin !== user.name) {
+        return NextResponse.json({ error: 'Forbidden: You can only update your own leads' }, { status: 403 })
+      }
+    }
     // Admin and operator can update any lead; others forbidden
-    if (user && user.role !== 'admin' && user.role !== 'operator' && user.role !== 'architect') {
+    if (user && user.role !== 'admin' && user.role !== 'operator' && user.role !== 'architect' && user.role !== 'commercial') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    
+    // Handle converted lead status change - undo conversion if status changes from "converti"
+    // Note: Client removal from localStorage will be handled on the client side
+    // We just update the lead status here and log the change
+    if (existing.statut === 'converti' && body.statut !== 'converti') {
+      console.log(`[Lead Update] Lead ${leadId} status changed from 'converti' to '${body.statut}'. Conversion undone.`)
+      console.log(`[Lead Update] Note: Associated client in localStorage should be removed by the client-side code.`)
     }
     
     // Build update data with only valid fields
@@ -114,8 +128,8 @@ export async function PUT(
       statut: body.statut,
       statutDetaille: body.statutDetaille || '',
       message: body.message || null,
-      // Prevent architects from reassigning; keep existing assignment
-      assignePar: user?.role === 'architect' ? existing.assignePar : body.assignePar,
+      // Prevent architects and commercials from reassigning; keep existing assignment
+      assignePar: (user?.role === 'architect' || user?.role === 'commercial') ? existing.assignePar : body.assignePar,
       source: body.source as any, // Cast to any to bypass enum validation
       priorite: body.priorite,
       derniereMaj: new Date(body.derniereMaj || new Date())

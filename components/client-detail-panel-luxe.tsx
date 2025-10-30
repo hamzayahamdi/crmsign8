@@ -33,12 +33,6 @@ const statusConfig: Record<ProjectStatus, {
   gradient: string
   glowColor: string
 }> = {
-  prospection: { 
-    label: "Prospection", 
-    progress: 5,
-    gradient: "from-yellow-400 to-yellow-500",
-    glowColor: "shadow-yellow-500/20"
-  },
   nouveau: { 
     label: "Nouveau projet", 
     progress: 10,
@@ -95,12 +89,12 @@ const statusConfig: Record<ProjectStatus, {
   },
 }
 
-// Project stage icons and colors
+// Project stage icons and colors - Updated to include all statuses
 const stageConfig = [
-  { key: "prospection", label: "Prospection", icon: User, color: "text-yellow-400" },
-  { key: "nouveau", label: "Nouveau projet", icon: Sparkles, color: "text-green-400" },
+  { key: "nouveau", label: "Nouveau", icon: Sparkles, color: "text-green-400" },
   { key: "acompte_verse", label: "Acompte", icon: DollarSign, color: "text-orange-400" },
   { key: "en_conception", label: "Conception", icon: Briefcase, color: "text-blue-400" },
+  { key: "en_validation", label: "Validation", icon: FileText, color: "text-amber-400" },
   { key: "en_chantier", label: "Chantier", icon: Building2, color: "text-purple-400" },
   { key: "livraison", label: "Livraison", icon: TrendingUp, color: "text-teal-400" },
   { key: "termine", label: "Terminé", icon: Check, color: "text-emerald-400" },
@@ -856,6 +850,27 @@ export function ClientDetailPanelLuxe({
             isOpen={isDocumentsModalOpen}
             onClose={() => setIsDocumentsModalOpen(false)}
             client={localClient}
+            onDocumentsAdded={(docs) => {
+              const now = new Date().toISOString()
+              const updated = {
+                ...localClient,
+                documents: [...(localClient.documents || []), ...docs],
+                updatedAt: now,
+                derniereMaj: now,
+                historique: [
+                  {
+                    id: `hist-${Date.now()}`,
+                    date: now,
+                    type: 'document' as const,
+                    description: `${docs.length} document(s) ajouté(s)`,
+                    auteur: user?.name || 'Utilisateur'
+                  },
+                  ...(localClient.historique || [])
+                ]
+              }
+              setLocalClient(updated)
+              onUpdate?.(updated)
+            }}
           />
 
           <StatusChangeConfirmationModal
@@ -915,62 +930,127 @@ export function ClientDetailPanelLuxe({
                   </div>
 
                   {/* Status Options */}
-                  <div className="px-6 py-6 space-y-3">
-                    <p className="text-sm font-medium text-slate-300 mb-4">Choisir un nouveau statut</p>
-                    {stageConfig.map((stage) => {
-                      const Icon = stage.icon
-                      const stageStatus = statusConfig[stage.key as ProjectStatus]
-                      const isCurrent = stage.key === localClient.statutProjet
-                      
-                      return (
-                        <motion.button
-                          key={stage.key}
-                          whileHover={!isCurrent ? { scale: 1.02, x: 4 } : {}}
-                          whileTap={!isCurrent ? { scale: 0.98 } : {}}
-                          onClick={() => {
-                            if (!isCurrent) {
-                              setPendingStatus(stage.key as ProjectStatus)
-                              setIsStatusUpdateModalOpen(false)
-                              setIsStatusConfirmModalOpen(true)
-                            }
-                          }}
-                          disabled={isCurrent}
-                          className={cn(
-                            "w-full p-4 rounded-xl border transition-all flex items-center gap-4",
-                            isCurrent 
-                              ? "bg-slate-800/50 border-slate-700/50 cursor-default opacity-60" 
-                              : "bg-slate-800/30 border-slate-700/30 hover:bg-slate-800/60 hover:border-slate-600/50 cursor-pointer"
-                          )}
-                        >
-                          {/* Icon */}
-                          <div className={cn(
-                            "w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br",
-                            stageStatus.gradient,
-                            "shadow-lg"
-                          )}>
-                            <Icon className="w-6 h-6 text-white" />
-                          </div>
-
-                          {/* Info */}
-                          <div className="flex-1 text-left">
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold text-white">{stage.label}</p>
-                              {isCurrent && (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                                  Actuel
-                                </span>
-                              )}
+                  <div className="px-6 py-6 space-y-4">
+                    {/* Active Project Statuses */}
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-slate-300 mb-3">Statuts de progression</p>
+                      {stageConfig.map((stage) => {
+                        const Icon = stage.icon
+                        const stageStatus = statusConfig[stage.key as ProjectStatus]
+                        const isCurrent = stage.key === localClient.statutProjet
+                        
+                        return (
+                          <motion.button
+                            key={stage.key}
+                            whileHover={!isCurrent ? { scale: 1.02, x: 4 } : {}}
+                            whileTap={!isCurrent ? { scale: 0.98 } : {}}
+                            onClick={() => {
+                              if (!isCurrent) {
+                                setPendingStatus(stage.key as ProjectStatus)
+                                setIsStatusUpdateModalOpen(false)
+                                setIsStatusConfirmModalOpen(true)
+                              }
+                            }}
+                            disabled={isCurrent}
+                            className={cn(
+                              "w-full p-4 rounded-xl border transition-all flex items-center gap-4",
+                              isCurrent 
+                                ? "bg-slate-800/50 border-slate-700/50 cursor-default opacity-60" 
+                                : "bg-slate-800/30 border-slate-700/30 hover:bg-slate-800/60 hover:border-slate-600/50 cursor-pointer"
+                            )}
+                          >
+                            {/* Icon */}
+                            <div className={cn(
+                              "w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br",
+                              stageStatus.gradient,
+                              "shadow-lg"
+                            )}>
+                              <Icon className="w-6 h-6 text-white" />
                             </div>
-                            <p className="text-sm text-slate-400 mt-0.5">{stageStatus.progress}% de progression</p>
-                          </div>
 
-                          {/* Arrow */}
-                          {!isCurrent && (
-                            <ChevronDown className="w-5 h-5 text-slate-400 rotate-[-90deg]" />
-                          )}
-                        </motion.button>
-                      )
-                    })}
+                            {/* Info */}
+                            <div className="flex-1 text-left">
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-white">{stageStatus.label}</p>
+                                {isCurrent && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                    Actuel
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-400 mt-0.5">{stageStatus.progress}% de progression</p>
+                            </div>
+
+                            {/* Arrow */}
+                            {!isCurrent && (
+                              <ChevronDown className="w-5 h-5 text-slate-400 rotate-[-90deg]" />
+                            )}
+                          </motion.button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Special Statuses */}
+                    <div className="space-y-3 pt-3 border-t border-slate-700/50">
+                      <p className="text-sm font-medium text-slate-300 mb-3">Statuts spéciaux</p>
+                      {[
+                        { key: "suspendu", label: "Suspendu", icon: Clock },
+                        { key: "annule", label: "Annulé", icon: X },
+                      ].map((specialStatus) => {
+                        const Icon = specialStatus.icon
+                        const stageStatus = statusConfig[specialStatus.key as ProjectStatus]
+                        const isCurrent = specialStatus.key === localClient.statutProjet
+                        
+                        return (
+                          <motion.button
+                            key={specialStatus.key}
+                            whileHover={!isCurrent ? { scale: 1.02, x: 4 } : {}}
+                            whileTap={!isCurrent ? { scale: 0.98 } : {}}
+                            onClick={() => {
+                              if (!isCurrent) {
+                                setPendingStatus(specialStatus.key as ProjectStatus)
+                                setIsStatusUpdateModalOpen(false)
+                                setIsStatusConfirmModalOpen(true)
+                              }
+                            }}
+                            disabled={isCurrent}
+                            className={cn(
+                              "w-full p-4 rounded-xl border transition-all flex items-center gap-4",
+                              isCurrent 
+                                ? "bg-slate-800/50 border-slate-700/50 cursor-default opacity-60" 
+                                : "bg-slate-800/30 border-slate-700/30 hover:bg-slate-800/60 hover:border-slate-600/50 cursor-pointer"
+                            )}
+                          >
+                            {/* Icon */}
+                            <div className={cn(
+                              "w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br",
+                              stageStatus.gradient,
+                              "shadow-lg"
+                            )}>
+                              <Icon className="w-6 h-6 text-white" />
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 text-left">
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-white">{stageStatus.label}</p>
+                                {isCurrent && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                    Actuel
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-400 mt-0.5">Statut spécial</p>
+                            </div>
+
+                            {/* Arrow */}
+                            {!isCurrent && (
+                              <ChevronDown className="w-5 h-5 text-slate-400 rotate-[-90deg]" />
+                            )}
+                          </motion.button>
+                        )
+                      })}
+                    </div>
                   </div>
 
                   {/* Modal Footer */}

@@ -19,13 +19,15 @@ interface ClientsListMobileProps {
 }
 
 const statutConfig: Record<ProjectStatus, { label: string; color: string }> = {
-  prospection: { label: "Nouveau", color: "bg-gray-500/20 text-gray-400 border-gray-500/40" },
-  nouveau: { label: "Nouveau", color: "bg-slate-500/20 text-slate-400 border-slate-500/40" },
+  nouveau: { label: "Nouveau projet", color: "bg-green-500/20 text-green-400 border-green-500/40" },
   acompte_verse: { label: "Acompte versé", color: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
   en_conception: { label: "En conception", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
-  en_chantier: { label: "En chantier", color: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
+  en_validation: { label: "En validation", color: "bg-amber-500/20 text-amber-400 border-amber-500/40" },
+  en_chantier: { label: "En réalisation", color: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
   livraison: { label: "Livraison", color: "bg-teal-500/20 text-teal-400 border-teal-500/40" },
-  termine: { label: "Terminé", color: "bg-green-500/20 text-green-400 border-green-500/40" },
+  termine: { label: "Terminé", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" },
+  annule: { label: "Annulé", color: "bg-red-500/20 text-red-400 border-red-500/40" },
+  suspendu: { label: "Suspendu", color: "bg-slate-500/20 text-slate-400 border-slate-500/40" },
 }
 
 export function ClientsListMobile({ clients, onClientClick, searchQuery, filters, isLoading = false }: ClientsListMobileProps) {
@@ -86,7 +88,7 @@ export function ClientsListMobile({ clients, onClientClick, searchQuery, filters
   return (
     <div className="space-y-3 p-4">
       {items.map((c) => {
-        const st = statutConfig[c.statutProjet]
+        const st = statutConfig[c.statutProjet] || { label: c.statutProjet, color: "bg-gray-500/20 text-gray-400 border-gray-500/40" }
         return (
           <button
             key={c.id}

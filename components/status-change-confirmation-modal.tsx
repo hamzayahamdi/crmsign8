@@ -22,7 +22,6 @@ interface StatusChangeConfirmationModalProps {
 }
 
 const statusLabels: Record<ProjectStatus, string> = {
-  prospection: "Prospection",
   nouveau: "Nouveau projet",
   acompte_verse: "Acompte versé",
   en_conception: "En conception",

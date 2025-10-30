@@ -196,9 +196,9 @@ export default function ClientsPage() {
         <main className="flex-1 flex flex-col">
           <Header />
           
-          {/* Stats Cards - Compact */}
+          {/* Stats Cards - Compact (budget removed) */}
           <div className="px-6 pb-3">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -249,22 +249,7 @@ export default function ClientsPage() {
                 </div>
               </motion.div>
 
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="glass rounded-lg p-3 border border-slate-600/30"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
-                    <DollarSign className="w-4 h-4 text-purple-400" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-slate-400">Budget</p>
-                    <p className="text-lg font-bold text-white truncate">{formatCurrency(totalBudget)}</p>
-                  </div>
-                </div>
-              </motion.div>
+              
             </div>
           </div>
 

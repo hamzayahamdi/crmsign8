@@ -1,6 +1,6 @@
 "use client"
 
-import type { Client } from "@/types/client"
+import type { Client, ProjectStatus } from "@/types/client"
 import { Phone, MapPin, User, Calendar } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSortable } from "@dnd-kit/sortable"
@@ -49,6 +49,21 @@ export function ClientKanbanCard({ client, onClick, isNewlyAdded }: ClientKanban
     })
   }
 
+  const getStatusBadge = (status: ProjectStatus) => {
+    const config: Record<ProjectStatus, { label: string; className: string }> = {
+      nouveau: { label: "Nouveau", className: "bg-green-500/20 text-green-400 border-green-500/40" },
+      acompte_verse: { label: "Acompte versé", className: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
+      en_conception: { label: "En conception", className: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
+      en_validation: { label: "En validation", className: "bg-amber-500/20 text-amber-400 border-amber-500/40" },
+      en_chantier: { label: "En chantier", className: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
+      livraison: { label: "Livraison", className: "bg-teal-500/20 text-teal-400 border-teal-500/40" },
+      termine: { label: "Terminé", className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" },
+      annule: { label: "Annulé", className: "bg-red-500/20 text-red-400 border-red-500/40" },
+      suspendu: { label: "Suspendu", className: "bg-slate-500/20 text-slate-400 border-slate-500/40" },
+    }
+    return config[status] || { label: status, className: "bg-gray-500/20 text-gray-400 border-gray-500/40" }
+  }
+
   return (
     <div
       ref={setNodeRef}
@@ -65,6 +80,16 @@ export function ClientKanbanCard({ client, onClick, isNewlyAdded }: ClientKanban
       <div className="flex items-start justify-between mb-3">
         <h4 className="font-semibold text-white">{client.nom}</h4>
         <span className="text-xs text-muted-foreground">{client.typeProjet}</span>
+      </div>
+
+      {/* Status Badge - Shows exact status from table */}
+      <div className="mb-3">
+        <span className={cn(
+          "inline-flex items-center px-2 py-1 rounded-md text-[10px] font-medium border",
+          getStatusBadge(client.statutProjet).className
+        )}>
+          {getStatusBadge(client.statutProjet).label}
+        </span>
       </div>
 
       {/* Info */}

@@ -143,13 +143,32 @@ export function ClientKanbanBoard({
   const filteredClients = clients.filter(client => passesSearch(client) && passesFilters(client))
 
   const getClientsByStatus = (status: ProjectStatus) => {
-    // Map prospection to nouveau for display purposes
-    if (status === "nouveau") {
-      return filteredClients.filter(client => 
-        client.statutProjet === "nouveau" || client.statutProjet === "prospection"
-      )
+    // Map all 9 statuses to the 5 Kanban columns
+    const statusMapping: Record<ProjectStatus, ProjectStatus> = {
+      // Column 1: Nouveau projet
+      nouveau: "nouveau",
+      acompte_verse: "nouveau", // Client paid deposit, still in early stage
+      
+      // Column 2: En conception
+      en_conception: "en_conception",
+      
+      // Column 3: En validation
+      en_validation: "en_validation",
+      
+      // Column 4: En réalisation (chantier)
+      en_chantier: "en_chantier",
+      livraison: "en_chantier", // Delivery phase is part of construction
+      
+      // Column 5: Terminé
+      termine: "termine",
+      annule: "termine", // Show cancelled projects in final column
+      suspendu: "termine", // Show suspended projects in final column
     }
-    return filteredClients.filter(client => client.statutProjet === status)
+    
+    return filteredClients.filter(client => {
+      const mappedStatus = statusMapping[client.statutProjet]
+      return mappedStatus === status
+    })
   }
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -235,7 +254,6 @@ export function ClientKanbanBoard({
 
     // Show success toast
     const statusLabels: Record<ProjectStatus, string> = {
-      prospection: "Prospection",
       nouveau: "Nouveau projet",
       acompte_verse: "Acompte versé",
       en_conception: "En conception",
@@ -257,7 +275,6 @@ export function ClientKanbanBoard({
 
   const getStatusLabel = (status: ProjectStatus): string => {
     const statusLabels: Record<ProjectStatus, string> = {
-      prospection: "Prospection",
       nouveau: "Nouveau projet",
       acompte_verse: "Acompte versé",
       en_conception: "En conception",
@@ -280,7 +297,7 @@ export function ClientKanbanBoard({
           <span className="text-sm text-blue-300 font-medium">Mise à jour...</span>
         </div>
       )}
-
+ 
       <DndContext
         sensors={sensors}
         collisionDetection={customCollisionDetection}

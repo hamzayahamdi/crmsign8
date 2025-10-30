@@ -1,5 +1,4 @@
 export type ProjectStatus = 
-  | "prospection" 
   | "nouveau" 
   | "acompte_verse" 
   | "en_conception" 

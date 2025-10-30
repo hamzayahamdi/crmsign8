@@ -1,17 +1,64 @@
 "use client"
 
 import { useState } from "react"
-import { Lead } from "@/types/lead"
+import { Lead, LeadStatus } from "@/types/lead"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Phone, MapPin, Home, Building2, Calendar, Eye } from "lucide-react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { cn } from "@/lib/utils"
 
 interface CommercialLeadsTableProps {
   leads: Lead[]
   onViewLead: (lead: Lead) => void
+}
+
+const getStatusConfig = (status: LeadStatus) => {
+  const configs: Record<LeadStatus, { label: string; bg: string; dot: string; ring: string; text: string; border: string }> = {
+    nouveau: {
+      label: "Nouveau",
+      bg: "bg-emerald-500/20",
+      dot: "bg-emerald-400",
+      ring: "ring-emerald-500/30",
+      text: "text-emerald-200",
+      border: "border-emerald-500/40",
+    },
+    a_recontacter: {
+      label: "À recontacter",
+      bg: "bg-amber-500/20",
+      dot: "bg-amber-400",
+      ring: "ring-amber-500/30",
+      text: "text-amber-200",
+      border: "border-amber-500/40",
+    },
+    sans_reponse: {
+      label: "Sans réponse",
+      bg: "bg-orange-500/25",
+      dot: "bg-orange-400",
+      ring: "ring-orange-500/30",
+      text: "text-orange-200",
+      border: "border-orange-500/40",
+    },
+    non_interesse: {
+      label: "Non intéressé",
+      bg: "bg-rose-500/25",
+      dot: "bg-rose-400",
+      ring: "ring-rose-500/30",
+      text: "text-rose-200",
+      border: "border-rose-500/40",
+    },
+    converti: {
+      label: "Converti",
+      bg: "bg-blue-500/20",
+      dot: "bg-blue-400",
+      ring: "ring-blue-500/30",
+      text: "text-blue-200",
+      border: "border-blue-500/40",
+    },
+  }
+  return configs[status]
 }
 
 export function CommercialLeadsTable({ leads, onViewLead }: CommercialLeadsTableProps) {
@@ -94,9 +141,24 @@ export function CommercialLeadsTable({ leads, onViewLead }: CommercialLeadsTable
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <Badge className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 border border-emerald-500/30 font-semibold shadow-sm px-3 py-1.5">
-                    🟢 Nouveau
-                  </Badge>
+                  {(() => {
+                    const st = getStatusConfig(lead.statut)
+                    return (
+                      <Badge
+                        className={cn(
+                          "inline-flex items-center gap-2 rounded-full px-3 py-1.5 border text-sm font-medium",
+                          st.bg,
+                          st.text,
+                          st.border,
+                          "ring-1",
+                          st.ring
+                        )}
+                      >
+                        <span className={cn("w-2.5 h-2.5 rounded-full", st.dot)} />
+                        {st.label}
+                      </Badge>
+                    )
+                  })()}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2.5 text-slate-200">
@@ -129,9 +191,24 @@ export function CommercialLeadsTable({ leads, onViewLead }: CommercialLeadsTable
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="font-bold text-white text-lg mb-2">{lead.nom}</h3>
-                  <Badge className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-300 border border-emerald-500/30 font-semibold shadow-sm px-3 py-1.5">
-                    🟢 Nouveau
-                  </Badge>
+                  {(() => {
+                    const st = getStatusConfig(lead.statut)
+                    return (
+                      <Badge
+                        className={cn(
+                          "inline-flex items-center gap-2 rounded-full px-3 py-1.5 border text-sm font-medium",
+                          st.bg,
+                          st.text,
+                          st.border,
+                          "ring-1",
+                          st.ring
+                        )}
+                      >
+                        <span className={cn("w-2.5 h-2.5 rounded-full", st.dot)} />
+                        {st.label}
+                      </Badge>
+                    )
+                  })()}
                 </div>
               </div>
 

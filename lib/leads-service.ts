@@ -134,6 +134,26 @@ export class LeadsService {
   // Delete a lead
   static async deleteLead(id: string): Promise<void> {
     try {
+      // First, remove any associated client from localStorage
+      if (typeof window !== 'undefined') {
+        const storedClients = localStorage.getItem('signature8-clients')
+        if (storedClients) {
+          try {
+            const clients = JSON.parse(storedClients)
+            const filteredClients = clients.filter((client: any) => client.leadId !== id)
+            
+            // If we found and removed a client, update localStorage
+            if (filteredClients.length < clients.length) {
+              localStorage.setItem('signature8-clients', JSON.stringify(filteredClients))
+              console.log(`[Delete Lead] Associated client for lead ${id} removed from localStorage`)
+            }
+          } catch (e) {
+            console.error('[Delete Lead] Error processing localStorage clients:', e)
+          }
+        }
+      }
+      
+      // Then delete the lead from the database
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
       const response = await fetch(`${API_BASE}/${id}`, {
         method: 'DELETE',

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { useMemo, useEffect, useState } from "react"
 import { TasksService } from "@/lib/tasks-service"
 import { toast } from "sonner"
+import { motion } from "framer-motion"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +26,7 @@ import {
 
 const baseNav = [
   { name: "Tableau des Leads", href: "/", icon: Home },
-  { name: "Clients & Projets", href: "/clients", icon: Users },
+  { name: "Clients & Opportunités", href: "/clients", icon: Users },
   { name: "Architectes", href: "/architectes", icon: Compass },
   { name: "Tâches & Rappels", href: "/tasks", icon: CalendarDays },
   { name: "Calendrier", href: "/calendrier", icon: Calendar },
@@ -153,23 +154,29 @@ export function Sidebar() {
         }, [user?.role]).map((item) => {
           const isActive = pathname === item.href || (item.href === "/architectes" && pathname.startsWith("/architectes/"))
           return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group",
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
-              )}
-            >
-              <item.icon className={cn(
-                "w-5 h-5 transition-transform duration-200",
-                isActive ? "scale-110" : "group-hover:scale-105"
-              )} />
-              <span className="font-medium text-sm flex-1">{item.name}</span>
+            <Link key={item.name} href={item.href} className="block">
+              <div
+                className={cn(
+                  "relative flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 group",
+                  isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="sidebar-active-bg"
+                    className="absolute inset-0 rounded-lg bg-primary/15 border border-primary/25 shadow-[0_0_20px_rgba(59,130,246,0.25)]"
+                    transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.8 }}
+                  />
+                )}
+                <item.icon className={cn(
+                  "w-5 h-5 transition-transform duration-200 relative z-[1]",
+                  isActive ? "scale-110" : "group-hover:scale-105"
+                )} />
+                <span className="font-medium text-sm flex-1 relative z-[1] truncate">
+                  {item.name}
+                </span>
               {item.href === "/tasks" && (
-                <span className="ml-auto inline-flex items-center gap-2">
+                <span className="ml-auto inline-flex items-center gap-2 relative z-[1]">
                   {/* New Tasks - Red Pulse Dot */}
                   {myNewTasks > 0 && (
                     <span className="relative inline-flex h-3 w-3">
@@ -201,6 +208,7 @@ export function Sidebar() {
                   )}
                 </span>
               )}
+              </div>
             </Link>
           )
         })}

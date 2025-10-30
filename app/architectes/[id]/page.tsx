@@ -68,10 +68,12 @@ export default function ArchitectDetailPage() {
   // Filter clients for this architect
   const architectClients = useMemo(() => {
     if (!architect) return []
-    let filtered = clients.filter(c => 
-      c.architecteAssigne.toLowerCase().includes(architect.prenom.toLowerCase()) ||
-      c.architecteAssigne.toLowerCase().includes(architect.nom.toLowerCase())
-    )
+    const archPrenom = (architect.prenom || '').toLowerCase()
+    const archNom = (architect.nom || '').toLowerCase()
+    let filtered = clients.filter(c => {
+      const assigned = (c.architecteAssigne || '').toLowerCase()
+      return assigned.includes(archPrenom) || assigned.includes(archNom)
+    })
 
     // Apply status filter
     if (filterStatus !== "all") {

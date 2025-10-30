@@ -160,3 +160,22 @@ enum ReminderType {
   day_1
   none
 }
+
+model Document {
+  id          String   @id @default(cuid())
+  clientId    String   @map("client_id")
+  name        String
+  path        String
+  bucket      String
+  type        String
+  size        Int
+  category    String
+  uploadedBy  String   @map("uploaded_by")
+  uploadedAt  DateTime @default(now()) @map("uploaded_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([clientId])
+  @@index([uploadedAt(sort: Desc)])
+  @@map("documents")
+}

@@ -1,17 +1,19 @@
 "use client"
 
-import { useState } from "react"
-import { X, FolderOpen, File, FileText, Image, Download, Plus, Calendar, User, Search } from "lucide-react"
+import { useRef, useState } from "react"
+import { X, FolderOpen, File, FileText, Image, Download, Plus, Calendar, User, Search, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import type { Client } from "@/types/client"
+import { toast } from "@/components/ui/use-toast"
 
 interface DocumentsModalProps {
   isOpen: boolean
   onClose: () => void
   client: Client
+  onDocumentsAdded?: (docs: import("@/types/client").ClientDocument[]) => void
 }
 
 const getFileIcon = (type: string) => {
@@ -47,10 +49,14 @@ const formatDate = (dateString: string) => {
 export function DocumentsModal({
   isOpen,
   onClose,
-  client
+  client,
+  onDocumentsAdded
 }: DocumentsModalProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const documents = client.documents || []
   
@@ -69,10 +75,77 @@ export function DocumentsModal({
     return matchesSearch && matchesCategory
   })
 
-  const handleDownload = (doc: any) => {
-    // Placeholder for download functionality
-    console.log("Download:", doc.name)
-    alert(`Téléchargement de: ${doc.name}\n(Fonctionnalité en développement)`)
+  const handleDownload = async (doc: any) => {
+    try {
+      if (!doc?.url) {
+        toast({
+          title: "Téléchargement indisponible",
+          description: "Aucun lien trouvé pour ce fichier.",
+        })
+        return
+      }
+
+      const downloading = toast({
+        title: "Téléchargement…",
+        description: doc.name,
+      })
+
+      const res = await fetch(doc.url)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+
+      const a = document.createElement('a')
+      a.href = url
+      a.download = doc.name || 'document'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+
+      downloading.dismiss()
+      toast({
+        title: "Téléchargement terminé",
+        description: doc.name,
+      })
+    } catch (err: any) {
+      toast({
+        title: "Échec du téléchargement",
+        description: err?.message || "Veuillez réessayer plus tard.",
+      })
+    }
+  }
+
+  const handleUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    setUploading(true)
+    setUploadProgress(0)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    const uploaded: any[] = []
+    let completed = 0
+    for (const file of Array.from(files)) {
+      const form = new FormData()
+      form.append('file', file)
+      form.append('clientId', client.id)
+      // Let the server auto-categorize; send 'auto' to explicitly request detection
+      form.append('category', 'auto')
+      const res = await fetch('/api/uploads/documents', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: form,
+      })
+      if (res.ok) {
+        const data = await res.json()
+        uploaded.push(data)
+      }
+      completed += 1
+      setUploadProgress(Math.round((completed / files.length) * 100))
+    }
+    setUploading(false)
+    setUploadProgress(0)
+    if (uploaded.length > 0) {
+      onDocumentsAdded?.(uploaded)
+    }
   }
 
   return (
@@ -152,12 +225,28 @@ export function DocumentsModal({
               </div>
 
               {/* Upload Button */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                multiple
+                onChange={(e) => handleUpload(e.target.files)}
+              />
               <Button
-                onClick={() => alert("Fonctionnalité d'upload en développement")}
-                className="w-full h-11 bg-white/5 hover:bg-white/10 text-[#EAEAEA] rounded-xl border border-white/10 font-medium"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full h-11 bg-white/5 hover:bg-white/10 text-[#EAEAEA] rounded-xl border border-white/10 font-medium disabled:opacity-60"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Ajouter un document
+                  {uploading ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" /> {uploadProgress}%
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center">
+                      <Plus className="w-4 h-4 mr-2" /> Ajouter un document
+                    </span>
+                  )}
               </Button>
             </div>
 

@@ -71,10 +71,12 @@ export default function ArchitectesPage() {
   // Compute architect statistics from clients
   const architectsWithStats = useMemo(() => {
     return architects.map(architect => {
-      const architectClients = clients.filter(c => 
-        c.architecteAssigne.toLowerCase().includes(architect.prenom.toLowerCase()) ||
-        c.architecteAssigne.toLowerCase().includes(architect.nom.toLowerCase())
-      )
+      const archPrenom = (architect.prenom || '').toLowerCase()
+      const archNom = (architect.nom || '').toLowerCase()
+      const architectClients = clients.filter(c => {
+        const assigned = (c.architecteAssigne || '').toLowerCase()
+        return assigned.includes(archPrenom) || assigned.includes(archNom)
+      })
       
       const totalDossiers = architectClients.length
       const dossiersEnCours = architectClients.filter(c => 

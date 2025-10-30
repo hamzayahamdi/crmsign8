@@ -61,10 +61,44 @@ export default function CommercialDashboard() {
   const handleSaveLead = async (updatedLead: Omit<Lead, "id"> & { id?: string }) => {
     try {
       if (updatedLead.id) {
-        await LeadsService.updateLead(updatedLead.id, updatedLead)
+        // Check if this lead was converted and status is being changed
+        const wasConverted = selectedLead?.statut === 'converti'
+        const statusChanged = updatedLead.statut !== 'converti'
+        
+        const updated = await LeadsService.updateLead(updatedLead.id, updatedLead)
+        
+        // If lead was converted but status changed, remove associated client from localStorage
+        if (wasConverted && statusChanged) {
+          try {
+            const storedClients = localStorage.getItem('signature8-clients')
+            if (storedClients) {
+              const clients = JSON.parse(storedClients)
+              const filteredClients = clients.filter((client: any) => client.leadId !== updatedLead.id)
+              
+              if (filteredClients.length < clients.length) {
+                localStorage.setItem('signature8-clients', JSON.stringify(filteredClients))
+                console.log(`[Commercial] Removed client associated with lead ${updatedLead.id} from localStorage`)
+                toast.success("Conversion annulée - Client retiré de la liste")
+              }
+            }
+          } catch (err) {
+            console.error('[Commercial] Error removing client from localStorage:', err)
+          }
+        }
+        
+        // Update the leads list immediately
+        setLeads(prevLeads => 
+          prevLeads.map(lead => lead.id === updated.id ? updated : lead)
+        )
+        
+        // Update selected lead to show new status
+        setSelectedLead(updated)
+        
         toast.success("Lead mis à jour avec succès")
-        fetchLeads()
         setViewModalOpen(false)
+        
+        // Refresh to ensure sync with server
+        await fetchLeads()
       }
     } catch (error) {
       console.error("Error updating lead:", error)

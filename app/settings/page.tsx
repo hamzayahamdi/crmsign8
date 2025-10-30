@@ -2,8 +2,10 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { SettingsIcon, User, Bell, Palette, Database, Download, Upload, Trash2 } from "lucide-react"
+import { SettingsIcon, User, Database, Download, Upload, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Sidebar } from "@/components/sidebar"
+import { AuthGuard } from "@/components/auth-guard"
 
 export default function SettingsPage() {
   const [showConfirm, setShowConfirm] = useState(false)
@@ -59,53 +61,36 @@ export default function SettingsPage() {
     {
       title: "Profil",
       icon: User,
-      description: "Gérer vos informations personnelles",
+      description: "Informations du compte",
       items: [
         { label: "Nom d'utilisateur", value: "Admin Signature8" },
         { label: "Email", value: "admin@signature8.com" },
         { label: "Rôle", value: "Administrateur" },
       ],
     },
-    {
-      title: "Notifications",
-      icon: Bell,
-      description: "Configurer vos préférences de notification",
-      items: [
-        { label: "Nouveaux leads", value: "Activé" },
-        { label: "Changements de statut", value: "Activé" },
-        { label: "Rappels", value: "Activé" },
-      ],
-    },
-    {
-      title: "Apparence",
-      icon: Palette,
-      description: "Personnaliser l'interface",
-      items: [
-        { label: "Thème", value: "Dark Glassmorphism" },
-        { label: "Couleur principale", value: "Bleu" },
-        { label: "Animations", value: "Activées" },
-      ],
-    },
   ]
 
   return (
-    <div className="flex-1 flex flex-col h-screen overflow-hidden">
-      {/* Header */}
-      <div className="glass border-b border-border/40 p-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-premium flex items-center justify-center glow">
-            <SettingsIcon className="w-6 h-6 text-white" />
+    <AuthGuard>
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <main className="flex-1 flex flex-col">
+          {/* Header */}
+          <div className="glass border-b border-border/40 p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-premium flex items-center justify-center glow">
+                <SettingsIcon className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">Paramètres</h1>
+                <p className="text-muted-foreground">Gérer les préférences de votre CRM</p>
+              </div>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold text-white">Paramètres</h1>
-            <p className="text-muted-foreground">Gérer les préférences de votre CRM</p>
-          </div>
-        </div>
-      </div>
 
-      {/* Settings Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Settings Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-4xl mx-auto space-y-6">
           {/* Settings Sections */}
           {settingsSections.map((section, index) => (
             <motion.div
@@ -133,21 +118,21 @@ export default function SettingsPage() {
             </motion.div>
           ))}
 
-          {/* Data Management */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="glass rounded-xl p-6 border border-border/40"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <Database className="w-5 h-5 text-primary" />
-              <div>
-                <h2 className="text-xl font-semibold text-white">Gestion des données</h2>
-                <p className="text-sm text-muted-foreground">Exporter, importer ou supprimer vos données</p>
-              </div>
-            </div>
-            <div className="space-y-3">
+              {/* Data Management */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="glass rounded-xl p-6 border border-border/40"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <Database className="w-5 h-5 text-primary" />
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">Gestion des données</h2>
+                    <p className="text-sm text-muted-foreground">Exporter, importer ou supprimer vos données</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
               <Button
                 onClick={handleExportData}
                 className="w-full justify-start gap-2 bg-transparent"
@@ -172,10 +157,12 @@ export default function SettingsPage() {
                 <Trash2 className="w-4 h-4" />
                 {showConfirm ? "Cliquer à nouveau pour confirmer" : "Supprimer toutes les données"}
               </Button>
+                </div>
+              </motion.div>
             </div>
-          </motion.div>
-        </div>
+          </div>
+        </main>
       </div>
-    </div>
+    </AuthGuard>
   )
 }
