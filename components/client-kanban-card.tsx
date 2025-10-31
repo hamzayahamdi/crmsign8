@@ -1,11 +1,11 @@
 "use client"
 
 import type { Client, ProjectStatus } from "@/types/client"
-import { Phone, MapPin, User, Calendar } from "lucide-react"
+import { MapPin, User, DollarSign, TrendingUp, Building2, CheckCircle, XCircle, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 
 interface ClientKanbanCardProps {
   client: Client
@@ -64,6 +64,23 @@ export function ClientKanbanCard({ client, onClick, isNewlyAdded }: ClientKanban
     return config[status] || { label: status, className: "bg-gray-500/20 text-gray-400 border-gray-500/40" }
   }
 
+  const totalPayments = client.payments?.reduce((sum, p) => sum + p.amount, 0) || 0
+  const budget = client.budget || 0
+  const progressPercentage = budget > 0 ? Math.round((totalPayments / budget) * 100) : 0
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("fr-MA", {
+      style: "currency",
+      currency: "MAD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
+
+  const acceptedDevis = client.devis?.filter(d => d.statut === "accepte").length || 0
+  const refusedDevis = client.devis?.filter(d => d.statut === "refuse").length || 0
+  const pendingDevis = client.devis?.filter(d => d.statut === "en_attente").length || 0
+
   return (
     <div
       ref={setNodeRef}
@@ -72,50 +89,78 @@ export function ClientKanbanCard({ client, onClick, isNewlyAdded }: ClientKanban
       {...listeners}
       onClick={() => !isDragging && onClick(client)}
       className={cn(
-        "glass rounded-lg p-4 cursor-grab active:cursor-grabbing glass-hover hover:scale-[1.02] transition-all duration-200",
-        isDragging && "opacity-50 shadow-2xl border-2 border-primary/60 scale-105"
+        "bg-[#171B22] border border-white/10 rounded-xl p-4 cursor-grab active:cursor-grabbing hover:bg-[#1C2128] hover:border-white/20 hover:shadow-xl transition-all duration-200",
+        isDragging && "opacity-50 shadow-2xl border-2 border-blue-500/60 scale-105 rotate-2",
+        isNewlyAdded && "ring-2 ring-blue-500/50 animate-pulse"
       )}
     >
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <h4 className="font-semibold text-white">{client.nom}</h4>
-        <span className="text-xs text-muted-foreground">{client.typeProjet}</span>
-      </div>
-
-      {/* Status Badge - Shows exact status from table */}
+      {/* Header - Client Name & Magasin */}
       <div className="mb-3">
-        <span className={cn(
-          "inline-flex items-center px-2 py-1 rounded-md text-[10px] font-medium border",
-          getStatusBadge(client.statutProjet).className
-        )}>
-          {getStatusBadge(client.statutProjet).label}
-        </span>
-      </div>
-
-      {/* Info */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Phone className="w-3.5 h-3.5" />
-          <span className="text-xs">{client.telephone}</span>
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <MapPin className="w-3.5 h-3.5" />
-          <span className="text-xs">{client.ville}</span>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between">
+        <h4 className="font-bold text-white text-base mb-2 line-clamp-1">{client.nom}</h4>
         <div className="flex items-center gap-2">
-          <User className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">{client.architecteAssigne}</span>
+          {client.magasin && (
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/10 border border-blue-500/30 rounded-md">
+              <Building2 className="w-3 h-3 text-blue-400" />
+              <span className="text-xs font-medium text-blue-300">{client.magasin}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 border border-white/10 rounded-md">
+            <MapPin className="w-3 h-3 text-white/60" />
+            <span className="text-xs text-white/60">{client.ville}</span>
+          </div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Calendar className="w-3.5 h-3.5" />
-          <span>{formatRelativeDate(client.derniereMaj)}</span>
+      {/* Budget & Progress */}
+      {budget > 0 && (
+        <div className="mb-3 p-3 bg-white/5 border border-white/5 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <DollarSign className="w-3.5 h-3.5 text-green-400" />
+              <span className="text-xs font-semibold text-white">{formatCurrency(budget)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <TrendingUp className="w-3 h-3 text-blue-400" />
+              <span className="text-xs font-bold text-blue-300">{progressPercentage}%</span>
+            </div>
+          </div>
+          <Progress value={progressPercentage} className="h-1.5" />
         </div>
+      )}
+
+      {/* Devis Indicators */}
+      {(acceptedDevis > 0 || refusedDevis > 0 || pendingDevis > 0) && (
+        <div className="flex items-center gap-2 mb-3">
+          {acceptedDevis > 0 && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-green-500/10 border border-green-500/30 rounded-md">
+              <CheckCircle className="w-3 h-3 text-green-400" />
+              <span className="text-xs font-medium text-green-300">{acceptedDevis}</span>
+            </div>
+          )}
+          {pendingDevis > 0 && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-md">
+              <Clock className="w-3 h-3 text-yellow-400" />
+              <span className="text-xs font-medium text-yellow-300">{pendingDevis}</span>
+            </div>
+          )}
+          {refusedDevis > 0 && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-red-500/10 border border-red-500/30 rounded-md">
+              <XCircle className="w-3 h-3 text-red-400" />
+              <span className="text-xs font-medium text-red-300">{refusedDevis}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Footer - Commercial & Last Update */}
+      <div className="pt-3 border-t border-white/5 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <User className="w-3.5 h-3.5 text-white/40" />
+          <span className="text-xs text-white/60 truncate max-w-[120px]">
+            {client.commercialAttribue || client.architecteAssigne}
+          </span>
+        </div>
+        <span className="text-[10px] text-white/40">{formatRelativeDate(client.derniereMaj)}</span>
       </div>
     </div>
   )

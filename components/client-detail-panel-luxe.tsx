@@ -6,7 +6,7 @@ import {
   X, Phone, Mail, MessageCircle, Plus, MapPin, Building2, 
   User, Calendar, DollarSign, Briefcase, Clock, Copy,
   FileText, Send, Archive, Check, Sparkles, TrendingUp,
-  FolderOpen, ListTodo, ChevronDown, ChevronUp, Newspaper, Edit
+  FolderOpen, ListTodo, ChevronDown, ChevronUp, Newspaper, Edit, Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -25,6 +25,7 @@ interface ClientDetailPanelProps {
   isOpen: boolean
   onClose: () => void
   onUpdate?: (client: Client) => void
+  onDelete?: (client: Client) => void
 }
 
 const statusConfig: Record<ProjectStatus, { 
@@ -104,7 +105,8 @@ export function ClientDetailPanelLuxe({
   client,
   isOpen,
   onClose,
-  onUpdate
+  onUpdate,
+  onDelete
 }: ClientDetailPanelProps) {
   const { toast } = useToast()
   const { user } = useAuth()
@@ -152,8 +154,8 @@ export function ClientDetailPanelLuxe({
 
   if (!localClient) return null
 
-  const statusInfo = statusConfig[localClient.statutProjet]
-  const currentStageIndex = stageConfig.findIndex(s => s.key === localClient.statutProjet)
+  const statusInfo = statusConfig[localClient.statutProjet as ProjectStatus] ?? statusConfig.nouveau
+  const currentStageIndex = Math.max(0, stageConfig.findIndex(s => s.key === localClient.statutProjet))
   const nextStage = stageConfig[currentStageIndex + 1]
 
   const handleAdvanceStatus = () => {
@@ -275,6 +277,19 @@ export function ClientDetailPanelLuxe({
   const handleWhatsApp = () => {
     const phone = localClient.telephone.replace(/\s/g, '')
     window.open(`https://wa.me/${phone}`, '_blank')
+  }
+
+  const handleDeleteClient = () => {
+    if (!onDelete) return
+    
+    const confirmDelete = window.confirm(
+      `Êtes-vous sûr de vouloir supprimer le client "${localClient.nom}" ?\n\nCette action supprimera uniquement le client de la table Clients.\nLe lead associé (si existant) sera préservé.`
+    )
+    
+    if (confirmDelete) {
+      onDelete(localClient)
+      onClose()
+    }
   }
 
   // Email quick action removed to reduce clutter
@@ -706,6 +721,19 @@ export function ClientDetailPanelLuxe({
                       variant="secondary"
                       fullWidth
                     />
+
+                    {/* Delete Client - Danger Zone */}
+                    {onDelete && (
+                      <div className="pt-3 border-t border-white/5">
+                        <ActionButton
+                          icon={<Trash2 className="w-4 h-4" />}
+                          label="Supprimer le client"
+                          onClick={handleDeleteClient}
+                          variant="danger"
+                          fullWidth
+                        />
+                      </div>
+                    )}
                   </div>
                 </motion.div>
 
@@ -1125,7 +1153,7 @@ function ActionButton({
   label: string
   onClick: () => void
   disabled?: boolean
-  variant?: "primary" | "secondary"
+  variant?: "primary" | "secondary" | "danger"
   gradient?: string
   fullWidth?: boolean
 }) {
@@ -1140,6 +1168,7 @@ function ActionButton({
         fullWidth && "col-span-2",
         variant === "primary" && gradient && `bg-gradient-to-r ${gradient} text-white shadow-lg`,
         variant === "secondary" && "bg-white/5 hover:bg-white/10 text-[#EAEAEA] border border-white/10",
+        variant === "danger" && "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 hover:border-red-500/50",
         disabled && "opacity-50 cursor-not-allowed"
       )}
     >

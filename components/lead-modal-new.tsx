@@ -53,10 +53,8 @@ const defaultVilles = [
 const defaultTypesBien = [
   "Villa",
   "Appartement",
-  "Terrain",
-  "Bureau",
-  "Riad",
-  "Commerce",
+  "B2B",
+  "Autre",
 ]
 
 const statuts: { value: LeadStatus; label: string }[] = [
@@ -267,7 +265,7 @@ export function LeadModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900/95 border-2 border-slate-700/50 sm:max-w-[800px] max-h-[90vh] overflow-y-auto shadow-2xl">
+      <DialogContent className="sm:max-w-[840px] max-h-[92vh] overflow-y-auto glass backdrop-blur-xl bg-slate-900/90 border border-white/10 ring-1 ring-white/10">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
             {lead ? "✏️ Modifier le lead" : "➕ Nouveau lead"}
@@ -298,7 +296,7 @@ export function LeadModal({
                   id="nom"
                   value={formData.nom}
                   onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                  className="bg-slate-800/50 border-slate-600/50 text-white"
+                  className="glass rounded-xl bg-white/10 border border-white/10 text-white"
                   required
                 />
               </div>
@@ -311,7 +309,7 @@ export function LeadModal({
                   id="telephone"
                   value={formData.telephone}
                   onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                  className="bg-slate-800/50 border-slate-600/50 text-white"
+                  className="glass rounded-xl bg-white/10 border border-white/10 text-white"
                   placeholder="06 XX XX XX XX"
                   required
                 />
@@ -335,12 +333,16 @@ export function LeadModal({
                 <Label htmlFor="typeBien" className="text-slate-300">
                   Type de bien *
                 </Label>
-                <CreatableSelect
-                  value={formData.typeBien}
-                  onValueChange={(value) => setFormData({ ...formData, typeBien: value })}
-                  options={typesBien}
-                  placeholder="Choisir ou créer..."
-                />
+                <Select value={formData.typeBien} onValueChange={(value) => setFormData({ ...formData, typeBien: value })}>
+                  <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
+                    <SelectValue placeholder="Sélectionner un type" />
+                  </SelectTrigger>
+                  <SelectContent className="glass bg-slate-900/95 border border-white/10">
+                    {typesBien.map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -370,7 +372,7 @@ export function LeadModal({
                 }}
                 disabled={isSourceLocked}
               >
-                <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white">
+                <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -399,7 +401,7 @@ export function LeadModal({
                     value={formData.magasin}
                     onValueChange={(value) => setFormData({ ...formData, magasin: value })}
                   >
-                    <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white">
+                    <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
                       <SelectValue placeholder="Sélectionner un magasin" />
                     </SelectTrigger>
                     <SelectContent>
@@ -420,7 +422,7 @@ export function LeadModal({
                     value={formData.commercialMagasin}
                     onValueChange={(value) => setFormData({ ...formData, commercialMagasin: value })}
                   >
-                    <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white">
+                    <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
                       <SelectValue placeholder="Sélectionner un commercial" />
                     </SelectTrigger>
                     <SelectContent>
@@ -437,13 +439,13 @@ export function LeadModal({
 
             <div className="space-y-2">
               <Label htmlFor="assignePar" className="text-slate-300">
-                Commercial assigné *
+                Assigné à *
               </Label>
               <Select
                 value={formData.assignePar}
                 onValueChange={(value) => setFormData({ ...formData, assignePar: value })}
               >
-                <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white">
+                <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -455,7 +457,7 @@ export function LeadModal({
                 </SelectContent>
               </Select>
               <p className="text-xs text-slate-400">
-                Lead qualifié par : <span className="text-white font-medium">{formData.assignePar}</span>
+                Assigné à : <span className="text-white font-medium">{formData.assignePar}</span>
               </p>
             </div>
 
@@ -491,7 +493,7 @@ export function LeadModal({
                 value={formData.statut}
                 onValueChange={(value) => setFormData({ ...formData, statut: value as LeadStatus })}
               >
-                <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white">
+                <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -512,7 +514,7 @@ export function LeadModal({
                 id="statutDetaille"
                 value={formData.statutDetaille}
                 onChange={(e) => setFormData({ ...formData, statutDetaille: e.target.value })}
-                className="bg-slate-800/50 border-slate-600/50 text-white min-h-[80px]"
+                className="glass rounded-xl bg-white/10 border border-white/10 text-white min-h-[80px]"
                 placeholder="Ex: En déplacement, à recontacter dans 10 jours"
               />
             </div>
@@ -525,7 +527,7 @@ export function LeadModal({
                 id="message"
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                className="bg-slate-800/50 border-slate-600/50 text-white min-h-[80px]"
+                className="glass rounded-xl bg-white/10 border border-white/10 text-white min-h-[80px]"
                 placeholder="Ex: Client souhaite une villa à Bouskoura avec piscine"
               />
             </div>

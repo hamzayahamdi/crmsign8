@@ -12,18 +12,21 @@ interface ClientKanbanColumnProps {
   label: string
   clients: Client[]
   color: string
+  gradient: string
   onClientClick: (client: Client) => void
   newlyAddedClientId?: string | null
 }
 
-const colorClasses = {
-  success: "bg-success/20 text-success border-success/40",
-  warning: "bg-warning/20 text-warning border-warning/40",
-  primary: "bg-primary/20 text-primary border-primary/40",
-  premium: "bg-premium/20 text-premium border-premium/40",
-  destructive: "bg-destructive/20 text-destructive border-destructive/40",
-  danger: "bg-red-500/20 text-red-400 border-red-500/40",
-  muted: "bg-slate-500/20 text-slate-400 border-slate-500/40",
+const colorClasses: Record<string, string> = {
+  blue: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+  green: "bg-green-500/20 text-green-300 border-green-500/30",
+  purple: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+  yellow: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+  emerald: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+  red: "bg-red-500/20 text-red-300 border-red-500/30",
+  cyan: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+  indigo: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+  amber: "bg-amber-500/20 text-amber-300 border-amber-500/30",
 }
 
 export function ClientKanbanColumn({
@@ -31,6 +34,7 @@ export function ClientKanbanColumn({
   label,
   clients,
   color,
+  gradient,
   onClientClick,
   newlyAddedClientId
 }: ClientKanbanColumnProps) {
@@ -39,20 +43,22 @@ export function ClientKanbanColumn({
   })
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Column Header */}
-      <div className="glass rounded-lg p-4 mb-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-white">{label}</h3>
+    <div className="flex flex-col h-full min-w-[320px] max-w-[320px]">
+      {/* Column Header - Modern with Gradient */}
+      <div className="bg-[#171B22] border border-white/10 rounded-xl p-4 mb-3">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-bold text-white text-sm uppercase tracking-wider">{label}</h3>
           <span
             className={cn(
-              "px-2 py-1 rounded-full text-xs font-medium border",
-              colorClasses[color as keyof typeof colorClasses]
+              "px-3 py-1 rounded-full text-xs font-bold border",
+              colorClasses[color] || "bg-white/10 text-white/60 border-white/20"
             )}
           >
             {clients.length}
           </span>
         </div>
+        {/* Gradient Bar */}
+        <div className={cn("h-1 rounded-full bg-gradient-to-r", gradient)} />
       </div>
 
       {/* Column Content - Droppable Area */}

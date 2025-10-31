@@ -1,4 +1,16 @@
 export type ProjectStatus = 
+  | "qualifie"           // 1️⃣ Qualifié
+  | "acompte_recu"       // 2️⃣ Acompte reçu
+  | "conception"         // 3️⃣ Conception
+  | "devis_negociation"  // 4️⃣ Devis / Négociation
+  | "accepte"            // 5️⃣ Accepté
+  | "refuse"             // 6️⃣ Refusé
+  | "premier_depot"      // 7️⃣ 1er Dépôt
+  | "projet_en_cours"    // 8️⃣ Projet en cours
+  | "chantier"           // 9️⃣ Chantier
+  | "facture_reglee"     // 🔟 Facture réglée
+  | "livraison_termine"  // 🏁 Livraison & Terminé
+  // Legacy statuses for backward compatibility
   | "nouveau" 
   | "acompte_verse" 
   | "en_conception" 
@@ -26,20 +38,44 @@ export interface Client {
   adresse?: string
   budget?: number
   notes?: string
+  magasin?: string // Magasin assignment (Rabat, Casa, Tanger, etc.)
+  commercialAttribue?: string // Commercial who created/owns this client
   historique?: ClientHistoryEntry[]
   documents?: ClientDocument[]
   stages?: ProjectStage[]
   rendezVous?: Appointment[]
   payments?: Payment[]
+  devis?: Devis[] // Multiple quotes support
+}
+
+export interface Devis {
+  id: string
+  title: string
+  montant: number
+  date: string
+  statut: "en_attente" | "accepte" | "refuse"
+  facture_reglee: boolean
+  description?: string
+  fichier?: string
+  createdBy: string
+  createdAt: string
+  validatedAt?: string
+  notes?: string
 }
 
 export interface ClientHistoryEntry {
   id: string
   date: string
-  type: "note" | "appel" | "whatsapp" | "modification" | "statut" | "document" | "rendez-vous" | "devis" | "validation" | "acompte" | "tache" | "projet"
+  type: "note" | "appel" | "whatsapp" | "modification" | "statut" | "document" | "rendez-vous" | "devis" | "validation" | "acompte" | "tache" | "projet" | "rdv"
   description: string
   auteur: string
   metadata?: Record<string, any>
+  // Status change tracking
+  previousStatus?: ProjectStatus
+  newStatus?: ProjectStatus
+  durationInHours?: number // Time spent in previous status
+  timestampStart?: string
+  timestampEnd?: string
 }
 
 export interface ClientDocument {
@@ -64,12 +100,20 @@ export interface ProjectStage {
 
 export interface Appointment {
   id: string
-  date: string
   title: string
+  dateStart: string
+  dateEnd: string
   description?: string
   location?: string
-  status: "scheduled" | "completed" | "cancelled"
+  locationUrl?: string // Google Maps link
+  status: "upcoming" | "completed" | "cancelled"
+  clientId?: string
+  clientName?: string
+  architecteId?: string
+  createdBy: string
   createdAt: string
+  updatedAt?: string
+  notes?: string
 }
 
 export interface Payment {

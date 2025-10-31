@@ -674,18 +674,6 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
       // Delete from database
       await LeadsService.deleteLead(leadId)
       
-      // Also remove associated client from localStorage
-      const storedClients = localStorage.getItem('signature8-clients')
-      if (storedClients) {
-        const clients = JSON.parse(storedClients)
-        const filteredClients = clients.filter((client: any) => client.leadId !== leadId)
-        
-        if (filteredClients.length < clients.length) {
-          localStorage.setItem('signature8-clients', JSON.stringify(filteredClients))
-          console.log(`[Delete Lead] Associated client removed from localStorage`)
-        }
-      }
-      
       // Remove from list immediately
       removeLead(leadId)
       
@@ -693,7 +681,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
       
       toast({
         title: "✅ Lead supprimé",
-        description: "Le lead et son client associé ont été supprimés avec succès",
+        description: "Le lead a été supprimé avec succès (client préservé si converti)",
       })
     } catch (error) {
       console.error("Error deleting lead:", error)

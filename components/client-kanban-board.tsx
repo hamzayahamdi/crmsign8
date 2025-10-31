@@ -21,6 +21,7 @@ import {
 import { ClientKanbanCard } from "@/components/client-kanban-card"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface ClientKanbanBoardProps {
   clients: Client[]
@@ -35,35 +36,78 @@ interface ClientKanbanBoardProps {
   }
 }
 
+// 11-stage pipeline matching Client Details Page timeline
 const columns: { 
   status: ProjectStatus
   label: string
   color: string
+  gradient: string
 }[] = [
   { 
-    status: "nouveau", 
-    label: "Nouveau projet", 
-    color: "success"
+    status: "qualifie", 
+    label: "Qualifié", 
+    color: "blue",
+    gradient: "from-blue-400 to-blue-500"
   },
   { 
-    status: "en_conception", 
-    label: "En conception", 
-    color: "primary"
+    status: "acompte_recu", 
+    label: "Acompte reçu", 
+    color: "green",
+    gradient: "from-green-400 to-green-500"
   },
   { 
-    status: "en_validation", 
-    label: "En validation", 
-    color: "warning"
+    status: "conception", 
+    label: "Conception", 
+    color: "purple",
+    gradient: "from-purple-400 to-purple-500"
   },
   { 
-    status: "en_chantier", 
-    label: "En réalisation", 
-    color: "premium"
+    status: "devis_negociation", 
+    label: "Devis/Négociation", 
+    color: "yellow",
+    gradient: "from-yellow-400 to-yellow-500"
   },
   { 
-    status: "termine", 
-    label: "Terminé", 
-    color: "success"
+    status: "accepte", 
+    label: "Accepté", 
+    color: "emerald",
+    gradient: "from-emerald-400 to-emerald-500"
+  },
+  { 
+    status: "refuse", 
+    label: "Refusé", 
+    color: "red",
+    gradient: "from-red-400 to-red-500"
+  },
+  { 
+    status: "premier_depot", 
+    label: "1er Dépôt", 
+    color: "cyan",
+    gradient: "from-cyan-400 to-cyan-500"
+  },
+  { 
+    status: "projet_en_cours", 
+    label: "Projet en cours", 
+    color: "indigo",
+    gradient: "from-indigo-400 to-indigo-500"
+  },
+  { 
+    status: "chantier", 
+    label: "Chantier", 
+    color: "blue",
+    gradient: "from-blue-500 to-blue-600"
+  },
+  { 
+    status: "facture_reglee", 
+    label: "Facture réglée", 
+    color: "green",
+    gradient: "from-green-500 to-green-600"
+  },
+  { 
+    status: "livraison_termine", 
+    label: "Livraison & Terminé", 
+    color: "amber",
+    gradient: "from-amber-400 to-amber-500"
   },
 ]
 
@@ -78,6 +122,8 @@ export function ClientKanbanBoard({
   const [activeClient, setActiveClient] = useState<Client | null>(null)
   const [newlyAddedClientId, setNewlyAddedClientId] = useState<string | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [scrollPosition, setScrollPosition] = useState<'start' | 'middle' | 'end'>('start')
+  const scrollContainerRef = useState<HTMLDivElement | null>(null)[0]
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -142,27 +188,47 @@ export function ClientKanbanBoard({
 
   const filteredClients = clients.filter(client => passesSearch(client) && passesFilters(client))
 
+  // Handle scroll position for fade indicators
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    const scrollLeft = target.scrollLeft
+    const maxScroll = target.scrollWidth - target.clientWidth
+    
+    if (scrollLeft <= 10) {
+      setScrollPosition('start')
+    } else if (scrollLeft >= maxScroll - 10) {
+      setScrollPosition('end')
+    } else {
+      setScrollPosition('middle')
+    }
+  }
+
   const getClientsByStatus = (status: ProjectStatus) => {
-    // Map all 9 statuses to the 5 Kanban columns
+    // Map legacy statuses to new 11-stage pipeline
     const statusMapping: Record<ProjectStatus, ProjectStatus> = {
-      // Column 1: Nouveau projet
-      nouveau: "nouveau",
-      acompte_verse: "nouveau", // Client paid deposit, still in early stage
+      // New statuses (direct mapping)
+      qualifie: "qualifie",
+      acompte_recu: "acompte_recu",
+      conception: "conception",
+      devis_negociation: "devis_negociation",
+      accepte: "accepte",
+      refuse: "refuse",
+      premier_depot: "premier_depot",
+      projet_en_cours: "projet_en_cours",
+      chantier: "chantier",
+      facture_reglee: "facture_reglee",
+      livraison_termine: "livraison_termine",
       
-      // Column 2: En conception
-      en_conception: "en_conception",
-      
-      // Column 3: En validation
-      en_validation: "en_validation",
-      
-      // Column 4: En réalisation (chantier)
-      en_chantier: "en_chantier",
-      livraison: "en_chantier", // Delivery phase is part of construction
-      
-      // Column 5: Terminé
-      termine: "termine",
-      annule: "termine", // Show cancelled projects in final column
-      suspendu: "termine", // Show suspended projects in final column
+      // Legacy status mapping for backward compatibility
+      nouveau: "qualifie",
+      acompte_verse: "acompte_recu",
+      en_conception: "conception",
+      en_validation: "devis_negociation",
+      en_chantier: "chantier",
+      livraison: "livraison_termine",
+      termine: "livraison_termine",
+      annule: "refuse",
+      suspendu: "refuse",
     }
     
     return filteredClients.filter(client => {
@@ -202,13 +268,17 @@ export function ClientKanbanBoard({
     // Determine target status
     const overId = String(over.id)
     const possibleStatuses: ProjectStatus[] = [
-      "nouveau",
-      "en_conception",
-      "en_validation",
-      "en_chantier",
-      "termine",
-      "annule",
-      "suspendu",
+      "qualifie",
+      "acompte_recu",
+      "conception",
+      "devis_negociation",
+      "accepte",
+      "refuse",
+      "premier_depot",
+      "projet_en_cours",
+      "chantier",
+      "facture_reglee",
+      "livraison_termine",
     ]
 
     let targetStatus: ProjectStatus | null = null
@@ -254,6 +324,18 @@ export function ClientKanbanBoard({
 
     // Show success toast
     const statusLabels: Record<ProjectStatus, string> = {
+      qualifie: "Qualifié",
+      acompte_recu: "Acompte reçu",
+      conception: "Conception",
+      devis_negociation: "Devis/Négociation",
+      accepte: "Accepté",
+      refuse: "Refusé",
+      premier_depot: "1er Dépôt",
+      projet_en_cours: "Projet en cours",
+      chantier: "Chantier",
+      facture_reglee: "Facture réglée",
+      livraison_termine: "Livraison & Terminé",
+      // Legacy
       nouveau: "Nouveau projet",
       acompte_verse: "Acompte versé",
       en_conception: "En conception",
@@ -275,6 +357,18 @@ export function ClientKanbanBoard({
 
   const getStatusLabel = (status: ProjectStatus): string => {
     const statusLabels: Record<ProjectStatus, string> = {
+      qualifie: "Qualifié",
+      acompte_recu: "Acompte reçu",
+      conception: "Conception",
+      devis_negociation: "Devis/Négociation",
+      accepte: "Accepté",
+      refuse: "Refusé",
+      premier_depot: "1er Dépôt",
+      projet_en_cours: "Projet en cours",
+      chantier: "Chantier",
+      facture_reglee: "Facture réglée",
+      livraison_termine: "Livraison & Terminé",
+      // Legacy
       nouveau: "Nouveau projet",
       acompte_verse: "Acompte versé",
       en_conception: "En conception",
@@ -289,7 +383,11 @@ export function ClientKanbanBoard({
   }
 
   return (
-    <div className="relative h-full flex flex-col">
+    <div className={cn(
+      "relative h-full flex flex-col overflow-hidden kanban-container",
+      scrollPosition === 'start' && "at-start",
+      scrollPosition === 'end' && "at-end"
+    )}>
       {/* Loading Overlay */}
       {isUpdating && (
         <div className="absolute top-4 right-4 z-50 glass rounded-lg px-4 py-2 border border-blue-500/30 flex items-center gap-2 shadow-lg">
@@ -305,8 +403,11 @@ export function ClientKanbanBoard({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        {/* Kanban Grid - Match Leads Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        {/* Kanban Grid - 11 Columns Horizontal Scroll (contained) */}
+        <div 
+          className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 pr-2 kanban-scroll"
+          onScroll={handleScroll}
+        >
           {columns.map(column => (
             <ClientKanbanColumn
               key={column.status}
@@ -314,6 +415,7 @@ export function ClientKanbanBoard({
               label={column.label}
               clients={getClientsByStatus(column.status)}
               color={column.color}
+              gradient={column.gradient}
               onClientClick={onClientClick}
               newlyAddedClientId={newlyAddedClientId}
             />

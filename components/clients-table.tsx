@@ -1,7 +1,7 @@
 "use client"
 
 import type { Client, ProjectStatus } from "@/types/client"
-import { Phone, MapPin, User, Calendar, Eye, ArrowUpDown, ArrowUp, ArrowDown, Building2 } from "lucide-react"
+import { Phone, MapPin, User, Calendar, Eye, ArrowUpDown, ArrowUp, ArrowDown, Building2, Edit2, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -11,6 +11,8 @@ import { motion } from "framer-motion"
 interface ClientsTableProps {
   clients: Client[]
   onClientClick: (client: Client) => void
+  onEditClient?: (client: Client) => void
+  onDeleteClient?: (client: Client) => void
   searchQuery: string
   filters: {
     architecte: string
@@ -36,7 +38,7 @@ const statutConfig: Record<ProjectStatus, { label: string; color: string }> = {
 type SortField = 'nom' | 'ville' | 'typeProjet' | 'architecteAssigne' | 'statutProjet' | 'derniereMaj'
 type SortOrder = 'asc' | 'desc'
 
-export function ClientsTable({ clients, onClientClick, searchQuery, filters, isLoading = false }: ClientsTableProps) {
+export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteClient, searchQuery, filters, isLoading = false }: ClientsTableProps) {
   const [sortField, setSortField] = useState<SortField>('derniereMaj')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
@@ -314,18 +316,48 @@ export function ClientsTable({ clients, onClientClick, searchQuery, filters, isL
 
                   {/* Actions */}
                   <td className="px-4 py-4">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-3 text-xs hover:bg-slate-700/50"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onClientClick(client)
-                      }}
-                    >
-                      <Eye className="w-3.5 h-3.5 mr-1.5" />
-                      Voir
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-blue-500/20 hover:text-blue-400 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onClientClick(client)
+                        }}
+                        title="Voir les détails"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      {onEditClient && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-orange-500/20 hover:text-orange-400 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onEditClient(client)
+                          }}
+                          title="Modifier le client"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {onDeleteClient && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-red-500/20 hover:text-red-400 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteClient(client)
+                          }}
+                          title="Supprimer le client"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </motion.tr>
               )

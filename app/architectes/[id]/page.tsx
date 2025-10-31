@@ -10,7 +10,7 @@ import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
 import { Header } from "@/components/header"
 import { DossierCardEnhanced } from "@/components/dossier-card-enhanced"
-import { ClientDetailPanelLuxe } from "@/components/client-detail-panel-luxe"
+import { ClientDetailPanelRedesigned } from "@/components/client-detail-panel-redesigned"
 import { AssignDossierModal } from "@/components/assign-dossier-modal"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -616,8 +616,8 @@ export default function ArchitectDetailPage() {
           </div>
         </main>
 
-        {/* Client Detail Panel */}
-        <ClientDetailPanelLuxe
+        {/* Client Detail Panel - Redesigned */}
+        <ClientDetailPanelRedesigned
           client={selectedClient}
           isOpen={isDetailPanelOpen}
           onClose={() => setIsDetailPanelOpen(false)}

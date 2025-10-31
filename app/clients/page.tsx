@@ -1,17 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Plus, Filter, X, ChevronDown, Users, TrendingUp, DollarSign, LayoutGrid, Table as TableIcon } from "lucide-react"
+import { Plus, Filter, X, ChevronDown, Users, TrendingUp, LayoutGrid, Table as TableIcon } from "lucide-react"
 import type { Client, ProjectStatus } from "@/types/client"
 import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
 import { ClientsTable } from "@/components/clients-table"
 import { ClientsListMobile } from "@/components/clients-list-mobile"
-import { ClientDetailPanelLuxe } from "@/components/client-detail-panel-luxe"
+import { ClientDetailPanelRedesigned } from "@/components/client-detail-panel-redesigned"
 import { AddClientModalImproved } from "@/components/add-client-modal-improved"
 import { ClientAutocomplete } from "@/components/client-autocomplete"
 import { ClientKanbanBoard } from "@/components/client-kanban-board"
 import { ViewStore, type ViewMode } from "@/stores/view-store"
+import { useClientStore } from "@/stores/client-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -20,6 +21,16 @@ import { motion } from "framer-motion"
 import { ensureIssamInLocalStorage } from "@/lib/seed-issam"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function ClientsPage() {
   const { user } = useAuth()
@@ -38,6 +49,8 @@ export default function ClientsPage() {
     typeProjet: "all" as string,
   })
   const [viewMode, setViewMode] = useState<ViewMode>('table')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
 
   // Load view mode from localStorage on mount
   useEffect(() => {
@@ -50,26 +63,36 @@ export default function ClientsPage() {
     ViewStore.setViewMode(mode)
   }
 
+  // Use Zustand store for real-time sync
+  const { clients: storeClients, setClients: setStoreClients, updateClient: updateStoreClient, addClient: addStoreClient, deleteClient: deleteStoreClient, refreshClients } = useClientStore()
+
   // Seed demo client and load clients from localStorage
   useEffect(() => {
     try {
       ensureIssamInLocalStorage()
     } catch {}
 
+    // Refresh from store
+    refreshClients()
     const storedClients = localStorage.getItem("signature8-clients")
-    setClients(storedClients ? JSON.parse(storedClients) : [])
+    const loadedClients = storedClients ? JSON.parse(storedClients) : []
+    setClients(loadedClients)
+    setStoreClients(loadedClients)
   }, [])
 
-  // Save clients to localStorage whenever they change
+  // Sync local state with store
   useEffect(() => {
-    if (clients.length > 0) {
-      localStorage.setItem("signature8-clients", JSON.stringify(clients))
-    }
-  }, [clients])
+    const unsubscribe = useClientStore.subscribe((state) => {
+      setClients(state.clients)
+    })
+    return unsubscribe
+  }, [])
 
   const handleClientClick = (client: Client) => {
-    setSelectedClient(client)
-    setIsDetailPanelOpen(true)
+    // Navigate to full-page client details view
+    if (typeof window !== 'undefined') {
+      window.location.href = `/clients/${client.id}`
+    }
   }
 
   const handleAddClient = () => {
@@ -87,21 +110,25 @@ export default function ClientsPage() {
     const now = new Date().toISOString()
     
     if (editingClient) {
-      // Update existing client
+      // Update existing client in store (syncs to all views)
+      const updatedClient = { ...editingClient, ...clientData, derniereMaj: now, updatedAt: now }
+      updateStoreClient(editingClient.id, updatedClient)
       setClients(prev => prev.map(c => 
         c.id === editingClient.id 
-          ? { ...c, ...clientData, derniereMaj: now, updatedAt: now }
+          ? updatedClient
           : c
       ))
     } else {
-      // Create new client
+      // Add new client to store (syncs to all views)
       const newClient: Client = {
+        id: `client-${Date.now()}`,
         ...clientData,
-        id: `client-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         createdAt: now,
         updatedAt: now,
         derniereMaj: now,
+        historique: []
       }
+      addStoreClient(newClient)
       setClients(prev => [newClient, ...prev])
     }
     
@@ -110,10 +137,36 @@ export default function ClientsPage() {
   }
 
   const handleUpdateClient = (updatedClient: Client) => {
+    // Update in store (syncs to all views including Kanban and Details page)
+    updateStoreClient(updatedClient.id, updatedClient)
     setClients(prev => prev.map(c => 
       c.id === updatedClient.id ? updatedClient : c
     ))
     setSelectedClient(updatedClient)
+  }
+
+  // Open confirm dialog for deletion
+  const requestDeleteClient = (client: Client) => {
+    setClientToDelete(client)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteClient = () => {
+    if (clientToDelete) {
+      // Delete from store (syncs to all views)
+      deleteStoreClient(clientToDelete.id)
+      setClients(prev => prev.filter(c => c.id !== clientToDelete.id))
+      if (selectedClient?.id === clientToDelete.id) {
+        setIsDetailPanelOpen(false)
+        setSelectedClient(null)
+      }
+      setDeleteDialogOpen(false)
+      setClientToDelete(null)
+      toast({
+        title: "Client supprimé",
+        description: `Le client "${clientToDelete.nom}" a été supprimé avec succès`,
+      })
+    }
   }
 
   // Note: Clients from converted leads should be deleted from the Leads table
@@ -172,16 +225,6 @@ export default function ClientsPage() {
   const totalClients = clients.length
   const activeProjects = clients.filter(c => c.statutProjet !== "termine" && c.statutProjet !== "livraison").length
   const completedProjects = clients.filter(c => c.statutProjet === "termine").length
-  const totalBudget = clients.reduce((sum, c) => sum + (c.budget || 0), 0)
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-MA", {
-      style: "currency",
-      currency: "MAD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
-  }
 
   // Get unique values for filters
   const uniqueArchitects = Array.from(new Set(clients.map(c => c.architecteAssigne)))
@@ -193,7 +236,7 @@ export default function ClientsPage() {
     <AuthGuard>
       <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
         <Sidebar />
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col overflow-x-hidden">
           <Header />
           
           {/* Stats Cards - Compact (budget removed) */}
@@ -491,6 +534,8 @@ export default function ClientsPage() {
                       <ClientsTable
                         clients={clients}
                         onClientClick={handleClientClick}
+                        onEditClient={handleEditClient}
+                        onDeleteClient={requestDeleteClient}
                         searchQuery={searchQuery}
                         filters={filters}
                       />
@@ -512,7 +557,7 @@ export default function ClientsPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="h-full"
+                    className="h-full overflow-x-hidden"
                   >
                     <ClientKanbanBoard
                       clients={clients}
@@ -528,13 +573,33 @@ export default function ClientsPage() {
           </div>
         </main>
 
-        {/* Client Detail Panel */}
-        <ClientDetailPanelLuxe
+        {/* Client Detail Panel - Redesigned */}
+        <ClientDetailPanelRedesigned
           client={selectedClient}
           isOpen={isDetailPanelOpen}
           onClose={() => setIsDetailPanelOpen(false)}
           onUpdate={handleUpdateClient}
+          onDelete={requestDeleteClient}
         />
+
+        {/* Confirm Delete Modal */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent className="bg-slate-900 border-slate-700">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white">Supprimer le client ?</AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-300">
+                Cette action supprimera uniquement le client
+                {clientToDelete ? ` "${clientToDelete.nom}"` : ""} de la table Clients.
+                Le lead associé (s'il existe) sera <span className="font-semibold text-white">préservé</span>.
+                Cette action est irréversible.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-transparent border border-slate-700 text-slate-200 hover:bg-slate-800">Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteClient} className="bg-red-600 hover:bg-red-700 text-white">Supprimer</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Add/Edit Client Modal */}
         <AddClientModalImproved

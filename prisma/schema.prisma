@@ -211,3 +211,71 @@ model NotificationPreference {
 
   @@map("notification_preferences")
 }
+
+model Devis {
+  id             String    @id @default(cuid())
+  clientId       String    @map("client_id")
+  title          String
+  montant        Float
+  date           DateTime  @default(now())
+  statut         String    @default("en_attente")
+  factureReglee  Boolean   @default(false) @map("facture_reglee")
+  description    String?
+  fichier        String?
+  createdBy      String    @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  validatedAt    DateTime? @map("validated_at")
+  notes          String?
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([clientId])
+  @@index([statut])
+  @@index([date(sort: Desc)])
+  @@map("devis")
+}
+
+model Historique {
+  id              String    @id @default(cuid())
+  clientId        String    @map("client_id")
+  date            DateTime  @default(now())
+  type            String    // note, statut, rdv, document, etc.
+  description     String
+  auteur          String
+  previousStatus  String?   @map("previous_status")
+  newStatus       String?   @map("new_status")
+  durationInHours Int?      @map("duration_in_hours")
+  timestampStart  DateTime? @map("timestamp_start")
+  timestampEnd    DateTime? @map("timestamp_end")
+  metadata        Json?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([clientId])
+  @@index([type])
+  @@index([date(sort: Desc)])
+  @@map("historique")
+}
+
+model Appointment {
+  id            String    @id @default(cuid())
+  title         String
+  dateStart     DateTime  @map("date_start")
+  dateEnd       DateTime  @map("date_end")
+  description   String?
+  location      String?
+  locationUrl   String?   @map("location_url")
+  status        String    @default("upcoming") // upcoming, completed, cancelled
+  clientId      String?   @map("client_id")
+  clientName    String?   @map("client_name")
+  architecteId  String?   @map("architecte_id")
+  notes         String?
+  createdBy     String    @map("created_by")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([clientId])
+  @@index([status])
+  @@index([dateStart(sort: Desc)])
+  @@index([createdBy])
+  @@map("appointments")
+}
