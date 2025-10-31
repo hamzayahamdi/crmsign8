@@ -1,11 +1,11 @@
 "use client"
 
 import type { Client, ProjectStatus } from "@/types/client"
-import { MapPin, User, DollarSign, TrendingUp, Building2, CheckCircle, XCircle, Clock } from "lucide-react"
+import { MapPin, User, Building2, CheckCircle, XCircle, Clock, Phone, Mail, CalendarDays, Tag } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Progress } from "@/components/ui/progress"
+import { getStatusConfig } from "@/lib/status-config"
 
 interface ClientKanbanCardProps {
   client: Client
@@ -50,31 +50,19 @@ export function ClientKanbanCard({ client, onClick, isNewlyAdded }: ClientKanban
   }
 
   const getStatusBadge = (status: ProjectStatus) => {
-    const config: Record<ProjectStatus, { label: string; className: string }> = {
-      nouveau: { label: "Nouveau", className: "bg-green-500/20 text-green-400 border-green-500/40" },
-      acompte_verse: { label: "Acompte versé", className: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
-      en_conception: { label: "En conception", className: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
-      en_validation: { label: "En validation", className: "bg-amber-500/20 text-amber-400 border-amber-500/40" },
-      en_chantier: { label: "En chantier", className: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
-      livraison: { label: "Livraison", className: "bg-teal-500/20 text-teal-400 border-teal-500/40" },
-      termine: { label: "Terminé", className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" },
-      annule: { label: "Annulé", className: "bg-red-500/20 text-red-400 border-red-500/40" },
-      suspendu: { label: "Suspendu", className: "bg-slate-500/20 text-slate-400 border-slate-500/40" },
-    }
-    return config[status] || { label: status, className: "bg-gray-500/20 text-gray-400 border-gray-500/40" }
+    const sc = getStatusConfig(status)
+    return { label: sc.label, className: `${sc.bgColor} ${sc.textColor} ${sc.borderColor}` }
   }
 
-  const totalPayments = client.payments?.reduce((sum, p) => sum + p.amount, 0) || 0
-  const budget = client.budget || 0
-  const progressPercentage = budget > 0 ? Math.round((totalPayments / budget) * 100) : 0
+  // Compute a quick upcoming rendez-vous summary if available
+  const upcomingRdv = (client.rendezVous || [])
+    .filter(r => r.status !== "cancelled")
+    .map(r => ({ ...r, start: new Date(r.dateStart) }))
+    .filter(r => !isNaN(r.start.getTime()) && r.start.getTime() >= Date.now())
+    .sort((a, b) => a.start.getTime() - b.start.getTime())[0]
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-MA", {
-      style: "currency",
-      currency: "MAD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
+  const formatShortDate = (date: Date) => {
+    return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })
   }
 
   const acceptedDevis = client.devis?.filter(d => d.statut === "accepte").length || 0
@@ -94,9 +82,20 @@ export function ClientKanbanCard({ client, onClick, isNewlyAdded }: ClientKanban
         isNewlyAdded && "ring-2 ring-blue-500/50 animate-pulse"
       )}
     >
-      {/* Header - Client Name & Magasin */}
+      {/* Header - Client Name, Status & Magasin */}
       <div className="mb-3">
-        <h4 className="font-bold text-white text-base mb-2 line-clamp-1">{client.nom}</h4>
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <h4 className="font-bold text-white text-base line-clamp-1">{client.nom}</h4>
+          {/* status badge */}
+          {client.statutProjet && (
+            <span className={cn(
+              "px-2 py-0.5 rounded-md text-[10px] font-semibold border whitespace-nowrap",
+              getStatusBadge(client.statutProjet).className
+            )}>
+              {getStatusBadge(client.statutProjet).label}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {client.magasin && (
             <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/10 border border-blue-500/30 rounded-md">
@@ -111,22 +110,38 @@ export function ClientKanbanCard({ client, onClick, isNewlyAdded }: ClientKanban
         </div>
       </div>
 
-      {/* Budget & Progress */}
-      {budget > 0 && (
-        <div className="mb-3 p-3 bg-white/5 border border-white/5 rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5">
-              <DollarSign className="w-3.5 h-3.5 text-green-400" />
-              <span className="text-xs font-semibold text-white">{formatCurrency(budget)}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <TrendingUp className="w-3 h-3 text-blue-400" />
-              <span className="text-xs font-bold text-blue-300">{progressPercentage}%</span>
-            </div>
-          </div>
-          <Progress value={progressPercentage} className="h-1.5" />
+      {/* Key info - compact & useful */}
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        {/* Phone */}
+        <div className="flex items-center gap-1.5 px-2 py-1.5 bg-white/5 border border-white/10 rounded-md">
+          <Phone className="w-3.5 h-3.5 text-white/50" />
+          <span className="text-xs text-white/70 truncate" title={client.telephone}>{client.telephone}</span>
         </div>
-      )}
+        {/* Email */}
+        {client.email && (
+          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-white/5 border border-white/10 rounded-md">
+            <Mail className="w-3.5 h-3.5 text-white/50" />
+            <span className="text-xs text-white/70 truncate" title={client.email}>{client.email}</span>
+          </div>
+        )}
+        {/* Project type */}
+        <div className="flex items-center gap-1.5 px-2 py-1.5 bg-white/5 border border-white/10 rounded-md">
+          <Tag className="w-3.5 h-3.5 text-white/50" />
+          <span className="text-xs text-white/70 capitalize">{client.typeProjet}</span>
+        </div>
+        {/* Next RDV */}
+        {upcomingRdv ? (
+          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-white/5 border border-white/10 rounded-md">
+            <CalendarDays className="w-3.5 h-3.5 text-white/50" />
+            <span className="text-xs text-white/70">{formatShortDate(upcomingRdv.start)}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-white/5 border border-white/10 rounded-md">
+            <CalendarDays className="w-3.5 h-3.5 text-white/30" />
+            <span className="text-xs text-white/50">Pas de RDV</span>
+          </div>
+        )}
+      </div>
 
       {/* Devis Indicators */}
       {(acceptedDevis > 0 || refusedDevis > 0 || pendingDevis > 0) && (
@@ -152,7 +167,7 @@ export function ClientKanbanCard({ client, onClick, isNewlyAdded }: ClientKanban
         </div>
       )}
 
-      {/* Footer - Commercial & Last Update */}
+      {/* Footer - Owner & Last Update */}
       <div className="pt-3 border-t border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <User className="w-3.5 h-3.5 text-white/40" />

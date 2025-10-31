@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 import { motion } from "framer-motion"
+import { getStatusConfig } from "@/lib/status-config"
 
 interface ClientsTableProps {
   clients: Client[]
@@ -23,17 +24,7 @@ interface ClientsTableProps {
   isLoading?: boolean
 }
 
-const statutConfig: Record<ProjectStatus, { label: string; color: string }> = {
-  nouveau: { label: "Nouveau projet", color: "bg-green-500/20 text-green-400 border-green-500/40" },
-  acompte_verse: { label: "Acompte versé", color: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
-  en_conception: { label: "En conception", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
-  en_validation: { label: "En validation", color: "bg-amber-500/20 text-amber-400 border-amber-500/40" },
-  en_chantier: { label: "En réalisation", color: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
-  livraison: { label: "Livraison", color: "bg-teal-500/20 text-teal-400 border-teal-500/40" },
-  termine: { label: "Terminé", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" },
-  annule: { label: "Annulé", color: "bg-red-500/20 text-red-400 border-red-500/40" },
-  suspendu: { label: "Suspendu", color: "bg-slate-500/20 text-slate-400 border-slate-500/40" },
-}
+// Use centralized status config for unified colors/labels
 
 type SortField = 'nom' | 'ville' | 'typeProjet' | 'architecteAssigne' | 'statutProjet' | 'derniereMaj'
 type SortOrder = 'asc' | 'desc'
@@ -247,9 +238,10 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
           </thead>
           <tbody className="divide-y divide-slate-600/30">
             {sortedClients.map((client, index) => {
-              const statutInfo = statutConfig[client.statutProjet] || {
-                label: client.statutProjet || "Inconnu",
-                color: "bg-gray-500/20 text-gray-400 border-gray-500/40"
+              const sc = getStatusConfig(client.statutProjet)
+              const statutInfo = {
+                label: sc.label,
+                color: `${sc.bgColor} ${sc.textColor} ${sc.borderColor}`
               }
               return (
                 <motion.tr 

@@ -22,11 +22,7 @@ interface ClientDetailPanelProps {
   onMarkComplete?: (client: Client) => void
 }
 
-const statutConfig = {
-  en_conception: { label: "En conception", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
-  en_travaux: { label: "En travaux", color: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
-  termine: { label: "Terminé", color: "bg-green-500/20 text-green-400 border-green-500/40" },
-}
+import { getStatusConfig } from "@/lib/status-config"
 
 const historyTypeIcons = {
   note: FileText,
@@ -73,7 +69,8 @@ export function ClientDetailPanel({
 
   if (!localClient) return null
 
-  const statutInfo = statutConfig[localClient.statutProjet]
+  const sc = getStatusConfig(localClient.statutProjet)
+  const statutInfo = { label: sc.label, color: `${sc.bgColor} ${sc.textColor} ${sc.borderColor}` }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {

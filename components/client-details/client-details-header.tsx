@@ -38,20 +38,13 @@ export function ClientDetailsHeader({ client, onUpdate }: ClientDetailsHeaderPro
   }
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; className: string }> = {
-      qualifie: { label: "En qualification", className: "bg-blue-500/20 text-blue-300 border-blue-500/30" },
-      acompte_recu: { label: "Acompte reçu", className: "bg-green-500/20 text-green-300 border-green-500/30" },
-      conception: { label: "En conception", className: "bg-purple-500/20 text-purple-300 border-purple-500/30" },
-      devis_negociation: { label: "Devis/Négociation", className: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" },
-      accepte: { label: "Accepté", className: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" },
-      refuse: { label: "Refusé", className: "bg-red-500/20 text-red-300 border-red-500/30" },
-      premier_depot: { label: "1er Dépôt", className: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30" },
-      projet_en_cours: { label: "Projet en cours", className: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30" },
-      chantier: { label: "Chantier", className: "bg-blue-600/20 text-blue-300 border-blue-600/30" },
-      facture_reglee: { label: "Facture réglée", className: "bg-green-600/20 text-green-300 border-green-600/30" },
-      livraison_termine: { label: "Livraison & Terminé", className: "bg-amber-500/20 text-amber-300 border-amber-500/30" },
+    try {
+      const { getStatusConfig } = require("@/lib/status-config")
+      const sc = getStatusConfig(status)
+      return { label: sc.label, className: `${sc.bgColor} ${sc.textColor} ${sc.borderColor}` }
+    } catch {
+      return { label: status, className: "bg-white/10 text-white/60 border-white/20" }
     }
-    return statusMap[status] || { label: status, className: "bg-white/10 text-white/60 border-white/20" }
   }
 
   const statusInfo = getStatusBadge(client.statutProjet)
