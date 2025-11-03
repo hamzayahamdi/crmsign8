@@ -14,18 +14,21 @@ import { ClientOverviewCard } from "@/components/client-details/client-overview-
 import { ProjectInformationCard } from "@/components/client-details/project-information-card"
 import { DevisPaiementTracker } from "@/components/client-details/devis-paiement-tracker"
 import { NotesActivitiesSection } from "@/components/client-details/notes-activities-section"
-import { ProjectProgressCard } from "@/components/client-details/project-progress-card"
+import { ProjectRoadmapCard } from "@/components/client-details/project-roadmap-card"
 import { QuickActionsSidebar } from "@/components/client-details/quick-actions-sidebar"
 import { EnhancedTimeline } from "@/components/enhanced-timeline"
 import { AddRdvModal } from "@/components/add-rdv-modal"
+import { AddTaskModal } from "@/components/add-task-modal"
 import { UpcomingRdvBanner } from "@/components/upcoming-rdv-banner"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function ClientDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
+  const { user } = useAuth()
   const clientId = params.id as string
   
   // Use Zustand store for real-time sync
@@ -33,6 +36,7 @@ export default function ClientDetailsPage() {
   const [client, setClient] = useState<Client | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRdvModalOpen, setIsRdvModalOpen] = useState(false)
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
 
   useEffect(() => {
     // Refresh from store
@@ -102,15 +106,17 @@ export default function ClientDetailsPage() {
           startDate: rdv.dateStart,
           endDate: rdv.dateEnd,
           eventType: 'rendez_vous',
-          assignedTo: rdv.createdBy || 'current-user',
+          assignedTo: user?.id || '',
           location: rdv.location || '',
-          reminderType: 'one_day_before',
+          reminderType: 'day_1',
           linkedClientId: client.id,
         })
       })
 
       if (!calendarEventResponse.ok) {
-        throw new Error('Failed to create calendar event')
+        const errorData = await calendarEventResponse.json()
+        console.error('Calendar API error:', errorData)
+        throw new Error(errorData.error || 'Failed to create calendar event')
       }
 
       // 2. Update client with new RDV
@@ -133,6 +139,41 @@ export default function ClientDetailsPage() {
       toast({
         title: "Erreur",
         description: "Impossible de créer le rendez-vous. Veuillez réessayer.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleSaveTask = async (taskData: Omit<import('@/types/task').Task, "id" | "createdAt" | "updatedAt" | "createdBy">) => {
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...taskData,
+          linkedType: 'client',
+          linkedId: client?.id,
+          linkedName: client?.nom,
+          createdBy: user?.name || 'Utilisateur',
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create task')
+      }
+
+      setIsTaskModalOpen(false)
+      toast({
+        title: "Tâche créée",
+        description: `La tâche "${taskData.title}" a été créée avec succès`,
+      })
+    } catch (error) {
+      console.error('Error creating task:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer la tâche. Veuillez réessayer.",
         variant: "destructive"
       })
     }
@@ -250,9 +291,11 @@ export default function ClientDetailsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
                   >
-                    <ProjectProgressCard 
+                    <ProjectRoadmapCard 
                       client={client}
                       onUpdate={handleUpdateClient}
+                      onAddTask={() => setIsTaskModalOpen(true)}
+                      onAddRdv={() => setIsRdvModalOpen(true)}
                     />
                   </motion.div>
 
@@ -307,6 +350,16 @@ export default function ClientDetailsPage() {
             onClose={() => setIsRdvModalOpen(false)}
             client={client}
             onAddRdv={handleAddRdv}
+          />
+        )}
+
+        {/* Task Modal */}
+        {client && (
+          <AddTaskModal
+            isOpen={isTaskModalOpen}
+            onClose={() => setIsTaskModalOpen(false)}
+            onSave={handleSaveTask}
+            editingTask={null}
           />
         )}
       </div>

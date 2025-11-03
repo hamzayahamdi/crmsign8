@@ -147,21 +147,24 @@ export function ClientKanbanCard({ client, onClick, isNewlyAdded }: ClientKanban
       {(acceptedDevis > 0 || refusedDevis > 0 || pendingDevis > 0) && (
         <div className="flex items-center gap-2 mb-3">
           {acceptedDevis > 0 && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-green-500/10 border border-green-500/30 rounded-md">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/30 rounded-md" title="Devis acceptés">
               <CheckCircle className="w-3 h-3 text-green-400" />
-              <span className="text-xs font-medium text-green-300">{acceptedDevis}</span>
+              <span className="text-xs font-semibold text-green-300">{acceptedDevis}</span>
+              <span className="text-[10px] text-green-300/90">Accepté{acceptedDevis > 1 ? 's' : ''}</span>
             </div>
           )}
           {pendingDevis > 0 && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-md">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-md" title="Devis en attente">
               <Clock className="w-3 h-3 text-yellow-400" />
-              <span className="text-xs font-medium text-yellow-300">{pendingDevis}</span>
+              <span className="text-xs font-semibold text-yellow-300">{pendingDevis}</span>
+              <span className="text-[10px] text-yellow-300/90">En attente</span>
             </div>
           )}
           {refusedDevis > 0 && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-red-500/10 border border-red-500/30 rounded-md">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-red-500/10 border border-red-500/30 rounded-md" title="Devis refusés">
               <XCircle className="w-3 h-3 text-red-400" />
-              <span className="text-xs font-medium text-red-300">{refusedDevis}</span>
+              <span className="text-xs font-semibold text-red-300">{refusedDevis}</span>
+              <span className="text-[10px] text-red-300/90">Refusé{refusedDevis > 1 ? 's' : ''}</span>
             </div>
           )}
         </div>

@@ -1,10 +1,15 @@
 "use client"
 
+import { useState } from "react"
 import { MapPin, Building2, User, TrendingUp, DollarSign, Clock } from "lucide-react"
 import type { Client } from "@/types/client"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { ProjectStatusStepperEnhanced } from "@/components/project-status-stepper-enhanced"
+import { getStatusBadge } from "@/lib/status-utils"
+import { updateClientStage } from "@/lib/client-stage-service"
+import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/auth-context"
 import { cn } from "@/lib/utils"
 
 interface ClientDetailsHeaderProps {
@@ -13,6 +18,9 @@ interface ClientDetailsHeaderProps {
 }
 
 export function ClientDetailsHeader({ client, onUpdate }: ClientDetailsHeaderProps) {
+  const { toast } = useToast()
+  const { user } = useAuth()
+
   // Calculate based on devis instead of budget
   const devisList = client.devis || []
   const acceptedDevis = devisList.filter(d => d.statut === "accepte")
@@ -116,25 +124,44 @@ export function ClientDetailsHeader({ client, onUpdate }: ClientDetailsHeaderPro
       {/* Project Status Timeline */}
       <ProjectStatusStepperEnhanced
         currentStatus={client.statutProjet}
-        onStatusChange={(newStatus) => {
+        onStatusChange={async (newStatus) => {
           const now = new Date().toISOString()
-          const updatedClient = {
-            ...client,
-            statutProjet: newStatus,
-            derniereMaj: now,
-            updatedAt: now,
-            historique: [
-              {
-                id: `hist-${Date.now()}`,
-                date: now,
-                type: 'statut' as const,
-                description: `Statut changé à "${newStatus}"`,
-                auteur: 'Utilisateur'
-              },
-              ...(client.historique || [])
-            ]
+          const changedBy = user?.name || 'Utilisateur'
+
+          // Update stage history in database
+          const result = await updateClientStage(client.id, newStatus, changedBy)
+
+          if (result.success) {
+            // Update local client state
+            const updatedClient = {
+              ...client,
+              statutProjet: newStatus,
+              derniereMaj: now,
+              updatedAt: now,
+              historique: [
+                {
+                  id: `hist-${Date.now()}`,
+                  date: now,
+                  type: 'statut' as const,
+                  description: `Statut changé à "${newStatus}"`,
+                  auteur: changedBy
+                },
+                ...(client.historique || [])
+              ]
+            }
+            onUpdate(updatedClient)
+
+            toast({
+              title: "Statut mis à jour",
+              description: `Le statut a été changé à "${newStatus}"`,
+            })
+          } else {
+            toast({
+              title: "Erreur",
+              description: result.error || "Impossible de mettre à jour le statut",
+              variant: "destructive"
+            })
           }
-          onUpdate(updatedClient)
         }}
         interactive={true}
         lastUpdated={client.derniereMaj}

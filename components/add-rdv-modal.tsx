@@ -1,12 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { X, Calendar, Clock, MapPin, FileText } from "lucide-react"
+import { X, Calendar as CalendarIcon, Clock, MapPin, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from "@/contexts/auth-context"
+import { cn } from "@/lib/utils"
+import { format } from "date-fns"
+import { fr } from "date-fns/locale"
 import type { Client, Appointment } from "@/types/client"
 
 interface AddRdvModalProps {
@@ -20,10 +25,10 @@ export function AddRdvModal({ isOpen, onClose, client, onAddRdv }: AddRdvModalPr
   const { user } = useAuth()
   const [formData, setFormData] = useState({
     title: "",
-    dateStart: "",
-    timeStart: "",
-    dateEnd: "",
-    timeEnd: "",
+    dateStart: undefined as Date | undefined,
+    timeStart: "09:00",
+    dateEnd: undefined as Date | undefined,
+    timeEnd: "10:00",
     location: "",
     locationUrl: "",
     notes: "",
@@ -33,15 +38,23 @@ export function AddRdvModal({ isOpen, onClose, client, onAddRdv }: AddRdvModalPr
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const dateStart = `${formData.dateStart}T${formData.timeStart}`
-    const dateEnd = formData.dateEnd && formData.timeEnd 
-      ? `${formData.dateEnd}T${formData.timeEnd}`
-      : dateStart
+    if (!formData.dateStart) return
+
+    const dateStart = new Date(formData.dateStart)
+    const [startHours, startMinutes] = formData.timeStart.split(':').map(Number)
+    dateStart.setHours(startHours, startMinutes, 0, 0)
+
+    const dateEnd = formData.dateEnd ? new Date(formData.dateEnd) : new Date(dateStart)
+    const [endHours, endMinutes] = formData.timeEnd.split(':').map(Number)
+    dateEnd.setHours(endHours, endMinutes, 0, 0)
+
+    const dateStartISO = dateStart.toISOString()
+    const dateEndISO = dateEnd.toISOString()
 
     const rdv: Omit<Appointment, "id" | "createdAt" | "updatedAt"> = {
       title: formData.title,
-      dateStart,
-      dateEnd,
+      dateStart: dateStartISO,
+      dateEnd: dateEndISO,
       location: formData.location || undefined,
       locationUrl: formData.locationUrl || undefined,
       notes: formData.notes || undefined,
@@ -58,10 +71,10 @@ export function AddRdvModal({ isOpen, onClose, client, onAddRdv }: AddRdvModalPr
   const handleClose = () => {
     setFormData({
       title: "",
-      dateStart: "",
-      timeStart: "",
-      dateEnd: "",
-      timeEnd: "",
+      dateStart: undefined,
+      timeStart: "09:00",
+      dateEnd: undefined,
+      timeEnd: "10:00",
       location: "",
       locationUrl: "",
       notes: "",
@@ -125,16 +138,36 @@ export function AddRdvModal({ isOpen, onClose, client, onAddRdv }: AddRdvModalPr
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
-                    <Calendar className="w-4 h-4 inline mr-2" />
+                    <CalendarIcon className="w-4 h-4 inline mr-2" />
                     Date de début *
                   </label>
-                  <Input
-                    type="date"
-                    value={formData.dateStart}
-                    onChange={(e) => setFormData({ ...formData, dateStart: e.target.value })}
-                    required
-                    className="bg-white/5 border-white/10 text-white"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-white",
+                          !formData.dateStart && "text-white/40"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.dateStart ? (
+                          format(formData.dateStart, "PPP", { locale: fr })
+                        ) : (
+                          <span>Sélectionner une date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-[#171B22] border-white/10">
+                      <Calendar
+                        mode="single"
+                        selected={formData.dateStart}
+                        onSelect={(date) => setFormData({ ...formData, dateStart: date })}
+                        initialFocus
+                        className="text-white"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
@@ -157,12 +190,33 @@ export function AddRdvModal({ isOpen, onClose, client, onAddRdv }: AddRdvModalPr
                   <label className="block text-sm font-medium text-white/70 mb-2">
                     Date de fin (optionnel)
                   </label>
-                  <Input
-                    type="date"
-                    value={formData.dateEnd}
-                    onChange={(e) => setFormData({ ...formData, dateEnd: e.target.value })}
-                    className="bg-white/5 border-white/10 text-white"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white",
+                          !formData.dateEnd && "text-white/40"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.dateEnd ? (
+                          format(formData.dateEnd, "PPP", { locale: fr })
+                        ) : (
+                          <span>Sélectionner une date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-[#171B22] border-white/10">
+                      <Calendar
+                        mode="single"
+                        selected={formData.dateEnd}
+                        onSelect={(date) => setFormData({ ...formData, dateEnd: date })}
+                        initialFocus
+                        className="text-white"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-2">

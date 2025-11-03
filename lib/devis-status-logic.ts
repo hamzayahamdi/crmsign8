@@ -10,7 +10,6 @@ export function getAutoProjectStatus(client: Client): ProjectStatus | null {
   if (devisList.length === 0) {
     return null
   }
-
   const acceptedDevis = devisList.filter(d => d.statut === "accepte")
   const refusedDevis = devisList.filter(d => d.statut === "refuse")
   const allDevisProcessed = devisList.every(d => d.statut !== "en_attente")
@@ -34,6 +33,93 @@ export function getAutoProjectStatus(client: Client): ProjectStatus | null {
     return "livraison_termine" // Already at final stage
   }
 
+  return null
+}
+
+/**
+ * Internal: define the canonical order of statuses to avoid regressions when auto-syncing.
+ */
+const STATUS_ORDER: ProjectStatus[] = [
+  "qualifie",
+  "acompte_recu",
+  "conception",
+  "devis_negociation",
+  "accepte",
+  "refuse",
+  "premier_depot",
+  "projet_en_cours",
+  "chantier",
+  "facture_reglee",
+  "livraison_termine",
+  // Legacy (mapped elsewhere, but included for safety)
+  "nouveau",
+  "acompte_verse",
+  "en_conception",
+  "en_validation",
+  "en_chantier",
+  "livraison",
+  "termine",
+  "annule",
+  "suspendu",
+]
+
+function statusIndex(s: ProjectStatus) {
+  const i = STATUS_ORDER.indexOf(s)
+  return i === -1 ? Number.MAX_SAFE_INTEGER : i
+}
+
+/**
+ * Compute the appropriate project status from devis state.
+ * - If any accepted devis exists → at least "accepte".
+ * - If all devis refused → "refuse".
+ * - Else if any pending → "devis_negociation".
+ * - If all accepted devis are fully paid → suggest moving to "facture_reglee" (or keep current if further).
+ *
+ * Returns null when no change should be applied.
+ */
+export function computeStatusFromDevis(client: Client): ProjectStatus | null {
+  const devisList = client.devis || []
+  if (devisList.length === 0) return null
+
+  const accepted = devisList.filter(d => d.statut === "accepte")
+  const refused = devisList.filter(d => d.statut === "refuse")
+  const pending = devisList.filter(d => d.statut === "en_attente")
+
+  // Determine derived status from quotes
+  let derived: ProjectStatus | null = null
+
+  if (accepted.length > 0) {
+    // Base case when something is accepted
+    derived = "accepte"
+
+    // If everything accepted has been paid, we can move to "facture_reglee"
+    const allPaid = accepted.every(d => d.facture_reglee)
+    if (allPaid) {
+      derived = "facture_reglee"
+    }
+  } else if (refused.length > 0 && refused.length === devisList.length) {
+    // All refused
+    derived = "refuse"
+  } else if (pending.length > 0) {
+    // Still negotiating/pending
+    derived = "devis_negociation"
+  }
+
+  if (!derived) return null
+
+  // Forward-only policy: never downgrade status
+  const current = client.statutProjet
+  if (statusIndex(derived) < statusIndex(current)) {
+    // Do not regress
+    return null
+  }
+
+  // If current is already further than derived, keep current
+  if (statusIndex(current) < statusIndex(derived)) {
+    return derived
+  }
+
+  // Equal → no change
   return null
 }
 

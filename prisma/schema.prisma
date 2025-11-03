@@ -279,3 +279,20 @@ model Appointment {
   @@index([createdBy])
   @@map("appointments")
 }
+
+model ClientStageHistory {
+  id              String    @id @default(cuid())
+  clientId        String    @map("client_id")
+  stageName       String    @map("stage_name")
+  startedAt       DateTime  @map("started_at")
+  endedAt         DateTime? @map("ended_at")
+  durationSeconds Int?      @map("duration_seconds")
+  changedBy       String    @map("changed_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([clientId])
+  @@index([stageName])
+  @@index([startedAt(sort: Desc)])
+  @@map("client_stage_history")
+}

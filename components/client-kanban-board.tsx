@@ -20,6 +20,7 @@ import {
 } from "@dnd-kit/core"
 import { ClientKanbanCard } from "@/components/client-kanban-card"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/auth-context"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -119,6 +120,7 @@ export function ClientKanbanBoard({
   filters 
 }: ClientKanbanBoardProps) {
   const { toast } = useToast()
+  const { user } = useAuth()
   const [activeClient, setActiveClient] = useState<Client | null>(null)
   const [newlyAddedClientId, setNewlyAddedClientId] = useState<string | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
@@ -299,6 +301,21 @@ export function ClientKanbanBoard({
     }
 
     setIsUpdating(true)
+
+    // Track stage change for duration tracking
+    try {
+      await fetch(`/api/clients/${draggedClient.id}/stage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          newStage: targetStatus,
+          changedBy: user?.name || 'Utilisateur'
+        })
+      })
+    } catch (error) {
+      console.error('Failed to track stage change:', error)
+    }
 
     // Optimistic update
     const now = new Date().toISOString()

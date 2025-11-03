@@ -77,6 +77,8 @@ export function DevisPaiementTracker({ client, onUpdate }: DevisPaiementTrackerP
     }
 
     onUpdate(updatedClient)
+    // Sync project status if this payment changes the derived status (e.g., all accepted devis paid)
+    import("@/lib/client-sync").then(m => m.syncClientStatusFrom(updatedClient))
     toast({
       title: "Facture marquée comme réglée",
       description: `Le paiement de ${formatCurrency(devis?.montant || 0)} a été enregistré`,
@@ -116,6 +118,8 @@ export function DevisPaiementTracker({ client, onUpdate }: DevisPaiementTrackerP
     }
 
     onUpdate(updatedClient)
+    // Centralized sync: update client statutProjet based on devis state
+    import("@/lib/client-sync").then(m => m.syncClientStatusFrom(updatedClient))
     toast({
       title: `Statut mis à jour`,
       description: `"${target.title}" → ${statusLabel}`,

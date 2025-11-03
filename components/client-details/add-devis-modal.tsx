@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select"
 import { motion, AnimatePresence } from "framer-motion"
 import type { Client, Devis } from "@/types/client"
+import { syncClientStatusFrom } from "@/lib/client-sync"
 
 interface AddDevisModalProps {
   isOpen: boolean
@@ -53,6 +54,8 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
     }
 
     onSave(updatedClient)
+    // Centralized sync: ensure statutProjet updates based on devis
+    syncClientStatusFrom(updatedClient)
     setFormData({ title: "", montant: "", description: "", statut: "en_attente" })
     onClose()
   }
