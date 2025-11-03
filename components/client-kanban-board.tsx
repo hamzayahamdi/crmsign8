@@ -130,18 +130,18 @@ export function ClientKanbanBoard({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5, // Reduced for smoother drag start
       },
     }),
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5, // Reduced for smoother drag start
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 200,
-        tolerance: 8,
+        delay: 150, // Reduced delay for faster response
+        tolerance: 5,
       },
     })
   )
@@ -300,9 +300,34 @@ export function ClientKanbanBoard({
       return
     }
 
+    // Store original state for rollback
+    const originalStatus = draggedClient.statutProjet
+    const now = new Date().toISOString()
+
+    // Optimistic update FIRST (immediate UI feedback)
+    const optimisticClient: Client = {
+      ...draggedClient,
+      statutProjet: targetStatus,
+      derniereMaj: now,
+      updatedAt: now,
+      historique: [
+        ...(draggedClient.historique || []),
+        {
+          id: `hist-${Date.now()}`,
+          date: now,
+          type: "statut" as const,
+          description: `Statut changé vers ${getStatusLabel(targetStatus)}`,
+          auteur: user?.name || "Système"
+        }
+      ]
+    }
+
+    // Update UI immediately for smooth drag experience
+    onUpdateClient(optimisticClient)
+    setActiveClient(null)
     setIsUpdating(true)
 
-    // Track stage change for duration tracking
+    // Then update database
     try {
       const response = await fetch(`/api/clients/${draggedClient.id}/stage`, {
         method: 'POST',
@@ -315,75 +340,63 @@ export function ClientKanbanBoard({
       })
 
       if (!response.ok) {
-        throw new Error('Failed to update stage in database')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update stage in database')
       }
 
-      console.log(`[Kanban] Stage updated in DB: ${draggedClient.id} → ${targetStatus}`)
-    } catch (error) {
-      console.error('Failed to track stage change:', error)
+      console.log(`[Kanban] ✅ Stage updated in DB: ${draggedClient.id} → ${targetStatus}`)
+      
+      // Show success toast
+      const statusLabels: Record<ProjectStatus, string> = {
+        qualifie: "Qualifié",
+        acompte_recu: "Acompte reçu",
+        conception: "Conception",
+        devis_negociation: "Devis/Négociation",
+        accepte: "Accepté",
+        refuse: "Refusé",
+        premier_depot: "1er Dépôt",
+        projet_en_cours: "Projet en cours",
+        chantier: "Chantier",
+        facture_reglee: "Facture réglée",
+        livraison_termine: "Livraison & Terminé",
+        // Legacy
+        nouveau: "Nouveau projet",
+        acompte_verse: "Acompte versé",
+        en_conception: "En conception",
+        en_validation: "En validation",
+        en_chantier: "En réalisation",
+        livraison: "Livraison",
+        termine: "Terminé",
+        annule: "Annulé",
+        suspendu: "Suspendu"
+      }
+      
       toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour le stage dans la base de données",
+        title: "✅ Projet déplacé",
+        description: `${draggedClient.nom} → ${statusLabels[targetStatus]}`
+      })
+
+    } catch (error) {
+      console.error('[Kanban] ❌ Failed to update stage:', error)
+      
+      // ROLLBACK: Revert to original status
+      const rollbackClient: Client = {
+        ...draggedClient,
+        statutProjet: originalStatus,
+        derniereMaj: draggedClient.derniereMaj,
+        updatedAt: draggedClient.updatedAt,
+      }
+      
+      onUpdateClient(rollbackClient)
+      
+      toast({
+        title: "❌ Erreur",
+        description: "Impossible de déplacer le projet. Veuillez réessayer.",
         variant: "destructive"
       })
+    } finally {
       setIsUpdating(false)
-      setActiveClient(null)
-      return
     }
-
-    // Optimistic update
-    const now = new Date().toISOString()
-    const updatedClient: Client = {
-      ...draggedClient,
-      statutProjet: targetStatus,
-      derniereMaj: now,
-      updatedAt: now,
-      historique: [
-        ...(draggedClient.historique || []),
-        {
-          id: `hist-${Date.now()}`,
-          date: now,
-          type: "statut" as const,
-          description: `Statut changé vers ${getStatusLabel(targetStatus)}`,
-          auteur: "Système"
-        }
-      ]
-    }
-
-    onUpdateClient(updatedClient)
-    setActiveClient(null)
-
-    // Show success toast
-    const statusLabels: Record<ProjectStatus, string> = {
-      qualifie: "Qualifié",
-      acompte_recu: "Acompte reçu",
-      conception: "Conception",
-      devis_negociation: "Devis/Négociation",
-      accepte: "Accepté",
-      refuse: "Refusé",
-      premier_depot: "1er Dépôt",
-      projet_en_cours: "Projet en cours",
-      chantier: "Chantier",
-      facture_reglee: "Facture réglée",
-      livraison_termine: "Livraison & Terminé",
-      // Legacy
-      nouveau: "Nouveau projet",
-      acompte_verse: "Acompte versé",
-      en_conception: "En conception",
-      en_validation: "En validation",
-      en_chantier: "En réalisation",
-      livraison: "Livraison",
-      termine: "Terminé",
-      annule: "Annulé",
-      suspendu: "Suspendu"
-    }
-    
-    toast({
-      title: "✅ Projet déplacé",
-      description: `${draggedClient.nom} → ${statusLabels[targetStatus]}`
-    })
-
-    setIsUpdating(false)
   }
 
   const getStatusLabel = (status: ProjectStatus): string => {

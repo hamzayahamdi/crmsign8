@@ -65,6 +65,7 @@ export default function ClientDetailsPage() {
   useEffect(() => {
     if (!client || !realtimeStage || isStageLoading) return
     
+    // Only sync if stage is different (avoid unnecessary updates)
     if (realtimeStage !== client.statutProjet) {
       console.log(`[Realtime Sync] Stage changed: "${client.statutProjet}" → "${realtimeStage}"`)
       
@@ -77,10 +78,15 @@ export default function ClientDetailsPage() {
       updateClientInStore(clientId, updatedClient)
       setClient(updatedClient)
       
-      toast({
-        title: "✨ Stage synchronisé",
-        description: `Le stage a été mis à jour vers "${realtimeStage}"`,
-      })
+      // Only show toast if this is a change from another tab/user
+      // (not from our own action)
+      const isOwnAction = document.hasFocus()
+      if (!isOwnAction) {
+        toast({
+          title: "✨ Stage synchronisé",
+          description: `Le stage a été mis à jour vers "${realtimeStage}"`,
+        })
+      }
     }
   }, [realtimeStage, isStageLoading])
 
