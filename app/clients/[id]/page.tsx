@@ -89,12 +89,6 @@ export default function ClientDetailsPage() {
 
     try {
       const now = new Date().toISOString()
-      const newRdv: import('@/types/client').Appointment = {
-        ...rdv,
-        id: `rdv-${Date.now()}`,
-        createdAt: now,
-        updatedAt: now
-      }
 
       // 1. Create event in calendar database
       const calendarEventResponse = await fetch('/api/calendar', {
@@ -120,7 +114,41 @@ export default function ClientDetailsPage() {
         throw new Error(errorData.error || 'Failed to create calendar event')
       }
 
-      // 2. Update client with new RDV
+      // 2. Create appointment in appointments table for real-time sync
+      const appointmentResponse = await fetch(`/api/clients/${client.id}/appointments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: rdv.title,
+          dateStart: rdv.dateStart,
+          dateEnd: rdv.dateEnd,
+          description: rdv.notes || '',
+          location: rdv.location || '',
+          locationUrl: rdv.locationUrl || '',
+          notes: rdv.notes || '',
+          createdBy: user?.name || 'Utilisateur',
+          clientName: client.nom
+        })
+      })
+
+      if (!appointmentResponse.ok) {
+        const errorData = await appointmentResponse.json()
+        console.error('Appointment API error:', errorData)
+        throw new Error(errorData.error || 'Failed to create appointment')
+      }
+
+      const appointmentResult = await appointmentResponse.json()
+      console.log('[Add RDV] ✅ Appointment created in database:', appointmentResult.data)
+
+      // 3. Update client locally for immediate feedback
+      const newRdv: import('@/types/client').Appointment = {
+        ...rdv,
+        id: appointmentResult.data.id,
+        createdAt: now,
+        updatedAt: now
+      }
+
       const updatedClient = {
         ...client,
         rendezVous: [newRdv, ...(client.rendezVous || [])],

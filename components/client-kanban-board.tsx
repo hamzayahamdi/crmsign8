@@ -332,7 +332,7 @@ export function ClientKanbanBoard({
     setActiveClient(null)
     setIsUpdating(true)
 
-    // Then update database
+    // Then update database - this will trigger real-time sync to other browsers
     try {
       const response = await fetch(`/api/clients/${draggedClient.id}/stage`, {
         method: 'POST',
@@ -349,7 +349,9 @@ export function ClientKanbanBoard({
         throw new Error(errorData.error || 'Failed to update stage in database')
       }
 
+      const result = await response.json()
       console.log(`[Kanban] ✅ Stage updated in DB: ${draggedClient.id} → ${targetStatus}`)
+      console.log(`[Kanban] 🔄 Real-time sync will update other browsers automatically`)
       
       // Show success toast
       const statusLabels: Record<ProjectStatus, string> = {

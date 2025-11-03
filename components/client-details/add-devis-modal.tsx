@@ -32,32 +32,60 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
     statut: "en_attente" as Devis['statut']
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const newDevis: Devis = {
-      id: `devis-${Date.now()}`,
-      title: formData.title,
-      montant: parseFloat(formData.montant),
-      date: new Date().toISOString(),
-      statut: formData.statut,
-      facture_reglee: false,
-      description: formData.description,
-      createdBy: "current-user",
-      createdAt: new Date().toISOString()
-    }
+    try {
+      // Save to database via API
+      const response = await fetch(`/api/clients/${client.id}/devis`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: formData.title,
+          montant: formData.montant,
+          description: formData.description,
+          statut: formData.statut,
+          createdBy: 'current-user' // TODO: Get from auth context
+        })
+      })
 
-    const updatedClient = {
-      ...client,
-      devis: [...(client.devis || []), newDevis],
-      derniereMaj: new Date().toISOString()
-    }
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create devis')
+      }
 
-    onSave(updatedClient)
-    // Centralized sync: ensure statutProjet updates based on devis
-    syncClientStatusFrom(updatedClient)
-    setFormData({ title: "", montant: "", description: "", statut: "en_attente" })
-    onClose()
+      const result = await response.json()
+      console.log('[Add Devis] ✅ Devis created in database:', result.data)
+
+      // The real-time subscription will handle updating other browsers
+      // Just update local client for immediate feedback
+      const newDevis: Devis = {
+        id: result.data.id,
+        title: formData.title,
+        montant: parseFloat(formData.montant),
+        date: new Date().toISOString(),
+        statut: formData.statut,
+        facture_reglee: false,
+        description: formData.description,
+        createdBy: "current-user",
+        createdAt: new Date().toISOString()
+      }
+
+      const updatedClient = {
+        ...client,
+        devis: [...(client.devis || []), newDevis],
+        derniereMaj: new Date().toISOString()
+      }
+
+      onSave(updatedClient)
+      
+      setFormData({ title: "", montant: "", description: "", statut: "en_attente" })
+      onClose()
+    } catch (error) {
+      console.error('[Add Devis] Error creating devis:', error)
+      alert('Erreur lors de la création du devis. Veuillez réessayer.')
+    }
   }
 
   return (
