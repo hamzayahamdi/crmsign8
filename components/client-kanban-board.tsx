@@ -304,7 +304,7 @@ export function ClientKanbanBoard({
 
     // Track stage change for duration tracking
     try {
-      await fetch(`/api/clients/${draggedClient.id}/stage`, {
+      const response = await fetch(`/api/clients/${draggedClient.id}/stage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -313,8 +313,22 @@ export function ClientKanbanBoard({
           changedBy: user?.name || 'Utilisateur'
         })
       })
+
+      if (!response.ok) {
+        throw new Error('Failed to update stage in database')
+      }
+
+      console.log(`[Kanban] Stage updated in DB: ${draggedClient.id} → ${targetStatus}`)
     } catch (error) {
       console.error('Failed to track stage change:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le stage dans la base de données",
+        variant: "destructive"
+      })
+      setIsUpdating(false)
+      setActiveClient(null)
+      return
     }
 
     // Optimistic update

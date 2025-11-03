@@ -63,3 +63,30 @@ export async function getClientStageHistory(clientId: string) {
     return []
   }
 }
+
+/**
+ * Get the current active stage for a client from the database
+ * This is the source of truth for the client's current stage
+ */
+export async function getCurrentClientStage(clientId: string): Promise<ProjectStatus | null> {
+  try {
+    const history = await getClientStageHistory(clientId)
+    
+    // Find the most recent stage with no end date (active stage)
+    const activeStage = history.find((entry: any) => !entry.endedAt)
+    
+    if (activeStage) {
+      return activeStage.stageName as ProjectStatus
+    }
+    
+    // If no active stage found, return the most recent stage
+    if (history.length > 0) {
+      return history[0].stageName as ProjectStatus
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Error getting current client stage:', error)
+    return null
+  }
+}

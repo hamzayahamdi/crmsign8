@@ -23,6 +23,7 @@ import { UpcomingRdvBanner } from "@/components/upcoming-rdv-banner"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
+import { useRealtimeStageSync } from "@/hooks/use-realtime-stage-sync"
 
 export default function ClientDetailsPage() {
   const params = useParams()
@@ -37,6 +38,9 @@ export default function ClientDetailsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRdvModalOpen, setIsRdvModalOpen] = useState(false)
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
+
+  // Use Realtime hook for instant cross-tab stage sync (no localStorage needed!)
+  const { currentStage: realtimeStage, isLoading: isStageLoading } = useRealtimeStageSync(clientId)
 
   useEffect(() => {
     // Refresh from store
@@ -56,6 +60,29 @@ export default function ClientDetailsPage() {
     })
     return unsubscribe
   }, [clientId])
+
+  // Sync stage from Realtime subscription (instant cross-tab sync!)
+  useEffect(() => {
+    if (!client || !realtimeStage || isStageLoading) return
+    
+    if (realtimeStage !== client.statutProjet) {
+      console.log(`[Realtime Sync] Stage changed: "${client.statutProjet}" → "${realtimeStage}"`)
+      
+      const updatedClient = {
+        ...client,
+        statutProjet: realtimeStage,
+        derniereMaj: new Date().toISOString(),
+      }
+      
+      updateClientInStore(clientId, updatedClient)
+      setClient(updatedClient)
+      
+      toast({
+        title: "✨ Stage synchronisé",
+        description: `Le stage a été mis à jour vers "${realtimeStage}"`,
+      })
+    }
+  }, [realtimeStage, isStageLoading])
 
   const handleUpdateClient = (updatedClient: Client) => {
     // Update in Zustand store (will sync to all views)
