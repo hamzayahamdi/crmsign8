@@ -23,7 +23,7 @@ import { UpcomingRdvBanner } from "@/components/upcoming-rdv-banner"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
-import { useRealtimeStageSync } from "@/hooks/use-realtime-stage-sync"
+import { getCurrentClientStage } from "@/lib/client-stage-service"
 
 export default function ClientDetailsPage() {
   const params = useParams()
@@ -39,9 +39,6 @@ export default function ClientDetailsPage() {
   const [isRdvModalOpen, setIsRdvModalOpen] = useState(false)
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
 
-  // Use Realtime hook for instant cross-tab stage sync (no localStorage needed!)
-  const { currentStage: realtimeStage, isLoading: isStageLoading } = useRealtimeStageSync(clientId)
-
   useEffect(() => {
     // Refresh from store
     refreshClients()
@@ -50,7 +47,7 @@ export default function ClientDetailsPage() {
     setIsLoading(false)
   }, [clientId, getClientById, refreshClients])
 
-  // Listen for store updates
+  // Listen for store updates (this handles kanban drag updates)
   useEffect(() => {
     const unsubscribe = useClientStore.subscribe((state) => {
       const updatedClient = state.clients.find(c => c.id === clientId)
@@ -60,35 +57,6 @@ export default function ClientDetailsPage() {
     })
     return unsubscribe
   }, [clientId])
-
-  // Sync stage from Realtime subscription (instant cross-tab sync!)
-  useEffect(() => {
-    if (!client || !realtimeStage || isStageLoading) return
-    
-    // Only sync if stage is different (avoid unnecessary updates)
-    if (realtimeStage !== client.statutProjet) {
-      console.log(`[Realtime Sync] Stage changed: "${client.statutProjet}" → "${realtimeStage}"`)
-      
-      const updatedClient = {
-        ...client,
-        statutProjet: realtimeStage,
-        derniereMaj: new Date().toISOString(),
-      }
-      
-      updateClientInStore(clientId, updatedClient)
-      setClient(updatedClient)
-      
-      // Only show toast if this is a change from another tab/user
-      // (not from our own action)
-      const isOwnAction = document.hasFocus()
-      if (!isOwnAction) {
-        toast({
-          title: "✨ Stage synchronisé",
-          description: `Le stage a été mis à jour vers "${realtimeStage}"`,
-        })
-      }
-    }
-  }, [realtimeStage, isStageLoading])
 
   const handleUpdateClient = (updatedClient: Client) => {
     // Update in Zustand store (will sync to all views)

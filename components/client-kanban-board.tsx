@@ -304,6 +304,9 @@ export function ClientKanbanBoard({
     const originalStatus = draggedClient.statutProjet
     const now = new Date().toISOString()
 
+    console.log(`[Kanban] 🎯 Drag detected: ${draggedClient.nom}`)
+    console.log(`[Kanban] 📍 From: ${originalStatus} → To: ${targetStatus}`)
+
     // Optimistic update FIRST (immediate UI feedback)
     const optimisticClient: Client = {
       ...draggedClient,
@@ -322,6 +325,8 @@ export function ClientKanbanBoard({
       ]
     }
 
+    console.log(`[Kanban] ⚡ Optimistic update - Setting UI to: ${targetStatus}`)
+    
     // Update UI immediately for smooth drag experience
     onUpdateClient(optimisticClient)
     setActiveClient(null)
@@ -378,6 +383,7 @@ export function ClientKanbanBoard({
 
     } catch (error) {
       console.error('[Kanban] ❌ Failed to update stage:', error)
+      console.log(`[Kanban] 🔄 Rolling back: ${targetStatus} → ${originalStatus}`)
       
       // ROLLBACK: Revert to original status
       const rollbackClient: Client = {
@@ -388,6 +394,7 @@ export function ClientKanbanBoard({
       }
       
       onUpdateClient(rollbackClient)
+      console.log(`[Kanban] ✅ Rollback complete - UI restored to: ${originalStatus}`)
       
       toast({
         title: "❌ Erreur",
