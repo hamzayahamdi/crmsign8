@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verify } from 'jsonwebtoken'
 import { getServerSupabase } from '@/lib/supabase'
+import { PrismaClient } from '@prisma/client'
 
+const prisma = new PrismaClient()
 const BUCKET = process.env.SUPABASE_DOCS_BUCKET || 'documents'
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 // Supabase credentials are resolved inside getServerSupabase()
@@ -98,13 +100,44 @@ export async function POST(request: NextRequest) {
         else category = 'autre'
       }
 
+      // Save document metadata to database
+      const document = await prisma.document.create({
+        data: {
+          clientId,
+          name: originalName,
+          path,
+          bucket: BUCKET,
+          type,
+          size: file.size,
+          category,
+          uploadedBy,
+        }
+      })
+
+      // Create historique entry for document upload
+      await prisma.historique.create({
+        data: {
+          clientId,
+          type: 'document',
+          description: `Document ajouté : ${originalName}`,
+          auteur: uploadedBy,
+          metadata: {
+            documentId: document.id,
+            documentName: originalName,
+            documentType: type,
+            documentCategory: category,
+            documentSize: file.size
+          }
+        }
+      })
+
       // Return success response with file details
       return NextResponse.json({
-        id: path,
+        id: document.id,
         name: originalName,
         type,
         size: file.size,
-        uploadedAt: new Date().toISOString(),
+        uploadedAt: document.uploadedAt.toISOString(),
         uploadedBy,
         url: signed?.signedUrl || null,
         category,

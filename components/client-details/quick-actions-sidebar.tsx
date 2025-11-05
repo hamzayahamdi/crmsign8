@@ -103,15 +103,15 @@ export function QuickActionsSidebar({ client, onUpdate, onDelete }: QuickActions
       if (response.ok) {
         const result = await response.json()
         onUpdate(result.data)
+        
+        // Trigger document update event for real-time sync
+        window.dispatchEvent(new CustomEvent('document-updated', { 
+          detail: { clientId: client.id } 
+        }))
       }
     } catch (error) {
       console.error('[Documents Added] Error refreshing client:', error)
     }
-    
-    toast({
-      title: "Documents ajoutés",
-      description: `${documents.length} document(s) ajouté(s) avec succès`,
-    })
   }
 
   const handleShare = () => {

@@ -36,6 +36,19 @@ export function EnhancedTimeline({
 }: EnhancedTimelineProps) {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all")
   const [showAll, setShowAll] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(groupKey)) {
+        next.delete(groupKey)
+      } else {
+        next.add(groupKey)
+      }
+      return next
+    })
+  }
 
   // Combine historique and appointments into unified timeline
   // Filter out historique entries with type 'rdv' to avoid duplicates (RDV come from rendezVous array)
@@ -67,8 +80,61 @@ export function EnhancedTimeline({
   const displayedEvents = showAll ? filteredEvents : filteredEvents.slice(0, maxItems)
   const hasMore = filteredEvents.length > maxItems
 
-  // Group by date
-  const groupedEvents = groupHistoryByDate(displayedEvents)
+  // Group system status updates
+  const groupSystemUpdates = (events: any[]) => {
+    const grouped: any[] = []
+    let systemUpdateGroup: any[] = []
+    
+    events.forEach((event, index) => {
+      const isSystemUpdate = event.type === 'statut' && 
+        (event.auteur === 'Système' || event.auteur === 'Système (auto)' || 
+         event.description?.includes('automatiquement'))
+      
+      if (isSystemUpdate) {
+        systemUpdateGroup.push(event)
+      } else {
+        // If we have accumulated system updates, add them as a group
+        if (systemUpdateGroup.length > 0) {
+          if (systemUpdateGroup.length === 1) {
+            grouped.push(systemUpdateGroup[0])
+          } else {
+            grouped.push({
+              id: `system-group-${systemUpdateGroup[0].id}`,
+              type: 'system-group',
+              events: systemUpdateGroup,
+              date: systemUpdateGroup[0].date,
+              description: `${systemUpdateGroup.length} changements d'étape automatiques`,
+              auteur: 'Système'
+            })
+          }
+          systemUpdateGroup = []
+        }
+        grouped.push(event)
+      }
+    })
+    
+    // Handle remaining system updates
+    if (systemUpdateGroup.length > 0) {
+      if (systemUpdateGroup.length === 1) {
+        grouped.push(systemUpdateGroup[0])
+      } else {
+        grouped.push({
+          id: `system-group-${systemUpdateGroup[0].id}`,
+          type: 'system-group',
+          events: systemUpdateGroup,
+          date: systemUpdateGroup[0].date,
+          description: `${systemUpdateGroup.length} changements d'étape automatiques`,
+          auteur: 'Système'
+        })
+      }
+    }
+    
+    return grouped
+  }
+
+  // Group system updates first, then group by date
+  const eventsWithGroups = groupSystemUpdates(displayedEvents)
+  const groupedEvents = groupHistoryByDate(eventsWithGroups)
 
   const getIcon = (type: ClientHistoryEntry['type']) => {
     const iconMap = {
@@ -214,11 +280,11 @@ export function EnhancedTimeline({
   }
 
   return (
-    <div className="bg-[#171B22] rounded-2xl border border-white/10 p-6">
+    <div className="bg-[#171B22] rounded-xl border border-white/10 p-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-bold text-white mb-1">Historique & Timeline</h3>
+          <h3 className="text-base font-bold text-white mb-0.5">Historique & Timeline</h3>
           <p className="text-xs text-white/50">{filteredEvents.length} événement{filteredEvents.length > 1 ? 's' : ''}</p>
         </div>
         
@@ -236,7 +302,7 @@ export function EnhancedTimeline({
 
       {/* Filters */}
       {showFilters && (
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-4">
           {[
             { key: "all", label: "Tous", icon: null },
             { key: "statuts", label: "Statuts", icon: TrendingUp },
@@ -284,6 +350,87 @@ export function EnhancedTimeline({
                 <div className="absolute left-4 top-4 bottom-4 w-px bg-white/10" />
 
                 {events.map((event, index) => {
+                  // Handle system update groups
+                  if (event.type === 'system-group') {
+                    const isExpanded = expandedGroups.has(event.id)
+                    const groupEvents = event.events || []
+                    
+                    return (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        className="relative pl-12"
+                      >
+                        {/* Icon */}
+                        <div className="absolute left-0 w-8 h-8 rounded-full flex items-center justify-center border z-10 bg-indigo-500/20 border-indigo-500/30 text-indigo-400">
+                          <TrendingUp className="w-4 h-4" />
+                        </div>
+
+                        {/* Grouped Content Card */}
+                        <div className="bg-white/5 border border-white/5 rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => toggleGroup(event.id)}
+                            className="w-full p-3 hover:bg-white/[0.07] transition-colors text-left"
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-1.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <User className="w-3.5 h-3.5 text-white/40" />
+                                <span className="text-xs font-medium text-white/70">{event.auteur}</span>
+                                <span className="text-xs text-white/30">•</span>
+                                <span className="text-xs text-white/50">
+                                  {formatRelativeTime(event.date)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400">
+                                  {groupEvents.length} mises à jour
+                                </span>
+                                {isExpanded ? (
+                                  <ChevronUp className="w-4 h-4 text-white/40" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4 text-white/40" />
+                                )}
+                              </div>
+                            </div>
+                            
+                            <p className="text-sm text-white/80 leading-relaxed">
+                              {event.description}
+                            </p>
+                          </button>
+
+                          {/* Expanded group details */}
+                          <AnimatePresence>
+                            {isExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="border-t border-white/5"
+                              >
+                                <div className="p-3 space-y-2 bg-white/[0.02]">
+                                  {groupEvents.map((subEvent: any, subIndex: number) => (
+                                    <div key={subEvent.id} className="text-xs">
+                                      <div className="flex items-center gap-2 text-white/50 mb-1">
+                                        <Clock className="w-3 h-3" />
+                                        {formatRelativeTime(subEvent.date)}
+                                      </div>
+                                      <p className="text-white/70">{subEvent.description}</p>
+                                      {subEvent.type === "statut" && renderStatusChange(subEvent)}
+                                    </div>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </motion.div>
+                    )
+                  }
+
+                  // Regular event rendering
                   const Icon = getIcon(event.type)
                   const iconColor = getIconColor(event.type)
 

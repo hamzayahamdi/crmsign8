@@ -69,11 +69,11 @@ export function NotesActivitiesSection({ client, onUpdate }: NotesActivitiesSect
     .slice(0, 10) // Show last 10 activities
 
   return (
-    <div className="bg-[#171B22] rounded-2xl border border-white/10 p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="bg-[#171B22] rounded-xl border border-white/10 p-4">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-lg font-bold text-white mb-1">Notes & Activités</h2>
-          <p className="text-sm text-white/50">Chronologie des actions et mises à jour</p>
+          <h2 className="text-base font-bold text-white mb-0.5">Notes & Activités</h2>
+          <p className="text-xs text-white/50">Chronologie des actions et mises à jour</p>
         </div>
         <Button
           onClick={() => setIsAddingNote(!isAddingNote)}

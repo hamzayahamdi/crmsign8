@@ -144,15 +144,31 @@ export async function GET(
         validatedAt: d.validated_at,
         notes: d.notes
       })) || [],
-      documents: documents?.map(d => ({
-        id: d.id,
-        name: d.name,
-        type: d.type,
-        size: d.size,
-        category: d.category,
-        uploadedBy: d.uploaded_by,
-        uploadedAt: d.uploaded_at
-      })) || [],
+      documents: await Promise.all((documents || []).map(async (d) => {
+        // Generate signed URL for each document
+        let signedUrl = null
+        try {
+          const { data: signed } = await supabase.storage
+            .from(d.bucket || 'documents')
+            .createSignedUrl(d.path, 60 * 60 * 24 * 7) // 7 days
+          signedUrl = signed?.signedUrl || null
+        } catch (err) {
+          console.error('[Documents] Failed to generate signed URL:', err)
+        }
+        
+        return {
+          id: d.id,
+          name: d.name,
+          type: d.type,
+          size: d.size,
+          category: d.category,
+          uploadedBy: d.uploaded_by,
+          uploadedAt: d.uploaded_at,
+          url: signedUrl,
+          path: d.path,
+          bucket: d.bucket
+        }
+      })),
       payments: payments?.map(p => ({
         id: p.id,
         amount: p.montant,

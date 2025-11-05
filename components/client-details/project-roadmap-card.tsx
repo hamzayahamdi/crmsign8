@@ -54,6 +54,8 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
   const [clientTasks, setClientTasks] = useState<Task[]>([])
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
   const [liveDurations, setLiveDurations] = useState<Record<string, number>>({})
+  const [isRoadmapCollapsed, setIsRoadmapCollapsed] = useState(false)
+  const [isActionsCollapsed, setIsActionsCollapsed] = useState(false)
 
   // Use realtime stage history hook
   const { stageHistory, isLoading: isLoadingHistory } = useStageHistory(client.id)
@@ -279,26 +281,35 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
   }
 
   return (
-    <div className="bg-[#171B22] rounded-2xl border border-white/10 p-5">
+    <div className="bg-[#171B22] rounded-xl border border-white/10">
       {/* Header */}
-      <div className="mb-4">
+      <div className="p-4 border-b border-white/10">
         <h2 className="text-base font-bold text-white mb-0.5">Feuille de Route & Prochaines Actions</h2>
         <p className="text-xs text-white/50">Visualisation du parcours projet et actions à venir</p>
       </div>
 
       {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
         {/* Left Column - Project Roadmap */}
         <div className="flex flex-col">
-          <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => setIsRoadmapCollapsed(!isRoadmapCollapsed)}
+            className="flex items-center justify-between mb-3 hover:opacity-80 transition-opacity"
+          >
             <h3 className="text-xs font-semibold text-white/80 flex items-center gap-1.5 uppercase tracking-wide">
               <MapPin className="w-3.5 h-3.5 text-blue-400" />
               Feuille de Route
             </h3>
-          </div>
+            {isRoadmapCollapsed ? (
+              <Plus className="w-4 h-4 text-white/40" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-white/40" />
+            )}
+          </button>
 
           {/* Roadmap Timeline - Scrollable */}
-          <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
+          {!isRoadmapCollapsed && (
+            <div className="space-y-1.5 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
             {ROADMAP_STAGES.map((stage, index) => {
               const status = getStageStatus(stage)
               const isLast = index === ROADMAP_STAGES.length - 1
@@ -429,17 +440,29 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
                 </div>
               )
             })}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column - Upcoming Actions */}
         <div className="flex flex-col">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold text-white/80 flex items-center gap-1.5 uppercase tracking-wide">
-              <Calendar className="w-3.5 h-3.5 text-purple-400" />
-              Actions & RDV
-            </h3>
-            <div className="flex gap-1.5">
+            <button
+              onClick={() => setIsActionsCollapsed(!isActionsCollapsed)}
+              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+            >
+              <h3 className="text-xs font-semibold text-white/80 flex items-center gap-1.5 uppercase tracking-wide">
+                <Calendar className="w-3.5 h-3.5 text-purple-400" />
+                Actions & RDV
+              </h3>
+              {isActionsCollapsed ? (
+                <Plus className="w-4 h-4 text-white/40" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 text-white/40" />
+              )}
+            </button>
+            {!isActionsCollapsed && (
+              <div className="flex gap-1.5">
               {onAddTask && (
                 <Button
                   onClick={onAddTask}
@@ -462,10 +485,12 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
                   RDV
                 </Button>
               )}
-            </div>
+              </div>
+            )}
           </div>
 
-          <div className="space-y-2 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
+          {!isActionsCollapsed && (
+            <div className="space-y-2 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
             {/* Upcoming Appointments */}
             {upcomingAppointments.length > 0 && (
               <div className="space-y-1.5">
@@ -619,7 +644,8 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
                 <p className="text-xs text-white/50">Chargement...</p>
               </div>
             )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

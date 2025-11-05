@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 import { X, FolderOpen, File, FileText, Image, Download, Plus, Calendar, User, Search, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -56,9 +56,36 @@ export function DocumentsModal({
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [localDocuments, setLocalDocuments] = useState<any[]>([])
+  const [hasInitialized, setHasInitialized] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  const documents = client.documents || []
+  // Sync local documents with client.documents prop
+  // Only update if we have more documents from server (to prevent disappearing)
+  useEffect(() => {
+    const serverDocs = client.documents || []
+    
+    // Initialize on first load or when modal opens
+    if (!hasInitialized && isOpen) {
+      setLocalDocuments(serverDocs)
+      setHasInitialized(true)
+      return
+    }
+    
+    // Update only if server has more or different documents
+    if (serverDocs.length >= localDocuments.length) {
+      setLocalDocuments(serverDocs)
+    }
+  }, [client.documents, isOpen, hasInitialized, localDocuments.length])
+
+  // Reset initialization when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setHasInitialized(false)
+    }
+  }, [isOpen])
+
+  const documents = localDocuments
   
   const categories = [
     { value: "all", label: "Tous", count: documents.length },
@@ -143,8 +170,24 @@ export function DocumentsModal({
     }
     setUploading(false)
     setUploadProgress(0)
+    
     if (uploaded.length > 0) {
+      // Immediately update local state to show new documents
+      setLocalDocuments(prev => [...uploaded, ...prev])
+      
+      // Notify parent component
       onDocumentsAdded?.(uploaded)
+      
+      // Dispatch custom event for real-time sync
+      window.dispatchEvent(new CustomEvent('document-updated', { 
+        detail: { clientId: client.id } 
+      }))
+      
+      // Show success toast
+      toast({
+        title: "Documents ajoutés",
+        description: `${uploaded.length} document(s) téléchargé(s) avec succès`,
+      })
     }
   }
 

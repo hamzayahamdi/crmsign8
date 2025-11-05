@@ -13,7 +13,7 @@ import { useClientStore } from "@/stores/client-store"
 import { ClientDetailsHeader } from "@/components/client-details/client-details-header"
 import { ClientOverviewCard } from "@/components/client-details/client-overview-card"
 import { ProjectInformationCard } from "@/components/client-details/project-information-card"
-import { DevisPaiementTracker } from "@/components/client-details/devis-paiement-tracker"
+import { FinancementDocumentsUnified } from "@/components/client-details/financement-documents-unified"
 import { NotesActivitiesSection } from "@/components/client-details/notes-activities-section"
 import { ProjectRoadmapCard } from "@/components/client-details/project-roadmap-card"
 import { QuickActionsSidebar } from "@/components/client-details/quick-actions-sidebar"
@@ -516,8 +516,8 @@ export default function ClientDetailsPage() {
 
           {/* Main Content Area */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <div className="px-8 py-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="px-8 py-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Left Column - Main Content (70%) */}
                 <div className="lg:col-span-2 space-y-6">
                   <motion.div
@@ -547,7 +547,7 @@ export default function ClientDetailsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
                   >
-                    <DevisPaiementTracker 
+                    <FinancementDocumentsUnified 
                       client={client}
                       onUpdate={handleUpdateClient}
                     />
