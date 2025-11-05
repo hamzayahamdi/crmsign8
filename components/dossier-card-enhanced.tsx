@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { Building2, MapPin, Calendar, DollarSign, ArrowRight } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { Button } from "./ui/button"
 import type { Client, ProjectStatus } from "@/types/client"
 import { cn } from "@/lib/utils"
@@ -13,18 +14,82 @@ interface DossierCardEnhancedProps {
 }
 
 export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEnhancedProps) {
+  const router = useRouter()
+  
   const statusConfig: Record<ProjectStatus, { 
     label: string
     color: string
     bgColor: string
     borderColor: string
   }> = {
-    prospection: {
-      label: "Prospection",
+    // New statuses
+    qualifie: {
+      label: "Qualifié",
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/10",
+      borderColor: "border-blue-500/30"
+    },
+    acompte_recu: {
+      label: "Acompte reçu",
+      color: "text-green-400",
+      bgColor: "bg-green-500/10",
+      borderColor: "border-green-500/30"
+    },
+    conception: {
+      label: "Conception",
+      color: "text-purple-400",
+      bgColor: "bg-purple-500/10",
+      borderColor: "border-purple-500/30"
+    },
+    devis_negociation: {
+      label: "Devis/Négociation",
       color: "text-yellow-400",
       bgColor: "bg-yellow-500/10",
       borderColor: "border-yellow-500/30"
     },
+    accepte: {
+      label: "Accepté",
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
+      borderColor: "border-emerald-500/30"
+    },
+    refuse: {
+      label: "Refusé",
+      color: "text-red-400",
+      bgColor: "bg-red-500/10",
+      borderColor: "border-red-500/30"
+    },
+    premier_depot: {
+      label: "1er Dépôt",
+      color: "text-cyan-400",
+      bgColor: "bg-cyan-500/10",
+      borderColor: "border-cyan-500/30"
+    },
+    projet_en_cours: {
+      label: "Projet en cours",
+      color: "text-indigo-400",
+      bgColor: "bg-indigo-500/10",
+      borderColor: "border-indigo-500/30"
+    },
+    chantier: {
+      label: "Chantier",
+      color: "text-amber-400",
+      bgColor: "bg-amber-500/10",
+      borderColor: "border-amber-500/30"
+    },
+    facture_reglee: {
+      label: "Facture réglée",
+      color: "text-teal-400",
+      bgColor: "bg-teal-500/10",
+      borderColor: "border-teal-500/30"
+    },
+    livraison_termine: {
+      label: "Livraison & Terminé",
+      color: "text-green-400",
+      bgColor: "bg-green-500/10",
+      borderColor: "border-green-500/30"
+    },
+    // Legacy statuses
     nouveau: {
       label: "Nouveau",
       color: "text-blue-400",
@@ -106,13 +171,18 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
     }).format(amount)
   }
 
+  const handleOpenDossier = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    router.push(`/clients/${client.id}`)
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      onClick={() => onOpen(client)}
+      onClick={handleOpenDossier}
       className={cn(
         "glass rounded-xl p-4 border cursor-pointer transition-all duration-200 group",
         "hover:border-slate-600/60 hover:shadow-lg",
@@ -161,10 +231,7 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
         variant="ghost"
         size="sm"
         className="w-full h-8 text-xs bg-slate-800/40 hover:bg-primary/20 hover:text-primary border border-slate-700/40 hover:border-primary/40 transition-all group/btn"
-        onClick={(e) => {
-          e.stopPropagation()
-          onOpen(client)
-        }}
+        onClick={handleOpenDossier}
       >
         <span>Ouvrir dossier</span>
         <ArrowRight className="w-3.5 h-3.5 ml-1.5 group-hover/btn:translate-x-1 transition-transform" />

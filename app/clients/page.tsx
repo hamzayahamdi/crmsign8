@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Filter, X, ChevronDown, Users, TrendingUp, LayoutGrid, Table as TableIcon } from "lucide-react"
+import { Plus, Filter, X, ChevronDown, Users, TrendingUp, LayoutGrid, Table as TableIcon, Loader2 } from "lucide-react"
 import type { Client, ProjectStatus } from "@/types/client"
 import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
@@ -64,7 +64,7 @@ export default function ClientsPage() {
   }
 
   // Use Zustand store for real-time sync
-  const { clients: storeClients, setClients: setStoreClients, updateClient: updateStoreClient, addClient: addStoreClient, deleteClient: deleteStoreClient, refreshClients, fetchClients } = useClientStore()
+  const { clients: storeClients, setClients: setStoreClients, updateClient: updateStoreClient, addClient: addStoreClient, deleteClient: deleteStoreClient, refreshClients, fetchClients, isLoading } = useClientStore()
 
   // Fetch clients from database on mount
   useEffect(() => {
@@ -314,11 +314,15 @@ export default function ClientsPage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
-                    <Users className="w-4 h-4 text-blue-400" />
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                    ) : (
+                      <Users className="w-4 h-4 text-blue-400" />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-slate-400">Clients</p>
-                    <p className="text-xl font-bold text-white">{clients.length}</p>
+                    <p className="text-xl font-bold text-white">{isLoading ? '...' : clients.length}</p>
                   </div>
                 </div>
               </motion.div>
@@ -331,11 +335,15 @@ export default function ClientsPage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
-                    <TrendingUp className="w-4 h-4 text-orange-400" />
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
+                    ) : (
+                      <TrendingUp className="w-4 h-4 text-orange-400" />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-slate-400">Actifs</p>
-                    <p className="text-xl font-bold text-white">{activeProjects}</p>
+                    <p className="text-xl font-bold text-white">{isLoading ? '...' : activeProjects}</p>
                   </div>
                 </div>
               </motion.div>
@@ -348,11 +356,15 @@ export default function ClientsPage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
-                    <TrendingUp className="w-4 h-4 text-green-400" />
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 text-green-400 animate-spin" />
+                    ) : (
+                      <TrendingUp className="w-4 h-4 text-green-400" />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-slate-400">Terminés</p>
-                    <p className="text-xl font-bold text-white">{completedProjects}</p>
+                    <p className="text-xl font-bold text-white">{isLoading ? '...' : completedProjects}</p>
                   </div>
                 </div>
               </motion.div>
@@ -569,7 +581,18 @@ export default function ClientsPage() {
 
           {/* Clients Content - Table or Kanban */}
           <div className="flex-1 px-6 pb-6 overflow-hidden">
-            {clients.length === 0 ? (
+            {isLoading ? (
+              <div className="h-full flex items-center justify-center">
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center"
+                >
+                  <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-3" />
+                  <p className="text-sm text-slate-400">Chargement...</p>
+                </motion.div>
+              </div>
+            ) : clients.length === 0 ? (
               <div className="h-full flex items-center justify-center">
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }}

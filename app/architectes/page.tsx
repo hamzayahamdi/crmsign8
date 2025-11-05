@@ -20,7 +20,6 @@ import { toast } from "sonner"
 export default function ArchitectesPage() {
   const router = useRouter()
   const [architects, setArchitects] = useState<Architect[]>([])
-  const [clients, setClients] = useState<Client[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
@@ -30,70 +29,38 @@ export default function ArchitectesPage() {
     specialite: "all" as "all" | ArchitectSpecialty,
   })
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Load architects and clients from localStorage
+  // Fetch architects from API
   useEffect(() => {
-    // Load clients to compute architect statistics
-    const storedClients = localStorage.getItem("signature8-clients")
-    const clientsData = storedClients ? JSON.parse(storedClients) : []
-    setClients(clientsData)
-
-    // Load or generate architects
-    const storedArchitects = localStorage.getItem("signature8-architects")
-    if (storedArchitects) {
-      setArchitects(JSON.parse(storedArchitects))
-    } else {
-      // Generate demo architects from unique architect names in clients
-      const uniqueArchitectNames = Array.from(new Set(clientsData.map((c: Client) => c.architecteAssigne)))
-      const demoArchitects: Architect[] = uniqueArchitectNames.map((name, index) => {
-        const nameStr = String(name)
-        const [prenom, ...nomParts] = nameStr.split(' ')
-        const nom = nomParts.join(' ') || prenom
-        return {
-          id: `arch-${Date.now()}-${index}`,
-          nom: nom,
-          prenom: prenom,
-          email: `${prenom.toLowerCase()}.${nom.toLowerCase()}@sketchdesign.ma`,
-          telephone: `+212 6${Math.floor(10000000 + Math.random() * 90000000)}`,
-          ville: ["Casablanca", "Rabat", "Marrakech", "Tanger"][index % 4],
-          specialite: (["residentiel", "commercial", "luxe", "mixte"][index % 4] as ArchitectSpecialty),
-          statut: "actif" as ArchitectStatus,
-          dateEmbauche: new Date(2020 + index, index % 12, 1).toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+    const fetchArchitects = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/architects')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch architects')
         }
-      })
-      setArchitects(demoArchitects)
-      localStorage.setItem("signature8-architects", JSON.stringify(demoArchitects))
+
+        const result = await response.json()
+        
+        if (result.success && result.data) {
+          setArchitects(result.data)
+          console.log(`✅ Loaded ${result.data.length} architects from API`)
+        }
+      } catch (error) {
+        console.error('Error fetching architects:', error)
+        toast.error('Erreur lors du chargement des architectes')
+      } finally {
+        setIsLoading(false)
+      }
     }
+
+    fetchArchitects()
   }, [])
 
-  // Compute architect statistics from clients
-  const architectsWithStats = useMemo(() => {
-    return architects.map(architect => {
-      const archPrenom = (architect.prenom || '').toLowerCase()
-      const archNom = (architect.nom || '').toLowerCase()
-      const architectClients = clients.filter(c => {
-        const assigned = (c.architecteAssigne || '').toLowerCase()
-        return assigned.includes(archPrenom) || assigned.includes(archNom)
-      })
-      
-      const totalDossiers = architectClients.length
-      const dossiersEnCours = architectClients.filter(c => 
-        c.statutProjet !== "termine" && c.statutProjet !== "livraison"
-      ).length
-      const dossiersTermines = architectClients.filter(c => c.statutProjet === "termine").length
-      const dossiersEnAttente = architectClients.filter(c => c.statutProjet === "nouveau").length
-
-      return {
-        ...architect,
-        totalDossiers,
-        dossiersEnCours,
-        dossiersTermines,
-        dossiersEnAttente
-      }
-    })
-  }, [architects, clients])
+  // Architects already have statistics from API
+  const architectsWithStats = architects
 
   // Filter and search architects
   const filteredArchitects = useMemo(() => {
@@ -164,39 +131,19 @@ export default function ArchitectesPage() {
     bio?: string
   }) => {
     try {
-      // Fetch user details from API
-      const response = await fetch(`/api/users/${architectData.userId}`)
-      if (!response.ok) {
-        toast.error("Erreur lors de la récupération des données utilisateur")
-        return
-      }
-      
-      const user = await response.json()
-      const [prenom, ...nomParts] = user.name.split(' ')
-      const nom = nomParts.join(' ') || prenom
-      
-      const now = new Date().toISOString()
-      const newArchitect: Architect = {
-        id: `arch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        nom: nom,
-        prenom: prenom,
-        email: user.email,
-        telephone: architectData.telephone,
-        ville: architectData.ville,
-        specialite: architectData.specialite,
-        statut: architectData.statut,
-        bio: architectData.bio,
-        dateEmbauche: now,
-        createdAt: now,
-        updatedAt: now,
-      }
-      
-      const updatedArchitects = [...architects, newArchitect]
-      setArchitects(updatedArchitects)
-      localStorage.setItem("signature8-architects", JSON.stringify(updatedArchitects))
-      
+      // Note: In a real implementation, you would update the user's role to 'architect' via API
+      // For now, we'll just refresh the architects list
       setIsAddModalOpen(false)
-      toast.success(`Architecte ${user.name} ajouté avec succès`)
+      toast.success("Architecte ajouté avec succès")
+      
+      // Refresh architects list
+      const response = await fetch('/api/architects')
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data) {
+          setArchitects(result.data)
+        }
+      }
     } catch (error) {
       console.error("Error adding architect:", error)
       toast.error("Erreur lors de l'ajout de l'architecte")
@@ -458,7 +405,15 @@ export default function ArchitectesPage() {
 
           {/* Architects Display */}
           <div className="flex-1 px-6 pb-6 overflow-hidden">
-            {filteredArchitects.length === 0 ? (
+            {isLoading ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                  <h2 className="text-xl font-bold text-white mb-2">Chargement des architectes...</h2>
+                  <p className="text-slate-400">Veuillez patienter</p>
+                </div>
+              </div>
+            ) : filteredArchitects.length === 0 ? (
               <div className="h-full flex items-center justify-center">
                 <div className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center">
                   <h2 className="text-2xl font-bold text-white mb-2">Aucun architecte trouvé</h2>

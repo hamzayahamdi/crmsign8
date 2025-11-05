@@ -40,40 +40,42 @@ export default function ArchitectDetailPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | ProjectStatus>("all")
   const [filterVille, setFilterVille] = useState<string>("all")
   const [sortBy, setSortBy] = useState<"date" | "priority" | "status">("date")
+  const [isLoading, setIsLoading] = useState(true)
   
   const isAdmin = user?.role?.toLowerCase() === "admin"
 
+  // Fetch architect and their clients from API
   useEffect(() => {
-    // Load architect
-    const storedArchitects = localStorage.getItem("signature8-architects")
-    if (storedArchitects) {
-      const architects: Architect[] = JSON.parse(storedArchitects)
-      const found = architects.find(a => a.id === architectId)
-      setArchitect(found || null)
+    const fetchArchitectData = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch(`/api/architects/${architectId}`)
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch architect')
+        }
+
+        const result = await response.json()
+        
+        if (result.success && result.data) {
+          setArchitect(result.data.architect)
+          setClients(result.data.clients)
+          console.log(`✅ Loaded architect with ${result.data.clients.length} clients`)
+        }
+      } catch (error) {
+        console.error('Error fetching architect:', error)
+        toast.error('Erreur lors du chargement de l\'architecte')
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    // Load clients
-    const storedClients = localStorage.getItem("signature8-clients")
-    if (storedClients) {
-      setClients(JSON.parse(storedClients))
-    }
-
-    // Load notifications
-    const storedNotifications = localStorage.getItem(`signature8-notifications-${architectId}`)
-    if (storedNotifications) {
-      setNotifications(JSON.parse(storedNotifications))
-    }
+    fetchArchitectData()
   }, [architectId])
 
-  // Filter clients for this architect
+  // Filter and sort clients (API already returns only this architect's clients)
   const architectClients = useMemo(() => {
-    if (!architect) return []
-    const archPrenom = (architect.prenom || '').toLowerCase()
-    const archNom = (architect.nom || '').toLowerCase()
-    let filtered = clients.filter(c => {
-      const assigned = (c.architecteAssigne || '').toLowerCase()
-      return assigned.includes(archPrenom) || assigned.includes(archNom)
-    })
+    let filtered = [...clients]
 
     // Apply status filter
     if (filterStatus !== "all") {
@@ -96,16 +98,26 @@ export default function ArchitectDetailPage() {
     })
 
     return filtered
-  }, [architect, clients, filterStatus, filterVille, sortBy])
+  }, [clients, filterStatus, filterVille, sortBy])
 
   // Calculate KPIs
   const kpis = useMemo(() => {
     const total = architectClients.length
     const enCours = architectClients.filter(c => 
-      c.statutProjet !== "termine" && c.statutProjet !== "livraison"
+      c.statutProjet !== "termine" && 
+      c.statutProjet !== "livraison" && 
+      c.statutProjet !== "livraison_termine" &&
+      c.statutProjet !== "annule" &&
+      c.statutProjet !== "refuse"
     ).length
-    const termines = architectClients.filter(c => c.statutProjet === "termine").length
-    const enAttente = architectClients.filter(c => c.statutProjet === "nouveau").length
+    const termines = architectClients.filter(c => 
+      c.statutProjet === "termine" || 
+      c.statutProjet === "livraison_termine"
+    ).length
+    const enAttente = architectClients.filter(c => 
+      c.statutProjet === "nouveau" || 
+      c.statutProjet === "qualifie"
+    ).length
     const totalRevenue = architectClients.reduce((sum, c) => sum + (c.budget || 0), 0)
 
     return { total, enCours, termines, enAttente, totalRevenue }
@@ -120,7 +132,7 @@ export default function ArchitectDetailPage() {
     const updatedClients = clients.map(c => c.id === updatedClient.id ? updatedClient : c)
     setClients(updatedClients)
     setSelectedClient(updatedClient)
-    localStorage.setItem("signature8-clients", JSON.stringify(updatedClients))
+    // Note: Client updates should be handled by the client detail page API
   }
 
   const handleAssignDossiers = (clientIds: string[]) => {
@@ -234,6 +246,23 @@ export default function ArchitectDetailPage() {
     renovation: "Rénovation",
     luxe: "Luxe",
     mixte: "Mixte"
+  }
+
+  if (isLoading) {
+    return (
+      <AuthGuard>
+        <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
+          <Sidebar />
+          <main className="flex-1 flex items-center justify-center">
+            <div className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <h2 className="text-xl font-bold text-white mb-2">Chargement...</h2>
+              <p className="text-slate-400">Veuillez patienter</p>
+            </div>
+          </main>
+        </div>
+      </AuthGuard>
+    )
   }
 
   if (!architect) {
@@ -546,12 +575,19 @@ export default function ArchitectDetailPage() {
                     </SelectTrigger>
                     <SelectContent className="glass border-slate-600/30">
                       <SelectItem value="all" className="text-white text-xs">Tous les états</SelectItem>
-                      <SelectItem value="nouveau" className="text-white text-xs">Nouveau</SelectItem>
-                      <SelectItem value="acompte_verse" className="text-white text-xs">Acompte versé</SelectItem>
-                      <SelectItem value="en_conception" className="text-white text-xs">En conception</SelectItem>
-                      <SelectItem value="en_chantier" className="text-white text-xs">En chantier</SelectItem>
-                      <SelectItem value="livraison" className="text-white text-xs">Livraison</SelectItem>
-                      <SelectItem value="termine" className="text-white text-xs">Terminé</SelectItem>
+                      <SelectItem value="qualifie" className="text-white text-xs">Qualifié</SelectItem>
+                      <SelectItem value="acompte_recu" className="text-white text-xs">Acompte reçu</SelectItem>
+                      <SelectItem value="conception" className="text-white text-xs">Conception</SelectItem>
+                      <SelectItem value="devis_negociation" className="text-white text-xs">Devis/Négociation</SelectItem>
+                      <SelectItem value="accepte" className="text-white text-xs">Accepté</SelectItem>
+                      <SelectItem value="refuse" className="text-white text-xs">Refusé</SelectItem>
+                      <SelectItem value="premier_depot" className="text-white text-xs">1er Dépôt</SelectItem>
+                      <SelectItem value="projet_en_cours" className="text-white text-xs">Projet en cours</SelectItem>
+                      <SelectItem value="chantier" className="text-white text-xs">Chantier</SelectItem>
+                      <SelectItem value="facture_reglee" className="text-white text-xs">Facture réglée</SelectItem>
+                      <SelectItem value="livraison_termine" className="text-white text-xs">Livraison & Terminé</SelectItem>
+                      <SelectItem value="annule" className="text-white text-xs">Annulé</SelectItem>
+                      <SelectItem value="suspendu" className="text-white text-xs">Suspendu</SelectItem>
                     </SelectContent>
                   </Select>
 
