@@ -20,7 +20,8 @@ interface ClientStore {
   // Helpers
   getClientById: (id: string) => Client | undefined
   getClientsByStatus: (status: ProjectStatus) => Client[]
-  refreshClients: () => void
+  refreshClients: () => Promise<void>
+  fetchClients: () => Promise<void>
 }
 
 export const useClientStore = create<ClientStore>((set, get) => ({
@@ -34,10 +35,7 @@ export const useClientStore = create<ClientStore>((set, get) => ({
       clients, 
       lastUpdate: new Date().toISOString() 
     })
-    // Persist to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('signature8-clients', JSON.stringify(clients))
-    }
+    console.log(`[Client Store] ✅ Set ${clients.length} clients in store`)
   },
 
   addClient: (client) => {
@@ -46,9 +44,7 @@ export const useClientStore = create<ClientStore>((set, get) => ({
       clients: newClients,
       lastUpdate: new Date().toISOString()
     })
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('signature8-clients', JSON.stringify(newClients))
-    }
+    console.log(`[Client Store] ✅ Added client: ${client.id}`)
   },
 
   updateClient: (id, updates) => {
@@ -76,10 +72,7 @@ export const useClientStore = create<ClientStore>((set, get) => ({
       clients: updatedClients,
       lastUpdate: now
     })
-    
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('signature8-clients', JSON.stringify(updatedClients))
-    }
+    console.log(`[Client Store] ✅ Updated client: ${id}`)
   },
 
   updateClientStatus: (id, status) => {
@@ -117,10 +110,7 @@ export const useClientStore = create<ClientStore>((set, get) => ({
       clients: updatedClients,
       lastUpdate: now
     })
-    
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('signature8-clients', JSON.stringify(updatedClients))
-    }
+    console.log(`[Client Store] ✅ Updated status for client: ${id} → ${status}`)
   },
 
   deleteClient: (id) => {
@@ -130,9 +120,7 @@ export const useClientStore = create<ClientStore>((set, get) => ({
       selectedClient: get().selectedClient?.id === id ? null : get().selectedClient,
       lastUpdate: new Date().toISOString()
     })
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('signature8-clients', JSON.stringify(filteredClients))
-    }
+    console.log(`[Client Store] ✅ Deleted client: ${id}`)
   },
 
   setSelectedClient: (client) => {
@@ -151,31 +139,42 @@ export const useClientStore = create<ClientStore>((set, get) => ({
     return get().clients.filter(c => c.statutProjet === status)
   },
 
-  refreshClients: () => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('signature8-clients')
-      if (stored) {
-        const clients = JSON.parse(stored)
-        set({ 
-          clients,
-          lastUpdate: new Date().toISOString()
-        })
+  // Fetch clients from API (database)
+  fetchClients: async () => {
+    try {
+      set({ isLoading: true })
+      console.log('[Client Store] 📡 Fetching clients from database...')
+      
+      const response = await fetch('/api/clients', {
+        credentials: 'include'
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch clients')
       }
+      
+      const result = await response.json()
+      const clients = result.data || []
+      
+      set({ 
+        clients,
+        lastUpdate: new Date().toISOString(),
+        isLoading: false
+      })
+      
+      console.log(`[Client Store] ✅ Loaded ${clients.length} clients from database`)
+    } catch (error) {
+      console.error('[Client Store] ❌ Error fetching clients:', error)
+      set({ isLoading: false })
     }
+  },
+
+  refreshClients: async () => {
+    await get().fetchClients()
   }
 }))
 
-// Auto-refresh on storage changes (sync across tabs in same browser)
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'signature8-clients' && e.newValue) {
-      const clients = JSON.parse(e.newValue)
-      useClientStore.getState().setClients(clients)
-    }
-  })
-}
-
-// Real-time sync across browsers via Supabase
+// Real-time sync across all browsers and tabs via Supabase
 if (typeof window !== 'undefined') {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -185,7 +184,87 @@ if (typeof window !== 'undefined') {
     
     console.log('[Client Store] 🚀 Setting up comprehensive real-time sync')
     
-    // 1. Subscribe to stage changes
+    // 1. Subscribe to CLIENTS table changes (MAIN SYNC - this fixes the issue!)
+    const clientsChannel = supabase
+      .channel('clients-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clients'
+        },
+        (payload) => {
+          console.log('[Client Store] 👤 Client change detected:', payload)
+          const store = useClientStore.getState()
+          
+          if (payload.eventType === 'INSERT') {
+            const newClient = payload.new as any
+            console.log(`[Client Store] ➕ New client added: ${newClient.id}`)
+            
+            // Transform and add to store
+            const transformedClient = {
+              id: newClient.id,
+              nom: newClient.nom,
+              telephone: newClient.telephone,
+              ville: newClient.ville,
+              typeProjet: newClient.type_projet,
+              architecteAssigne: newClient.architecte_assigne,
+              statutProjet: newClient.statut_projet,
+              derniereMaj: newClient.derniere_maj,
+              leadId: newClient.lead_id,
+              email: newClient.email,
+              adresse: newClient.adresse,
+              budget: newClient.budget,
+              notes: newClient.notes,
+              magasin: newClient.magasin,
+              commercialAttribue: newClient.commercial_attribue,
+              createdAt: newClient.created_at,
+              updatedAt: newClient.updated_at
+            }
+            
+            // Only add if not already in store
+            if (!store.clients.find(c => c.id === newClient.id)) {
+              store.addClient(transformedClient as any)
+            }
+            
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedClient = payload.new as any
+            console.log(`[Client Store] 🔄 Client updated: ${updatedClient.id}`)
+            
+            // Transform and update in store
+            const transformedUpdates = {
+              nom: updatedClient.nom,
+              telephone: updatedClient.telephone,
+              ville: updatedClient.ville,
+              typeProjet: updatedClient.type_projet,
+              architecteAssigne: updatedClient.architecte_assigne,
+              statutProjet: updatedClient.statut_projet,
+              derniereMaj: updatedClient.derniere_maj,
+              leadId: updatedClient.lead_id,
+              email: updatedClient.email,
+              adresse: updatedClient.adresse,
+              budget: updatedClient.budget,
+              notes: updatedClient.notes,
+              magasin: updatedClient.magasin,
+              commercialAttribue: updatedClient.commercial_attribue,
+              updatedAt: updatedClient.updated_at
+            }
+            
+            store.updateClient(updatedClient.id, transformedUpdates)
+            
+          } else if (payload.eventType === 'DELETE') {
+            const deletedClient = payload.old as any
+            console.log(`[Client Store] ❌ Client deleted: ${deletedClient.id}`)
+            store.deleteClient(deletedClient.id)
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[Client Store] Clients subscription: ${status}`)
+      })
+    
+    // 2. Subscribe to stage changes (for status updates)
     const stageChannel = supabase
       .channel('client-stage-changes')
       .on(
@@ -313,16 +392,111 @@ if (typeof window !== 'undefined') {
       .subscribe((status) => {
         console.log(`[Client Store] Historique subscription: ${status}`)
       })
+
+    // 5. Subscribe to payments changes
+    const paymentsChannel = supabase
+      .channel('payments-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payments'
+        },
+        async (payload) => {
+          console.log('[Client Store] 💳 Payment change detected:', payload)
+          
+          const paymentData = payload.new as any
+          const clientId = paymentData?.client_id || (payload.old as any)?.client_id
+          
+          if (clientId) {
+            console.log(`[Client Store] Refreshing payments for client: ${clientId}`)
+            
+            // Trigger a refresh event that components can listen to
+            window.dispatchEvent(new CustomEvent('payment-updated', {
+              detail: { clientId, eventType: payload.eventType }
+            }))
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[Client Store] Payments subscription: ${status}`)
+      })
+
+    // 6. Subscribe to documents changes
+    const documentsChannel = supabase
+      .channel('documents-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'documents'
+        },
+        async (payload) => {
+          console.log('[Client Store] 📄 Document change detected:', payload)
+          
+          const documentData = payload.new as any
+          const clientId = documentData?.client_id || (payload.old as any)?.client_id
+          
+          if (clientId) {
+            console.log(`[Client Store] Refreshing documents for client: ${clientId}`)
+            
+            // Trigger a refresh event that components can listen to
+            window.dispatchEvent(new CustomEvent('document-updated', {
+              detail: { clientId, eventType: payload.eventType }
+            }))
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[Client Store] Documents subscription: ${status}`)
+      })
+
+    // 7. Subscribe to tasks changes
+    const tasksChannel = supabase
+      .channel('tasks-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks'
+        },
+        async (payload) => {
+          console.log('[Client Store] ✅ Task change detected:', payload)
+          
+          const taskData = payload.new as any
+          const linkedId = taskData?.linked_id || (payload.old as any)?.linked_id
+          const linkedType = taskData?.linked_type || (payload.old as any)?.linked_type
+          
+          if (linkedId && linkedType === 'client') {
+            console.log(`[Client Store] Refreshing tasks for client: ${linkedId}`)
+            
+            // Trigger a refresh event that components can listen to
+            window.dispatchEvent(new CustomEvent('task-updated', {
+              detail: { clientId: linkedId, eventType: payload.eventType }
+            }))
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[Client Store] Tasks subscription: ${status}`)
+      })
     
     // Cleanup on page unload
     window.addEventListener('beforeunload', () => {
+      supabase.removeChannel(clientsChannel)
       supabase.removeChannel(stageChannel)
       supabase.removeChannel(devisChannel)
       supabase.removeChannel(appointmentsChannel)
       supabase.removeChannel(historiqueChannel)
+      supabase.removeChannel(paymentsChannel)
+      supabase.removeChannel(documentsChannel)
+      supabase.removeChannel(tasksChannel)
     })
 
-    console.log('[Client Store] ✅ All real-time subscriptions active')
+    console.log('[Client Store] ✅ All real-time subscriptions active (including clients table)')
   } else {
     console.warn('[Client Store] ⚠️ Supabase credentials missing - real-time sync disabled')
   }

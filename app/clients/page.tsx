@@ -64,26 +64,19 @@ export default function ClientsPage() {
   }
 
   // Use Zustand store for real-time sync
-  const { clients: storeClients, setClients: setStoreClients, updateClient: updateStoreClient, addClient: addStoreClient, deleteClient: deleteStoreClient, refreshClients } = useClientStore()
+  const { clients: storeClients, setClients: setStoreClients, updateClient: updateStoreClient, addClient: addStoreClient, deleteClient: deleteStoreClient, refreshClients, fetchClients } = useClientStore()
 
-  // Seed demo client and load clients from localStorage
+  // Fetch clients from database on mount
   useEffect(() => {
-    try {
-      ensureIssamInLocalStorage()
-    } catch {}
+    console.log('[Clients Page] 🚀 Mounting - fetching clients from database')
+    fetchClients()
+  }, [fetchClients])
 
-    // Refresh from store
-    refreshClients()
-    const storedClients = localStorage.getItem("signature8-clients")
-    const loadedClients = storedClients ? JSON.parse(storedClients) : []
-    setClients(loadedClients)
-    setStoreClients(loadedClients)
-  }, [])
-
-  // Sync local state with store
+  // Sync local state with store (real-time updates)
   useEffect(() => {
     const unsubscribe = useClientStore.subscribe((state) => {
       setClients(state.clients)
+      console.log(`[Clients Page] 🔄 Store updated - ${state.clients.length} clients`)
     })
     return unsubscribe
   }, [])
@@ -106,43 +99,94 @@ export default function ClientsPage() {
     setIsDetailPanelOpen(false)
   }
 
-  const handleSaveClient = (clientData: Omit<Client, "id" | "createdAt" | "updatedAt" | "derniereMaj">) => {
-    const now = new Date().toISOString()
-    
-    if (editingClient) {
-      // Update existing client in store (syncs to all views)
-      const updatedClient = { ...editingClient, ...clientData, derniereMaj: now, updatedAt: now }
-      updateStoreClient(editingClient.id, updatedClient)
-      setClients(prev => prev.map(c => 
-        c.id === editingClient.id 
-          ? updatedClient
-          : c
-      ))
-    } else {
-      // Add new client to store (syncs to all views)
-      const newClient: Client = {
-        id: `client-${Date.now()}`,
-        ...clientData,
-        createdAt: now,
-        updatedAt: now,
-        derniereMaj: now,
-        historique: []
+  const handleSaveClient = async (clientData: Omit<Client, "id" | "createdAt" | "updatedAt" | "derniereMaj">) => {
+    try {
+      if (editingClient) {
+        // Update existing client via API
+        const response = await fetch(`/api/clients/${editingClient.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(clientData)
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to update client')
+        }
+        
+        const result = await response.json()
+        console.log('[Clients Page] ✅ Client updated in database:', result.data)
+        
+        toast({
+          title: "Client mis à jour",
+          description: `Le client "${clientData.nom}" a été mis à jour avec succès`,
+        })
+      } else {
+        // Add new client via API
+        const response = await fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            ...clientData,
+            commercialAttribue: user?.name || 'Système'
+          })
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to create client')
+        }
+        
+        const result = await response.json()
+        console.log('[Clients Page] ✅ Client created in database:', result.data)
+        
+        toast({
+          title: "Client créé",
+          description: `Le client "${clientData.nom}" a été créé avec succès`,
+        })
       }
-      addStoreClient(newClient)
-      setClients(prev => [newClient, ...prev])
+      
+      // Refresh clients from database (real-time sync will also update)
+      await fetchClients()
+      
+      setIsAddModalOpen(false)
+      setEditingClient(null)
+    } catch (error) {
+      console.error('[Clients Page] Error saving client:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder le client. Veuillez réessayer.",
+        variant: "destructive"
+      })
     }
-    
-    setIsAddModalOpen(false)
-    setEditingClient(null)
   }
 
-  const handleUpdateClient = (updatedClient: Client) => {
-    // Update in store (syncs to all views including Kanban and Details page)
-    updateStoreClient(updatedClient.id, updatedClient)
-    setClients(prev => prev.map(c => 
-      c.id === updatedClient.id ? updatedClient : c
-    ))
-    setSelectedClient(updatedClient)
+  const handleUpdateClient = async (updatedClient: Client) => {
+    try {
+      // Update via API
+      const response = await fetch(`/api/clients/${updatedClient.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updatedClient)
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to update client')
+      }
+      
+      console.log('[Clients Page] ✅ Client updated in database')
+      
+      // Real-time sync will update the store automatically
+      setSelectedClient(updatedClient)
+    } catch (error) {
+      console.error('[Clients Page] Error updating client:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le client. Veuillez réessayer.",
+        variant: "destructive"
+      })
+    }
   }
 
   // Open confirm dialog for deletion
@@ -151,21 +195,42 @@ export default function ClientsPage() {
     setDeleteDialogOpen(true)
   }
 
-  const confirmDeleteClient = () => {
+  const confirmDeleteClient = async () => {
     if (clientToDelete) {
-      // Delete from store (syncs to all views)
-      deleteStoreClient(clientToDelete.id)
-      setClients(prev => prev.filter(c => c.id !== clientToDelete.id))
-      if (selectedClient?.id === clientToDelete.id) {
-        setIsDetailPanelOpen(false)
-        setSelectedClient(null)
+      try {
+        // Delete via API
+        const response = await fetch(`/api/clients/${clientToDelete.id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete client')
+        }
+        
+        console.log('[Clients Page] ✅ Client deleted from database')
+        
+        // Real-time sync will update the store automatically
+        if (selectedClient?.id === clientToDelete.id) {
+          setIsDetailPanelOpen(false)
+          setSelectedClient(null)
+        }
+        
+        toast({
+          title: "Client supprimé",
+          description: `Le client "${clientToDelete.nom}" a été supprimé avec succès`,
+        })
+      } catch (error) {
+        console.error('[Clients Page] Error deleting client:', error)
+        toast({
+          title: "Erreur",
+          description: "Impossible de supprimer le client. Veuillez réessayer.",
+          variant: "destructive"
+        })
+      } finally {
+        setDeleteDialogOpen(false)
+        setClientToDelete(null)
       }
-      setDeleteDialogOpen(false)
-      setClientToDelete(null)
-      toast({
-        title: "Client supprimé",
-        description: `Le client "${clientToDelete.nom}" a été supprimé avec succès`,
-      })
     }
   }
 

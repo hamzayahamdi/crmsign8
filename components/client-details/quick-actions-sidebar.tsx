@@ -25,76 +25,88 @@ export function QuickActionsSidebar({ client, onUpdate, onDelete }: QuickActions
   const { toast } = useToast()
   const { user } = useAuth()
 
-  const handleAddPayment = (payment: PaymentData) => {
+  const handleAddPayment = async (payment: PaymentData) => {
     const now = new Date().toISOString()
     const userName = user?.name || 'Admin'
     
-    const newPayment: import('@/types/client').Payment = {
-      id: `pay-${Date.now()}`,
-      amount: payment.amount,
-      date: payment.date,
-      method: payment.method as "espece" | "virement" | "cheque",
-      reference: payment.reference,
-      notes: payment.notes,
-      createdBy: userName,
-      createdAt: now
-    }
-    
-    const updatedClient = {
-      ...client,
-      payments: [
-        newPayment,
-        ...(client.payments || [])
-      ],
-      historique: [
-        {
-          id: `hist-${Date.now()}`,
-          date: now,
-          type: 'acompte' as const,
-          description: `Acompte reçu: ${payment.amount.toLocaleString()} MAD (${payment.method})${payment.reference ? ` - Réf: ${payment.reference}` : ''}`,
-          auteur: userName,
-          metadata: { paymentId: newPayment.id }
-        },
-        ...(client.historique || [])
-      ],
-      derniereMaj: now,
-      updatedAt: now
-    }
+    try {
+      // Save to database via API
+      const response = await fetch(`/api/clients/${client.id}/payments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          montant: payment.amount,
+          date: payment.date,
+          methode: payment.method,
+          description: payment.notes || '',
+          createdBy: userName
+        })
+      })
 
-    onUpdate(updatedClient)
-    setIsPaymentModalOpen(false)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to add payment')
+      }
 
-    toast({
-      title: "Acompte enregistré",
-      description: `${payment.amount.toLocaleString()} MAD ajouté avec succès`,
-    })
+      const result = await response.json()
+      console.log('[Add Payment] Payment created in database:', result.data)
+      console.log('[Add Payment] Stage progressed:', result.stageProgressed)
+
+      // Check if stage was auto-progressed
+      const wasAutoProgressed = result.stageProgressed || false
+
+      // Re-fetch client data to get updated payments, historique, and stage
+      const clientResponse = await fetch(`/api/clients/${client.id}`, {
+        credentials: 'include'
+      })
+      
+      if (clientResponse.ok) {
+        const clientResult = await clientResponse.json()
+        console.log('[Add Payment] Updated client data:', {
+          statutProjet: clientResult.data.statutProjet,
+          paymentsCount: clientResult.data.payments?.length || 0
+        })
+        onUpdate(clientResult.data)
+        
+        // Trigger payment update event for real-time sync
+        window.dispatchEvent(new CustomEvent('payment-updated', { 
+          detail: { clientId: client.id } 
+        }))
+      }
+      
+      setIsPaymentModalOpen(false)
+      
+      toast({
+        title: "Acompte enregistré",
+        description: wasAutoProgressed 
+          ? `${payment.amount.toLocaleString()} MAD ajouté avec succès. Statut changé automatiquement vers "Acompte reçu".`
+          : `${payment.amount.toLocaleString()} MAD ajouté avec succès`,
+      })
+    } catch (error) {
+      console.error('[Add Payment] Error:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer le paiement. Veuillez réessayer.",
+        variant: "destructive"
+      })
+    }
   }
 
-  const handleDocumentsAdded = (documents: any[]) => {
-    const now = new Date().toISOString()
-    const userName = user?.name || 'Admin'
-    
-    const updatedClient = {
-      ...client,
-      documents: [
-        ...(client.documents || []),
-        ...documents
-      ],
-      historique: [
-        {
-          id: `hist-${Date.now()}`,
-          date: now,
-          type: 'document' as const,
-          description: `${documents.length} document(s) ajouté(s)`,
-          auteur: userName
-        },
-        ...(client.historique || [])
-      ],
-      derniereMaj: now,
-      updatedAt: now
+  const handleDocumentsAdded = async (documents: any[]) => {
+    // Re-fetch client data to get updated documents and historique
+    try {
+      const response = await fetch(`/api/clients/${client.id}`, {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        onUpdate(result.data)
+      }
+    } catch (error) {
+      console.error('[Documents Added] Error refreshing client:', error)
     }
-
-    onUpdate(updatedClient)
     
     toast({
       title: "Documents ajoutés",

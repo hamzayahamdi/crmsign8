@@ -18,31 +18,50 @@ export function NotesActivitiesSection({ client, onUpdate }: NotesActivitiesSect
   const [isAddingNote, setIsAddingNote] = useState(false)
   const [newNote, setNewNote] = useState("")
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!newNote.trim()) return
 
-    const now = new Date().toISOString()
     const userName = user?.name || 'Utilisateur'
     
-    const updatedClient = {
-      ...client,
-      historique: [
-        {
-          id: `hist-${Date.now()}`,
-          date: now,
-          type: "note" as const,
+    try {
+      // Save note to database via API
+      const response = await fetch(`/api/clients/${client.id}/historique`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          type: 'note',
           description: newNote,
           auteur: userName
-        },
-        ...(client.historique || [])
-      ],
-      derniereMaj: now,
-      updatedAt: now
-    }
+        })
+      })
 
-    onUpdate(updatedClient)
-    setNewNote("")
-    setIsAddingNote(false)
+      if (!response.ok) {
+        throw new Error('Failed to add note')
+      }
+
+      const result = await response.json()
+      const now = new Date().toISOString()
+      
+      // Update local state
+      const updatedClient = {
+        ...client,
+        historique: [
+          result.data,
+          ...(client.historique || [])
+        ],
+        derniereMaj: now,
+        updatedAt: now
+      }
+
+      onUpdate(updatedClient)
+      setNewNote("")
+      setIsAddingNote(false)
+    } catch (error) {
+      console.error('[Add Note] Error:', error)
+      // Show error to user (you can add a toast here)
+      alert('Impossible d\'ajouter la note. Veuillez réessayer.')
+    }
   }
 
   const allHistory = [...(client.historique || [])]

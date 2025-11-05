@@ -23,6 +23,9 @@ model Lead {
   priorite            LeadPriority
   magasin             String?
   commercialMagasin   String?
+  month               String?
+  campaignName        String?      @map("campaign_name")
+  uploadedAt          DateTime?    @map("uploaded_at")
   notes               LeadNote[]
   createdBy           String?
   createdAt           DateTime     @default(now())
@@ -33,6 +36,8 @@ model Lead {
   @@index([ville])
   @@index([priorite])
   @@index([assignePar])
+  @@index([source])
+  @@index([month])
   @@map("leads")
 }
 
@@ -165,6 +170,7 @@ enum ReminderType {
 model Document {
   id          String   @id @default(cuid())
   clientId    String   @map("client_id")
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   name        String
   path        String
   bucket      String
@@ -215,6 +221,7 @@ model NotificationPreference {
 model Devis {
   id             String    @id @default(cuid())
   clientId       String    @map("client_id")
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   title          String
   montant        Float
   date           DateTime  @default(now())
@@ -237,6 +244,7 @@ model Devis {
 model Historique {
   id              String    @id @default(cuid())
   clientId        String    @map("client_id")
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   date            DateTime  @default(now())
   type            String    // note, statut, rdv, document, etc.
   description     String
@@ -266,6 +274,7 @@ model Appointment {
   locationUrl   String?   @map("location_url")
   status        String    @default("upcoming") // upcoming, completed, cancelled
   clientId      String?   @map("client_id")
+  client        Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientName    String?   @map("client_name")
   architecteId  String?   @map("architecte_id")
   notes         String?
@@ -280,9 +289,78 @@ model Appointment {
   @@map("appointments")
 }
 
+model Client {
+  id                  String               @id @default(cuid())
+  nom                 String
+  telephone           String
+  ville               String
+  typeProjet          ProjectType          @map("type_projet")
+  architecteAssigne   String               @map("architecte_assigne")
+  statutProjet        ProjectStatus        @map("statut_projet")
+  derniereMaj         DateTime             @default(now()) @map("derniere_maj")
+  leadId              String?              @map("lead_id")
+  email               String?
+  adresse             String?
+  budget              Float?
+  notes               String?
+  magasin             String?
+  commercialAttribue  String?              @map("commercial_attribue")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  
+  // Relations
+  devis               Devis[]
+  historique          Historique[]
+  appointments        Appointment[]
+  documents           Document[]
+  payments            Payment[]
+  stageHistory        ClientStageHistory[]
+
+  @@index([statutProjet])
+  @@index([ville])
+  @@index([architecteAssigne])
+  @@index([magasin])
+  @@index([createdAt(sort: Desc)])
+  @@map("clients")
+}
+
+enum ProjectType {
+  appartement
+  villa
+  magasin
+  bureau
+  riad
+  studio
+  autre
+}
+
+enum ProjectStatus {
+  qualifie
+  acompte_recu
+  conception
+  devis_negociation
+  accepte
+  refuse
+  premier_depot
+  projet_en_cours
+  chantier
+  facture_reglee
+  livraison_termine
+  nouveau
+  acompte_verse
+  en_conception
+  en_validation
+  en_chantier
+  livraison
+  termine
+  annule
+  suspendu
+}
+
 model ClientStageHistory {
   id              String    @id @default(cuid())
   clientId        String    @map("client_id")
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   stageName       String    @map("stage_name")
   startedAt       DateTime  @map("started_at")
   endedAt         DateTime? @map("ended_at")
@@ -295,4 +373,22 @@ model ClientStageHistory {
   @@index([stageName])
   @@index([startedAt(sort: Desc)])
   @@map("client_stage_history")
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  clientId    String   @map("client_id")
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  montant     Float
+  date        DateTime @default(now())
+  methode     String   // espece, virement, cheque
+  reference   String?
+  description String?
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([clientId])
+  @@index([date(sort: Desc)])
+  @@map("payments")
 }

@@ -174,18 +174,39 @@ export function EnhancedTimeline({
     if (!entry.previousStatus || !entry.newStatus) return null
 
     return (
-      <div className="mt-2 p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/20">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-white/60">Statut changé:</span>
-          <span className="text-white/80 font-medium">{getStatusLabel(entry.previousStatus)}</span>
-          <span className="text-white/40">→</span>
-          <span className="text-indigo-400 font-medium">{getStatusLabel(entry.newStatus)}</span>
+      <div className="mt-2 p-2.5 rounded-lg bg-gradient-to-r from-indigo-500/8 to-purple-500/8 border border-indigo-500/20">
+        {/* Compact Status Transition */}
+        <div className="flex items-center gap-2">
+          {/* Previous Status - Compact */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white/5 border border-white/10">
+            <span className="text-[10px] text-white/40 uppercase">Ancien:</span>
+            <span className="text-xs font-medium text-white/60 line-through decoration-red-400/40">
+              {getStatusLabel(entry.previousStatus)}
+            </span>
+          </div>
+
+          {/* Compact Arrow */}
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md">
+            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </div>
+
+          {/* New Status - Compact & Highlighted */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-indigo-500/15 border border-indigo-400/30">
+            <span className="text-[10px] text-indigo-300 uppercase font-medium">Nouveau:</span>
+            <span className="text-xs font-bold text-indigo-300">
+              {getStatusLabel(entry.newStatus)}
+            </span>
+          </div>
         </div>
         
+        {/* Duration Info - Compact */}
         {entry.durationInHours !== undefined && entry.durationInHours > 0 && (
-          <div className="flex items-center gap-2 mt-2 text-xs text-white/60">
-            <Clock className="w-3.5 h-3.5" />
-            <span>Durée précédente: <span className="text-white/80 font-medium">{formatDuration(entry.durationInHours)}</span></span>
+          <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-white/5 text-[10px]">
+            <Clock className="w-3 h-3 text-indigo-400" />
+            <span className="text-white/40">Durée:</span>
+            <span className="text-white/70 font-semibold">{formatDuration(entry.durationInHours)}</span>
           </div>
         )}
       </div>

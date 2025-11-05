@@ -1,13 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Plus, CheckCircle, XCircle, Clock, DollarSign, Calendar, AlertTriangle } from "lucide-react"
+import { FileText, Plus, CheckCircle, XCircle, Clock, DollarSign, Calendar, AlertTriangle, Loader2 } from "lucide-react"
 import type { Client, Devis } from "@/types/client"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { AddDevisModal } from "./add-devis-modal"
+import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/auth-context"
 
 interface DevisListSectionProps {
   client: Client
@@ -16,6 +18,9 @@ interface DevisListSectionProps {
 
 export function DevisListSection({ client, onUpdate }: DevisListSectionProps) {
   const [isAddingDevis, setIsAddingDevis] = useState(false)
+  const [updatingDevisId, setUpdatingDevisId] = useState<string | null>(null)
+  const { toast } = useToast()
+  const { user } = useAuth()
 
   const devisList = client.devis || []
   const acceptedDevis = devisList.filter(d => d.statut === "accepte")
@@ -61,6 +66,94 @@ export function DevisListSection({ client, onUpdate }: DevisListSectionProps) {
   const handleSaveDevis = (updatedClient: Client) => {
     onUpdate(updatedClient)
     setIsAddingDevis(false)
+  }
+
+  const handleUpdateDevisStatus = async (devisId: string, newStatus: 'accepte' | 'refuse') => {
+    setUpdatingDevisId(devisId)
+    
+    // Optimistic update: Update UI immediately to prevent data clearing
+    const now = new Date().toISOString()
+    const optimisticClient = {
+      ...client,
+      devis: client.devis?.map(d => 
+        d.id === devisId 
+          ? { ...d, statut: newStatus, validatedAt: now }
+          : d
+      )
+    }
+    
+    // Update UI optimistically
+    onUpdate(optimisticClient)
+    
+    try {
+      const response = await fetch(`/api/clients/${client.id}/devis`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          devisId,
+          statut: newStatus,
+          createdBy: user?.name || 'Admin'
+        })
+      })
+
+      if (!response.ok) {
+        // Revert optimistic update on error
+        onUpdate(client)
+        throw new Error('Failed to update devis')
+      }
+
+      const result = await response.json()
+      console.log('[Devis Update] Response:', result)
+
+      // Re-fetch client data to get updated devis and stage
+      const clientResponse = await fetch(`/api/clients/${client.id}`, {
+        credentials: 'include'
+      })
+
+      if (clientResponse.ok) {
+        const clientResult = await clientResponse.json()
+        console.log('[Devis Update] 📊 Updated client data:', {
+          clientId: clientResult.data.id,
+          statutProjet: clientResult.data.statutProjet,
+          devisCount: clientResult.data.devis?.length || 0,
+          stageProgressed: result.stageProgressed,
+          newStage: result.newStage
+        })
+        
+        // Update parent component with fresh data from server
+        onUpdate(clientResult.data)
+        
+        // Dispatch custom event to trigger UI refresh
+        window.dispatchEvent(new CustomEvent('devis-updated', {
+          detail: { clientId: client.id, stageProgressed: result.stageProgressed }
+        }))
+        
+        // Show appropriate toast based on stage progression
+        if (result.stageProgressed) {
+          toast({
+            title: "Devis et statut mis à jour",
+            description: `Le devis a été ${newStatus === 'accepte' ? 'accepté' : 'refusé'}. Statut du projet changé automatiquement vers "${result.newStage}".`,
+          })
+        } else {
+          toast({
+            title: "Devis mis à jour",
+            description: `Le devis a été ${newStatus === 'accepte' ? 'accepté' : 'refusé'} avec succès.`,
+          })
+        }
+      }
+    } catch (error) {
+      console.error('[Devis Update] Error:', error)
+      // Revert to original state on error
+      onUpdate(client)
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le devis. Veuillez réessayer.",
+        variant: "destructive"
+      })
+    } finally {
+      setUpdatingDevisId(null)
+    }
   }
 
   return (
@@ -113,12 +206,23 @@ export function DevisListSection({ client, onUpdate }: DevisListSectionProps) {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ delay: index * 0.05 }}
                   className={cn(
-                    "bg-white/5 border rounded-xl p-4 hover:bg-white/[0.07] transition-colors",
+                    "bg-white/5 border rounded-xl p-4 hover:bg-white/[0.07] transition-colors relative",
                     devis.statut === "accepte" && "border-green-500/30",
                     devis.statut === "refuse" && "border-red-500/30",
-                    devis.statut === "en_attente" && "border-yellow-500/30"
+                    devis.statut === "en_attente" && "border-yellow-500/30",
+                    updatingDevisId === devis.id && "opacity-60 pointer-events-none"
                   )}
                 >
+                  {/* Loading overlay */}
+                  {updatingDevisId === devis.id && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-xl backdrop-blur-sm z-10">
+                      <div className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm font-medium">Mise à jour en cours...</span>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
@@ -176,46 +280,22 @@ export function DevisListSection({ client, onUpdate }: DevisListSectionProps) {
                         <div className="flex gap-2">
                           <Button
                             size="sm"
-                            onClick={() => {
-                              const now = new Date().toISOString()
-                              const updatedDevis = client.devis?.map(d =>
-                                d.id === devis.id
-                                  ? { ...d, statut: "accepte" as const, validatedAt: now, facture_reglee: false }
-                                  : d
-                              )
-                              onUpdate({
-                                ...client,
-                                devis: updatedDevis,
-                                derniereMaj: now,
-                                updatedAt: now
-                              })
-                            }}
+                            onClick={() => handleUpdateDevisStatus(devis.id, 'accepte')}
+                            disabled={updatingDevisId === devis.id}
                             className="bg-green-600 hover:bg-green-700 text-white h-8"
                           >
                             <CheckCircle className="w-3.5 h-3.5 mr-1" />
-                            Accepter
+                            {updatingDevisId === devis.id ? 'En cours...' : 'Accepter'}
                           </Button>
                           <Button
                             size="sm"
-                            onClick={() => {
-                              const now = new Date().toISOString()
-                              const updatedDevis = client.devis?.map(d =>
-                                d.id === devis.id
-                                  ? { ...d, statut: "refuse" as const, validatedAt: now }
-                                  : d
-                              )
-                              onUpdate({
-                                ...client,
-                                devis: updatedDevis,
-                                derniereMaj: now,
-                                updatedAt: now
-                              })
-                            }}
+                            onClick={() => handleUpdateDevisStatus(devis.id, 'refuse')}
+                            disabled={updatingDevisId === devis.id}
                             variant="outline"
                             className="border-red-500/30 text-red-400 hover:bg-red-500/10 h-8"
                           >
                             <XCircle className="w-3.5 h-3.5 mr-1" />
-                            Refuser
+                            {updatingDevisId === devis.id ? 'En cours...' : 'Refuser'}
                           </Button>
                         </div>
                       )}

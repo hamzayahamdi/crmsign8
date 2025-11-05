@@ -1,0 +1,339 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+/**
+ * GET /api/clients/[id] - Fetch single client with all related data
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json(
+        { error: 'Configuration serveur manquante' },
+        { status: 500 }
+      )
+    }
+    
+    const cookieStore = await cookies()
+    const authCookie = cookieStore.get('token')
+    
+    if (!authCookie) {
+      return NextResponse.json(
+        { error: 'Non authentifié' },
+        { status: 401 }
+      )
+    }
+
+    const { id: clientId } = await params
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // Fetch client
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .single()
+
+    if (clientError || !client) {
+      return NextResponse.json(
+        { error: 'Client non trouvé' },
+        { status: 404 }
+      )
+    }
+
+    // Fetch related data in parallel
+    const [
+      { data: historique },
+      { data: appointments },
+      { data: devis },
+      { data: documents },
+      { data: payments },
+      { data: currentStage }
+    ] = await Promise.all([
+      supabase.from('historique').select('*').eq('client_id', clientId).order('date', { ascending: false }),
+      supabase.from('appointments').select('*').eq('client_id', clientId).order('date_start', { ascending: false }),
+      supabase.from('devis').select('*').eq('client_id', clientId).order('date', { ascending: false }),
+      supabase.from('documents').select('*').eq('client_id', clientId).order('uploaded_at', { ascending: false }),
+      supabase.from('payments').select('*').eq('client_id', clientId).order('date', { ascending: false }),
+      // Fetch current stage from stage history (source of truth)
+      supabase.from('client_stage_history')
+        .select('stage_name')
+        .eq('client_id', clientId)
+        .is('ended_at', null)
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .single()
+    ])
+
+    // Use stage from history as source of truth, fallback to client.statut_projet
+    const actualStatus = currentStage?.stage_name || client.statut_projet
+
+    console.log('[GET /api/clients/[id]] Status resolution:', {
+      clientId,
+      fromHistory: currentStage?.stage_name,
+      fromClient: client.statut_projet,
+      using: actualStatus
+    })
+
+    // Transform to frontend format
+    const transformedClient = {
+      id: client.id,
+      nom: client.nom,
+      telephone: client.telephone,
+      ville: client.ville,
+      typeProjet: client.type_projet,
+      architecteAssigne: client.architecte_assigne,
+      statutProjet: actualStatus,
+      derniereMaj: client.derniere_maj,
+      leadId: client.lead_id,
+      email: client.email,
+      adresse: client.adresse,
+      budget: client.budget,
+      notes: client.notes,
+      magasin: client.magasin,
+      commercialAttribue: client.commercial_attribue,
+      createdAt: client.created_at,
+      updatedAt: client.updated_at,
+      historique: historique?.map(h => ({
+        id: h.id,
+        date: h.date,
+        type: h.type,
+        description: h.description,
+        auteur: h.auteur,
+        previousStatus: h.previous_status,
+        newStatus: h.new_status,
+        durationInHours: h.duration_in_hours,
+        timestampStart: h.timestamp_start,
+        timestampEnd: h.timestamp_end,
+        metadata: h.metadata
+      })) || [],
+      rendezVous: appointments?.map(a => ({
+        id: a.id,
+        title: a.title,
+        dateStart: a.date_start,
+        dateEnd: a.date_end,
+        description: a.description,
+        location: a.location,
+        locationUrl: a.location_url,
+        status: a.status,
+        clientId: a.client_id,
+        clientName: a.client_name,
+        architecteId: a.architecte_id,
+        notes: a.notes,
+        createdBy: a.created_by,
+        createdAt: a.created_at,
+        updatedAt: a.updated_at
+      })) || [],
+      devis: devis?.map(d => ({
+        id: d.id,
+        title: d.title,
+        montant: d.montant,
+        date: d.date,
+        statut: d.statut,
+        facture_reglee: d.facture_reglee,
+        description: d.description,
+        fichier: d.fichier,
+        createdBy: d.created_by,
+        createdAt: d.created_at,
+        validatedAt: d.validated_at,
+        notes: d.notes
+      })) || [],
+      documents: documents?.map(d => ({
+        id: d.id,
+        name: d.name,
+        type: d.type,
+        size: d.size,
+        category: d.category,
+        uploadedBy: d.uploaded_by,
+        uploadedAt: d.uploaded_at
+      })) || [],
+      payments: payments?.map(p => ({
+        id: p.id,
+        amount: p.montant,
+        date: p.date,
+        method: p.methode,
+        reference: p.reference,
+        notes: p.description,
+        createdBy: p.created_by,
+        createdAt: p.created_at
+      })) || []
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: transformedClient
+    })
+
+  } catch (error) {
+    console.error('[GET /api/clients/[id]] Error:', error)
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * PATCH /api/clients/[id] - Update client
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json(
+        { error: 'Configuration serveur manquante' },
+        { status: 500 }
+      )
+    }
+    
+    const cookieStore = await cookies()
+    const authCookie = cookieStore.get('token')
+    
+    if (!authCookie) {
+      return NextResponse.json(
+        { error: 'Non authentifié' },
+        { status: 401 }
+      )
+    }
+
+    const { id: clientId } = await params
+    const body = await request.json()
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const now = new Date().toISOString()
+
+    // Build update object (convert camelCase to snake_case)
+    const updateData: any = {
+      updated_at: now,
+      derniere_maj: now
+    }
+
+    if (body.nom !== undefined) updateData.nom = body.nom
+    if (body.telephone !== undefined) updateData.telephone = body.telephone
+    if (body.ville !== undefined) updateData.ville = body.ville
+    if (body.typeProjet !== undefined) updateData.type_projet = body.typeProjet
+    if (body.architecteAssigne !== undefined) updateData.architecte_assigne = body.architecteAssigne
+    if (body.email !== undefined) updateData.email = body.email
+    if (body.adresse !== undefined) updateData.adresse = body.adresse
+    if (body.budget !== undefined) updateData.budget = body.budget
+    if (body.notes !== undefined) updateData.notes = body.notes
+    if (body.magasin !== undefined) updateData.magasin = body.magasin
+    if (body.commercialAttribue !== undefined) updateData.commercial_attribue = body.commercialAttribue
+
+    // Update client
+    const { data: updatedClient, error: updateError } = await supabase
+      .from('clients')
+      .update(updateData)
+      .eq('id', clientId)
+      .select()
+      .single()
+
+    if (updateError) {
+      console.error('[PATCH /api/clients/[id]] Update error:', updateError)
+      return NextResponse.json(
+        { error: 'Erreur lors de la mise à jour du client' },
+        { status: 500 }
+      )
+    }
+
+    // Transform response
+    const transformedClient = {
+      id: updatedClient.id,
+      nom: updatedClient.nom,
+      telephone: updatedClient.telephone,
+      ville: updatedClient.ville,
+      typeProjet: updatedClient.type_projet,
+      architecteAssigne: updatedClient.architecte_assigne,
+      statutProjet: updatedClient.statut_projet,
+      derniereMaj: updatedClient.derniere_maj,
+      leadId: updatedClient.lead_id,
+      email: updatedClient.email,
+      adresse: updatedClient.adresse,
+      budget: updatedClient.budget,
+      notes: updatedClient.notes,
+      magasin: updatedClient.magasin,
+      commercialAttribue: updatedClient.commercial_attribue,
+      createdAt: updatedClient.created_at,
+      updatedAt: updatedClient.updated_at
+    }
+
+    console.log(`[PATCH /api/clients/[id]] ✅ Updated client: ${clientId}`)
+
+    return NextResponse.json({
+      success: true,
+      data: transformedClient
+    })
+
+  } catch (error) {
+    console.error('[PATCH /api/clients/[id]] Error:', error)
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * DELETE /api/clients/[id] - Delete client
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json(
+        { error: 'Configuration serveur manquante' },
+        { status: 500 }
+      )
+    }
+    
+    const cookieStore = await cookies()
+    const authCookie = cookieStore.get('token')
+    
+    if (!authCookie) {
+      return NextResponse.json(
+        { error: 'Non authentifié' },
+        { status: 401 }
+      )
+    }
+
+    const { id: clientId } = await params
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // Delete client (cascade will handle related data)
+    const { error: deleteError } = await supabase
+      .from('clients')
+      .delete()
+      .eq('id', clientId)
+
+    if (deleteError) {
+      console.error('[DELETE /api/clients/[id]] Delete error:', deleteError)
+      return NextResponse.json(
+        { error: 'Erreur lors de la suppression du client' },
+        { status: 500 }
+      )
+    }
+
+    console.log(`[DELETE /api/clients/[id]] ✅ Deleted client: ${clientId}`)
+
+    return NextResponse.json({
+      success: true,
+      message: 'Client supprimé avec succès'
+    })
+
+  } catch (error) {
+    console.error('[DELETE /api/clients/[id]] Error:', error)
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    )
+  }
+}

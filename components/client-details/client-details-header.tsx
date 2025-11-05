@@ -1,12 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { MapPin, Building2, User, TrendingUp, DollarSign, Clock } from "lucide-react"
 import type { Client } from "@/types/client"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { ProjectStatusStepperEnhanced } from "@/components/project-status-stepper-enhanced"
-import { getStatusBadge } from "@/lib/status-utils"
 import { updateClientStage } from "@/lib/client-stage-service"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
@@ -20,6 +19,15 @@ interface ClientDetailsHeaderProps {
 export function ClientDetailsHeader({ client, onUpdate }: ClientDetailsHeaderProps) {
   const { toast } = useToast()
   const { user } = useAuth()
+
+  useEffect(() => {
+    console.log('[ClientDetailsHeader] Client prop updated:', {
+      id: client.id,
+      statutProjet: client.statutProjet,
+      derniereMaj: client.derniereMaj,
+      fullClient: client
+    })
+  }, [client])
 
   // Calculate based on devis instead of budget
   const devisList = client.devis || []
@@ -123,6 +131,7 @@ export function ClientDetailsHeader({ client, onUpdate }: ClientDetailsHeaderPro
 
       {/* Project Status Timeline */}
       <ProjectStatusStepperEnhanced
+        key={`stepper-${client.statutProjet}-${client.derniereMaj}`}
         currentStatus={client.statutProjet}
         onStatusChange={async (newStatus) => {
           const now = new Date().toISOString()

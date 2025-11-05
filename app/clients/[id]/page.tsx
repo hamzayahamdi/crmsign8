@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -40,31 +41,238 @@ export default function ClientDetailsPage() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
 
   useEffect(() => {
-    // Refresh from store
-    refreshClients()
-    const foundClient = getClientById(clientId)
-    setClient(foundClient || null)
-    setIsLoading(false)
-  }, [clientId, getClientById, refreshClients])
+    // Fetch full client data from API (includes devis, historique, etc.)
+    const fetchClientData = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch(`/api/clients/${clientId}`, {
+          credentials: 'include'
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch client')
+        }
+        
+        const result = await response.json()
+        setClient(result.data)
+        setIsLoading(false)
+      } catch (error) {
+        console.error('[Client Details] Error fetching client:', error)
+        setIsLoading(false)
+      }
+    }
+    
+    fetchClientData()
+  }, [clientId])
 
   // Listen for store updates (this handles kanban drag updates)
   useEffect(() => {
     const unsubscribe = useClientStore.subscribe((state) => {
       const updatedClient = state.clients.find(c => c.id === clientId)
       if (updatedClient) {
-        setClient(updatedClient)
+        // Merge store updates with existing client data (preserve devis, historique, etc.)
+        setClient(prev => prev ? { ...prev, ...updatedClient } : updatedClient as Client)
       }
     })
     return unsubscribe
   }, [clientId])
 
-  const handleUpdateClient = (updatedClient: Client) => {
-    // Update in Zustand store (will sync to all views)
-    updateClientInStore(updatedClient.id, updatedClient)
-    setClient(updatedClient)
+  // Listen for devis updates from real-time sync
+  useEffect(() => {
+    const handleDevisUpdate = async (event: CustomEvent) => {
+      if (event.detail.clientId === clientId) {
+        console.log('[Client Details] Devis updated, refreshing...')
+        // Re-fetch client data to get updated devis
+        try {
+          const response = await fetch(`/api/clients/${clientId}`, {
+            credentials: 'include'
+          })
+          if (response.ok) {
+            const result = await response.json()
+            setClient(result.data)
+          }
+        } catch (error) {
+          console.error('[Client Details] Error refreshing devis:', error)
+        }
+      }
+    }
+
+    window.addEventListener('devis-updated' as any, handleDevisUpdate)
+    return () => window.removeEventListener('devis-updated' as any, handleDevisUpdate)
+  }, [clientId])
+
+  // Listen for historique updates from real-time sync
+  useEffect(() => {
+    const handleHistoriqueUpdate = async (event: CustomEvent) => {
+      if (event.detail.clientId === clientId) {
+        console.log('[Client Details] Historique updated, refreshing...')
+        try {
+          const response = await fetch(`/api/clients/${clientId}`, {
+            credentials: 'include'
+          })
+          if (response.ok) {
+            const result = await response.json()
+            setClient(result.data)
+          }
+        } catch (error) {
+          console.error('[Client Details] Error refreshing historique:', error)
+        }
+      }
+    }
+
+    window.addEventListener('historique-updated' as any, handleHistoriqueUpdate)
+    return () => window.removeEventListener('historique-updated' as any, handleHistoriqueUpdate)
+  }, [clientId])
+
+  // Listen for appointment updates from real-time sync
+  useEffect(() => {
+    const handleAppointmentUpdate = async (event: CustomEvent) => {
+      if (event.detail.clientId === clientId) {
+        console.log('[Client Details] Appointment updated, refreshing...')
+        try {
+          const response = await fetch(`/api/clients/${clientId}`, {
+            credentials: 'include'
+          })
+          if (response.ok) {
+            const result = await response.json()
+            setClient(result.data)
+          }
+        } catch (error) {
+          console.error('[Client Details] Error refreshing appointments:', error)
+        }
+      }
+    }
+
+    window.addEventListener('appointment-updated' as any, handleAppointmentUpdate)
+    return () => window.removeEventListener('appointment-updated' as any, handleAppointmentUpdate)
+  }, [clientId])
+
+  // Listen for payment updates from real-time sync
+  useEffect(() => {
+    const handlePaymentUpdate = async (event: CustomEvent) => {
+      if (event.detail.clientId === clientId) {
+        console.log('[Client Details] Payment updated, refreshing...')
+        try {
+          const response = await fetch(`/api/clients/${clientId}`, {
+            credentials: 'include'
+          })
+          if (response.ok) {
+            const result = await response.json()
+            console.log('[Client Details] Refreshed client data after payment:', {
+              statutProjet: result.data.statutProjet,
+              paymentsCount: result.data.payments?.length || 0,
+              clientId: result.data.id
+            })
+            setClient(result.data)
+          }
+        } catch (error) {
+          console.error('[Client Details] Error refreshing payments:', error)
+        }
+      }
+    }
+
+    window.addEventListener('payment-updated' as any, handlePaymentUpdate)
+    return () => window.removeEventListener('payment-updated' as any, handlePaymentUpdate)
+  }, [clientId])
+
+  // Listen for document updates from real-time sync
+  useEffect(() => {
+    const handleDocumentUpdate = async (event: CustomEvent) => {
+      if (event.detail.clientId === clientId) {
+        console.log('[Client Details] Document updated, refreshing...')
+        try {
+          const response = await fetch(`/api/clients/${clientId}`, {
+            credentials: 'include'
+          })
+          if (response.ok) {
+            const result = await response.json()
+            setClient(result.data)
+          }
+        } catch (error) {
+          console.error('[Client Details] Error refreshing documents:', error)
+        }
+      }
+    }
+
+    window.addEventListener('document-updated' as any, handleDocumentUpdate)
+    return () => window.removeEventListener('document-updated' as any, handleDocumentUpdate)
+  }, [clientId])
+
+  // Listen for task updates from real-time sync
+  useEffect(() => {
+    const handleTaskUpdate = async (event: CustomEvent) => {
+      if (event.detail.clientId === clientId) {
+        console.log('[Client Details] Task updated, refreshing...')
+        try {
+          const response = await fetch(`/api/clients/${clientId}`, {
+            credentials: 'include'
+          })
+          if (response.ok) {
+            const result = await response.json()
+            setClient(result.data)
+          }
+        } catch (error) {
+          console.error('[Client Details] Error refreshing tasks:', error)
+        }
+      }
+    }
+
+    window.addEventListener('task-updated' as any, handleTaskUpdate)
+    return () => window.removeEventListener('task-updated' as any, handleTaskUpdate)
+  }, [clientId])
+
+  const handleUpdateClient = async (updatedClient: Client, skipApiCall = false) => {
+    try {
+      // If skipApiCall is true, just update local state (for optimistic updates)
+      if (skipApiCall) {
+        console.log('[Client Details] 🔄 Optimistic update - updating local state only')
+        setClient(updatedClient)
+        updateClientInStore(updatedClient.id, updatedClient)
+        return
+      }
+
+      // 1. Update in database via API
+      const response = await fetch(`/api/clients/${updatedClient.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updatedClient)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update client')
+      }
+
+      const result = await response.json()
+      console.log('[Client Details] ✅ Client updated in database:', result.data)
+      console.log('[Client Details] 📊 New statutProjet:', result.data?.statutProjet)
+
+      // 2. Update in Zustand store (will sync to all views)
+      updateClientInStore(updatedClient.id, result.data || updatedClient)
+      
+      // 3. Update local state with FRESH data from API (includes updated statutProjet)
+      setClient(result.data || updatedClient)
+
+      // Success - no toast needed as components will show their own success messages
+    } catch (error) {
+      console.error('[Client Details] ❌ Error updating client:', error)
+      toast({
+        title: "Erreur de sauvegarde",
+        description: "Impossible de sauvegarder les modifications. Veuillez réessayer.",
+        variant: "destructive"
+      })
+      
+      // Revert local changes on error
+      refreshClients()
+      const revertedClient = getClientById(clientId)
+      if (revertedClient) {
+        setClient(revertedClient)
+      }
+    }
   }
 
-  const handleDeleteClient = () => {
+  const handleDeleteClient = async () => {
     if (!client) return
     
     const confirmDelete = window.confirm(
@@ -72,15 +280,38 @@ export default function ClientDetailsPage() {
     )
     
     if (confirmDelete) {
-      // Delete from Zustand store (will sync to all views)
-      deleteClientFromStore(client.id)
-      
-      toast({
-        title: "Client supprimé",
-        description: `Le client "${client.nom}" a été supprimé avec succès`,
-      })
-      
-      router.push("/clients")
+      try {
+        // 1. Delete from database via API
+        const response = await fetch(`/api/clients/${client.id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to delete client')
+        }
+
+        console.log('[Client Details] ✅ Client deleted from database')
+
+        // 2. Delete from Zustand store (will sync to all views)
+        deleteClientFromStore(client.id)
+        
+        toast({
+          title: "Client supprimé",
+          description: `Le client "${client.nom}" a été supprimé avec succès`,
+        })
+        
+        // 3. Redirect to clients list
+        router.push("/clients")
+      } catch (error) {
+        console.error('[Client Details] ❌ Error deleting client:', error)
+        toast({
+          title: "Erreur de suppression",
+          description: "Impossible de supprimer le client. Veuillez réessayer.",
+          variant: "destructive"
+        })
+      }
     }
   }
 
@@ -141,22 +372,16 @@ export default function ClientDetailsPage() {
       const appointmentResult = await appointmentResponse.json()
       console.log('[Add RDV] ✅ Appointment created in database:', appointmentResult.data)
 
-      // 3. Update client locally for immediate feedback
-      const newRdv: import('@/types/client').Appointment = {
-        ...rdv,
-        id: appointmentResult.data.id,
-        createdAt: now,
-        updatedAt: now
+      // 3. Re-fetch client data to get updated appointments
+      const clientResponse = await fetch(`/api/clients/${client.id}`, {
+        credentials: 'include'
+      })
+      
+      if (clientResponse.ok) {
+        const clientResult = await clientResponse.json()
+        setClient(clientResult.data)
       }
-
-      const updatedClient = {
-        ...client,
-        rendezVous: [newRdv, ...(client.rendezVous || [])],
-        derniereMaj: now,
-        updatedAt: now
-      }
-
-      handleUpdateClient(updatedClient)
+      
       setIsRdvModalOpen(false)
 
       toast({
@@ -191,6 +416,19 @@ export default function ClientDetailsPage() {
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to create task')
+      }
+
+      const result = await response.json()
+      console.log('[Add Task] ✅ Task created in database:', result.data)
+
+      // Re-fetch client data to get updated tasks/historique
+      const clientResponse = await fetch(`/api/clients/${client?.id}`, {
+        credentials: 'include'
+      })
+      
+      if (clientResponse.ok) {
+        const clientResult = await clientResponse.json()
+        setClient(clientResult.data)
       }
 
       setIsTaskModalOpen(false)

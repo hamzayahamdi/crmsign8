@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { X, FileText } from "lucide-react"
+import { X, FileText, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,9 +31,11 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
     description: "",
     statut: "en_attente" as Devis['statut']
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
 
     try {
       // Save to database via API
@@ -51,8 +53,9 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create devis')
+        const errorData = await response.json().catch(() => ({}))
+        console.error('[Add Devis] API Error:', errorData)
+        throw new Error(errorData.details || errorData.error || 'Failed to create devis')
       }
 
       const result = await response.json()
@@ -82,9 +85,11 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
       
       setFormData({ title: "", montant: "", description: "", statut: "en_attente" })
       onClose()
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Add Devis] Error creating devis:', error)
-      alert('Erreur lors de la création du devis. Veuillez réessayer.')
+      alert(`Erreur: ${error.message || 'Impossible de créer le devis. Veuillez réessayer.'}`)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -201,15 +206,24 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
                   type="button"
                   variant="outline"
                   onClick={onClose}
-                  className="flex-1 bg-transparent border-white/10 text-white hover:bg-white/5"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-transparent border-white/10 text-white hover:bg-white/5 disabled:opacity-50"
                 >
                   Annuler
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Créer le devis
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Création...
+                    </>
+                  ) : (
+                    'Créer le devis'
+                  )}
                 </Button>
               </div>
             </form>

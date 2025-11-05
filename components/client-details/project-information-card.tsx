@@ -59,6 +59,28 @@ export function ProjectInformationCard({ client }: ProjectInformationCardProps) 
           ) : null
         })()}
 
+        {(() => {
+          const paymentsList = client.payments || []
+          const totalPayments = paymentsList.reduce((sum, p) => sum + p.amount, 0)
+          
+          return totalPayments > 0 ? (
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <DollarSign className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-white/40 mb-1">Acomptes Reçus</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-white font-medium">{formatCurrency(totalPayments)}</p>
+                  <span className="text-xs text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                    {paymentsList.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : null
+        })()}
+
         {client.notes && (
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">

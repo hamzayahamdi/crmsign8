@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { X, MessageSquare } from "lucide-react"
+import { X, MessageSquare, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -17,29 +17,59 @@ interface AddNoteModalProps {
 
 export function AddNoteModal({ isOpen, onClose, client, onSave }: AddNoteModalProps) {
   const [note, setNote] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!note.trim()) return
 
-    const newHistoryEntry = {
-      id: `hist-${Date.now()}`,
-      date: new Date().toISOString(),
-      type: 'note' as const,
-      description: note,
-      auteur: 'Utilisateur'
-    }
+    setIsSubmitting(true)
+    try {
+      // Save to database via API
+      const response = await fetch(`/api/clients/${client.id}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          content: note,
+          createdBy: 'Utilisateur', // TODO: Get from auth context
+          type: 'note'
+        })
+      })
 
-    const updatedClient = {
-      ...client,
-      historique: [newHistoryEntry, ...(client.historique || [])],
-      derniereMaj: new Date().toISOString()
-    }
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create note')
+      }
 
-    onSave(updatedClient)
-    setNote("")
-    onClose()
+      const result = await response.json()
+      console.log('[Add Note] ✅ Note created in database:', result.data)
+
+      // Also add to historique for timeline
+      const newHistoryEntry = {
+        id: `hist-${Date.now()}`,
+        date: new Date().toISOString(),
+        type: 'note' as const,
+        description: note,
+        auteur: 'Utilisateur'
+      }
+
+      const updatedClient = {
+        ...client,
+        historique: [newHistoryEntry, ...(client.historique || [])],
+        derniereMaj: new Date().toISOString()
+      }
+
+      onSave(updatedClient)
+      setNote("")
+      onClose()
+    } catch (error) {
+      console.error('[Add Note] Error creating note:', error)
+      alert('Erreur lors de l\'ajout de la note. Veuillez réessayer.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -101,15 +131,24 @@ export function AddNoteModal({ isOpen, onClose, client, onSave }: AddNoteModalPr
                   type="button"
                   variant="outline"
                   onClick={onClose}
-                  className="flex-1 bg-transparent border-white/10 text-white hover:bg-white/5"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-transparent border-white/10 text-white hover:bg-white/5 disabled:opacity-50"
                 >
                   Annuler
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Ajouter la note
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Ajout...
+                    </>
+                  ) : (
+                    'Ajouter la note'
+                  )}
                 </Button>
               </div>
             </form>

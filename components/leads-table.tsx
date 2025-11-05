@@ -31,6 +31,8 @@ interface LeadsTableProps {
     type: string
     assigned: string
     priority: "all" | LeadPriority
+    source: string
+    campaign: string
   }
   isLoading?: boolean
   newlyAddedLeadId?: string | null
@@ -91,6 +93,8 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
     if (filters.type !== "all" && lead.typeBien !== filters.type) return false
     if (filters.assigned !== "all" && lead.assignePar !== filters.assigned) return false
     if (filters.priority !== "all" && lead.priorite !== filters.priority) return false
+    if (filters.source !== "all" && lead.source !== filters.source) return false
+    if (filters.campaign !== "all" && lead.campaignName !== filters.campaign) return false
     return true
   }
 
@@ -199,6 +203,22 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
       )
     }
     
+    if (lead.source === 'tiktok') {
+      return (
+        <div className="flex items-center gap-2">
+          <Icon className={cn("w-4 h-4 flex-shrink-0", sourceInfo.color)} />
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-semibold text-slate-200">TikTok</span>
+            {lead.campaignName && (
+              <span className="text-[10px] text-fuchsia-300/80 truncate max-w-[160px]" title={lead.campaignName}>
+                {lead.campaignName}
+              </span>
+            )}
+          </div>
+        </div>
+      )
+    }
+    
     return (
       <div className="flex items-center gap-1.5">
         <Icon className={cn("w-4 h-4 flex-shrink-0", sourceInfo.color)} />
@@ -235,13 +255,13 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
       <div className="overflow-x-auto">
         <table className="w-full table-fixed">
           <colgroup>
-            <col className="w-[22%]" />
+            <col className="w-[20%]" />
             <col className="w-[10%]" />
             <col className="w-[10%]" />
-            <col className="w-[13%]" />
-            <col className="w-[11%]" />
-            <col className="w-[11%]" />
-            <col className="w-[11%]" />
+            <col className="w-[16%]" />
+            <col className="w-[12%]" />
+            <col className="w-[10%]" />
+            <col className="w-[10%]" />
             <col className="w-[12%]" />
           </colgroup>
           <thead className="bg-slate-800/20 border-b border-slate-200/10">
@@ -277,7 +297,7 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                 🧭 Source
               </th>
               <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                👤 Assigné par
+                👤 Assigné à
               </th>
               <th className="px-4 py-4 text-left">
                 <button

@@ -137,6 +137,16 @@ export async function POST(request: NextRequest) {
       statutDetaille = 'Nouveau lead'
     }
     
+    // Auto-assign month for TikTok leads
+    let month = body.month
+    let uploadedAt = body.uploadedAt
+    if (body.source === 'tiktok' && !month) {
+      const now = new Date()
+      const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+      month = `${monthNames[now.getMonth()]} ${now.getFullYear()}`
+      uploadedAt = now
+    }
+    
     const lead = await prisma.lead.create({
       data: {
         nom: body.nom,
@@ -151,6 +161,9 @@ export async function POST(request: NextRequest) {
         priorite: body.priorite || 'moyenne',
         magasin: magasin,
         commercialMagasin: commercialMagasin,
+        month: month,
+        campaignName: body.campaignName,
+        uploadedAt: uploadedAt,
         createdBy: createdBy,
         derniereMaj: new Date()
       },

@@ -26,6 +26,9 @@ export interface Lead {
   priorite: LeadPriority
   magasin?: string
   commercialMagasin?: string
+  month?: string
+  campaignName?: string
+  uploadedAt?: string
   notes?: LeadNote[]
   createdBy?: string
   createdAt: string

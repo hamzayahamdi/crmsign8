@@ -532,21 +532,14 @@ export function LeadModalRedesigned({
                       <Label htmlFor="commercialMagasin" className="text-sm text-slate-300">
                         Commercial magasin *
                       </Label>
-                      <Select
+                      <Input
+                        id="commercialMagasin"
                         value={formData.commercialMagasin}
-                        onValueChange={(value) => setFormData({ ...formData, commercialMagasin: value })}
-                      >
-                        <SelectTrigger className="bg-slate-800/50 border-slate-700/50 text-white rounded-lg">
-                          <SelectValue placeholder="Sélectionner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {commercials.map((name) => (
-                            <SelectItem key={name} value={name}>
-                              {name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        onChange={(e) => setFormData({ ...formData, commercialMagasin: e.target.value })}
+                        className="glass rounded-xl bg-white/10 border border-white/10 text-white"
+                        placeholder="Saisir le nom du commercial"
+                        required
+                      />
                     </div>
                   </div>
                 )}

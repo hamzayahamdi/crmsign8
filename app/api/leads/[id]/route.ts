@@ -120,11 +120,23 @@ export async function PUT(
     }
     
     // Handle converted lead status change - undo conversion if status changes from "converti"
-    // Note: Client removal from localStorage will be handled on the client side
-    // We just update the lead status here and log the change
     if (existing.statut === 'converti' && body.statut !== 'converti') {
-      console.log(`[Lead Update] Lead ${leadId} status changed from 'converti' to '${body.statut}'. Conversion undone.`)
-      console.log(`[Lead Update] Note: Associated client in localStorage should be removed by the client-side code.`)
+      console.log(`[Lead Update] Lead ${leadId} status changed from 'converti' to '${body.statut}'. Undoing conversion...`)
+      
+      // Find and unlink the associated client
+      const associatedClient = await prisma.client.findFirst({
+        where: { leadId: leadId }
+      })
+      
+      if (associatedClient) {
+        await prisma.client.update({
+          where: { id: associatedClient.id },
+          data: { leadId: null }
+        })
+        console.log(`[Lead Update] ✅ Unlinked leadId from client: ${associatedClient.nom}`)
+      } else {
+        console.log(`[Lead Update] ⚠️ No associated client found for lead ${leadId}`)
+      }
     }
     
     // Build update data with only valid fields

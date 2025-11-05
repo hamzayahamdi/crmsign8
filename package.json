@@ -26,7 +26,10 @@
     "fix:rls": "node scripts/fix-stage-history-rls.js",
     "verify:rls": "node scripts/verify-rls-disabled.js",
     "supabase:deploy": "supabase functions deploy check-reminders",
-    "supabase:logs": "supabase functions logs check-reminders"
+    "supabase:logs": "supabase functions logs check-reminders",
+    "import:tiktok": "node scripts/import-tiktok-leads.js",
+    "migrate:tiktok": "prisma migrate dev --name add_tiktok_month_tracking",
+    "update:tiktok": "node scripts/update-existing-tiktok-leads.js"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",

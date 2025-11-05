@@ -135,22 +135,66 @@ export function LeadsTableImproved({
     
     if (lead.source === 'magasin' && lead.magasin) {
       return (
-        <div className="flex items-center gap-2">
-          <Icon className={cn("w-4 h-4", sourceInfo.color)} />
-          <div className="flex flex-col">
-            <span className="text-sm text-slate-200">{lead.magasin}</span>
+        <div className="flex items-start gap-2.5">
+          <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-purple-500/30 flex items-center justify-center">
+            <span className="text-base">🏬</span>
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-sm font-semibold text-purple-300">{lead.magasin}</span>
             {lead.commercialMagasin && (
-              <span className="text-xs text-slate-400">{lead.commercialMagasin}</span>
+              <span className="text-xs text-slate-400 truncate" title={lead.commercialMagasin}>
+                <span className="text-slate-500">Commercial:</span> {lead.commercialMagasin}
+              </span>
             )}
           </div>
         </div>
       )
     }
     
+    if (lead.source === 'tiktok') {
+      return (
+        <div className="flex items-center gap-2">
+          <Icon className={cn("w-4 h-4 flex-shrink-0", sourceInfo.color)} />
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-semibold text-slate-200">TikTok</span>
+            {lead.campaignName && (
+              <span className="text-[10px] text-fuchsia-300/80 truncate max-w-[160px]" title={lead.campaignName}>
+                {lead.campaignName}
+              </span>
+            )}
+          </div>
+        </div>
+      )
+    }
+    
+    // Default display for other sources (Facebook, Instagram, Site Web, etc.)
+    const gradientMap: Record<string, string> = {
+      facebook: "from-blue-500/20 to-blue-600/20 border-blue-500/30",
+      instagram: "from-pink-500/20 to-rose-500/20 border-pink-500/30",
+      site_web: "from-cyan-500/20 to-blue-500/20 border-cyan-500/30",
+      reference_client: "from-green-500/20 to-emerald-500/20 border-green-500/30",
+      autre: "from-slate-500/20 to-slate-600/20 border-slate-500/30"
+    }
+    
+    const textColorMap: Record<string, string> = {
+      facebook: "text-blue-300",
+      instagram: "text-pink-300",
+      site_web: "text-cyan-300",
+      reference_client: "text-green-300",
+      autre: "text-slate-300"
+    }
+    
     return (
-      <div className="flex items-center gap-2">
-        <Icon className={cn("w-4 h-4", sourceInfo.color)} />
-        <span className="text-sm text-slate-200">{sourceInfo.label}</span>
+      <div className="flex items-center gap-2.5">
+        <div className={cn(
+          "flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center",
+          gradientMap[lead.source] || gradientMap.autre
+        )}>
+          <Icon className="w-4 h-4 text-white/90" />
+        </div>
+        <span className={cn("text-sm font-semibold", textColorMap[lead.source] || textColorMap.autre)}>
+          {sourceInfo.label}
+        </span>
       </div>
     )
   }

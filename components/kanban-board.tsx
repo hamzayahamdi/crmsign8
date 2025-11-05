@@ -29,6 +29,13 @@ import { LeadsService } from "@/lib/leads-service"
 import { useEnhancedInfiniteScroll } from "@/hooks/useEnhancedInfiniteScroll"
 import { Loader2, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select"
 
 // Dummy data - not used anymore, fetching from database instead
 const initialLeads: any[] = [
@@ -314,6 +321,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     type: "all" as string,
     assigned: "all" as string,
     priority: "all" as "all" | LeadPriority,
+    source: "all" as string,
+    campaign: "all" as string,
   })
   const [isFiltersOpen, setIsFiltersOpen] = useAccordionState(false)
   // Single view mode only: table
@@ -433,6 +442,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     if (filters.type !== "all" && lead.typeBien !== filters.type) return false
     if (filters.assigned !== "all" && lead.assignePar !== filters.assigned) return false
     if (filters.priority !== "all" && lead.priorite !== filters.priority) return false
+    if (filters.source !== "all" && lead.source !== filters.source) return false
+    if (filters.campaign !== "all" && lead.campaignName !== filters.campaign) return false
     return true
   }
 
@@ -443,6 +454,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     if (filters.type !== "all") count++
     if (filters.assigned !== "all") count++
     if (filters.priority !== "all") count++
+    if (filters.source !== "all") count++
+    if (filters.campaign !== "all") count++
     return count
   }
 
@@ -453,6 +466,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
       type: "all",
       assigned: "all",
       priority: "all",
+      source: "all",
+      campaign: "all",
     })
   }
 
@@ -579,7 +594,51 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     }
   }
 
-  const handleLeadClick = (lead: Lead) => {
+  const handleLeadClick = async (lead: Lead) => {
+    // If lead is converted, redirect to the associated client details page
+    if (lead.statut === 'converti') {
+      console.log('[KanbanBoard] 🔄 Lead is converted - fetching associated client...')
+      
+      try {
+        // Fetch the client associated with this lead
+        const token = localStorage.getItem('token')
+        const response = await fetch(`/api/clients?leadId=${lead.id}`, {
+          headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          const clients = data.data || []
+          
+          if (clients.length > 0) {
+            const client = clients[0]
+            console.log('[KanbanBoard] ✅ Found associated client:', client.id)
+            
+            // Redirect to client details page
+            window.location.href = `/clients/${client.id}`
+            return
+          } else {
+            console.warn('[KanbanBoard] ⚠️ No client found for converted lead:', lead.id)
+            toast({
+              title: "⚠️ Client introuvable",
+              description: "Ce lead a été converti mais le client associé est introuvable.",
+              variant: "destructive"
+            })
+          }
+        }
+      } catch (error) {
+        console.error('[KanbanBoard] ❌ Error fetching client:', error)
+        toast({
+          title: "❌ Erreur",
+          description: "Impossible de charger le client associé.",
+          variant: "destructive"
+        })
+      }
+    }
+    
+    // For non-converted leads, open the modal as usual
     setEditingLead(lead)
     setIsModalOpen(true)
   }
@@ -605,6 +664,9 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
   const handleSaveLead = async (leadData: Omit<Lead, "id"> & { id?: string }) => {
     try {
       if (leadData.id) {
+        // Check if status is being changed to 'converti'
+        const isBeingConverted = leadData.statut === 'converti' && editingLead?.statut !== 'converti'
+        
         // Update existing lead
         console.log('[KanbanBoard] Updating lead with data:', leadData)
         const updatedLead = await LeadsService.updateLead(leadData.id, leadData)
@@ -617,15 +679,66 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         // Update editingLead so modal shows fresh data if reopened
         setEditingLead(updatedLead)
         
-        // Show success toast
-        toast({
-          title: "✅ Lead mis à jour",
-          description: "Les modifications ont été enregistrées avec succès",
-        })
-        
-        // Close modal
-        setIsModalOpen(false)
-        setEditingLead(null)
+        // If status changed to 'converti', automatically create client
+        if (isBeingConverted) {
+          console.log('[KanbanBoard] 🔄 Status changed to converti - creating client automatically')
+          
+          // Close modal first
+          setIsModalOpen(false)
+          setEditingLead(null)
+          
+          // Show converting toast
+          toast({
+            title: "🔄 Conversion en cours",
+            description: "Création du client dans la base de données...",
+          })
+          
+          // Call conversion API
+          try {
+            const token = localStorage.getItem('token')
+            if (!token) {
+              throw new Error('Non authentifié')
+            }
+            
+            const response = await fetch(`/api/leads/${leadData.id}/convert`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            })
+            
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}))
+              throw new Error(errorData.message || 'Échec de la conversion')
+            }
+            
+            const data = await response.json()
+            console.log('[KanbanBoard] ✅ Client created:', data.client)
+            
+            toast({
+              title: "✅ Lead converti",
+              description: `${updatedLead.nom} a été converti en client avec succès!`,
+            })
+          } catch (conversionError) {
+            console.error('[KanbanBoard] ❌ Conversion error:', conversionError)
+            toast({
+              title: "⚠️ Conversion échouée",
+              description: conversionError instanceof Error ? conversionError.message : "Le lead a été mis à jour mais la création du client a échoué.",
+              variant: "destructive"
+            })
+          }
+        } else {
+          // Normal update - show success toast and close modal
+          toast({
+            title: "✅ Lead mis à jour",
+            description: "Les modifications ont été enregistrées avec succès",
+          })
+          
+          // Close modal
+          setIsModalOpen(false)
+          setEditingLead(null)
+        }
       } else {
         // Create new lead
         console.log('[KanbanBoard] Creating lead:', leadData)
@@ -645,15 +758,66 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
           setNewlyAddedLeadId(null)
         }, 3000)
         
-        // Show success toast
-        toast({
-          title: "✅ Lead créé",
-          description: "Le nouveau lead a été créé avec succès",
-        })
-        
-        // Close modal after successful creation
-        setEditingLead(null)
-        setIsModalOpen(false)
+        // If created with status 'converti', automatically create client
+        if (leadData.statut === 'converti') {
+          console.log('[KanbanBoard] 🔄 New lead created with converti status - creating client automatically')
+          
+          // Close modal first
+          setEditingLead(null)
+          setIsModalOpen(false)
+          
+          // Show converting toast
+          toast({
+            title: "🔄 Lead créé et conversion en cours",
+            description: "Création du client dans la base de données...",
+          })
+          
+          // Call conversion API
+          try {
+            const token = localStorage.getItem('token')
+            if (!token) {
+              throw new Error('Non authentifié')
+            }
+            
+            const response = await fetch(`/api/leads/${createdLead.id}/convert`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            })
+            
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}))
+              throw new Error(errorData.message || 'Échec de la conversion')
+            }
+            
+            const data = await response.json()
+            console.log('[KanbanBoard] ✅ Client created:', data.client)
+            
+            toast({
+              title: "✅ Lead créé et converti",
+              description: `${createdLead.nom} a été créé et converti en client avec succès!`,
+            })
+          } catch (conversionError) {
+            console.error('[KanbanBoard] ❌ Conversion error:', conversionError)
+            toast({
+              title: "⚠️ Conversion échouée",
+              description: conversionError instanceof Error ? conversionError.message : "Le lead a été créé mais la création du client a échoué.",
+              variant: "destructive"
+            })
+          }
+        } else {
+          // Normal creation - show success toast
+          toast({
+            title: "✅ Lead créé",
+            description: "Le nouveau lead a été créé avec succès",
+          })
+          
+          // Close modal after successful creation
+          setEditingLead(null)
+          setIsModalOpen(false)
+        }
       }
     } catch (error) {
       console.error("[KanbanBoard] Error saving lead:", error)
@@ -696,66 +860,37 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
   const handleConvertToClient = async (lead: Lead) => {
     console.log('🔄 [Conversion] Starting conversion for lead:', lead.id, lead.nom)
     
-    // 🚀 OPTIMISTIC UPDATE - Update UI immediately
-    const optimisticLead = {
-      ...lead,
-      statut: 'converti' as const,
-      derniereMaj: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-    
-    // Create optimistic client
-    const now = new Date().toISOString()
-    const optimisticClient = {
-      id: `client-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      nom: lead.nom,
-      telephone: lead.telephone,
-      email: lead.email || '',
-      ville: lead.ville,
-      typeProjet: lead.typeBien,
-      statutProjet: 'prospection' as const,
-      architecte: lead.assignePar,
-      budget: '',
-      surface: '',
-      adresse: '',
-      notes: lead.message || '',
-      createdAt: lead.createdAt || now,
-      updatedAt: now,
-      derniereMaj: now,
-      leadId: lead.id,
-    }
-    
-    // Update UI immediately (optimistic)
-    console.log('⚡ [Conversion] Optimistic update - changing status immediately')
-    updateLead(lead.id, optimisticLead)
-    
-    // Add client to localStorage immediately
-    console.log('⚡ [Conversion] Optimistic update - adding client immediately')
-    const existingClients = localStorage.getItem('signature8-clients')
-    const clients = existingClients ? JSON.parse(existingClients) : []
-    clients.unshift(optimisticClient)
-    localStorage.setItem('signature8-clients', JSON.stringify(clients))
-    
     // Close modal immediately
     setIsModalOpen(false)
     
-    // Show success immediately
-    toast({
-      title: "✅ Lead converti",
-      description: "Le lead a été converti en client avec succès. Visible immédiatement dans Clients & Projets.",
+    // Show beautiful loading toast
+    const loadingToast = toast({
+      title: "⏳ Conversion en cours...",
+      description: (
+        <div className="flex items-center gap-3">
+          <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+          <span>Création du client pour {lead.nom}</span>
+        </div>
+      ),
+      duration: Infinity, // Keep it visible until we dismiss it
     })
     
-    // Call API in background to persist
+    // Call API to create client in database
     try {
       const token = localStorage.getItem('token')
       
       if (!token) {
-        console.warn('⚠️ [Conversion] No auth token - skipping API sync (optimistic update already applied)')
-        // Optimistic update already succeeded, just skip API sync
+        console.warn('⚠️ [Conversion] No auth token')
+        loadingToast.dismiss()
+        toast({
+          title: "❌ Erreur",
+          description: "Non authentifié. Veuillez vous reconnecter.",
+          variant: "destructive"
+        })
         return
       }
       
-      console.log('📡 [Conversion] Calling API in background...')
+      console.log('📡 [Conversion] Calling API to create client in database...')
       const response = await fetch(`/api/leads/${lead.id}/convert`, {
         method: 'POST',
         headers: {
@@ -770,41 +905,70 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         const errorData = await response.json().catch(() => ({}))
         console.error('❌ [Conversion] API error:', errorData)
         
-        // Revert optimistic update on error
-        console.log('🔄 [Conversion] Reverting optimistic update')
-        updateLead(lead.id, lead)
+        loadingToast.dismiss()
+        toast({
+          title: "❌ Erreur de conversion",
+          description: errorData.details || errorData.message || "Échec de la conversion. Veuillez réessayer.",
+          variant: "destructive"
+        })
         
-        // Remove client from localStorage
-        const currentClients = JSON.parse(localStorage.getItem('signature8-clients') || '[]')
-        const filteredClients = currentClients.filter((c: any) => c.id !== optimisticClient.id)
-        localStorage.setItem('signature8-clients', JSON.stringify(filteredClients))
-        
-        throw new Error(errorData.error || 'Failed to convert lead')
+        return
       }
 
       const data = await response.json()
-      console.log('✅ [Conversion] API confirmed:', data)
+      console.log('✅ [Conversion] Full API response:', data)
+      console.log('✅ [Conversion] Client created in database:', data.client)
+      console.log('✅ [Conversion] Client ID:', data.client?.id)
       
-      // Update with real data from server
+      // Verify client data exists
+      if (!data.client || !data.client.id) {
+        console.error('❌ [Conversion] No client data in response!')
+        loadingToast.dismiss()
+        toast({
+          title: "⚠️ Conversion incomplète",
+          description: "Le client a été créé mais les données sont manquantes. Rechargez la page.",
+          variant: "destructive"
+        })
+        return
+      }
+      
+      // Update lead status
       if (data.lead) {
         updateLead(data.lead.id, data.lead)
       }
       
-      // Update client with real data if different
-      if (data.client && data.client.id !== optimisticClient.id) {
-        const currentClients = JSON.parse(localStorage.getItem('signature8-clients') || '[]')
-        const updatedClients = currentClients.map((c: any) => 
-          c.id === optimisticClient.id ? data.client : c
-        )
-        localStorage.setItem('signature8-clients', JSON.stringify(updatedClients))
-      }
+      // Dismiss loading toast
+      loadingToast.dismiss()
       
-      console.log('✅ [Conversion] Conversion complete and confirmed!')
+      // Show success toast with redirect countdown
+      toast({
+        title: "✅ Conversion réussie !",
+        description: (
+          <div className="space-y-2">
+            <p className="font-medium">{lead.nom} a été converti en client</p>
+            <p className="text-sm text-muted-foreground">Redirection vers la fiche client...</p>
+          </div>
+        ),
+        duration: 2000,
+      })
+      
+      // Redirect to client details page after a short delay
+      const clientId = data.client.id
+      console.log('🔄 [Conversion] Preparing redirect to:', `/clients/${clientId}`)
+      
+      setTimeout(() => {
+        console.log('🔄 [Conversion] Executing redirect now...')
+        window.location.href = `/clients/${clientId}`
+      }, 1500)
+      
     } catch (error) {
       console.error("❌ [Conversion] Error:", error)
-      // Don't show error toast if optimistic update already succeeded
-      // The user already sees the success, no need to confuse them
-      console.warn('⚠️ [Conversion] Background sync failed, but optimistic update succeeded')
+      loadingToast.dismiss()
+      toast({
+        title: "❌ Erreur",
+        description: "Échec de la conversion. Veuillez réessayer.",
+        variant: "destructive"
+      })
     }
   }
 
@@ -969,6 +1133,22 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                         </button>
                       </div>
                     )}
+                    {filters.source !== "all" && (
+                      <div className="bg-fuchsia-500/20 text-fuchsia-300 px-3 py-1 rounded-full text-xs flex items-center gap-2 border border-fuchsia-500/30">
+                        Source: {filters.source.charAt(0).toUpperCase() + filters.source.slice(1)}
+                        <button onClick={() => removeFilter('source')} className="hover:text-fuchsia-300/70">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                    {filters.campaign !== "all" && (
+                      <div className="bg-fuchsia-500/20 text-fuchsia-300 px-3 py-1 rounded-full text-xs flex items-center gap-2 border border-fuchsia-500/30">
+                        Campagne: {filters.campaign}
+                        <button onClick={() => removeFilter('campaign')} className="hover:text-fuchsia-300/70">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -980,85 +1160,151 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                     {/* Status Filter */}
                     <div className="space-y-2 bg-slate-800/60 rounded-md p-3 border border-slate-600/40">
                       <label className="text-sm font-medium text-white">Statut</label>
-                      <select
+                      <Select
                         value={filters.status}
-                        onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value as any }))}
-                        className="h-10 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        onValueChange={(v) => setFilters((f) => ({ ...f, status: v as any }))}
                       >
-                        <option value="all">Tous les statuts</option>
-                        {columns.map((c) => (
-                          <option key={c.status} value={c.status}>
-                            {c.label}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="h-10 w-full bg-slate-700/80 border border-slate-500/60 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 text-white border-slate-600">
+                          <SelectItem value="all">Tous les statuts</SelectItem>
+                          {columns.map((c) => (
+                            <SelectItem key={c.status} value={c.status}>
+                              {c.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* City Filter */}
                     <div className="space-y-2 bg-slate-800/60 rounded-md p-3 border border-slate-600/40">
                       <label className="text-sm font-medium text-white">Ville</label>
-                      <select
+                      <Select
                         value={filters.city}
-                        onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))}
-                        className="h-10 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        onValueChange={(v) => setFilters((f) => ({ ...f, city: v }))}
                       >
-                        <option value="all">Toutes les villes</option>
-                        {[...new Set(leads.map((l) => l.ville))].map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="h-10 w-full bg-slate-700/80 border border-slate-500/60 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 text-white border-slate-600 max-h-72">
+                          <SelectItem value="all">Toutes les villes</SelectItem>
+                          {[...new Set(leads.map((l) => l.ville))].map((c) => (
+                            <SelectItem key={c} value={c}>
+                              {c}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Type Filter */}
                     <div className="space-y-2 bg-slate-800/60 rounded-md p-3 border border-slate-600/40">
                       <label className="text-sm font-medium text-white">Type de bien</label>
-                      <select
+                      <Select
                         value={filters.type}
-                        onChange={(e) => setFilters((f) => ({ ...f, type: e.target.value }))}
-                        className="h-10 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        onValueChange={(v) => setFilters((f) => ({ ...f, type: v }))}
                       >
-                        <option value="all">Tous les types</option>
-                        {[...new Set(leads.map((l) => l.typeBien))].map((t) => (
-                          <option key={t} value={t}>
-                            {t}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="h-10 w-full bg-slate-700/80 border border-slate-500/60 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 text-white border-slate-600">
+                          <SelectItem value="all">Tous les types</SelectItem>
+                          {[...new Set(leads.map((l) => l.typeBien))].map((t) => (
+                            <SelectItem key={t} value={t}>
+                              {t}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Assigned Filter */}
                     <div className="space-y-2 bg-slate-800/60 rounded-md p-3 border border-slate-600/40">
-                      <label className="text-sm font-medium text-white">Assigné par</label>
-                      <select
+                      <label className="text-sm font-medium text-white">Assigné à</label>
+                      <Select
                         value={filters.assigned}
-                        onChange={(e) => setFilters((f) => ({ ...f, assigned: e.target.value }))}
-                        className="h-10 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        onValueChange={(v) => setFilters((f) => ({ ...f, assigned: v }))}
                       >
-                        <option value="all">Tous les assignés</option>
-                        {architectAssignees.map((name) => (
-                          <option key={name} value={name}>
-                            {name.toUpperCase()}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="h-10 w-full bg-slate-700/80 border border-slate-500/60 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 text-white border-slate-600 max-h-72">
+                          <SelectItem value="all">Tous les assignés</SelectItem>
+                          {architectAssignees.map((name) => (
+                            <SelectItem key={name} value={name}>
+                              {name.toUpperCase()}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Priority Filter */}
                     <div className="space-y-2 bg-slate-800/60 rounded-md p-3 border border-slate-600/40">
                       <label className="text-sm font-medium text-white">Priorité</label>
-                      <select
+                      <Select
                         value={filters.priority}
-                        onChange={(e) => setFilters((f) => ({ ...f, priority: e.target.value as any }))}
-                        className="h-10 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        onValueChange={(v) => setFilters((f) => ({ ...f, priority: v as any }))}
                       >
-                        <option value="all">Toutes les priorités</option>
-                        <option value="haute">Priorité Haute</option>
-                        <option value="moyenne">Priorité Moyenne</option>
-                        <option value="basse">Priorité Basse</option>
-                      </select>
+                        <SelectTrigger className="h-10 w-full bg-slate-700/80 border border-slate-500/60 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 text-white border-slate-600">
+                          <SelectItem value="all">Toutes les priorités</SelectItem>
+                          <SelectItem value="haute">Priorité Haute</SelectItem>
+                          <SelectItem value="moyenne">Priorité Moyenne</SelectItem>
+                          <SelectItem value="basse">Priorité Basse</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {/* Source Filter */}
+                    <div className="space-y-2 bg-slate-800/60 rounded-md p-3 border border-slate-600/40">
+                      <label className="text-sm font-medium text-white">🧭 Source</label>
+                      <Select
+                        value={filters.source}
+                        onValueChange={(v) => setFilters((f) => ({ ...f, source: v }))}
+                      >
+                        <SelectTrigger className="h-10 w-full bg-slate-700/80 border border-slate-500/60 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 text-white border-slate-600">
+                          <SelectItem value="all">Toutes les sources</SelectItem>
+                          <SelectItem value="tiktok">🎵 TikTok</SelectItem>
+                          <SelectItem value="magasin">🏬 Magasin</SelectItem>
+                          <SelectItem value="facebook">📘 Facebook</SelectItem>
+                          <SelectItem value="instagram">📷 Instagram</SelectItem>
+                          <SelectItem value="site_web">🌐 Site Web</SelectItem>
+                          <SelectItem value="reference_client">👥 Recommandation</SelectItem>
+                          <SelectItem value="autre">📦 Autre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Campaign Filter - Only show if TikTok source is selected or if there are campaigns */}
+                    {(filters.source === "tiktok" || filters.source === "all") && (
+                      <div className="space-y-2 bg-slate-800/60 rounded-md p-3 border border-slate-600/40">
+                        <label className="text-sm font-medium text-white">🎯 Campagne</label>
+                        <Select
+                          value={filters.campaign}
+                          onValueChange={(v) => setFilters((f) => ({ ...f, campaign: v }))}
+                        >
+                          <SelectTrigger className="h-10 w-full bg-slate-700/80 border border-slate-500/60 text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 text-white border-slate-600 max-h-72">
+                            <SelectItem value="all">Toutes les campagnes</SelectItem>
+                            {[...new Set(leads.filter(l => l.campaignName).map(l => l.campaignName))].map((campaign) => (
+                              <SelectItem key={campaign} value={campaign!}>
+                                {campaign}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

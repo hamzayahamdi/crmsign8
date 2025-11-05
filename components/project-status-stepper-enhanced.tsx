@@ -136,8 +136,10 @@ export function ProjectStatusStepperEnhanced({
   lastUpdated,
   className
 }: ProjectStatusStepperEnhancedProps) {
+  console.log('[ProjectStatusStepper] Rendering with status:', currentStatus)
   const currentStep = PROJECT_STEPS.find(s => s.key === currentStatus)
   const currentOrder = currentStep?.order ?? 0
+  console.log('[ProjectStatusStepper] Current step:', currentStep?.label, 'Order:', currentOrder)
 
   const handleStepClick = (status: ProjectStatus) => {
     if (interactive && onStatusChange && status !== currentStatus) {

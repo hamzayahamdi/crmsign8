@@ -1,6 +1,38 @@
 import type { Client, Devis, ProjectStatus } from "@/types/client"
 
 /**
+ * Summary of devis statuses for a project
+ */
+export interface DevisStatusSummary {
+  total: number
+  accepted: number
+  refused: number
+  pending: number
+  hasAccepted: boolean
+  allRefused: boolean
+  allPending: boolean
+}
+
+/**
+ * Get summary of all devis statuses for a project
+ */
+export function getDevisStatusSummary(devisList: Devis[]): DevisStatusSummary {
+  const accepted = devisList.filter(d => d.statut === "accepte")
+  const refused = devisList.filter(d => d.statut === "refuse")
+  const pending = devisList.filter(d => d.statut === "en_attente")
+
+  return {
+    total: devisList.length,
+    accepted: accepted.length,
+    refused: refused.length,
+    pending: pending.length,
+    hasAccepted: accepted.length > 0,
+    allRefused: refused.length > 0 && refused.length === devisList.length,
+    allPending: pending.length === devisList.length
+  }
+}
+
+/**
  * Automatic project status logic based on devis acceptance/refusal
  */
 export function getAutoProjectStatus(client: Client): ProjectStatus | null {
@@ -70,10 +102,11 @@ function statusIndex(s: ProjectStatus) {
 
 /**
  * Compute the appropriate project status from devis state.
- * - If any accepted devis exists → at least "accepte".
- * - If all devis refused → "refuse".
- * - Else if any pending → "devis_negociation".
- * - If all accepted devis are fully paid → suggest moving to "facture_reglee" (or keep current if further).
+ * NEW LOGIC:
+ * - If ANY devis is "accepte" → set to "accepte" (favor progress)
+ * - If ALL devis are "refuse" → set to "refuse"
+ * - If some pending/sent → keep current status unchanged
+ * - Never regress the project if a positive devis exists
  *
  * Returns null when no change should be applied.
  */
@@ -81,34 +114,45 @@ export function computeStatusFromDevis(client: Client): ProjectStatus | null {
   const devisList = client.devis || []
   if (devisList.length === 0) return null
 
-  const accepted = devisList.filter(d => d.statut === "accepte")
-  const refused = devisList.filter(d => d.statut === "refuse")
-  const pending = devisList.filter(d => d.statut === "en_attente")
-
+  const summary = getDevisStatusSummary(devisList)
+  
   // Determine derived status from quotes
   let derived: ProjectStatus | null = null
 
-  if (accepted.length > 0) {
-    // Base case when something is accepted
+  // Rule 1: If ANY devis is accepted → favor progress, set to "accepte"
+  if (summary.hasAccepted) {
     derived = "accepte"
 
-    // If everything accepted has been paid, we can move to "facture_reglee"
+    // If all accepted devis are fully paid, we can move to "facture_reglee"
+    const accepted = devisList.filter(d => d.statut === "accepte")
     const allPaid = accepted.every(d => d.facture_reglee)
     if (allPaid) {
       derived = "facture_reglee"
     }
-  } else if (refused.length > 0 && refused.length === devisList.length) {
-    // All refused
+  } 
+  // Rule 2: If ALL devis are refused → set to "refuse"
+  else if (summary.allRefused) {
     derived = "refuse"
-  } else if (pending.length > 0) {
-    // Still negotiating/pending
-    derived = "devis_negociation"
+  } 
+  // Rule 3: If some devis are still pending/sent → keep current status
+  else if (summary.pending > 0) {
+    // Don't change status, let user decide
+    return null
   }
 
   if (!derived) return null
 
   // Forward-only policy: never downgrade status
   const current = client.statutProjet
+  
+  // Special case: Never regress from "accepte" or beyond if we have accepted devis
+  if (summary.hasAccepted && statusIndex(current) >= statusIndex("accepte")) {
+    // If current is "accepte" or beyond, only allow progression
+    if (statusIndex(derived) <= statusIndex(current)) {
+      return null
+    }
+  }
+  
   if (statusIndex(derived) < statusIndex(current)) {
     // Do not regress
     return null

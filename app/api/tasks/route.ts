@@ -68,6 +68,25 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Create historique entry if linked to a client
+    if (body.linkedType === 'client' && body.linkedId) {
+      try {
+        await prisma.historique.create({
+          data: {
+            clientId: body.linkedId,
+            date: new Date(),
+            type: 'tache',
+            description: `Tâche créée: "${body.title}"`,
+            auteur: body.createdBy || 'Système',
+            metadata: { taskId: task.id }
+          }
+        })
+      } catch (histError) {
+        console.error('Error creating historique entry for task:', histError)
+        // Don't fail the task creation if historique fails
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: task

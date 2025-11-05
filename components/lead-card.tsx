@@ -1,7 +1,7 @@
 "use client"
 
 import type { Lead } from "@/types/lead"
-import { Phone, MapPin, User, Calendar } from "lucide-react"
+import { Phone, MapPin, User, Calendar, CheckCircle2 } from "lucide-react"
 import { useDraggable } from "@dnd-kit/core"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -51,7 +51,7 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
 
   const style = {
     opacity: isDragging ? 0.5 : 1,
-    cursor: isDragging ? 'grabbing' : 'grab',
+    cursor: isDragging ? 'grabbing' : (lead.statut === 'converti' ? 'pointer' : 'grab'),
   }
 
   return (
@@ -68,7 +68,15 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
-        <h4 className="font-semibold text-white">{lead.nom}</h4>
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-white">{lead.nom}</h4>
+          {lead.statut === 'converti' && (
+            <div className="flex items-center gap-1 mt-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
+              <span className="text-xs text-green-400 font-medium">Converti en client</span>
+            </div>
+          )}
+        </div>
         <div className="flex flex-col items-end gap-1">
           <span className="text-xs text-muted-foreground">{lead.typeBien}</span>
           <Badge className={cn("border text-xs", priorityConfig[lead.priorite]?.color || "bg-gray-500/20 text-gray-400 border-gray-500/40")}>

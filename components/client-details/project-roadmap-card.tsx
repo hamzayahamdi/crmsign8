@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, CheckCircle2, Clock, Lock, MapPin, Plus, AlertCircle, FileText, DollarSign, Package, Hammer, Receipt, Truck, Sparkles, Coins } from "lucide-react"
+import { Calendar, CheckCircle2, Clock, Lock, MapPin, Plus, AlertCircle, FileText, DollarSign, Package, Hammer, Receipt, Truck, Sparkles, Coins, Info } from "lucide-react"
 import type { Client, ProjectStatus } from "@/types/client"
 import type { Task } from "@/types/task"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { getDevisStatusSummary } from "@/lib/devis-status-logic"
 import { cn } from "@/lib/utils"
 import { 
   formatDuration, 
@@ -55,6 +57,16 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
 
   // Use realtime stage history hook
   const { stageHistory, isLoading: isLoadingHistory } = useStageHistory(client.id)
+
+  // Debug: Log when client prop changes
+  useEffect(() => {
+    console.log('[ProjectRoadmap] 🔄 Client prop updated:', {
+      clientId: client.id,
+      statutProjet: client.statutProjet,
+      devisCount: client.devis?.length || 0,
+      timestamp: new Date().toISOString()
+    })
+  }, [client.statutProjet, client.id])
 
   // Debug: Log stage history
   useEffect(() => {
@@ -142,6 +154,9 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
 
   // Get current stage order
   const currentStageOrder = ROADMAP_STAGES.find(s => s.id === client.statutProjet)?.order || 1
+
+  // Get devis summary for display
+  const devisSummary = getDevisStatusSummary(client.devis || [])
 
   // Get stage status
   const getStageStatus = (stage: RoadmapStage): 'completed' | 'in_progress' | 'pending' => {
@@ -323,7 +338,51 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
                         >
                           {stage.label}
                         </span>
+                        {/* Show devis summary for devis_negociation stage */}
+                        {stage.id === 'devis_negociation' && devisSummary.total > 0 && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-0.5">
+                                  <Info className="w-3 h-3 text-blue-400/60" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="bg-[#1a1f2e] border-white/20 text-white max-w-xs">
+                                <p className="text-xs font-medium mb-1">🤖 Automatisation intelligente</p>
+                                <p className="text-[11px] text-white/70">
+                                  L'étape progresse automatiquement selon le statut des devis.
+                                  Si un devis est accepté, le projet avance vers "✅ Accepté".
+                                  Si tous sont refusés, le projet passe à "❌ Refusé".
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
+                      
+                      {/* Devis Summary for devis_negociation stage */}
+                      {stage.id === 'devis_negociation' && devisSummary.total > 0 && (
+                        <div className="mt-1 mb-0.5">
+                          <span className="text-[10px] text-white/60">
+                            Devis: {devisSummary.total} envoyé{devisSummary.total > 1 ? 's' : ''}
+                            {devisSummary.accepted > 0 && (
+                              <span className="text-green-400 ml-1">
+                                • {devisSummary.accepted} accepté{devisSummary.accepted > 1 ? 's' : ''}
+                              </span>
+                            )}
+                            {devisSummary.refused > 0 && (
+                              <span className="text-red-400 ml-1">
+                                • {devisSummary.refused} refusé{devisSummary.refused > 1 ? 's' : ''}
+                              </span>
+                            )}
+                            {devisSummary.pending > 0 && (
+                              <span className="text-yellow-400 ml-1">
+                                • {devisSummary.pending} en attente
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      )}
                       
                       {/* Duration and Date Range */}
                       {getStageDuration(stage.id) && (

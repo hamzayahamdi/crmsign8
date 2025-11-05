@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { randomBytes } from 'crypto'
+
+// Generate CUID-like ID
+function generateCuid(): string {
+  const timestamp = Date.now().toString(36)
+  const randomPart = randomBytes(12).toString('base64').replace(/[^a-z0-9]/gi, '').substring(0, 12)
+  return `c${timestamp}${randomPart}`.substring(0, 25)
+}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -44,11 +52,13 @@ export async function POST(
     const { id: clientId } = await params
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const now = new Date().toISOString()
+    const appointmentId = generateCuid()
 
     // Create appointment in database
     const { data: newAppointment, error: insertError } = await supabase
       .from('appointments')
       .insert({
+        id: appointmentId,
         title,
         date_start: dateStart,
         date_end: dateEnd,
@@ -78,6 +88,7 @@ export async function POST(
     await supabase
       .from('historique')
       .insert({
+        id: generateCuid(),
         client_id: clientId,
         date: now,
         type: 'rdv',
