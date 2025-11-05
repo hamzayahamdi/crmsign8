@@ -215,17 +215,27 @@ export function ProjectStatusStepperEnhanced({
                           {/* Icon Circle */}
                           <div className={cn(
                             "relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 border-2",
-                            isCompleted && "bg-white/10 border-white/20",
+                            isCompleted && cn(
+                              "bg-gradient-to-br from-emerald-500/30 to-green-500/30 border-emerald-400/40 shadow-lg shadow-emerald-500/20",
+                              "group-hover:shadow-emerald-500/40 group-hover:border-emerald-400/60"
+                            ),
                             isCurrent && cn(
                               "bg-gradient-to-br shadow-lg border-transparent",
                               step.gradient,
                               step.glowColor
                             ),
                             isUpcoming && "bg-[#0D0D12] border-white/10",
-                            isClickable && "hover:border-white/30"
+                            isClickable && "hover:scale-105"
                           )}>
                             {isCompleted ? (
-                              <Check className="w-6 h-6 text-white/80" />
+                              <motion.div
+                                initial={{ scale: 0, rotate: -180 }}
+                                animate={{ scale: 1, rotate: 0 }}
+                                transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                                className="relative"
+                              >
+                                <Check className="w-6 h-6 text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]" strokeWidth={3} />
+                              </motion.div>
                             ) : (
                               <Icon className={cn(
                                 "w-6 h-6 transition-colors",
@@ -251,13 +261,18 @@ export function ProjectStatusStepperEnhanced({
                                 )}
                               />
                             )}
+                            
+                            {/* Completed glow effect */}
+                            {isCompleted && (
+                              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-400/10 to-green-400/10 animate-pulse" />
+                            )}
                           </div>
 
                           {/* Label */}
                           <span className={cn(
                             "text-xs font-medium text-center max-w-[90px] leading-tight transition-colors",
                             isCurrent && "text-white font-semibold",
-                            isCompleted && "text-white/60",
+                            isCompleted && "text-emerald-300/80 font-medium",
                             isUpcoming && "text-white/30"
                           )}>
                             {step.label}
@@ -281,7 +296,9 @@ export function ProjectStatusStepperEnhanced({
                         transition={{ duration: 0.5, delay: index * 0.1 }}
                         className={cn(
                           "h-1 w-8 mx-1 rounded-full transition-all duration-500 origin-left",
-                          isCompleted ? cn("bg-gradient-to-r", step.gradient) : "bg-white/10"
+                          isCompleted 
+                            ? "bg-gradient-to-r from-emerald-400 to-green-500 shadow-[0_0_8px_rgba(52,211,153,0.4)]" 
+                            : "bg-white/10"
                         )} 
                       />
                     )}

@@ -395,23 +395,51 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
                         </div>
                       )}
                       
-                      {/* Duration and Date Range */}
+                      {/* Duration and Date Range - Enhanced Display */}
                       {getStageDuration(stage.id) && (
-                        <div className="mt-0.5">
-                          <span 
-                            className={cn(
-                              "text-[11px] font-semibold",
-                              status === 'completed' && "text-emerald-300",
-                              status === 'in_progress' && "text-sky-300",
-                              status === 'pending' && "text-white/50"
+                        <div className="mt-1.5 space-y-0.5">
+                          {/* Duration with prominent styling */}
+                          <div className="flex items-center gap-1.5">
+                            <div 
+                              className={cn(
+                                "flex items-center gap-1 px-1.5 py-0.5 rounded",
+                                status === 'completed' && "bg-emerald-500/15",
+                                status === 'in_progress' && "bg-sky-500/20",
+                                status === 'pending' && "bg-white/5"
+                              )}
+                            >
+                              <Clock className={cn(
+                                "w-3 h-3",
+                                status === 'completed' && "text-emerald-400",
+                                status === 'in_progress' && "text-sky-400",
+                                status === 'pending' && "text-white/40"
+                              )} />
+                              <span 
+                                className={cn(
+                                  "text-[11px] font-bold",
+                                  status === 'completed' && "text-emerald-300",
+                                  status === 'in_progress' && "text-sky-300",
+                                  status === 'pending' && "text-white/50"
+                                )}
+                              >
+                                {getStageDuration(stage.id)}
+                              </span>
+                            </div>
+                            {status === 'in_progress' && (
+                              <span className="text-[9px] px-1 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium animate-pulse">
+                                ACTIF
+                              </span>
                             )}
-                          >
-                            {status === 'in_progress' ? '⏱️ ' : ''}{getStageDuration(stage.id)}
-                          </span>
+                          </div>
+                          
+                          {/* Date Range on separate line */}
                           {getStageDateRange(stage.id) && (
-                            <span className="text-[10px] text-white/60 ml-1.5">
-                              • {getStageDateRange(stage.id)}
-                            </span>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-2.5 h-2.5 text-white/40" />
+                              <span className="text-[10px] text-white/60">
+                                {getStageDateRange(stage.id)}
+                              </span>
+                            </div>
                           )}
                         </div>
                       )}
