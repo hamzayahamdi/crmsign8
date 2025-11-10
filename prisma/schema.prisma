@@ -300,6 +300,7 @@ model Client {
   statutProjet        ProjectStatus        @map("statut_projet")
   derniereMaj         DateTime             @default(now()) @map("derniere_maj")
   leadId              String?              @map("lead_id")
+  leadData            Json?                @map("lead_data") // Store complete lead data for restoration
   email               String?
   adresse             String?
   budget              Float?

@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils"
 import { LeadsTableSkeleton } from "@/components/leads-table-skeleton"
 import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface LeadsTableProps {
   leads: Lead[]
@@ -318,17 +319,34 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200/10">
-            {sortedLeads.map((lead) => {
-              const statusInfo = statusConfig[lead.statut]
-              const isNewlyAdded = lead.id === newlyAddedLeadId
-              return (
-                <tr 
-                  key={lead.id} 
-                  className={cn(
-                    "hover:bg-slate-700/10 transition-all duration-300 group",
-                    isNewlyAdded && "bg-primary/10 ring-2 ring-primary/50"
-                  )}  
-                >
+            <AnimatePresence mode="popLayout">
+              {sortedLeads.map((lead) => {
+                const statusInfo = statusConfig[lead.statut]
+                const isNewlyAdded = lead.id === newlyAddedLeadId
+                return (
+                  <motion.tr 
+                    key={lead.id}
+                    layout
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ 
+                      opacity: 0, 
+                      x: 100,
+                      height: 0,
+                      transition: { 
+                        duration: 0.4,
+                        ease: "easeInOut"
+                      }
+                    }}
+                    transition={{ 
+                      duration: 0.3,
+                      ease: "easeOut"
+                    }}
+                    className={cn(
+                      "hover:bg-slate-700/10 transition-all duration-300 group",
+                      isNewlyAdded && "bg-primary/10 ring-2 ring-primary/50"
+                    )}  
+                  >
                   {/* Contact (Nom & Téléphone) */}
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
@@ -448,9 +466,10 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                       </AlertDialog>
                     </div>
                   </td>
-                </tr>
+                </motion.tr>
               )
             })}
+            </AnimatePresence>
           </tbody>
         </table>
 

@@ -53,40 +53,57 @@ export async function POST(
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
-    // Get the lead
+    // Get the lead with all notes for complete data preservation
     const lead = await prisma.lead.findUnique({
-      where: { id: leadId }
+      where: { id: leadId },
+      include: {
+        notes: {
+          orderBy: {
+            createdAt: 'desc'
+          }
+        }
+      }
     })
     
     if (!lead) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
     }
     
-    // Check if client already exists for this lead using Supabase
+    // Check if client already exists for this lead
     const { data: existingClients } = await supabase
       .from('clients')
       .select('*')
       .eq('lead_id', leadId)
       .limit(1)
     
-    const existingClient = existingClients?.[0]
-    
-    if (existingClient) {
-      console.log(`[Convert Lead] Client already exists for lead ${leadId}. Unlinking leadId to allow reconversion...`)
-      
-      // Remove the leadId reference from the existing client
-      // This allows the lead to be converted again while preserving the old client
-      await supabase
-        .from('clients')
-        .update({ lead_id: null })
-        .eq('id', existingClient.id)
-      
-      console.log(`[Convert Lead] ✅ Unlinked leadId from existing client: ${existingClient.nom}`)
+    if (existingClients && existingClients.length > 0) {
+      return NextResponse.json(
+        { error: 'Ce lead a déjà été converti en client' },
+        { status: 400 }
+      )
     }
     
-    // If lead status is 'converti' but no client exists, allow re-conversion
-    if (lead.statut === 'converti') {
-      console.log(`[Convert Lead] ⚠️ Lead ${leadId} marked as converti but no client found - allowing re-conversion`)
+    // Store complete lead data for potential restoration
+    const leadDataForRestoration = {
+      id: lead.id,
+      nom: lead.nom,
+      telephone: lead.telephone,
+      ville: lead.ville,
+      typeBien: lead.typeBien,
+      statut: lead.statut,
+      statutDetaille: lead.statutDetaille,
+      message: lead.message,
+      assignePar: lead.assignePar,
+      source: lead.source,
+      priorite: lead.priorite,
+      magasin: lead.magasin,
+      commercialMagasin: lead.commercialMagasin,
+      month: lead.month,
+      campaignName: lead.campaignName,
+      uploadedAt: lead.uploadedAt,
+      createdBy: lead.createdBy,
+      createdAt: lead.createdAt,
+      notes: lead.notes
     }
     
     // Map lead typeBien to client typeProjet enum
@@ -114,7 +131,7 @@ export async function POST(
     const now = new Date().toISOString()
     const clientId = generateCuid()
     
-    // 1. Create client in database using Supabase (for consistency with GET endpoint)
+    // 1. Create client in database with complete lead data for restoration
     console.log(`[Convert Lead] Creating client in database for lead: ${leadId}`)
     const { data: newClient, error: insertError } = await supabase
       .from('clients')
@@ -127,7 +144,8 @@ export async function POST(
         architecte_assigne: lead.assignePar,
         statut_projet: 'qualifie', // Start at first stage
         derniere_maj: now,
-        lead_id: lead.id, // Link back to original lead
+        lead_id: lead.id, // Link back to original lead ID
+        lead_data: leadDataForRestoration, // Store complete lead data for restoration
         notes: lead.message || null,
         magasin: lead.magasin || null,
         commercial_attribue: lead.createdBy || userName,
@@ -149,7 +167,8 @@ export async function POST(
       id: newClient.id,
       nom: newClient.nom,
       typeProjet: newClient.type_projet,
-      statutProjet: newClient.statut_projet
+      statutProjet: newClient.statut_projet,
+      leadDataStored: !!newClient.lead_data
     })
 
     // 2. Create initial stage history for the client
@@ -172,30 +191,19 @@ export async function POST(
         client_id: newClient.id,
         date: now,
         type: 'note',
-        description: `Client créé depuis lead converti: ${lead.nom}`,
+        description: `Client créé depuis lead converti: ${lead.nom} (Source: ${lead.source})`,
         auteur: userName,
         created_at: now,
         updated_at: now
       })
 
-    // 4. Update lead status to converted with convertedAt timestamp
-    const updatedLead = await prisma.lead.update({
-      where: { id: leadId },
-      data: {
-        statut: 'converti',
-        convertedAt: new Date(),
-        derniereMaj: new Date()
-      },
-      include: {
-        notes: {
-          orderBy: {
-            createdAt: 'desc'
-          }
-        }
-      }
+    // 4. DELETE the lead from the database (true migration - no duplication)
+    // The lead data is preserved in client.lead_data for restoration if needed
+    await prisma.lead.delete({
+      where: { id: leadId }
     })
 
-    console.log(`[Convert Lead] ✅ Lead ${leadId} marked as converted with timestamp`)
+    console.log(`[Convert Lead] ✅ Lead ${leadId} deleted from leads table (migrated to client)`)
     
     // Transform client response to camelCase for frontend consistency
     const transformedClient = {
@@ -220,9 +228,8 @@ export async function POST(
     
     return NextResponse.json({
       success: true,
-      lead: updatedLead,
       client: transformedClient,
-      message: 'Lead converti avec succès en client. Vous pouvez désormais le suivre dans Clients & Projets.'
+      message: 'Lead converti avec succès en client et migré. Vous pouvez désormais le suivre dans Clients & Projets.'
     })
   } catch (error) {
     console.error('[Convert Lead] ❌ Error:', error)

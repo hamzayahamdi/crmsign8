@@ -34,6 +34,7 @@ export interface Client {
   createdAt: string
   updatedAt: string
   leadId?: string // Link back to original lead for traceability
+  leadData?: any // Complete original lead data for restoration on deletion
   email?: string
   adresse?: string
   budget?: number

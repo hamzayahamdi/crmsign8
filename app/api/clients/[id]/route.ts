@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { prisma } from '@/lib/database'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -297,7 +298,7 @@ export async function PATCH(
 }
 
 /**
- * DELETE /api/clients/[id] - Delete client
+ * DELETE /api/clients/[id] - Delete client and restore lead if it was converted
  */
 export async function DELETE(
   request: NextRequest,
@@ -324,6 +325,80 @@ export async function DELETE(
     const { id: clientId } = await params
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+    // First, fetch the client to check if it has leadData for restoration
+    const { data: client, error: fetchError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .single()
+
+    if (fetchError || !client) {
+      console.error('[DELETE /api/clients/[id]] Client not found:', fetchError)
+      return NextResponse.json(
+        { error: 'Client non trouvé' },
+        { status: 404 }
+      )
+    }
+
+    let restoredLead = null
+
+    // If client has leadData, restore the lead before deleting the client
+    if (client.lead_data && client.lead_id) {
+      console.log(`[DELETE /api/clients/[id]] 🔄 Restoring lead from client data...`)
+      
+      try {
+        const leadData = client.lead_data as any
+        
+        // Restore the lead with all original data
+        // IMPORTANT: Status is reset to 'nouveau' (not 'converti') because:
+        // 1. Lead is no longer a client, so 'converti' status would be misleading
+        // 2. 'nouveau' gives it a fresh start and requires re-qualification
+        // 3. This prevents confusion in the leads table
+        restoredLead = await prisma.lead.create({
+          data: {
+            id: leadData.id,
+            nom: leadData.nom,
+            telephone: leadData.telephone,
+            ville: leadData.ville,
+            typeBien: leadData.typeBien,
+            statut: 'nouveau', // Reset to 'nouveau' - lead gets fresh start after client deletion
+            statutDetaille: '🔄 Lead restauré après suppression du client - À requalifier',
+            message: leadData.message,
+            assignePar: leadData.assignePar,
+            source: leadData.source,
+            priorite: leadData.priorite,
+            magasin: leadData.magasin,
+            commercialMagasin: leadData.commercialMagasin,
+            month: leadData.month,
+            campaignName: leadData.campaignName,
+            uploadedAt: leadData.uploadedAt ? new Date(leadData.uploadedAt) : null,
+            convertedAt: null, // Clear conversion timestamp - no longer converted
+            createdBy: leadData.createdBy,
+            createdAt: leadData.createdAt ? new Date(leadData.createdAt) : new Date(),
+            derniereMaj: new Date() // Update to current time
+          }
+        })
+
+        // Restore lead notes if they exist
+        if (leadData.notes && Array.isArray(leadData.notes)) {
+          await prisma.leadNote.createMany({
+            data: leadData.notes.map((note: any) => ({
+              id: note.id,
+              leadId: leadData.id,
+              content: note.content,
+              author: note.author,
+              createdAt: note.createdAt ? new Date(note.createdAt) : new Date()
+            }))
+          })
+        }
+
+        console.log(`[DELETE /api/clients/[id]] ✅ Lead restored: ${restoredLead.id}`)
+      } catch (restoreError) {
+        console.error('[DELETE /api/clients/[id]] ❌ Failed to restore lead:', restoreError)
+        // Continue with client deletion even if lead restoration fails
+      }
+    }
+
     // Delete client (cascade will handle related data)
     const { error: deleteError } = await supabase
       .from('clients')
@@ -342,7 +417,14 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Client supprimé avec succès'
+      message: restoredLead 
+        ? 'Client supprimé et lead restauré avec succès' 
+        : 'Client supprimé avec succès',
+      restoredLead: restoredLead ? {
+        id: restoredLead.id,
+        nom: restoredLead.nom,
+        statut: restoredLead.statut
+      } : null
     })
 
   } catch (error) {

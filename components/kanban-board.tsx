@@ -932,34 +932,33 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         return
       }
       
-      // Update lead status
-      if (data.lead) {
-        updateLead(data.lead.id, data.lead)
-      }
-      
       // Dismiss loading toast
       loadingToast.dismiss()
       
-      // Show success toast with redirect countdown
+      // Show success toast
       toast({
         title: "✅ Conversion réussie !",
         description: (
           <div className="space-y-2">
             <p className="font-medium">{lead.nom} a été converti en client</p>
-            <p className="text-sm text-muted-foreground">Redirection vers la fiche client...</p>
+            <p className="text-sm text-muted-foreground">Le lead va disparaître de la table...</p>
           </div>
         ),
-        duration: 2000,
+        duration: 3000,
       })
       
-      // Redirect to client details page after a short delay
+      // ANIMATE: Remove lead from UI with smooth animation
+      console.log('🎬 [Conversion] Removing lead from UI with animation...')
+      removeLead(lead.id)
+      
+      // Redirect to client details page after animation
       const clientId = data.client.id
       console.log('🔄 [Conversion] Preparing redirect to:', `/clients/${clientId}`)
       
       setTimeout(() => {
         console.log('🔄 [Conversion] Executing redirect now...')
         window.location.href = `/clients/${clientId}`
-      }, 1500)
+      }, 2000) // Increased delay to allow animation to complete
       
     } catch (error) {
       console.error("❌ [Conversion] Error:", error)
