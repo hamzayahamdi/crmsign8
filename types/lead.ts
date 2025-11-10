@@ -29,6 +29,7 @@ export interface Lead {
   month?: string
   campaignName?: string
   uploadedAt?: string
+  convertedAt?: string
   notes?: LeadNote[]
   createdBy?: string
   createdAt: string

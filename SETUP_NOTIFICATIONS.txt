@@ -1,0 +1,148 @@
+🔔 NOTIFICATION SYSTEM - SETUP & TEST INSTRUCTIONS
+==================================================
+
+✅ STEP 1: Generate Prisma Client
+----------------------------------
+Run this command to generate the Prisma client with the new Notification model:
+
+  npx prisma generate
+
+
+✅ STEP 2: Run Database Migration
+----------------------------------
+Create the notifications table in your database:
+
+  npx prisma migrate dev --name add_notifications_system
+
+OR if you prefer to push directly:
+
+  npx prisma db push
+
+
+✅ STEP 3: Enable Supabase Realtime (IMPORTANT!)
+-------------------------------------------------
+1. Go to your Supabase Dashboard
+2. Navigate to: Database → Replication
+3. Find the "notifications" table
+4. Click to enable replication
+5. Make sure INSERT, UPDATE, DELETE events are enabled
+
+
+✅ STEP 4: Create Test Notifications
+-------------------------------------
+Run this command to create sample notifications:
+
+  npm run test:notifications
+
+This will create 8 notifications per user:
+- 5 unread notifications (high/medium priority)
+- 3 read notifications
+- Different types: RDV, payments, devis, tasks, etc.
+
+
+✅ STEP 5: Start the App & Test
+--------------------------------
+1. Start the development server:
+   npm run dev
+
+2. Login to the app
+
+3. Look for these features:
+   ✓ Bell icon in top-right header (with badge count)
+   ✓ "Notifications" in sidebar menu (with badge)
+   ✓ Click bell to see dropdown with recent notifications
+   ✓ Click "Notifications" in sidebar to see full page
+
+4. Test the features:
+   ✓ Click a notification to mark it as read
+   ✓ Click "Tout marquer comme lu" to mark all as read
+   ✓ Filter by "Non lues" to see only unread
+   ✓ Filter by type (RDV, Devis, etc.)
+   ✓ Delete notifications with trash icon
+   ✓ Check that badges update in realtime
+
+
+🎯 WHAT YOU SHOULD SEE
+-----------------------
+✓ Bell icon with badge showing unread count
+✓ Sidebar "Notifications" with badge
+✓ Notifications grouped by date (Aujourd'hui, Hier, etc.)
+✓ Different colored icons for different notification types
+✓ Blue dot on unread notifications
+✓ Smooth animations when interacting
+
+
+🔧 TROUBLESHOOTING
+-------------------
+❌ "Property 'notification' does not exist"
+   → Run: npx prisma generate
+
+❌ No notifications showing
+   → Run: npm run test:notifications
+   → Check that you're logged in
+   → Check browser console for errors
+
+❌ Realtime not working
+   → Enable Supabase replication (Step 3)
+   → Check .env has NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+   → Check browser console for connection errors
+
+❌ Sidebar not showing on notifications page
+   → Clear browser cache and refresh
+   → Check that AuthGuard is working
+
+
+📝 CREATE NOTIFICATIONS IN YOUR CODE
+-------------------------------------
+Example: Notify user when RDV is created
+
+import { notifyRdvCreated } from '@/lib/notification-creator';
+
+await notifyRdvCreated({
+  userId: 'user-id',
+  clientName: 'Ahmed Test',
+  clientId: 'client-id',
+  appointmentDate: '12 nov à 08h00',
+  location: 'Rabat',
+  createdBy: 'admin-id'
+});
+
+
+📚 AVAILABLE NOTIFICATION CREATORS
+-----------------------------------
+- notifyRdvCreated()        → New appointment
+- notifyRdvReminder()       → Appointment reminder
+- notifyDevisCreated()      → New quote
+- notifyStageChanged()      → Client stage update
+- notifyPaymentReceived()   → Payment confirmed
+- notifyTaskAssigned()      → New task
+- notifyTaskDueSoon()       → Task deadline approaching
+- notifyDocumentUploaded()  → New document
+- notifyClientAssigned()    → New client assigned
+
+All functions are in: lib/notification-creator.ts
+
+
+🎨 CUSTOMIZATION
+-----------------
+- Icons & colors: lib/notification-utils.ts
+- Toast behavior: contexts/notification-context.tsx
+- UI styling: components/notification-bell.tsx
+- Page layout: app/notifications/page.tsx
+
+
+✨ THAT'S IT!
+--------------
+Your notification system is now ready to use!
+
+The system includes:
+✓ Real-time updates via Supabase
+✓ Smart contextual toasts
+✓ Beautiful UI with calm design
+✓ Full notification history
+✓ Priority-based filtering
+✓ Date grouping
+✓ Mark as read/unread
+✓ Delete notifications
+
+Happy coding! 🎉

@@ -130,34 +130,37 @@ export function ClientKanbanBoard({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // Reduced for smoother drag start
+        distance: 8, // Optimal distance to prevent accidental drags
       },
     }),
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 5, // Reduced for smoother drag start
+        distance: 8,
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 150, // Reduced delay for faster response
-        tolerance: 5,
+        delay: 200,
+        tolerance: 8,
       },
     })
   )
 
-  // Custom collision detection
+  // Enhanced collision detection for better drop target recognition
   const customCollisionDetection = (args: any) => {
+    // First, try pointer-based collision (most accurate)
     const pointerCollisions = pointerWithin(args)
     if (pointerCollisions.length > 0) {
       return pointerCollisions
     }
     
+    // Then try rectangle intersection
     const rectCollisions = rectIntersection(args)
     if (rectCollisions.length > 0) {
       return rectCollisions
     }
     
+    // Finally, use closest center as fallback
     return closestCenter(args)
   }
 
@@ -254,8 +257,13 @@ export function ClientKanbanBoard({
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     
+    console.log('[Kanban] 🎯 Drag ended', { activeId: active.id, overId: over?.id })
+    
+    // Clear active client immediately
+    setActiveClient(null)
+    
     if (!over) {
-      setActiveClient(null)
+      console.log('[Kanban] ⚠️ No drop target detected')
       return
     }
 
@@ -263,11 +271,11 @@ export function ClientKanbanBoard({
     const draggedClient = clients.find(c => c.id === draggedId)
 
     if (!draggedClient) {
-      setActiveClient(null)
+      console.log('[Kanban] ⚠️ Dragged client not found:', draggedId)
       return
     }
 
-    // Determine target status
+    // Determine target status from drop zone
     const overId = String(over.id)
     const possibleStatuses: ProjectStatus[] = [
       "qualifie",
@@ -285,29 +293,34 @@ export function ClientKanbanBoard({
 
     let targetStatus: ProjectStatus | null = null
 
+    // Check if dropped directly on a column
     if (possibleStatuses.includes(overId as ProjectStatus)) {
       targetStatus = overId as ProjectStatus
     }
 
     if (!targetStatus) {
-      setActiveClient(null)
+      console.log('[Kanban] ⚠️ Could not determine target status from:', overId)
       return
     }
 
     // Don't update if dropped in same column
     if (draggedClient.statutProjet === targetStatus) {
-      setActiveClient(null)
+      console.log('[Kanban] ℹ️ Dropped in same column, no update needed')
       return
     }
 
     // Store original state for rollback
     const originalStatus = draggedClient.statutProjet
+    const originalClient = { ...draggedClient }
     const now = new Date().toISOString()
 
-    console.log(`[Kanban] 🎯 Drag detected: ${draggedClient.nom}`)
-    console.log(`[Kanban] 📍 From: ${originalStatus} → To: ${targetStatus}`)
+    console.log(`[Kanban] 🎯 Moving: ${draggedClient.nom}`)
+    console.log(`[Kanban] 📍 ${originalStatus} → ${targetStatus}`)
 
-    // Optimistic update FIRST (immediate UI feedback)
+    // Show loading indicator
+    setIsUpdating(true)
+
+    // Create optimistic update
     const optimisticClient: Client = {
       ...draggedClient,
       statutProjet: targetStatus,
@@ -325,14 +338,12 @@ export function ClientKanbanBoard({
       ]
     }
 
-    console.log(`[Kanban] ⚡ Optimistic update - Setting UI to: ${targetStatus}`)
+    console.log(`[Kanban] ⚡ Applying optimistic update`)
     
-    // Update UI immediately for smooth drag experience
+    // Apply optimistic update to UI
     onUpdateClient(optimisticClient)
-    setActiveClient(null)
-    setIsUpdating(true)
 
-    // Then update database - this will trigger real-time sync to other browsers
+    // Update database
     try {
       const response = await fetch(`/api/clients/${draggedClient.id}/stage`, {
         method: 'POST',
@@ -345,13 +356,18 @@ export function ClientKanbanBoard({
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to update stage in database')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to update stage`)
       }
 
       const result = await response.json()
-      console.log(`[Kanban] ✅ Stage updated in DB: ${draggedClient.id} → ${targetStatus}`)
-      console.log(`[Kanban] 🔄 Real-time sync will update other browsers automatically`)
+      console.log(`[Kanban] ✅ Database updated successfully`)
+      console.log(`[Kanban] 📊 Result:`, result)
+      
+      // Check if devis were synced
+      if (result.devisSynced && result.devisUpdatedCount > 0) {
+        console.log(`[Kanban] 📋 ${result.devisUpdatedCount} devis auto-synced to match project status`)
+      }
       
       // Show success toast
       const statusLabels: Record<ProjectStatus, string> = {
@@ -378,30 +394,30 @@ export function ClientKanbanBoard({
         suspendu: "Suspendu"
       }
       
+      // Enhanced toast with devis sync info
+      const toastDescription = result.devisSynced && result.devisUpdatedCount > 0
+        ? `${draggedClient.nom} → ${statusLabels[targetStatus]}\n📋 ${result.devisUpdatedCount} devis ${targetStatus === 'accepte' ? 'accepté(s)' : 'refusé(s)'} automatiquement`
+        : `${draggedClient.nom} → ${statusLabels[targetStatus]}`
+      
       toast({
         title: "✅ Projet déplacé",
-        description: `${draggedClient.nom} → ${statusLabels[targetStatus]}`
+        description: toastDescription,
+        duration: result.devisSynced ? 5000 : 3000
       })
 
     } catch (error) {
       console.error('[Kanban] ❌ Failed to update stage:', error)
-      console.log(`[Kanban] 🔄 Rolling back: ${targetStatus} → ${originalStatus}`)
+      console.log(`[Kanban] 🔄 Rolling back to original status: ${originalStatus}`)
       
-      // ROLLBACK: Revert to original status
-      const rollbackClient: Client = {
-        ...draggedClient,
-        statutProjet: originalStatus,
-        derniereMaj: draggedClient.derniereMaj,
-        updatedAt: draggedClient.updatedAt,
-      }
-      
-      onUpdateClient(rollbackClient)
-      console.log(`[Kanban] ✅ Rollback complete - UI restored to: ${originalStatus}`)
+      // ROLLBACK: Revert to original client state
+      onUpdateClient(originalClient)
+      console.log(`[Kanban] ✅ Rollback complete`)
       
       toast({
-        title: "❌ Erreur",
-        description: "Impossible de déplacer le projet. Veuillez réessayer.",
-        variant: "destructive"
+        title: "❌ Erreur de mise à jour",
+        description: error instanceof Error ? error.message : "Impossible de déplacer le projet. Veuillez réessayer.",
+        variant: "destructive",
+        duration: 5000
       })
     } finally {
       setIsUpdating(false)
@@ -475,9 +491,9 @@ export function ClientKanbanBoard({
           ))}
         </div>
 
-        <DragOverlay>
+        <DragOverlay dropAnimation={null}>
           {activeClient ? (
-            <div className="rotate-3 scale-105">
+            <div className="rotate-2 scale-105 opacity-90 shadow-2xl">
               <ClientKanbanCard
                 client={activeClient}
                 onClick={() => {}}

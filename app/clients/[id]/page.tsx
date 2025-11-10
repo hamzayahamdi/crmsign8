@@ -221,6 +221,33 @@ export default function ClientDetailsPage() {
     return () => window.removeEventListener('task-updated' as any, handleTaskUpdate)
   }, [clientId])
 
+  // Listen for stage updates from real-time sync
+  useEffect(() => {
+    const handleStageUpdate = async (event: CustomEvent) => {
+      if (event.detail.clientId === clientId) {
+        console.log('[Client Details] Stage updated, refreshing client data...')
+        try {
+          const response = await fetch(`/api/clients/${clientId}`, {
+            credentials: 'include'
+          })
+          if (response.ok) {
+            const result = await response.json()
+            console.log('[Client Details] Refreshed after stage update:', {
+              statutProjet: result.data.statutProjet,
+              updatedAt: result.data.updatedAt
+            })
+            setClient(result.data)
+          }
+        } catch (error) {
+          console.error('[Client Details] Error refreshing after stage update:', error)
+        }
+      }
+    }
+
+    window.addEventListener('stage-updated' as any, handleStageUpdate)
+    return () => window.removeEventListener('stage-updated' as any, handleStageUpdate)
+  }, [clientId])
+
   const handleUpdateClient = async (updatedClient: Client, skipApiCall = false) => {
     try {
       // If skipApiCall is true, just update local state (for optimistic updates)

@@ -178,11 +178,12 @@ export async function POST(
         updated_at: now
       })
 
-    // 4. Update lead status to converted
+    // 4. Update lead status to converted with convertedAt timestamp
     const updatedLead = await prisma.lead.update({
       where: { id: leadId },
       data: {
         statut: 'converti',
+        convertedAt: new Date(),
         derniereMaj: new Date()
       },
       include: {
@@ -194,7 +195,7 @@ export async function POST(
       }
     })
 
-    console.log(`[Convert Lead] ✅ Lead ${leadId} marked as converted`)
+    console.log(`[Convert Lead] ✅ Lead ${leadId} marked as converted with timestamp`)
     
     // Transform client response to camelCase for frontend consistency
     const transformedClient = {

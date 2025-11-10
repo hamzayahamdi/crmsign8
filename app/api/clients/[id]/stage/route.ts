@@ -106,7 +106,86 @@ export async function POST(
       )
     }
 
-    // 4. Update the historique table for timeline tracking
+    // 4. Update the clients table with the new stage (keep in sync)
+    await supabase
+      .from('clients')
+      .update({
+        statut_projet: newStage,
+        derniere_maj: now,
+        updated_at: now
+      })
+      .eq('id', clientId)
+
+    // 5. BIDIRECTIONAL SYNC: Update devis status based on project status
+    let devisSynced = false
+    let devisUpdatedCount = 0
+    
+    if (newStage === 'accepte') {
+      // When moving to "Accepté", mark all pending devis as accepted
+      const { data: pendingDevis } = await supabase
+        .from('devis')
+        .select('id, statut')
+        .eq('client_id', clientId)
+        .eq('statut', 'en_attente')
+      
+      if (pendingDevis && pendingDevis.length > 0) {
+        console.log(`[Stage API] 📋 Found ${pendingDevis.length} pending devis, marking as accepted`)
+        
+        const { error: updateError } = await supabase
+          .from('devis')
+          .update({
+            statut: 'accepte',
+            validated_at: now,
+            updated_at: now
+          })
+          .eq('client_id', clientId)
+          .eq('statut', 'en_attente')
+        
+        if (!updateError) {
+          devisSynced = true
+          devisUpdatedCount = pendingDevis.length
+          console.log(`[Stage API] ✅ Auto-accepted ${pendingDevis.length} devis`)
+        }
+      }
+    } else if (newStage === 'refuse') {
+      // When moving to "Refusé", mark all pending devis as refused
+      const { data: pendingDevis } = await supabase
+        .from('devis')
+        .select('id, statut')
+        .eq('client_id', clientId)
+        .eq('statut', 'en_attente')
+      
+      if (pendingDevis && pendingDevis.length > 0) {
+        console.log(`[Stage API] 📋 Found ${pendingDevis.length} pending devis, marking as refused`)
+        
+        const { error: updateError } = await supabase
+          .from('devis')
+          .update({
+            statut: 'refuse',
+            validated_at: now,
+            updated_at: now
+          })
+          .eq('client_id', clientId)
+          .eq('statut', 'en_attente')
+        
+        if (!updateError) {
+          devisSynced = true
+          devisUpdatedCount = pendingDevis.length
+          console.log(`[Stage API] ✅ Auto-refused ${pendingDevis.length} devis`)
+        }
+      }
+    }
+
+    // 5. Update the historique table for timeline tracking
+    // Calculate duration if there was a previous stage
+    let durationInHours = null
+    if (currentHistory) {
+      const startedAt = new Date(currentHistory.started_at)
+      const endedAt = new Date(now)
+      const durationMs = endedAt.getTime() - startedAt.getTime()
+      durationInHours = durationMs / (1000 * 60 * 60) // Convert to hours
+    }
+
     await supabase
       .from('historique')
       .insert({
@@ -117,17 +196,26 @@ export async function POST(
         auteur: changedBy,
         previous_status: currentHistory?.stage_name || null,
         new_status: newStage,
+        duration_in_hours: durationInHours,
         timestamp_start: now,
         created_at: now,
         updated_at: now
       })
 
     console.log(`[POST /stage] ✅ Successfully updated stage: ${clientId} → ${newStage}`)
+    console.log(`[POST /stage] ✅ Updated clients table with new stage`)
+    console.log(`[POST /stage] ✅ Created historique entry for timeline`)
+    if (devisSynced) {
+      console.log(`[POST /stage] ✅ Auto-synced ${devisUpdatedCount} devis to match project status`)
+    }
 
     return NextResponse.json({
       success: true,
       data: newHistory,
-      previousStage: currentHistory?.stage_name || null
+      previousStage: currentHistory?.stage_name || null,
+      newStage: newStage,
+      devisSynced: devisSynced,
+      devisUpdatedCount: devisUpdatedCount
     })
 
   } catch (error) {

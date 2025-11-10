@@ -4,7 +4,7 @@ import { useState } from "react"
 import { 
   Clock, MessageSquare, Phone, FileText, CheckCircle, DollarSign, 
   Calendar, MapPin, ExternalLink, Filter, Plus, ChevronDown, ChevronUp,
-  TrendingUp, User
+  TrendingUp, User, History
 } from "lucide-react"
 import type { Client, ClientHistoryEntry, Appointment } from "@/types/client"
 import { Button } from "@/components/ui/button"
@@ -284,7 +284,10 @@ export function EnhancedTimeline({
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-base font-bold text-white mb-0.5">Historique & Timeline</h3>
+          <h3 className="text-base font-bold text-white mb-0.5 flex items-center gap-2">
+            <History className="w-4 h-4 text-white/80" />
+            Historique
+          </h3>
           <p className="text-xs text-white/50">{filteredEvents.length} événement{filteredEvents.length > 1 ? 's' : ''}</p>
         </div>
         
@@ -483,7 +486,7 @@ export function EnhancedTimeline({
       ) : (
         <div className="text-center py-12">
           <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
-            <Clock className="w-8 h-8 text-white/40" />
+            <History className="w-8 h-8 text-white/40" />
           </div>
           <p className="text-white/60">Aucun événement pour le moment</p>
         </div>

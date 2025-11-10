@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Users, LogOut, Settings, CalendarDays, Compass, Calendar } from "lucide-react"
+import { Home, Users, LogOut, Settings, CalendarDays, Compass, Calendar, Bell } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -30,6 +30,7 @@ const baseNav = [
   { name: "Architectes", href: "/architectes", icon: Compass },
   { name: "Tâches & Rappels", href: "/tasks", icon: CalendarDays },
   { name: "Calendrier", href: "/calendrier", icon: Calendar },
+  { name: "Notifications", href: "/notifications", icon: Bell },
 ] as const
 
 const adminOperatorExtras = [
@@ -44,6 +45,9 @@ export function Sidebar() {
   const [myPendingTasks, setMyPendingTasks] = useState<number>(0)
   const [myNewTasks, setMyNewTasks] = useState<number>(0)
   const [adminUpdatesCount, setAdminUpdatesCount] = useState<number>(0)
+  
+  // Notifications badge state
+  const [notificationCount, setNotificationCount] = useState<number>(0)
 
   // Load tasks count for the signed-in user and compute new tasks since last seen
   useEffect(() => {
@@ -99,7 +103,29 @@ export function Sidebar() {
     }
 
     loadAdminUpdates()
-  }, [user?.name, pathname])
+    
+    // Load notification count
+    const loadNotifications = async () => {
+      if (!user?.id) return
+      
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const response = await fetch(`/api/notifications?userId=${user.id}`, {
+          credentials: 'include',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setNotificationCount(data.unreadCount || 0);
+        }
+      } catch (error) {
+        console.error('Error loading notifications:', error);
+      }
+    }
+    
+    loadNotifications()
+  }, [user?.name, user?.id, pathname])
 
   const getInitials = (name: string) => {
     return name
@@ -180,6 +206,16 @@ export function Sidebar() {
                 <span className="font-medium text-sm flex-1 relative z-[1] truncate">
                   {item.name}
                 </span>
+              {item.href === "/notifications" && notificationCount > 0 && (
+                <span className={cn(
+                  "ml-auto min-w-[1.75rem] h-7 px-2.5 inline-flex items-center justify-center rounded-full text-xs font-bold shadow-lg relative z-[1]",
+                  isActive
+                    ? "bg-white text-primary shadow-white/20"
+                    : "bg-gradient-to-r from-primary to-blue-500 text-white shadow-primary/30 animate-pulse"
+                )}>
+                  {notificationCount > 99 ? '99+' : notificationCount}
+                </span>
+              )}
               {item.href === "/tasks" && (
                 <span className="ml-auto inline-flex items-center gap-2 relative z-[1]">
                   {/* New Tasks - Red Pulse Dot */}

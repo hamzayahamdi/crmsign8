@@ -139,6 +139,23 @@ export async function PUT(
       }
     }
     
+    // Handle convertedAt timestamp based on status changes
+    let convertedAtUpdate: Date | null | undefined = undefined
+    
+    // Set convertedAt when status changes to 'converti' or 'non_interesse'
+    if ((body.statut === 'converti' || body.statut === 'non_interesse') && 
+        existing.statut !== 'converti' && existing.statut !== 'non_interesse') {
+      convertedAtUpdate = new Date()
+      console.log(`[Lead Update] Setting convertedAt timestamp for lead ${leadId}`)
+    }
+    
+    // Clear convertedAt when status changes back from 'converti' or 'non_interesse'
+    if ((existing.statut === 'converti' || existing.statut === 'non_interesse') &&
+        body.statut !== 'converti' && body.statut !== 'non_interesse') {
+      convertedAtUpdate = null
+      console.log(`[Lead Update] Clearing convertedAt timestamp for lead ${leadId}`)
+    }
+    
     // Build update data with only valid fields
     const updateData: any = {
       nom: body.nom,
@@ -153,6 +170,11 @@ export async function PUT(
       source: body.source as any, // Cast to any to bypass enum validation
       priorite: body.priorite,
       derniereMaj: new Date(body.derniereMaj || new Date())
+    }
+    
+    // Add convertedAt if it needs to be updated
+    if (convertedAtUpdate !== undefined) {
+      updateData.convertedAt = convertedAtUpdate
     }
     
     // Only include magasin fields if source is magasin

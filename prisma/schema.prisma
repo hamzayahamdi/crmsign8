@@ -26,6 +26,7 @@ model Lead {
   month               String?
   campaignName        String?      @map("campaign_name")
   uploadedAt          DateTime?    @map("uploaded_at")
+  convertedAt         DateTime?    @map("converted_at")
   notes               LeadNote[]
   createdBy           String?
   createdAt           DateTime     @default(now())
@@ -391,4 +392,49 @@ model Payment {
   @@index([clientId])
   @@index([date(sort: Desc)])
   @@map("payments")
+}
+
+model Notification {
+  id          String             @id @default(cuid())
+  userId      String             @map("user_id")
+  type        NotificationType
+  priority    NotificationPriority
+  title       String
+  message     String
+  isRead      Boolean            @default(false) @map("is_read")
+  linkedType  String?            @map("linked_type") // client, lead, appointment, devis, etc.
+  linkedId    String?            @map("linked_id")
+  linkedName  String?            @map("linked_name")
+  metadata    Json?              // Additional contextual data
+  createdBy   String?            @map("created_by")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  readAt      DateTime?          @map("read_at")
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt(sort: Desc)])
+  @@index([type])
+  @@index([priority])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  rdv_created
+  rdv_updated
+  rdv_reminder
+  devis_created
+  devis_updated
+  stage_changed
+  payment_received
+  note_added
+  task_assigned
+  task_due_soon
+  document_uploaded
+  client_assigned
+}
+
+enum NotificationPriority {
+  high
+  medium
+  low
 }

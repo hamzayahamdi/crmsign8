@@ -181,6 +181,12 @@ export function ClientDetailsHeader({ client, onUpdate }: ClientDetailsHeaderPro
             }
             onUpdate(updatedClient)
 
+            // Emit custom event to trigger refresh of timeline and roadmap
+            window.dispatchEvent(new CustomEvent('stage-updated', {
+              detail: { clientId: client.id, newStatus, changedBy }
+            }))
+            console.log('[ClientDetailsHeader] Emitted stage-updated event:', { clientId: client.id, newStatus })
+
             toast({
               title: "Statut mis à jour",
               description: `Le statut a été changé à "${newStatus}"`,

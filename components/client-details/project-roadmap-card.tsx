@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, CheckCircle2, Clock, Lock, MapPin, Plus, AlertCircle, FileText, DollarSign, Package, Hammer, Receipt, Truck, Sparkles, Coins, Info } from "lucide-react"
+import { Calendar, CheckCircle2, Clock, Lock, Route, Plus, AlertCircle, FileText, DollarSign, Package, Hammer, Receipt, Truck, Sparkles, Coins, Info } from "lucide-react"
 import type { Client, ProjectStatus } from "@/types/client"
 import type { Task } from "@/types/task"
 import { Button } from "@/components/ui/button"
@@ -41,11 +41,14 @@ const ROADMAP_STAGES: RoadmapStage[] = [
   { id: "conception", label: "Conception", icon: "🧩", order: 3 },
   { id: "devis_negociation", label: "Devis", icon: "📄", order: 4 },
   { id: "accepte", label: "Accepté", icon: "✅", order: 5 },
+  { id: "refuse", label: "Refusé", icon: "❌", order: 99 }, // Terminal state
   { id: "premier_depot", label: "1er Dépôt", icon: "💵", order: 6 },
   { id: "projet_en_cours", label: "En Cours", icon: "⚙️", order: 7 },
   { id: "chantier", label: "Chantier", icon: "🔨", order: 8 },
   { id: "facture_reglee", label: "Facturé", icon: "🧾", order: 9 },
   { id: "livraison_termine", label: "Livré", icon: "🚚", order: 10 },
+  { id: "annule", label: "Annulé", icon: "🚫", order: 98 }, // Terminal state
+  { id: "suspendu", label: "Suspendu", icon: "⏸️", order: 97 }, // Terminal state
 ]
 
 export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: ProjectRoadmapCardProps) {
@@ -155,19 +158,61 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
   }, [stageHistory])
 
   // Get current stage order
-  const currentStageOrder = ROADMAP_STAGES.find(s => s.id === client.statutProjet)?.order || 1
+  const currentStage = ROADMAP_STAGES.find(s => s.id === client.statutProjet)
+  const currentStageOrder = currentStage?.order || 1
+  
+  // Check if current status is a terminal state
+  const isTerminalStatus = ['refuse', 'annule', 'suspendu', 'livraison_termine'].includes(client.statutProjet)
+  
+  console.log('[ProjectRoadmap] Current status:', {
+    statutProjet: client.statutProjet,
+    foundStage: currentStage ? 'YES' : 'NO',
+    order: currentStageOrder,
+    isTerminal: isTerminalStatus
+  })
 
   // Get devis summary for display
   const devisSummary = getDevisStatusSummary(client.devis || [])
 
   // Get stage status
-  const getStageStatus = (stage: RoadmapStage): 'completed' | 'in_progress' | 'pending' => {
+  const getStageStatus = (stage: RoadmapStage): 'completed' | 'in_progress' | 'pending' | 'terminal' | 'unreachable' => {
+    // If this is the current stage
+    if (stage.id === client.statutProjet) {
+      // Terminal statuses are marked as terminal, not in_progress
+      if (isTerminalStatus) return 'terminal'
+      return 'in_progress'
+    }
+    
+    // For terminal statuses (refuse, annule, suspendu), only show them if they're current
+    if (stage.order >= 97) {
+      return 'pending' // Hide terminal stages unless they're active
+    }
+    
+    // If the project is in a terminal state, all stages after the last completed stage are unreachable
+    if (isTerminalStatus) {
+      // Find the last completed stage before the terminal status
+      const terminalStageIndex = ROADMAP_STAGES.findIndex(s => s.id === client.statutProjet)
+      const currentStageIndex = ROADMAP_STAGES.findIndex(s => s.id === stage.id)
+      
+      // If this stage comes after the terminal stage in the normal flow, it's unreachable
+      if (currentStageIndex > terminalStageIndex && stage.order < 97) {
+        return 'unreachable'
+      }
+      
+      // Stages before the terminal stage that were completed
+      if (stage.order < currentStageOrder && stage.order < 97) {
+        return 'completed'
+      }
+      
+      return 'pending'
+    }
+    
+    // Normal progression logic (when not in terminal state)
     if (stage.order < currentStageOrder) return 'completed'
-    if (stage.order === currentStageOrder) return 'in_progress'
     return 'pending'
   }
 
-  // Get stage duration from history
+  // Get stage duration from history (Updated: 2025-11-07 - Added fallback to historique)
   const getStageDuration = (stageId: ProjectStatus): string | null => {
     console.log('[getStageDuration] Checking stage:', stageId, 'History count:', stageHistory.length)
     
@@ -184,6 +229,19 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
         const duration = calculateDuration(referenceDate)
         return formatDurationDetailed(duration)
       }
+      
+      // For completed stages without stage history, try to get duration from client historique
+      if (status === 'completed') {
+        const historyEntry = client.historique?.find(
+          h => h.type === 'statut' && h.newStatus === stageId && h.durationInHours
+        )
+        if (historyEntry && historyEntry.durationInHours) {
+          const durationSeconds = Math.floor(historyEntry.durationInHours * 3600)
+          console.log('[getStageDuration] Found duration from historique for', stageId, ':', durationSeconds, 'seconds')
+          return formatDurationDetailed(durationSeconds)
+        }
+      }
+      
       return null
     }
 
@@ -196,16 +254,18 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
     }
 
     // For completed stages, use stored duration
-    if (stageEntry.durationSeconds) {
+    if (stageEntry.durationSeconds !== null && stageEntry.durationSeconds !== undefined) {
       const formatted = formatDurationDetailed(stageEntry.durationSeconds)
-      console.log('[getStageDuration] Completed stage', stageId, 'duration:', formatted)
+      console.log('[getStageDuration] Completed stage', stageId, 'duration:', formatted, '(', stageEntry.durationSeconds, 'seconds)')
       return formatted
     }
 
     // Fallback: calculate from dates
     if (stageEntry.endedAt) {
       const duration = calculateDuration(stageEntry.startedAt, stageEntry.endedAt)
-      return formatDurationDetailed(duration)
+      const formatted = formatDurationDetailed(duration)
+      console.log('[getStageDuration] Calculated duration for', stageId, ':', formatted, '(', duration, 'seconds)')
+      return formatted
     }
 
     return 'Récent'
@@ -284,8 +344,7 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
     <div className="bg-[#171B22] rounded-xl border border-white/10">
       {/* Header */}
       <div className="p-4 border-b border-white/10">
-        <h2 className="text-base font-bold text-white mb-0.5">Feuille de Route & Prochaines Actions</h2>
-        <p className="text-xs text-white/50">Visualisation du parcours projet et actions à venir</p>
+        <h2 className="text-base font-bold text-white mb-0.5">Timeline</h2>
       </div>
 
       {/* Two Column Layout */}
@@ -297,7 +356,7 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
             className="flex items-center justify-between mb-3 hover:opacity-80 transition-opacity"
           >
             <h3 className="text-xs font-semibold text-white/80 flex items-center gap-1.5 uppercase tracking-wide">
-              <MapPin className="w-3.5 h-3.5 text-blue-400" />
+              <Route className="w-3.5 h-3.5 text-blue-400" />
               Feuille de Route
             </h3>
             {isRoadmapCollapsed ? (
@@ -313,23 +372,32 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
             {ROADMAP_STAGES.map((stage, index) => {
               const status = getStageStatus(stage)
               const isLast = index === ROADMAP_STAGES.length - 1
+              
+              // Hide terminal stages unless they're the current status
+              if (stage.order >= 97 && stage.id !== client.statutProjet) {
+                return null
+              }
 
               return (
                 <div key={stage.id} className="relative">
                   <div
                     className={cn(
-                      "flex items-center gap-2.5 p-2.5 rounded-lg transition-all",
+                      "flex items-center gap-2 p-2 rounded-lg transition-all",
                       status === 'completed' && "bg-green-500/10 border border-green-500/20",
                       status === 'in_progress' && "bg-blue-500/10 border border-blue-500/30 ring-1 ring-blue-500/20",
+                      status === 'terminal' && "bg-red-500/10 border border-red-500/30 ring-1 ring-red-500/20",
+                      status === 'unreachable' && "bg-gray-500/5 border border-gray-500/20 opacity-60",
                       status === 'pending' && "bg-white/5 border border-white/10"
                     )}
                   >
                     {/* Icon */}
                     <div
                       className={cn(
-                        "w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all text-base",
+                        "w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all text-sm",
                         status === 'completed' && "bg-green-500/20",
                         status === 'in_progress' && "bg-blue-500/20 animate-pulse",
+                        status === 'terminal' && "bg-red-500/20",
+                        status === 'unreachable' && "bg-gray-500/15 opacity-50",
                         status === 'pending' && "bg-white/10 opacity-50"
                       )}
                     >
@@ -338,12 +406,15 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
 
                     {/* Label and Duration */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0">
+                      {/* Stage Label */}
+                      <div className="flex items-center gap-1.5">
                         <span
                           className={cn(
-                            "text-xs font-medium",
+                            "text-[11px] font-medium",
                             status === 'completed' && "text-green-400",
                             status === 'in_progress' && "text-blue-400 font-semibold",
+                            status === 'terminal' && "text-red-400 font-semibold",
+                            status === 'unreachable' && "text-gray-400/50 line-through",
                             status === 'pending' && "text-white/40"
                           )}
                         >
@@ -351,108 +422,75 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
                         </span>
                         {/* Show devis summary for devis_negociation stage */}
                         {stage.id === 'devis_negociation' && devisSummary.total > 0 && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center gap-0.5">
-                                  <Info className="w-3 h-3 text-blue-400/60" />
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent side="right" className="bg-[#1a1f2e] border-white/20 text-white max-w-xs">
-                                <p className="text-xs font-medium mb-1">🤖 Automatisation intelligente</p>
-                                <p className="text-[11px] text-white/70">
-                                  L'étape progresse automatiquement selon le statut des devis.
-                                  Si un devis est accepté, le projet avance vers "✅ Accepté".
-                                  Si tous sont refusés, le projet passe à "❌ Refusé".
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <span className="text-[9px] text-white/50">
+                            ({devisSummary.total} devis)
+                          </span>
                         )}
                       </div>
                       
-                      {/* Devis Summary for devis_negociation stage */}
-                      {stage.id === 'devis_negociation' && devisSummary.total > 0 && (
-                        <div className="mt-1 mb-0.5">
-                          <span className="text-[10px] text-white/60">
-                            Devis: {devisSummary.total} envoyé{devisSummary.total > 1 ? 's' : ''}
-                            {devisSummary.accepted > 0 && (
-                              <span className="text-green-400 ml-1">
-                                • {devisSummary.accepted} accepté{devisSummary.accepted > 1 ? 's' : ''}
-                              </span>
-                            )}
-                            {devisSummary.refused > 0 && (
-                              <span className="text-red-400 ml-1">
-                                • {devisSummary.refused} refusé{devisSummary.refused > 1 ? 's' : ''}
-                              </span>
-                            )}
-                            {devisSummary.pending > 0 && (
-                              <span className="text-yellow-400 ml-1">
-                                • {devisSummary.pending} en attente
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* Duration and Date Range - Enhanced Display */}
+                      {/* Duration and Date on Same Line - Compact */}
                       {getStageDuration(stage.id) && (
-                        <div className="mt-1.5 space-y-0.5">
-                          {/* Duration with prominent styling */}
-                          <div className="flex items-center gap-1.5">
-                            <div 
-                              className={cn(
-                                "flex items-center gap-1 px-1.5 py-0.5 rounded",
-                                status === 'completed' && "bg-emerald-500/15",
-                                status === 'in_progress' && "bg-sky-500/20",
-                                status === 'pending' && "bg-white/5"
-                              )}
-                            >
-                              <Clock className={cn(
-                                "w-3 h-3",
-                                status === 'completed' && "text-emerald-400",
-                                status === 'in_progress' && "text-sky-400",
-                                status === 'pending' && "text-white/40"
-                              )} />
-                              <span 
-                                className={cn(
-                                  "text-[11px] font-bold",
-                                  status === 'completed' && "text-emerald-300",
-                                  status === 'in_progress' && "text-sky-300",
-                                  status === 'pending' && "text-white/50"
-                                )}
-                              >
-                                {getStageDuration(stage.id)}
-                              </span>
-                            </div>
-                            {status === 'in_progress' && (
-                              <span className="text-[9px] px-1 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium animate-pulse">
-                                ACTIF
-                              </span>
-                            )}
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          {/* Duration */}
+                          <div className="flex items-center gap-0.5">
+                            <Clock className={cn(
+                              "w-2.5 h-2.5",
+                              status === 'completed' && "text-emerald-400/60",
+                              status === 'in_progress' && "text-sky-400",
+                              status === 'terminal' && "text-red-400",
+                              status === 'unreachable' && "text-gray-400/40",
+                              status === 'pending' && "text-white/30"
+                            )} />
+                            <span className={cn(
+                              "text-[10px] font-semibold",
+                              status === 'completed' && "text-emerald-300/80",
+                              status === 'in_progress' && "text-sky-300",
+                              status === 'terminal' && "text-red-300",
+                              status === 'unreachable' && "text-gray-400/40",
+                              status === 'pending' && "text-white/40"
+                            )}>
+                              {getStageDuration(stage.id)}
+                            </span>
                           </div>
                           
-                          {/* Date Range on separate line */}
+                          {/* Separator */}
                           {getStageDateRange(stage.id) && (
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-2.5 h-2.5 text-white/40" />
-                              <span className="text-[10px] text-white/60">
+                            <span className="text-white/20 text-[10px]">•</span>
+                          )}
+                          
+                          {/* Date Range */}
+                          {getStageDateRange(stage.id) && (
+                            <div className="flex items-center gap-0.5">
+                              <Calendar className="w-2.5 h-2.5 text-white/30" />
+                              <span className="text-[9px] text-white/50">
                                 {getStageDateRange(stage.id)}
                               </span>
                             </div>
+                          )}
+                          
+                          {/* Status Badges - Inline */}
+                          {status === 'in_progress' && (
+                            <span className="text-[8px] px-1 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium animate-pulse">
+                              ACTIF
+                            </span>
+                          )}
+                          {status === 'terminal' && (
+                            <span className="text-[8px] px-1 py-0.5 rounded-full bg-red-500/20 text-red-300 font-medium">
+                              TERMINAL
+                            </span>
                           )}
                         </div>
                       )}
                     </div>
 
-                    {/* Status Badge */}
-                    {status === 'in_progress' && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium">
-                        En cours
+                    {/* Status Icon/Badge - Compact */}
+                    {status === 'unreachable' && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-500/15 text-gray-400/50 font-medium">
+                        Non atteint
                       </span>
                     )}
                     {status === 'completed' && (
-                      <span className="text-sm text-green-400/60">✓</span>
+                      <span className="text-xs text-green-400/70">✓</span>
                     )}
                   </div>
 
@@ -460,7 +498,7 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
                   {!isLast && (
                     <div
                       className={cn(
-                        "w-0.5 h-1.5 ml-3.5 transition-all",
+                        "w-0.5 h-1 ml-3 transition-all",
                         status === 'completed' ? "bg-green-500/30" : "bg-white/10"
                       )}
                     />

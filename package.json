@@ -29,7 +29,8 @@
     "supabase:logs": "supabase functions logs check-reminders",
     "import:tiktok": "node scripts/import-tiktok-leads.js",
     "migrate:tiktok": "prisma migrate dev --name add_tiktok_month_tracking",
-    "update:tiktok": "node scripts/update-existing-tiktok-leads.js"
+    "update:tiktok": "node scripts/update-existing-tiktok-leads.js",
+    "test:notifications": "node scripts/test-notifications.js"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",

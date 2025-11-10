@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { NotificationBell } from "@/components/notification-bell"
 import { useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { usePathname } from "next/navigation"
@@ -66,6 +67,9 @@ export function Header({ onCreateLead, searchQuery = "", onSearchChange }: Heade
               Nouveau lead
             </Button>
           )}
+
+          {/* Notification Bell */}
+          <NotificationBell />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

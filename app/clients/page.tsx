@@ -163,6 +163,10 @@ export default function ClientsPage() {
 
   const handleUpdateClient = async (updatedClient: Client) => {
     try {
+      // Update local state immediately for optimistic UI
+      updateStoreClient(updatedClient.id, updatedClient)
+      setSelectedClient(updatedClient)
+      
       // Update via API
       const response = await fetch(`/api/clients/${updatedClient.id}`, {
         method: 'PATCH',
@@ -177,8 +181,7 @@ export default function ClientsPage() {
       
       console.log('[Clients Page] ✅ Client updated in database')
       
-      // Real-time sync will update the store automatically
-      setSelectedClient(updatedClient)
+      // Real-time sync will update the store automatically for other users
     } catch (error) {
       console.error('[Clients Page] Error updating client:', error)
       toast({
@@ -186,6 +189,7 @@ export default function ClientsPage() {
         description: "Impossible de mettre à jour le client. Veuillez réessayer.",
         variant: "destructive"
       })
+      // Note: If API fails, real-time sync will revert the change
     }
   }
 

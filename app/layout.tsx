@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { AuthProvider } from "@/contexts/auth-context"
+import { NotificationProvider } from "@/contexts/notification-context"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
@@ -38,7 +39,9 @@ export default function RootLayout({
     <html lang="fr">
       <body className={`${inter.variable} font-sans antialiased`}>
         <AuthProvider>
-          {children}
+          <NotificationProvider>
+            {children}
+          </NotificationProvider>
         </AuthProvider>
         <Toaster position="top-right" richColors />
         <Analytics />

@@ -1,9 +1,10 @@
 "use client"
 
 import type { Lead, LeadStatus, LeadPriority } from "@/types/lead"
-import { Phone, MapPin, User, Calendar, Edit, Trash2, Store, Globe, Facebook, Instagram, Users, Package, Music2 } from "lucide-react"
+import { Phone, MapPin, User, Calendar, Edit, Trash2, Store, Globe, Facebook, Instagram, Users, Package, Music2, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { getLeadDuration, getLeadDurationColor, getLeadDurationIcon } from "@/lib/lead-duration-utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -249,6 +250,9 @@ export function LeadsTableImproved({
               <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
                 📅 Date création
               </th>
+              <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                ⏱️ Durée en lead
+              </th>
               <th className="px-4 py-4 text-right text-xs font-semibold text-slate-300 uppercase tracking-wider">
                 ⚙️ Actions
               </th>
@@ -318,6 +322,28 @@ export function LeadsTableImproved({
                         {formatDate(lead.createdAt)}
                       </span>
                     </div>
+                  </td>
+
+                  {/* Durée en lead */}
+                  <td className="px-4 py-4">
+                    {(() => {
+                      const duration = getLeadDuration(lead.createdAt, lead.convertedAt)
+                      const colorClass = getLeadDurationColor(duration.days, duration.isActive)
+                      const icon = getLeadDurationIcon(duration.days, duration.isActive)
+                      
+                      return (
+                        <Badge 
+                          className={cn(
+                            "border text-xs font-medium px-2.5 py-1 flex items-center gap-1.5 w-fit",
+                            colorClass
+                          )}
+                          title={duration.isActive ? "Lead actif" : "Lead converti/refusé"}
+                        >
+                          <span>{icon}</span>
+                          <span>{duration.label}</span>
+                        </Badge>
+                      )
+                    })()}
                   </td>
 
                   {/* Actions */}

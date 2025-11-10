@@ -31,7 +31,9 @@ export function formatDuration(seconds: number): string {
  * - >= 86400s (1 day) -> "X jours" or "X jours Yh"
  * - >= 3600s (1 hour) -> "X heures"
  * - >= 60s (1 minute) -> "X minutes"
- * - < 60s -> "Moins d'une minute"
+ * - < 60s -> "X secondes" (show actual seconds)
+ * 
+ * Updated: 2025-11-07 - Now shows all durations including seconds
  */
 export function formatDurationDetailed(seconds: number): string {
   if (seconds >= 86400) {
@@ -46,15 +48,30 @@ export function formatDurationDetailed(seconds: number): string {
   
   if (seconds >= 3600) {
     const hours = Math.floor(seconds / 3600)
+    const remainingMinutes = Math.floor((seconds % 3600) / 60)
+    
+    if (remainingMinutes > 0) {
+      return `${hours} heure${hours > 1 ? 's' : ''} ${remainingMinutes}m`
+    }
     return `${hours} heure${hours > 1 ? 's' : ''}`
   }
   
   if (seconds >= 60) {
     const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    
+    if (remainingSeconds > 0) {
+      return `${minutes} minute${minutes > 1 ? 's' : ''} ${remainingSeconds}s`
+    }
     return `${minutes} minute${minutes > 1 ? 's' : ''}`
   }
   
-  return 'Moins d\'une minute'
+  // Show actual seconds for very short durations
+  if (seconds > 0) {
+    return `${seconds} seconde${seconds > 1 ? 's' : ''}`
+  }
+  
+  return 'Instant'
 }
 
 /**

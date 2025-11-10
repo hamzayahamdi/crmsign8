@@ -21,11 +21,18 @@ export function ClientKanbanCard({ client, onClick, isNewlyAdded }: ClientKanban
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: client.id })
+  } = useSortable({ 
+    id: client.id,
+    transition: {
+      duration: 200,
+      easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    },
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.5 : 1,
   }
 
   const formatRelativeDate = (dateString: string) => {
