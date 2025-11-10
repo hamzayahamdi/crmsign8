@@ -1,4 +1,4 @@
-export type LeadStatus = "nouveau" | "a_recontacter" | "sans_reponse" | "non_interesse" | "converti"
+export type LeadStatus = "nouveau" | "a_recontacter" | "sans_reponse" | "non_interesse" | "qualifie" | "refuse"
 export type LeadSource = "magasin" | "site_web" | "facebook" | "instagram" | "tiktok" | "reference_client" | "autre"
 export type LeadPriority = "haute" | "moyenne" | "basse"
 

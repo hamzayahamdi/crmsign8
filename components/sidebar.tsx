@@ -12,6 +12,7 @@ import { useMemo, useEffect, useState } from "react"
 import { TasksService } from "@/lib/tasks-service"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
+import { getVisibleSidebarItems, getRoleLabel } from "@/lib/permissions"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,18 +25,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-const baseNav = [
-  { name: "Tableau des Leads", href: "/", icon: Home },
-  { name: "Clients & Opportunités", href: "/clients", icon: Users },
-  { name: "Architectes", href: "/architectes", icon: Compass },
-  { name: "Tâches & Rappels", href: "/tasks", icon: CalendarDays },
-  { name: "Calendrier", href: "/calendrier", icon: Calendar },
-  { name: "Notifications", href: "/notifications", icon: Bell },
-] as const
-
-const adminOperatorExtras = [
-  { name: "Utilisateurs", href: "/users", icon: Users },
-] as const
+// Icon mapping for sidebar items
+const iconMap: Record<string, any> = {
+  Home,
+  Users,
+  Compass,
+  CalendarDays,
+  Calendar,
+  Bell,
+  Settings
+}
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -156,32 +155,22 @@ export function Sidebar() {
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {useMemo(() => {
           const role = (user?.role || '').toLowerCase()
-          if (role === 'architect') {
-            return [
-              baseNav[0], // Tableau des Leads
-              baseNav[1], // Clients & Projets
-              baseNav[3], // Tâches & Rappels
-              baseNav[4], // Calendrier
-            ]
-          }
+          
+          // Special handling for Commercial and Magasiner roles
           if (role === 'commercial') {
-            return [
-              { name: "Mes Leads", href: "/commercial", icon: Home },
-            ]
+            return [{ name: "Mes Leads", href: "/commercial", icon: Home }]
           }
           if (role === 'magasiner') {
-            return [
-              { name: "Mes Leads", href: "/magasiner", icon: Home },
-            ]
+            return [{ name: "Mes Leads", href: "/magasiner", icon: Home }]
           }
-          if (role === 'admin' || role === 'operator') {
-            return [
-              ...baseNav,
-              ...adminOperatorExtras,
-              ...(role === 'admin' ? [{ name: 'Paramètres', href: '/settings', icon: Settings }] : []),
-            ]
-          }
-          return [baseNav[0]]
+          
+          // Use permission-based sidebar items for other roles
+          const visibleItems = getVisibleSidebarItems(user?.role)
+          return visibleItems.map(item => ({
+            name: item.label,
+            href: item.href,
+            icon: iconMap[item.icon] || Home
+          }))
         }, [user?.role]).map((item) => {
           const isActive = pathname === item.href || (item.href === "/architectes" && pathname.startsWith("/architectes/"))
           return (
@@ -274,7 +263,7 @@ export function Sidebar() {
                   </p>
                   {user.role && (
                     <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
-                      {(user.role || '').toLowerCase() === 'admin' ? 'Administrateur' : (user.role || '').toLowerCase() === 'operator' ? 'Opérateur' : (user.role || '').toLowerCase() === 'commercial' ? 'Commercial' : (user.role || '').toLowerCase() === 'magasiner' ? 'Magasiner' : 'Architecte'}
+                      {getRoleLabel(user.role)}
                     </span>
                   )}
                 </div>

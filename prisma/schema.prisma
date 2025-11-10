@@ -75,7 +75,8 @@ enum LeadStatus {
   a_recontacter
   sans_reponse
   non_interesse
-  converti
+  qualifie
+  refuse
 }
 
 enum LeadSource {

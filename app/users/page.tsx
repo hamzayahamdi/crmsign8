@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner"
 import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
+import { RoleGuard } from "@/components/role-guard"
 
 interface User {
   id: string
@@ -195,7 +196,7 @@ export default function UsersPage() {
   }
 
   const getRoleBadgeColor = (role: string) => {
-    switch (role) {
+    switch (role.toLowerCase()) {
       case "admin":
         return "bg-red-500/20 text-red-400 border-red-500/30"
       case "architect":
@@ -204,13 +205,17 @@ export default function UsersPage() {
         return "bg-purple-500/20 text-purple-400 border-purple-500/30"
       case "operator":
         return "bg-orange-500/20 text-orange-400 border-orange-500/30"
+      case "gestionnaire":
+        return "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
+      case "commercial":
+        return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
       default:
         return "bg-green-500/20 text-green-400 border-green-500/30"
     }
   }
 
   const getRoleLabel = (role: string) => {
-    switch (role) {
+    switch (role.toLowerCase()) {
       case "admin":
         return "Administrateur"
       case "architect":
@@ -219,6 +224,10 @@ export default function UsersPage() {
         return "Magasiner"
       case "operator":
         return "Opérateur"
+      case "gestionnaire":
+        return "Gestionnaire de Projets"
+      case "commercial":
+        return "Commercial"
       default:
         return role
     }
@@ -226,8 +235,9 @@ export default function UsersPage() {
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen">
-        <Sidebar />
+      <RoleGuard allowedRoles={['Admin', 'Operator']}>
+        <div className="flex min-h-screen">
+          <Sidebar />
         <main className="flex-1 flex flex-col">
           <div className="flex-1 flex flex-col h-screen overflow-hidden">
       {/* Header */}
@@ -442,9 +452,11 @@ export default function UsersPage() {
                   </SelectTrigger>
                   <SelectContent className="glass border-border/40">
                     <SelectItem value="admin">Administrateur</SelectItem>
-                    <SelectItem value="architect">Architecte</SelectItem>
-                    <SelectItem value="magasiner">Magasiner</SelectItem>
                     <SelectItem value="operator">Opérateur</SelectItem>
+                    <SelectItem value="gestionnaire">Gestionnaire de Projets</SelectItem>
+                    <SelectItem value="architect">Architecte</SelectItem>
+                    <SelectItem value="commercial">Commercial</SelectItem>
+                    <SelectItem value="magasiner">Magasiner</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -551,9 +563,11 @@ export default function UsersPage() {
                   </SelectTrigger>
                   <SelectContent className="glass border-border/40">
                     <SelectItem value="admin">Administrateur</SelectItem>
-                    <SelectItem value="architect">Architecte</SelectItem>
-                    <SelectItem value="magasiner">Magasiner</SelectItem>
                     <SelectItem value="operator">Opérateur</SelectItem>
+                    <SelectItem value="gestionnaire">Gestionnaire de Projets</SelectItem>
+                    <SelectItem value="architect">Architecte</SelectItem>
+                    <SelectItem value="commercial">Commercial</SelectItem>
+                    <SelectItem value="magasiner">Magasiner</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -634,7 +648,8 @@ export default function UsersPage() {
       </Dialog>
           </div>
         </main>
-      </div>
+        </div>
+      </RoleGuard>
     </AuthGuard>
   )
 }

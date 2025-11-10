@@ -7,6 +7,7 @@ import type { Architect, ArchitectStatus, ArchitectSpecialty } from "@/types/arc
 import type { Client } from "@/types/client"
 import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
+import { RoleGuard } from "@/components/role-guard"
 import { Header } from "@/components/header"
 import { ArchitectCard } from "@/components/architect-card"
 import { ArchitectTable } from "@/components/architect-table"
@@ -152,10 +153,11 @@ export default function ArchitectesPage() {
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
-        <Sidebar />
-        <main className="flex-1 flex flex-col">
-          <Header />
+      <RoleGuard allowedRoles={['Admin', 'Operator']}>
+        <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
+          <Sidebar />
+          <main className="flex-1 flex flex-col">
+            <Header />
           
           {/* Stats Cards - Compact */}
           <div className="px-6 pb-3">
@@ -450,7 +452,8 @@ export default function ArchitectesPage() {
           onClose={() => setIsAddModalOpen(false)}
           onAdd={handleAddArchitect}
         />
-      </div>
+        </div>
+      </RoleGuard>
     </AuthGuard>
   )
 }

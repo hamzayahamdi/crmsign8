@@ -665,7 +665,7 @@ export function LeadModalImproved({
               )}
 
               {/* Convertir en client */}
-              {lead && onConvertToClient && isAdmin && lead.statut !== 'converti' && (
+              {lead && onConvertToClient && isAdmin && lead.statut !== 'qualifie' && (
                 <AlertDialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
                   <AlertDialogTrigger asChild>
                     <Button

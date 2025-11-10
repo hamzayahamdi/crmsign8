@@ -6,6 +6,7 @@ import { SettingsIcon, User, Database, Download, Upload, Trash2 } from "lucide-r
 import { Button } from "@/components/ui/button"
 import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
+import { RoleGuard } from "@/components/role-guard"
 
 export default function SettingsPage() {
   const [showConfirm, setShowConfirm] = useState(false)
@@ -72,8 +73,9 @@ export default function SettingsPage() {
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen">
-        <Sidebar />
+      <RoleGuard allowedRoles={['Admin']}>
+        <div className="flex min-h-screen">
+          <Sidebar />
         <main className="flex-1 flex flex-col">
           {/* Header */}
           <div className="glass border-b border-border/40 p-6">
@@ -162,7 +164,8 @@ export default function SettingsPage() {
             </div>
           </div>
         </main>
-      </div>
+        </div>
+      </RoleGuard>
     </AuthGuard>
   )
 }

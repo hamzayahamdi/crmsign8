@@ -8,6 +8,7 @@ import type { Architect, ArchitectNotification } from "@/types/architect"
 import type { Client, ProjectStatus } from "@/types/client"
 import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
+import { RoleGuard } from "@/components/role-guard"
 import { Header } from "@/components/header"
 import { DossierCardEnhanced } from "@/components/dossier-card-enhanced"
 import { ClientDetailPanelRedesigned } from "@/components/client-detail-panel-redesigned"
@@ -251,16 +252,18 @@ export default function ArchitectDetailPage() {
   if (isLoading) {
     return (
       <AuthGuard>
-        <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
-          <Sidebar />
-          <main className="flex-1 flex items-center justify-center">
-            <div className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <h2 className="text-xl font-bold text-white mb-2">Chargement...</h2>
-              <p className="text-slate-400">Veuillez patienter</p>
-            </div>
-          </main>
-        </div>
+        <RoleGuard allowedRoles={['Admin', 'Operator']}>
+          <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
+            <Sidebar />
+            <main className="flex-1 flex items-center justify-center">
+              <div className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                <h2 className="text-xl font-bold text-white mb-2">Chargement...</h2>
+                <p className="text-slate-400">Veuillez patienter</p>
+              </div>
+            </main>
+          </div>
+        </RoleGuard>
       </AuthGuard>
     )
   }
@@ -268,26 +271,29 @@ export default function ArchitectDetailPage() {
   if (!architect) {
     return (
       <AuthGuard>
-        <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
-          <Sidebar />
-          <main className="flex-1 flex items-center justify-center">
-            <div className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center">
-              <h2 className="text-2xl font-bold text-white mb-2">Architecte non trouvé</h2>
-              <p className="text-slate-400 mb-4">L'architecte demandé n'existe pas.</p>
-              <Button onClick={() => router.push("/architectes")}>
-                Retour aux architectes
-              </Button>
-            </div>
-          </main>
-        </div>
+        <RoleGuard allowedRoles={['Admin', 'Operator']}>
+          <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
+            <Sidebar />
+            <main className="flex-1 flex items-center justify-center">
+              <div className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center">
+                <h2 className="text-2xl font-bold text-white mb-2">Architecte non trouvé</h2>
+                <p className="text-slate-400 mb-4">L'architecte demandé n'existe pas.</p>
+                <Button onClick={() => router.push("/architectes")}>
+                  Retour aux architectes
+                </Button>
+              </div>
+            </main>
+          </div>
+        </RoleGuard>
       </AuthGuard>
     )
   }
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
-        <Sidebar />
+      <RoleGuard allowedRoles={['Admin', 'Operator']}>
+        <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
+          <Sidebar />
         <main className="flex-1 flex flex-col">
           <Header />
           
@@ -669,7 +675,8 @@ export default function ArchitectDetailPage() {
             onAssign={handleAssignDossiers}
           />
         )}
-      </div>
+        </div>
+      </RoleGuard>
     </AuthGuard>
   )
 }

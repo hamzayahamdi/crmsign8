@@ -64,7 +64,8 @@ const statuts: { value: LeadStatus; label: string }[] = [
   { value: "a_recontacter", label: "🟡 À recontacter" },
   { value: "sans_reponse", label: "🟠 Sans réponse" },
   { value: "non_interesse", label: "🔴 Non intéressé" },
-  { value: "converti", label: "🔵 Converti" },
+  { value: "qualifie", label: "🔵 Qualifié" },
+  { value: "refuse", label: "⚫ Refusé" },
 ]
 
 const sources: { value: LeadSource; label: string }[] = [

@@ -10,6 +10,7 @@ import { AddPaymentModal, type PaymentData } from "@/components/add-payment-moda
 import { DocumentsModal } from "@/components/documents-modal"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
+import { hasPermission } from "@/lib/permissions"
 
 interface QuickActionsSidebarProps {
   client: Client
@@ -186,16 +187,19 @@ export function QuickActionsSidebar({ client, onUpdate, onDelete }: QuickActions
         </Button>
       </div>
 
-      <div className="mt-6 pt-6 border-t border-white/5">
-        <Button
-          onClick={onDelete}
-          className="w-full justify-start h-11 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
-          variant="ghost"
-        >
-          <Trash2 className="w-4 h-4 mr-3" />
-          Supprimer client
-        </Button>
-      </div>
+      {/* Delete button - only visible for Admin and Operator */}
+      {hasPermission(user?.role, 'clients', 'delete') && (
+        <div className="mt-6 pt-6 border-t border-white/5">
+          <Button
+            onClick={onDelete}
+            className="w-full justify-start h-11 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+            variant="ghost"
+          >
+            <Trash2 className="w-4 h-4 mr-3" />
+            Supprimer client
+          </Button>
+        </div>
+      )}
     </div>
 
       <AddNoteModal

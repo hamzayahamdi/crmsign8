@@ -100,9 +100,10 @@ export async function GET(request: NextRequest) {
 
     // Calculate overall statistics
     const totalLeads = leads.length
-    const convertedLeads = leads.filter(l => l.statut === 'converti')
+    const convertedLeads = leads.filter(l => l.statut === 'qualifie')
     const nonInterestedLeads = leads.filter(l => l.statut === 'non_interesse')
-    const activeLeads = leads.filter(l => l.statut !== 'converti' && l.statut !== 'non_interesse')
+    const refusedLeads = leads.filter(l => l.statut === 'refuse')
+    const activeLeads = leads.filter(l => l.statut !== 'qualifie' && l.statut !== 'non_interesse' && l.statut !== 'refuse')
 
     const allDurations = leads.map(lead => 
       calculateLeadDurationDays(lead.createdAt, lead.convertedAt)
@@ -166,7 +167,7 @@ export async function GET(request: NextRequest) {
       const stats = commercialMap.get(lead.assignePar)!
       stats.durations.push(duration)
       stats.total++
-      if (lead.statut === 'converti') {
+      if (lead.statut === 'qualifie') {
         stats.converted++
       }
     })

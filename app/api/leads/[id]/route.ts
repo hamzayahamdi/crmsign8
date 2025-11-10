@@ -119,9 +119,9 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     
-    // Handle converted lead status change - undo conversion if status changes from "converti"
-    if (existing.statut === 'converti' && body.statut !== 'converti') {
-      console.log(`[Lead Update] Lead ${leadId} status changed from 'converti' to '${body.statut}'. Undoing conversion...`)
+    // Handle converted lead status change - undo conversion if status changes from "qualifie"
+    if (existing.statut === 'qualifie' && body.statut !== 'qualifie') {
+      console.log(`[Lead Update] Lead ${leadId} status changed from 'qualifie' to '${body.statut}'. Undoing conversion...`)
       
       // Find and unlink the associated client
       const associatedClient = await prisma.client.findFirst({
@@ -142,16 +142,16 @@ export async function PUT(
     // Handle convertedAt timestamp based on status changes
     let convertedAtUpdate: Date | null | undefined = undefined
     
-    // Set convertedAt when status changes to 'converti' or 'non_interesse'
-    if ((body.statut === 'converti' || body.statut === 'non_interesse') && 
-        existing.statut !== 'converti' && existing.statut !== 'non_interesse') {
+    // Set convertedAt when status changes to 'qualifie', 'non_interesse', or 'refuse'
+    if ((body.statut === 'qualifie' || body.statut === 'non_interesse' || body.statut === 'refuse') && 
+        existing.statut !== 'qualifie' && existing.statut !== 'non_interesse' && existing.statut !== 'refuse') {
       convertedAtUpdate = new Date()
       console.log(`[Lead Update] Setting convertedAt timestamp for lead ${leadId}`)
     }
     
-    // Clear convertedAt when status changes back from 'converti' or 'non_interesse'
-    if ((existing.statut === 'converti' || existing.statut === 'non_interesse') &&
-        body.statut !== 'converti' && body.statut !== 'non_interesse') {
+    // Clear convertedAt when status changes back from 'qualifie', 'non_interesse', or 'refuse'
+    if ((existing.statut === 'qualifie' || existing.statut === 'non_interesse' || existing.statut === 'refuse') &&
+        body.statut !== 'qualifie' && body.statut !== 'non_interesse' && body.statut !== 'refuse') {
       convertedAtUpdate = null
       console.log(`[Lead Update] Clearing convertedAt timestamp for lead ${leadId}`)
     }

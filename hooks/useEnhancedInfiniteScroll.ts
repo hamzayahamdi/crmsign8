@@ -146,10 +146,22 @@ export function useEnhancedInfiniteScroll<T extends { id: string }>(
 
       // EAGER LOADING: Auto-fetch next page if enabled and more data exists
       if (eagerLoad && hasMorePages) {
+        // Set loading states to false before starting next page to prevent flickering
+        if (page === 1) {
+          setLoading(false)
+        } else {
+          setIsLoadingMore(false)
+        }
         isFetchingRef.current = false
-        setTimeout(() => loadPage(page + 1), 50)
+        setTimeout(() => loadPage(page + 1), 100)
       } else {
         isFetchingRef.current = false
+        // Only set loading states to false if not continuing eager load
+        if (page === 1) {
+          setLoading(false)
+        } else {
+          setIsLoadingMore(false)
+        }
       }
 
     } catch (err) {
@@ -159,7 +171,7 @@ export function useEnhancedInfiniteScroll<T extends { id: string }>(
       // Allow retry by removing this page from fetched set on error
       fetchedPagesRef.current.delete(page)
       isFetchingRef.current = false
-    } finally {
+      // Set loading states to false on error
       if (page === 1) {
         setLoading(false)
       } else {

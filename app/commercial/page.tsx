@@ -62,8 +62,8 @@ export default function CommercialDashboard() {
     try {
       if (updatedLead.id) {
         // Check if this lead was converted and status is being changed
-        const wasConverted = selectedLead?.statut === 'converti'
-        const statusChanged = updatedLead.statut !== 'converti'
+        const wasConverted = selectedLead?.statut === 'qualifie'
+        const statusChanged = updatedLead.statut !== 'qualifie'
         
         const updated = await LeadsService.updateLead(updatedLead.id, updatedLead)
         

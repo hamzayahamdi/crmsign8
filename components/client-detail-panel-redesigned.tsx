@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { calculateDurationInHours, getStatusLabel } from "@/lib/timeline-utils"
+import { hasPermission } from "@/lib/permissions"
 import { AddPaymentModal, type PaymentData } from "@/components/add-payment-modal"
 import { CreateTaskModal, type TaskData } from "@/components/create-task-modal"
 import { DocumentsModal } from "@/components/documents-modal"
@@ -667,7 +668,8 @@ export function ClientDetailPanelRedesigned({
                       </Button>
                     </div>
 
-                    {onDelete && (
+                    {/* Delete button - only visible for Admin and Operator */}
+                    {onDelete && hasPermission(user?.role, 'clients', 'delete') && (
                       <div className="mt-4 pt-4 border-t border-white/5">
                         <Button
                           onClick={handleDeleteClient}

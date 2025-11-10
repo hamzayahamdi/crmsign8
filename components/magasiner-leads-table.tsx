@@ -49,13 +49,21 @@ const getStatusConfig = (status: LeadStatus) => {
       text: "text-rose-200",
       border: "border-rose-500/40",
     },
-    converti: {
-      label: "Converti",
+    qualifie: {
+      label: "Qualifié",
       bg: "bg-blue-500/20",
       dot: "bg-blue-400",
       ring: "ring-blue-500/30",
       text: "text-blue-200",
       border: "border-blue-500/40",
+    },
+    refuse: {
+      label: "Refusé",
+      bg: "bg-gray-500/20",
+      dot: "bg-gray-400",
+      ring: "ring-gray-500/30",
+      text: "text-gray-200",
+      border: "border-gray-500/40",
     },
   }
   return configs[status]

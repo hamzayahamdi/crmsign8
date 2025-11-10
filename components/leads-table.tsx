@@ -45,7 +45,8 @@ const statusConfig: Record<LeadStatus, { label: string; color: string; icon: str
   a_recontacter: { label: "À recontacter", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40", icon: "🟡" },
   sans_reponse: { label: "Sans réponse", color: "bg-orange-500/20 text-orange-400 border-orange-500/40", icon: "🟠" },
   non_interesse: { label: "Non intéressé", color: "bg-red-500/20 text-red-400 border-red-500/40", icon: "🔴" },
-  converti: { label: "Converti", color: "bg-blue-500/20 text-blue-400 border-blue-500/40", icon: "🔵" },
+  qualifie: { label: "Qualifié", color: "bg-blue-500/20 text-blue-400 border-blue-500/40", icon: "🔵" },
+  refuse: { label: "Refusé", color: "bg-gray-500/20 text-gray-400 border-gray-500/40", icon: "⚫" },
 }
 
 const priorityConfig = {
@@ -230,17 +231,7 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
   }
 
   return (
-    <div className="rounded-lg border border-slate-200/20 overflow-hidden bg-white/5 backdrop-blur-sm relative">
-      {/* Subtle loading overlay when refetching with existing data */}
-      {isLoading && filteredLeads.length > 0 && (
-        <div className="absolute top-0 left-0 right-0 z-10 bg-slate-900/30 backdrop-blur-[1px] border-b border-blue-500/30">
-          <div className="flex items-center gap-2 px-6 py-2">
-            <div className="w-3 h-3 rounded-full border-2 border-blue-400 border-t-transparent animate-spin"></div>
-            <span className="text-xs text-blue-400 font-medium">Actualisation...</span>
-          </div>
-        </div>
-      )}
-      
+    <div className="rounded-lg border border-slate-200/20 overflow-hidden bg-white/5 backdrop-blur-sm">
       {/* Table Header */}
       <div className="bg-slate-800/30 px-6 py-4 border-b border-slate-200/10">
         <div className="flex items-center justify-between">
@@ -248,13 +239,25 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
             <h3 className="text-lg font-semibold text-white">Liste des Leads</h3>
             <p className="text-sm text-slate-400">
               {sortedLeads.length} lead{sortedLeads.length > 1 ? 's' : ''} trouvé{sortedLeads.length > 1 ? 's' : ''}
+              {isLoading && filteredLeads.length > 0 && (
+                <span className="ml-2 inline-flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                  <span className="text-xs text-blue-400">Actualisation...</span>
+                </span>
+              )}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* Table - Fixed height container to prevent flickering */}
+      <div 
+        className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[400px] scroll-smooth" 
+        style={{ 
+          willChange: 'scroll-position',
+          scrollbarGutter: 'stable'
+        }}
+      >
         <table className="w-full table-fixed">
           <colgroup>
             <col className="w-[20%]" />
@@ -266,7 +269,7 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
             <col className="w-[10%]" />
             <col className="w-[12%]" />
           </colgroup>
-          <thead className="bg-slate-800/20 border-b border-slate-200/10">
+          <thead className="bg-slate-800/20 border-b border-slate-200/10 sticky top-0 z-10 backdrop-blur-sm">
             <tr>
               <th className="px-6 py-4 text-left">
                 <button
