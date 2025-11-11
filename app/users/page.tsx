@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { motion } from "framer-motion"
-import { Users, Plus, Trash2, Edit, Mail, Shield, Calendar, Building2 } from "lucide-react"
+import { Users, Plus, Trash2, Edit, Mail, Shield, Calendar, Building2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -39,6 +39,9 @@ interface User {
   updatedAt: string
 }
 
+type SortField = 'name' | 'email' | 'role' | 'createdAt' | 'updatedAt'
+type SortOrder = 'asc' | 'desc'
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -46,6 +49,8 @@ export default function UsersPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [sortField, setSortField] = useState<SortField>('createdAt')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   
   // Form state
   const [formData, setFormData] = useState({
@@ -64,7 +69,7 @@ export default function UsersPage() {
     magasin: "",
   })
 
-  const MAGASINS = ["Casa", "Rabat", "Tanger", "Marrakech", "Bouskoura"]
+  const MAGASINS = ["Casa - Ain Diab", "Rabat", "Tanger", "Marrakech", "Bouskoura"]
 
   // Fetch users
   const fetchUsers = async () => {
@@ -212,6 +217,8 @@ export default function UsersPage() {
         return "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
       case "commercial":
         return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+      case "chef_de_chantier":
+        return "bg-amber-500/20 text-amber-400 border-amber-500/30"
       default:
         return "bg-green-500/20 text-green-400 border-green-500/30"
     }
@@ -231,10 +238,55 @@ export default function UsersPage() {
         return "Gestionnaire de Projets"
       case "commercial":
         return "Commercial"
+      case "chef_de_chantier":
+        return "Chef de chantier"
       default:
         return role
     }
   }
+
+  // Sorting functionality
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('asc')
+    }
+  }
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-3 h-3 opacity-50" />
+    }
+    return sortOrder === 'asc' ? 
+      <ArrowUp className="w-3 h-3" /> : 
+      <ArrowDown className="w-3 h-3" />
+  }
+
+  // Sorted users
+  const sortedUsers = useMemo(() => {
+    return [...users].sort((a, b) => {
+      let aValue: any = a[sortField]
+      let bValue: any = b[sortField]
+
+      // Handle date fields
+      if (sortField === 'createdAt' || sortField === 'updatedAt') {
+        aValue = new Date(aValue).getTime()
+        bValue = new Date(bValue).getTime()
+      }
+
+      // Handle string fields
+      if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase()
+        bValue = bValue.toLowerCase()
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [users, sortField, sortOrder])
 
   return (
     <AuthGuard>
@@ -297,16 +349,51 @@ export default function UsersPage() {
               <table className="w-full">
                 <thead className="sticky top-0 z-10">
                   <tr className="border-b border-border/40 bg-secondary/40 backdrop-blur supports-[backdrop-filter]:bg-secondary/30">
-                    <th className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Nom</th>
-                    <th className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Email</th>
-                    <th className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Rôle</th>
-                    <th className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Date de création</th>
-                    <th className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Dernière mise à jour</th>
+                    <th 
+                      className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Nom {getSortIcon('name')}
+                      </div>
+                    </th>
+                    <th 
+                      className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
+                      onClick={() => handleSort('email')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Email {getSortIcon('email')}
+                      </div>
+                    </th>
+                    <th 
+                      className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
+                      onClick={() => handleSort('role')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Rôle {getSortIcon('role')}
+                      </div>
+                    </th>
+                    <th 
+                      className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
+                      onClick={() => handleSort('createdAt')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Date de création {getSortIcon('createdAt')}
+                      </div>
+                    </th>
+                    <th 
+                      className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
+                      onClick={() => handleSort('updatedAt')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Dernière mise à jour {getSortIcon('updatedAt')}
+                      </div>
+                    </th>
                     <th className="text-right p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user, index) => (
+                  {sortedUsers.map((user, index) => (
                     <motion.tr
                       key={user.id}
                       initial={{ opacity: 0, y: 20 }}
@@ -459,6 +546,7 @@ export default function UsersPage() {
                       <SelectLabel>🏗️ Opérations</SelectLabel>
                       <SelectItem value="architect">Architecte</SelectItem>
                       <SelectItem value="magasiner">Magasiner</SelectItem>
+                      <SelectItem value="chef_de_chantier">Chef de chantier</SelectItem>
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -581,6 +669,7 @@ export default function UsersPage() {
                       <SelectLabel>🏗️ Opérations</SelectLabel>
                       <SelectItem value="architect">Architecte</SelectItem>
                       <SelectItem value="magasiner">Magasiner</SelectItem>
+                      <SelectItem value="chef_de_chantier">Chef de chantier</SelectItem>
                     </SelectGroup>
                   </SelectContent>
                 </Select>

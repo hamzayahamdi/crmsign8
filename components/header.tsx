@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Plus, User, LogOut } from "lucide-react"
+import { Search, Plus, User, LogOut, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -19,11 +19,12 @@ import { usePathname } from "next/navigation"
 
 interface HeaderProps {
   onCreateLead?: () => void
+  onImportLeads?: () => void
   searchQuery?: string
   onSearchChange?: (q: string) => void
 }
 
-export function Header({ onCreateLead, searchQuery = "", onSearchChange }: HeaderProps) {
+export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearchChange }: HeaderProps) {
   const [localQuery, setLocalQuery] = useState(searchQuery)
   const { user, logout } = useAuth()
   const pathname = usePathname()
@@ -59,13 +60,23 @@ export function Header({ onCreateLead, searchQuery = "", onSearchChange }: Heade
         {/* Actions */}
         <div className="flex items-center gap-3">
           {user?.role?.toLowerCase() === "admin" && pathname === "/" && (
-            <Button
-              onClick={onCreateLead}
-              className="bg-linear-to-r from-primary to-premium hover:opacity-90 transition-opacity glow"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Nouveau lead
-            </Button>
+            <>
+              <Button
+                onClick={onImportLeads}
+                variant="outline"
+                className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Importer
+              </Button>
+              <Button
+                onClick={onCreateLead}
+                className="bg-linear-to-r from-primary to-premium hover:opacity-90 transition-opacity glow"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Nouveau lead
+              </Button>
+            </>
           )}
 
           {/* Notification Bell */}

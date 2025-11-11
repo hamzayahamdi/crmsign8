@@ -7,10 +7,13 @@ import { Sidebar } from "@/components/sidebar"
 import { Header } from "@/components/header"
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/contexts/auth-context"
+import { ImportLeadsModal } from "@/components/import-leads-modal"
 import { Loader2 } from "lucide-react"
 
 export default function HomePage() {
   const [search, setSearch] = useState("")
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
   const { user, isLoading } = useAuth()
   const router = useRouter()
 
@@ -30,6 +33,16 @@ export default function HomePage() {
     }
   }
 
+  const handleImportLeads = () => {
+    setIsImportModalOpen(true)
+  }
+
+  const handleImportComplete = () => {
+    // Refresh the kanban board by updating the key
+    setRefreshKey(prev => prev + 1)
+    setIsImportModalOpen(false)
+  }
+
   // Show loading while checking role
   if (isLoading || user?.role === "commercial" || user?.role === "magasiner") {
     return (
@@ -44,12 +57,24 @@ export default function HomePage() {
       <div className="flex min-h-screen">
         <Sidebar />
         <main className="flex-1 flex flex-col">
-          <Header onCreateLead={handleCreateLead} searchQuery={search} onSearchChange={setSearch} />
+          <Header 
+            onCreateLead={handleCreateLead} 
+            onImportLeads={handleImportLeads}
+            searchQuery={search} 
+            onSearchChange={setSearch} 
+          />
           <div className="flex-1 p-3">
-            <KanbanBoard onCreateLead={handleCreateLead} searchQuery={search} />
+            <KanbanBoard key={refreshKey} onCreateLead={handleCreateLead} searchQuery={search} />
           </div>
         </main>
       </div>
+
+      {/* Import Modal */}
+      <ImportLeadsModal
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        onImportComplete={handleImportComplete}
+      />
     </AuthGuard>
   )
 }

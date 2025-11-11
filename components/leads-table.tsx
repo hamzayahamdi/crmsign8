@@ -347,14 +347,14 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
       >
         <table className="w-full table-fixed">
           <colgroup>
-            <col className="w-[20%]" />
-            <col className="w-[10%]" />
-            <col className="w-[10%]" />
-            <col className="w-[16%]" />
-            <col className="w-[12%]" />
-            <col className="w-[10%]" />
-            <col className="w-[10%]" />
-            <col className="w-[12%]" />
+            <col className="w-[18%]" /> {/* Contact */}
+            <col className="w-[10%]" /> {/* Ville */}
+            <col className="w-[12%]" /> {/* Bien - increased width */}
+            <col className="w-[16%]" /> {/* Source - increased width */}
+            <col className="w-[12%]" /> {/* Assigné à */}
+            <col className="w-[10%]" /> {/* Statut */}
+            <col className="w-[10%]" /> {/* Priorité */}
+            <col className="w-[12%]" /> {/* Durée */}
           </colgroup>
           <thead className="bg-slate-800/20 border-b border-[#1F2937] sticky top-0 z-10 backdrop-blur-sm">
             <tr>

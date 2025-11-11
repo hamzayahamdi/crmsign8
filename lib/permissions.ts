@@ -3,7 +3,7 @@
  * Defines access control for different user roles in the CRM
  */
 
-export type UserRole = 'Admin' | 'Operator' | 'Gestionnaire' | 'Architect' | 'Commercial' | 'Magasiner'
+export type UserRole = 'Admin' | 'Operator' | 'Gestionnaire' | 'Architect' | 'Commercial' | 'Magasiner' | 'Chef de chantier'
 
 export interface SidebarItem {
   id: string

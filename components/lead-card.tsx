@@ -5,6 +5,7 @@ import { Phone, MapPin, User, Calendar, CheckCircle2 } from "lucide-react"
 import { useDraggable } from "@dnd-kit/core"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { CampaignBadge } from "@/components/campaign-badge"
 
 interface LeadCardProps {
   lead: Lead
@@ -74,6 +75,11 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
             <div className="flex items-center gap-1 mt-1">
               <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
               <span className="text-xs text-green-400 font-medium">Converti en client</span>
+            </div>
+          )}
+          {lead.campaignName && (
+            <div className="mt-1.5">
+              <CampaignBadge campaignName={lead.campaignName} size="sm" />
             </div>
           )}
         </div>

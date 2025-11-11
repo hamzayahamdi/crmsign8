@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { LeadCallHistory } from "@/components/lead-call-history"
+import { CampaignBadge } from "@/components/campaign-badge"
 
 interface LeadModalRedesignedProps {
   open: boolean
@@ -327,9 +329,14 @@ export function LeadModalRedesigned({
           {/* Header */}
           <DialogHeader className="px-6 py-5 border-b border-slate-200/10 bg-gradient-to-br from-slate-900/50 to-slate-800/50">
             <div className="flex items-center justify-between">
-              <DialogTitle className="text-xl font-semibold text-white">
-                {lead ? "Modifier le lead" : "Créer un lead"}
-              </DialogTitle>
+              <div className="flex items-center gap-3">
+                <DialogTitle className="text-xl font-semibold text-white">
+                  {lead ? "Modifier le lead" : "Créer un lead"}
+                </DialogTitle>
+                {lead?.campaignName && (
+                  <CampaignBadge campaignName={lead.campaignName} size="md" />
+                )}
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -613,6 +620,13 @@ export function LeadModalRedesigned({
                   />
                 </div>
               </div>
+
+              {/* Call History Section - Only show for existing leads with call notes */}
+              {lead && lead.notes && lead.notes.length > 0 && (
+                <div className="pt-4 border-t border-slate-700/30">
+                  <LeadCallHistory notes={lead.notes} />
+                </div>
+              )}
 
               {/* Notes History Section - Only show for existing leads with notes */}
               {lead && lead.notes && lead.notes.length > 0 && (
