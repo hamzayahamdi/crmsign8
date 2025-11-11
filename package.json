@@ -30,7 +30,8 @@
     "import:tiktok": "node scripts/import-tiktok-leads.js",
     "migrate:tiktok": "prisma migrate dev --name add_tiktok_month_tracking",
     "update:tiktok": "node scripts/update-existing-tiktok-leads.js",
-    "test:notifications": "node scripts/test-notifications.js"
+    "test:notifications": "node scripts/test-notifications.js",
+    "upgrade:calendar": "node scripts/upgrade-calendar.js"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",

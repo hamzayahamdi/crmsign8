@@ -1,5 +1,6 @@
 export type EventType = 'rendez_vous' | 'suivi_projet' | 'appel_reunion' | 'urgent';
 export type ReminderType = 'min_5' | 'min_30' | 'hour_1' | 'day_1' | 'none';
+export type EventVisibility = 'private' | 'team' | 'all';
 
 export interface CalendarEvent {
   id: string;
@@ -15,9 +16,18 @@ export interface CalendarEvent {
   linkedClientId?: string;
   linkedLeadId?: string;
   linkedArchitectId?: string;
+  participants: string[]; // Array of user IDs
+  visibility: EventVisibility;
   createdBy: string;
   createdAt: Date | string;
   updatedAt: Date | string;
+}
+
+export interface ParticipantDetails {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
 }
 
 export interface CalendarEventWithDetails extends CalendarEvent {
@@ -25,6 +35,8 @@ export interface CalendarEventWithDetails extends CalendarEvent {
   linkedLeadName?: string;
   linkedArchitectName?: string;
   assignedToName?: string;
+  createdByName?: string;
+  participantDetails?: ParticipantDetails[];
 }
 
 export const EVENT_TYPE_CONFIG = {

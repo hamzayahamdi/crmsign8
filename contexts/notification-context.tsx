@@ -71,30 +71,46 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   // Show contextual toast notification
   const showToastNotification = useCallback((notification: Notification) => {
+    console.log('[NotificationProvider] Showing toast for notification:', notification);
+    
     const iconConfig = getNotificationIcon(notification.type);
     const Icon = iconConfig.icon;
     const link = getNotificationLink(notification);
 
     // Determine if we should show toast
-    if (!shouldShowToast(notification.type, notification.priority, pathname, notification.linkedId)) {
+    const shouldShow = shouldShowToast(notification.type, notification.priority, pathname, notification.linkedId);
+    console.log('[NotificationProvider] Should show toast:', shouldShow, {
+      type: notification.type,
+      priority: notification.priority,
+      pathname,
+      linkedId: notification.linkedId
+    });
+    
+    if (!shouldShow) {
+      console.log('[NotificationProvider] Skipping toast due to shouldShowToast filter');
       return;
     }
 
-    sonnerToast(notification.title, {
-      description: notification.message,
-      icon: <Icon className={`w-5 h-5 ${iconConfig.color}`} />,
-      duration: notification.priority === 'high' ? 8000 : 5000,
-      action: link ? {
-        label: 'Voir',
-        onClick: () => router.push(link)
-      } : undefined,
-      className: 'glass border-slate-700/40',
-      style: {
-        background: 'rgba(15, 23, 42, 0.95)',
-        backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(71, 85, 105, 0.4)',
-      }
-    });
+    try {
+      sonnerToast(notification.title, {
+        description: notification.message,
+        icon: <Icon className={`w-5 h-5 ${iconConfig.color}`} />,
+        duration: notification.priority === 'high' ? 8000 : 5000,
+        action: link ? {
+          label: 'Voir',
+          onClick: () => router.push(link)
+        } : undefined,
+        className: 'glass border-slate-700/40',
+        style: {
+          background: 'rgba(15, 23, 42, 0.95)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(71, 85, 105, 0.4)',
+        }
+      });
+      console.log('[NotificationProvider] Toast displayed successfully');
+    } catch (error) {
+      console.error('[NotificationProvider] Error showing toast:', error);
+    }
   }, [pathname, router]);
 
   // Mark notification as read
@@ -189,7 +205,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   // Setup Supabase realtime subscription
   useEffect(() => {
-    if (!supabase || !user?.id) return;
+    if (!supabase || !user?.id) {
+      console.log('[NotificationProvider] Skipping realtime setup:', { 
+        hasSupabase: !!supabase, 
+        hasUser: !!user?.id 
+      });
+      return;
+    }
 
     console.log('[NotificationProvider] Setting up realtime subscription for user:', user.id);
 
@@ -204,14 +226,30 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('[NotificationProvider] New notification received:', payload);
+          console.log('[NotificationProvider] New notification received via realtime:', payload);
           const newNotification = payload.new as Notification;
           
+          console.log('[NotificationProvider] Parsed notification:', {
+            id: newNotification.id,
+            type: newNotification.type,
+            title: newNotification.title,
+            userId: newNotification.userId,
+            priority: newNotification.priority
+          });
+          
           // Add to state
-          setNotifications(prev => [newNotification, ...prev]);
-          setUnreadCount(prev => prev + 1);
+          setNotifications(prev => {
+            console.log('[NotificationProvider] Adding notification to state, current count:', prev.length);
+            return [newNotification, ...prev];
+          });
+          setUnreadCount(prev => {
+            const newCount = prev + 1;
+            console.log('[NotificationProvider] Incrementing unread count:', prev, '->', newCount);
+            return newCount;
+          });
           
           // Show toast if appropriate
+          console.log('[NotificationProvider] Attempting to show toast notification');
           showToastNotification(newNotification);
         }
       )

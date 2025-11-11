@@ -13,25 +13,45 @@ export async function fetchCalendarEvents(params?: {
   if (params?.eventType) queryParams.append('eventType', params.eventType);
   if (params?.assignedTo) queryParams.append('assignedTo', params.assignedTo);
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  
+  console.log('[Calendar Service] Fetching events with token:', token ? 'present' : 'missing');
+
   const response = await fetch(`/api/calendar?${queryParams.toString()}`, {
-    credentials: 'include', // Include cookies for authentication
+    credentials: 'include',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   
   if (!response.ok) {
+    console.error('[Calendar Service] Fetch failed:', response.status, response.statusText);
     const error = await response.json().catch(() => ({ error: 'Failed to fetch calendar events' }));
     throw new Error(error.error || 'Failed to fetch calendar events');
   }
   
-  return response.json();
+  const data = await response.json();
+  console.log('[Calendar Service] Fetched events:', data.length);
+  return data;
 }
 
 export async function createCalendarEvent(
-  eventData: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt' | 'reminderSent' | 'createdBy'>
+  eventData: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt' | 'reminderSent' | 'createdBy'> & {
+    participants?: string[];
+    visibility?: 'private' | 'team' | 'all';
+  }
 ): Promise<CalendarEvent> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  
   const response = await fetch('/api/calendar', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(eventData),
+    headers: { 
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({
+      ...eventData,
+      participants: eventData.participants || [],
+      visibility: eventData.visibility || 'team'
+    }),
     credentials: 'include',
   });
 
@@ -47,9 +67,14 @@ export async function updateCalendarEvent(
   id: string,
   eventData: Partial<CalendarEvent>
 ): Promise<CalendarEvent> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  
   const response = await fetch('/api/calendar', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
     body: JSON.stringify({ id, ...eventData }),
     credentials: 'include',
   });
@@ -63,9 +88,12 @@ export async function updateCalendarEvent(
 }
 
 export async function deleteCalendarEvent(id: string): Promise<void> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  
   const response = await fetch(`/api/calendar?id=${id}`, {
     method: 'DELETE',
     credentials: 'include',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   if (!response.ok) {

@@ -119,12 +119,15 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
       <ArrowDown className="w-3.5 h-3.5 text-primary" />
   }
 
-  const filteredLeads = leads.filter(lead => passesSearch(lead) && passesFilters(lead))
+  // Handle undefined or null leads
+  const safeLeads = leads || []
+  
+  const filteredLeads = safeLeads.filter(lead => passesSearch(lead) && passesFilters(lead))
   
   // Debug logging
-  console.log(`[LeadsTable] Total leads received: ${leads.length}`)
+  console.log(`[LeadsTable] Total leads received: ${safeLeads.length}`)
   console.log(`[LeadsTable] After filtering: ${filteredLeads.length}`)
-  console.log(`[LeadsTable] Filtered out: ${leads.length - filteredLeads.length}`)
+  console.log(`[LeadsTable] Filtered out: ${safeLeads.length - filteredLeads.length}`)
   console.log(`[LeadsTable] Active filters:`, filters)
   console.log(`[LeadsTable] Search query: "${searchQuery}"`)
 
@@ -151,7 +154,7 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
   })
 
   // Show skeleton on initial load
-  if (isLoading && leads.length === 0) {
+  if (isLoading && safeLeads.length === 0) {
     return <LeadsTableSkeleton rows={8} />
   }
 

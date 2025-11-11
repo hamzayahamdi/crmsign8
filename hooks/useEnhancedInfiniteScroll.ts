@@ -1,263 +1,203 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react';
 
-interface InfiniteScrollParams {
-  page: number
-  limit: number
-  [key: string]: any
+interface PaginatedResponse<T> {
+  success: boolean;
+  data: T[];
+  totalCount: number;
+  hasMore?: boolean;
 }
 
-interface ApiResponse<T> {
-  success: boolean
-  data: T[]
-  totalCount: number
-  hasMore?: boolean
+interface FetchParams {
+  page: number;
+  limit: number;
+  [key: string]: any;
 }
 
 interface UseEnhancedInfiniteScrollReturn<T> {
-  data: T[]
-  loading: boolean
-  isLoadingMore: boolean
-  hasMore: boolean
-  error: string | null
-  loadMore: () => void
-  addItem: (item: T) => void
-  updateItem: (id: string, updates: Partial<T>) => void
-  removeItem: (id: string) => void
-  currentPage: number
-  totalCount: number
+  data: T[];
+  loading: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
+  error: Error | null;
+  totalCount: number;
+  currentPage: number;
+  loadMore: () => void;
+  retry: () => void;
+  addItem: (item: T) => void;
+  updateItem: (id: string, updates: Partial<T>) => void;
+  removeItem: (id: string) => void;
 }
 
 /**
- * Enhanced infinite scroll hook with eager auto-loading
- * 
- * @param fetchData - API function that returns { success, data, totalCount }
- * @param initialParams - Initial query parameters
+ * Enhanced infinite scroll hook with eager loading and data management
+ * @param fetchFn - Function to fetch paginated data
+ * @param filters - Filter parameters (changes trigger reset)
  * @param pageSize - Number of items per page
- * @param dependencies - Array of dependencies to trigger reset
- * @param enabled - Whether the hook is enabled
- * @param eagerLoad - Enable automatic background loading of all pages
+ * @param dependencies - Additional dependencies that trigger reset
+ * @param enabled - Whether fetching is enabled
+ * @param eagerLoad - Whether to automatically load all pages
  */
 export function useEnhancedInfiniteScroll<T extends { id: string }>(
-  fetchData: (params: InfiniteScrollParams) => Promise<ApiResponse<T>>,
-  initialParams: Omit<InfiniteScrollParams, 'page' | 'limit'> = {},
-  pageSize: number = 20,
+  fetchFn: (params: FetchParams) => Promise<PaginatedResponse<T>>,
+  filters: Record<string, any> = {},
+  pageSize: number = 50,
   dependencies: any[] = [],
   enabled: boolean = true,
   eagerLoad: boolean = true
 ): UseEnhancedInfiniteScrollReturn<T> {
-  // State management
-  const [data, setData] = useState<T[]>([])
-  const [loading, setLoading] = useState(false)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalCount, setTotalCount] = useState(0)
+  const [data, setData] = useState<T[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  const loadedIdsRef = useRef<Set<string>>(new Set());
+  const isLoadingRef = useRef(false);
+  const eagerLoadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Refs to prevent duplicate fetches and track state
-  const isFetchingRef = useRef(false)
-  const fetchDataRef = useRef(fetchData)
-  const pageSizeRef = useRef(pageSize)
-  const loadedIdsRef = useRef<Set<string>>(new Set())
-  const fetchedPagesRef = useRef<Set<number>>(new Set())
-  const dataRef = useRef<T[]>([])
-
-  // Update refs when props change
-  useEffect(() => {
-    fetchDataRef.current = fetchData
-    pageSizeRef.current = pageSize
-  }, [fetchData, pageSize])
-
-  /**
-   * Load a specific page of data
-   */
-  const loadPage = useCallback(async (page: number) => {
-    // Prevent duplicate requests
-    if (isFetchingRef.current) {
-      return
-    }
-
-    // Avoid fetching the same page more than once
-    if (fetchedPagesRef.current.has(page)) {
-      return
-    }
-
-    isFetchingRef.current = true
-    fetchedPagesRef.current.add(page)
+  // Reset state when dependencies change
+  const reset = useCallback(() => {
+    console.log('[InfiniteScroll] Resetting state');
+    setData([]);
+    setLoading(true);
+    setIsLoadingMore(false);
+    setHasMore(true);
+    setError(null);
+    setTotalCount(0);
+    setCurrentPage(1);
+    loadedIdsRef.current.clear();
+    isLoadingRef.current = false;
     
-    if (page === 1) {
-      setLoading(true)
-    } else {
-      setIsLoadingMore(true)
+    if (eagerLoadTimeoutRef.current) {
+      clearTimeout(eagerLoadTimeoutRef.current);
+      eagerLoadTimeoutRef.current = null;
     }
-    
-    setError(null)
+  }, []);
 
+  // Fetch a single page
+  const fetchPage = useCallback(async (page: number) => {
+    if (isLoadingRef.current || !enabled) {
+      return;
+    }
+
+    isLoadingRef.current = true;
+    
     try {
-      console.log(`[InfiniteScroll] Loading page ${page}`)
-      const response = await fetchDataRef.current({
-        ...initialParams,
+      console.log(`[InfiniteScroll] Fetching page ${page} (pageSize: ${pageSize})`);
+      
+      const response = await fetchFn({
         page,
-        limit: pageSizeRef.current,
-      })
+        limit: pageSize,
+        ...filters
+      });
 
       if (!response.success) {
-        throw new Error('Failed to fetch data')
+        throw new Error('Failed to fetch data');
       }
 
-      const newData = response.data || []
-      const apiTotalCount = response.totalCount || 0
-      
-      console.log(`[InfiniteScroll] Page ${page} loaded: ${newData.length} items, total: ${apiTotalCount}`)
-      if (newData.length > 0) {
-        console.log('[InfiniteScroll] First item ID:', newData[0].id)
-        console.log('[InfiniteScroll] Last item ID:', newData[newData.length - 1].id)
-      }
+      const newItems = response.data || [];
+      const total = response.totalCount || 0;
 
-      // Update total count
-      setTotalCount(apiTotalCount)
+      console.log(`[InfiniteScroll] Received ${newItems.length} items, total: ${total}`);
 
-      // Filter out duplicates using Set
-      const uniqueNewData = newData.filter(item => {
+      // Deduplicate items
+      const uniqueItems = newItems.filter(item => {
         if (loadedIdsRef.current.has(item.id)) {
-          return false
+          return false;
         }
-        loadedIdsRef.current.add(item.id)
-        return true
-      })
+        loadedIdsRef.current.add(item.id);
+        return true;
+      });
 
-      // Update dataRef deterministically and then push to React state
-      if (page === 1) {
-        // First page: replace all data
-        dataRef.current = uniqueNewData
+      console.log(`[InfiniteScroll] ${uniqueItems.length} unique items after deduplication`);
+
+      setData(prev => [...prev, ...uniqueItems]);
+      setTotalCount(total);
+      setCurrentPage(page);
+
+      const currentTotal = loadedIdsRef.current.size;
+      const stillHasMore = currentTotal < total;
+      setHasMore(stillHasMore);
+
+      console.log(`[InfiniteScroll] HasMore: ${stillHasMore} (current: ${currentTotal}, total: ${total})`);
+
+      // Eager loading: automatically fetch next page
+      if (eagerLoad && stillHasMore) {
+        console.log(`[InfiniteScroll] Eager loading enabled, scheduling page ${page + 1} in 200ms`);
+        eagerLoadTimeoutRef.current = setTimeout(() => {
+          isLoadingRef.current = false;
+          fetchPage(page + 1);
+        }, 200);
       } else {
-        // Subsequent pages: append unique items
-        dataRef.current = [...dataRef.current, ...uniqueNewData]
-      }
-
-      // Commit to React state from ref to avoid lost updates
-      setData(dataRef.current)
-
-      // Calculate if there's more data
-      const hasMorePages = response.hasMore ?? false
-
-      setHasMore(hasMorePages)
-      setCurrentPage(page)
-
-      // EAGER LOADING: Auto-fetch next page if enabled and more data exists
-      if (eagerLoad && hasMorePages) {
-        // Set loading states to false before starting next page to prevent flickering
-        if (page === 1) {
-          setLoading(false)
-        } else {
-          setIsLoadingMore(false)
-        }
-        isFetchingRef.current = false
-        setTimeout(() => loadPage(page + 1), 100)
-      } else {
-        isFetchingRef.current = false
-        // Only set loading states to false if not continuing eager load
-        if (page === 1) {
-          setLoading(false)
-        } else {
-          setIsLoadingMore(false)
+        isLoadingRef.current = false;
+        if (!stillHasMore) {
+          console.log(`[InfiniteScroll] All data loaded (${currentTotal}/${total})`);
         }
       }
 
+      setError(null);
     } catch (err) {
-      console.error('[InfiniteScroll] Error fetching data:', err)
-      setError(err instanceof Error ? err.message : 'An error occurred')
-      setHasMore(false)
-      // Allow retry by removing this page from fetched set on error
-      fetchedPagesRef.current.delete(page)
-      isFetchingRef.current = false
-      // Set loading states to false on error
-      if (page === 1) {
-        setLoading(false)
-      } else {
-        setIsLoadingMore(false)
-      }
+      console.error('[InfiniteScroll] Error fetching page:', err);
+      setError(err as Error);
+      isLoadingRef.current = false;
+    } finally {
+      setLoading(false);
+      setIsLoadingMore(false);
     }
-  }, [initialParams, totalCount, eagerLoad])
+  }, [fetchFn, filters, pageSize, enabled, eagerLoad]);
 
-  /**
-   * Manual load more (for scroll-based loading)
-   */
+  // Load more (manual trigger)
   const loadMore = useCallback(() => {
-    if (!hasMore || isFetchingRef.current || !enabled) {
-      return
+    if (!hasMore || isLoadingRef.current) {
+      return;
     }
-    loadPage(currentPage + 1)
-  }, [hasMore, currentPage, enabled, loadPage])
+    setIsLoadingMore(true);
+    fetchPage(currentPage + 1);
+  }, [hasMore, currentPage, fetchPage]);
 
+  // Retry on error
+  const retry = useCallback(() => {
+    reset();
+    fetchPage(1);
+  }, [reset, fetchPage]);
 
-  /**
-   * Manually add an item to the data
-   */
+  // CRUD operations
   const addItem = useCallback((item: T) => {
-    console.log('[InfiniteScroll] Adding item:', item.id)
-    // Update dataRef first to keep it in sync
-    dataRef.current = [item, ...dataRef.current]
-    // Then update React state
-    setData(dataRef.current)
-    // Track the ID
-    loadedIdsRef.current.add(item.id)
-    setTotalCount(prev => prev + 1)
-    console.log('[InfiniteScroll] Item added. Total items:', dataRef.current.length)
-  }, [])
+    setData(prev => [item, ...prev]);
+    loadedIdsRef.current.add(item.id);
+    setTotalCount(prev => prev + 1);
+  }, []);
 
-  /**
-   * Manually update an item in the data
-   */
   const updateItem = useCallback((id: string, updates: Partial<T>) => {
-    // Update dataRef first to keep it in sync
-    dataRef.current = dataRef.current.map(item => 
-      (item.id === id ? { ...item, ...updates } : item)
-    )
-    // Then update React state
-    setData(dataRef.current)
-  }, [])
+    setData(prev => prev.map(item => 
+      item.id === id ? { ...item, ...updates } : item
+    ));
+  }, []);
 
-  /**
-   * Manually remove an item from the data
-   */
   const removeItem = useCallback((id: string) => {
-    // Update dataRef first to keep it in sync
-    dataRef.current = dataRef.current.filter(item => item.id !== id)
-    // Then update React state
-    setData(dataRef.current)
-    loadedIdsRef.current.delete(id)
-    setTotalCount(prev => Math.max(0, prev - 1))
-  }, [])
+    setData(prev => prev.filter(item => item.id !== id));
+    loadedIdsRef.current.delete(id);
+    setTotalCount(prev => Math.max(0, prev - 1));
+  }, []);
 
-  /**
-   * Initial load - only once on mount
-   */
+  // Initial load and dependency changes
   useEffect(() => {
     if (!enabled) {
-      return
+      return;
     }
 
-    // Only load if we have no data yet
-    if (dataRef.current.length > 0) {
-      console.log('[InfiniteScroll] Data already loaded, skipping')
-      return
-    }
+    console.log('[InfiniteScroll] Dependencies changed, resetting and loading page 1');
+    reset();
+    fetchPage(1);
 
-    // Prevent double-loading in React Strict Mode
-    if (isFetchingRef.current) {
-      return
-    }
-    
-    // Load page 1 (no reset needed - already empty)
-    console.log('[InfiniteScroll] Initial load - fetching page 1')
-    loadPage(1)
-
-    // Cleanup
     return () => {
-      isFetchingRef.current = false
-    }
-  }, [enabled]) // eslint-disable-line react-hooks/exhaustive-deps
+      if (eagerLoadTimeoutRef.current) {
+        clearTimeout(eagerLoadTimeoutRef.current);
+      }
+    };
+  }, [enabled, ...dependencies, JSON.stringify(filters)]);
 
   return {
     data,
@@ -265,11 +205,12 @@ export function useEnhancedInfiniteScroll<T extends { id: string }>(
     isLoadingMore,
     hasMore,
     error,
+    totalCount,
+    currentPage,
     loadMore,
+    retry,
     addItem,
     updateItem,
-    removeItem,
-    currentPage,
-    totalCount,
-  }
+    removeItem
+  };
 }

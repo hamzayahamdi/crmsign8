@@ -25,6 +25,31 @@ interface CreateNotificationParams {
  */
 export async function createNotification(params: CreateNotificationParams) {
   try {
+    // Validate required fields
+    if (!params.userId) {
+      throw new Error('userId is required for creating a notification');
+    }
+    if (!params.type) {
+      throw new Error('type is required for creating a notification');
+    }
+    if (!params.priority) {
+      throw new Error('priority is required for creating a notification');
+    }
+    if (!params.title) {
+      throw new Error('title is required for creating a notification');
+    }
+    if (!params.message) {
+      throw new Error('message is required for creating a notification');
+    }
+
+    console.log('[NotificationCreator] Creating notification with params:', {
+      userId: params.userId,
+      type: params.type,
+      priority: params.priority,
+      title: params.title,
+      createdBy: params.createdBy
+    });
+
     const notification = await prisma.notification.create({
       data: {
         userId: params.userId,
@@ -44,6 +69,7 @@ export async function createNotification(params: CreateNotificationParams) {
     return notification;
   } catch (error) {
     console.error('[NotificationCreator] Error creating notification:', error);
+    console.error('[NotificationCreator] Params were:', params);
     throw error;
   }
 }

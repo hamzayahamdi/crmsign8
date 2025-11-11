@@ -180,25 +180,41 @@ export function shouldShowToast(
   currentPath: string,
   linkedId?: string
 ): boolean {
-  // Don't show toast if user is already on the related page
-  if (linkedId && currentPath.includes(linkedId)) {
+  // Don't show toast if user is already on the related page (but only for specific linkedIds)
+  if (linkedId && linkedId !== 'test-client-id' && currentPath.includes(linkedId)) {
+    console.log('[shouldShowToast] Skipping - user on related page:', { linkedId, currentPath });
     return false;
   }
 
-  // Only show toast for high priority notifications
+  // Always show high priority notifications
   if (priority === 'high') {
+    console.log('[shouldShowToast] Showing - high priority');
     return true;
   }
 
-  // Show toast for medium priority RDV and tasks
+  // Show toast for medium priority important notifications
   if (priority === 'medium' && (
     type === 'rdv_created' || 
     type === 'rdv_reminder' || 
+    type === 'rdv_updated' ||
     type === 'task_assigned' ||
-    type === 'task_due_soon'
+    type === 'task_due_soon' ||
+    type === 'stage_changed' ||
+    type === 'devis_created'
   )) {
+    console.log('[shouldShowToast] Showing - medium priority important type:', type);
     return true;
   }
 
+  // Show low priority for critical types
+  if (priority === 'low' && (
+    type === 'rdv_reminder' || 
+    type === 'task_due_soon'
+  )) {
+    console.log('[shouldShowToast] Showing - low priority critical type:', type);
+    return true;
+  }
+
+  console.log('[shouldShowToast] Not showing - filtered out:', { type, priority });
   return false;
 }

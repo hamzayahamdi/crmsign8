@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { CalendarEventWithDetails, EventType } from '@/types/calendar';
 import { fetchCalendarEvents } from '@/lib/calendar-service';
+import { useCalendarStore } from '@/stores/calendar-store';
+import { useRealtimeCalendar } from '@/hooks/use-realtime-calendar';
 import { CalendarView } from '@/components/calendar-view';
 import { AddEventModal } from '@/components/add-event-modal';
 import { EventDetailModal } from '@/components/event-detail-modal';
@@ -35,61 +37,96 @@ import { startOfMonth, endOfMonth, addMonths } from 'date-fns';
 type ViewMode = 'month' | 'week' | 'day';
 
 function CalendrierContent() {
-  const [events, setEvents] = useState<CalendarEventWithDetails[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<CalendarEventWithDetails[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Use Zustand store for state management
+  const { 
+    events,
+    filteredEvents, 
+    isLoading, 
+    setEvents, 
+    setFilter, 
+    setCurrentUser, 
+    setLoading,
+    filter 
+  } = useCalendarStore();
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<string>('all');
-  const [filterUser, setFilterUser] = useState<string>('all');
+  const [architectFilter, setArchitectFilter] = useState<string>('all'); // For gestionnaire/admin view
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventWithDetails | null>(null);
   const [showEventDetail, setShowEventDetail] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
-  const [users, setUsers] = useState<Array<{ id: string; name: string }>>([]);
+  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string; role: string }>>([]);
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
+  const [currentUserRole, setCurrentUserRole] = useState<string>('');
+
+  // Enable real-time sync
+  useRealtimeCalendar(currentUserId || null);
 
   // Smart reminders
   useEventReminders(events);
 
-  useEffect(() => {
-    loadEvents();
-    loadUsers();
-    initializeNotifications();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [events, searchQuery, filterType, filterUser]);
-
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       
       // Fetch events for a wider range (3 months)
       const start = startOfMonth(addMonths(currentDate, -1));
       const end = endOfMonth(addMonths(currentDate, 1));
       
-      console.log('[Calendar] Loading events...');
+      console.log('[Calendar] Loading events from', start.toISOString(), 'to', end.toISOString());
       const data = await fetchCalendarEvents({
         startDate: start.toISOString(),
         endDate: end.toISOString()
       });
       
       console.log('[Calendar] Events loaded:', data.length);
+      console.log('[Calendar] Events data:', data);
       setEvents(data);
+      
+      // Log what's in the store after setting
+      setTimeout(() => {
+        const storeState = useCalendarStore.getState();
+        console.log('[Calendar] Store events after set:', storeState.events.length);
+        console.log('[Calendar] Store filteredEvents:', storeState.filteredEvents.length);
+        console.log('[Calendar] Store filter:', storeState.filter);
+      }, 100);
+      
+      if (data.length === 0) {
+        console.warn('[Calendar] No events found in date range');
+      }
     } catch (error) {
       console.error('[Calendar] Error loading events:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
       toast.error(`Erreur lors du chargement des événements: ${errorMessage}`);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
+  }, [currentDate, setEvents, setLoading]);
+
+  // Initialize on mount
+  useEffect(() => {
+    const init = async () => {
+      await initializeNotifications(); // Wait for user to be set
+      await loadUsers();
+    };
+    init();
+  }, []);
+
+  // Load events when currentUserId is available or currentDate changes
+  useEffect(() => {
+    if (currentUserId) {
+      console.log('[Calendar] Loading events - currentUserId:', currentUserId);
+      loadEvents();
+    }
+  }, [currentUserId, loadEvents]);
+
+  // Debug: Log filteredEvents whenever it changes
+  useEffect(() => {
+    console.log('[Calendar] filteredEvents changed:', filteredEvents.length, filteredEvents);
+  }, [filteredEvents]);
 
   const loadUsers = async () => {
     try {
@@ -116,17 +153,31 @@ function CalendrierContent() {
 
   const initializeNotifications = async () => {
     try {
+      console.log('[Calendar] Initializing notifications and user...');
       // Get current user info
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      
+      if (!token) {
+        console.error('[Calendar] No token found in localStorage');
+        toast.error('Session expirée. Veuillez vous reconnecter.');
+        return;
+      }
+      
       const response = await fetch('/api/auth/me', {
         credentials: 'include',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: { Authorization: `Bearer ${token}` },
       });
       
       if (response.ok) {
         const userData = await response.json();
+        console.log('[Calendar] User data loaded:', userData);
         setCurrentUserId(userData.id);
         setCurrentUserEmail(userData.email);
+        setCurrentUserRole(userData.role);
+        
+        // Set current user in store for permission checks
+        setCurrentUser(userData.id, userData.role);
+        console.log('[Calendar] User set in store:', userData.id, userData.role);
 
         // Initialize service worker
         await notificationService.initServiceWorker();
@@ -142,37 +193,24 @@ function CalendrierContent() {
             localStorage.setItem('notification-dialog-seen', 'true');
           }, 2000);
         }
+      } else {
+        console.error('[Calendar] Failed to get user info:', response.status);
+        toast.error('Erreur lors de la récupération des informations utilisateur');
       }
     } catch (error) {
       console.error('[Calendar] Error initializing notifications:', error);
+      toast.error('Erreur lors de l\'initialisation');
     }
   };
 
-  const applyFilters = () => {
-    let filtered = [...events];
-
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(event => 
-        event.title.toLowerCase().includes(query) ||
-        event.description?.toLowerCase().includes(query) ||
-        event.location?.toLowerCase().includes(query)
-      );
+  // Handle architect filter for gestionnaire/admin
+  useEffect(() => {
+    if (architectFilter !== 'all') {
+      setFilter({ assignedTo: architectFilter });
+    } else {
+      setFilter({ assignedTo: 'all' });
     }
-
-    // Type filter
-    if (filterType !== 'all') {
-      filtered = filtered.filter(event => event.eventType === filterType);
-    }
-
-    // User filter
-    if (filterUser !== 'all') {
-      filtered = filtered.filter(event => event.assignedTo === filterUser);
-    }
-
-    setFilteredEvents(filtered);
-  };
+  }, [architectFilter, setFilter]);
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
@@ -184,8 +222,11 @@ function CalendrierContent() {
     setShowEventDetail(true);
   };
 
-  const handleEventCreated = () => {
-    loadEvents();
+  const handleEventCreated = async () => {
+    // Small delay to ensure database has committed the transaction
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await loadEvents();
+    console.log('[Calendar] Events reloaded after creation');
   };
 
   const handleEventDeleted = () => {
@@ -202,41 +243,44 @@ function CalendrierContent() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="shrink-0 glass border-b border-border/40 p-4">
+      <div className="shrink-0 border-b border-border/40 bg-gradient-to-br from-background via-background to-muted/20 backdrop-blur-xl p-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-br from-primary via-primary/90 to-primary/70 rounded-xl shadow-lg">
-              <Calendar className="h-6 w-6 text-primary-foreground" />
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/80 to-primary/60 rounded-2xl blur-lg opacity-50"></div>
+              <div className="relative p-3 bg-gradient-to-br from-primary via-primary/90 to-primary/70 rounded-2xl shadow-2xl">
+                <Calendar className="h-7 w-7 text-primary-foreground" />
+              </div>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                 Calendrier Intelligent
               </h1>
-              <p className="text-sm text-muted-foreground">
-                Gérez vos événements et rendez-vous
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Gérez vos événements et rendez-vous avec élégance
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="icon"
               onClick={() => setShowNotificationDialog(true)}
-              className="h-10 w-10"
+              className="h-11 w-11 rounded-xl border-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
               title="Paramètres de notification"
             >
-              <Bell className="h-4 w-4" />
+              <Bell className="h-5 w-5" />
             </Button>
             <Button
               onClick={() => {
                 setSelectedDate(undefined);
                 setShowAddModal(true);
               }}
-              className="gap-2"
+              className="gap-2 px-6 h-11 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300"
             >
-              <Plus className="h-4 w-4" />
-              Nouvel événement
+              <Plus className="h-5 w-5" />
+              <span className="font-semibold">Nouvel événement</span>
             </Button>
           </div>
         </div>
@@ -251,49 +295,49 @@ function CalendrierContent() {
             animate={{ opacity: 1, y: 0 }}
             className="shrink-0"
           >
-            <div className="glass rounded-xl border border-border/40 p-4">
+            <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-background via-background to-muted/10 backdrop-blur-xl shadow-xl p-5">
               <div className="flex flex-col gap-3">
                 {/* Top Row: Search and View Modes */}
                 <div className="flex items-center gap-3 flex-wrap">
                   {/* Search */}
-                  <div className="flex-1 min-w-[250px] relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <div className="flex-1 min-w-[280px] relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
                     <Input
                       placeholder="Rechercher un événement..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 h-10 bg-background/50"
+                      value={filter.searchQuery}
+                      onChange={(e) => setFilter({ searchQuery: e.target.value })}
+                      className="pl-12 h-12 bg-background/50 border-border/60 rounded-xl focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-base"
                     />
                   </div>
 
                   {/* View Mode Toggles */}
-                  <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+                  <div className="flex items-center gap-1.5 bg-muted/30 rounded-xl p-1.5 border border-border/40">
                     <Button
                       variant={viewMode === 'month' ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setViewMode('month')}
-                      className="gap-2 h-9 px-4"
+                      className={`gap-2 h-10 px-5 rounded-lg transition-all duration-300 ${viewMode === 'month' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
                     >
                       <LayoutGrid className="h-4 w-4" />
-                      <span className="font-medium">Mois</span>
+                      <span className="font-semibold">Mois</span>
                     </Button>
                     <Button
                       variant={viewMode === 'week' ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setViewMode('week')}
-                      className="gap-2 h-9 px-4"
+                      className={`gap-2 h-10 px-5 rounded-lg transition-all duration-300 ${viewMode === 'week' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
                     >
                       <LayoutList className="h-4 w-4" />
-                      <span className="font-medium">Semaine</span>
+                      <span className="font-semibold">Semaine</span>
                     </Button>
                     <Button
                       variant={viewMode === 'day' ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setViewMode('day')}
-                      className="gap-2 h-9 px-4"
+                      className={`gap-2 h-10 px-5 rounded-lg transition-all duration-300 ${viewMode === 'day' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
                     >
                       <CalendarDays className="h-4 w-4" />
-                      <span className="font-medium">Jour</span>
+                      <span className="font-semibold">Jour</span>
                     </Button>
                   </div>
 
@@ -302,80 +346,105 @@ function CalendrierContent() {
                     variant="outline"
                     size="icon"
                     onClick={() => setShowSidebar(!showSidebar)}
-                    className="shrink-0 h-10 w-10"
+                    className="shrink-0 h-11 w-11 rounded-xl border-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
                   >
                     {showSidebar ? (
-                      <PanelRightClose className="h-4 w-4" />
+                      <PanelRightClose className="h-5 w-5" />
                     ) : (
-                      <PanelRightOpen className="h-4 w-4" />
+                      <PanelRightOpen className="h-5 w-5" />
                     )}
                   </Button>
                 </div>
 
                 {/* Bottom Row: Filters */}
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Filter className="h-4 w-4" />
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2.5 text-sm font-semibold text-muted-foreground">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Filter className="h-4 w-4 text-primary" />
+                    </div>
                     <span>Filtres:</span>
                   </div>
 
                   {/* Type Filter */}
-                  <Select value={filterType} onValueChange={setFilterType}>
-                    <SelectTrigger className="w-[220px] h-11 px-4 bg-background/50">
+                  <Select value={filter.eventType} onValueChange={(value) => setFilter({ eventType: value })}>
+                    <SelectTrigger className="w-[240px] h-12 px-4 bg-background/50 border-border/60 rounded-xl hover:border-primary/50 transition-all duration-300">
                       <SelectValue placeholder="Type d'événement" />
                     </SelectTrigger>
-                    <SelectContent className="min-w-[240px]">
-                      <SelectItem value="all" className="py-3">
+                    <SelectContent className="min-w-[260px] rounded-xl border-border/60">
+                      <SelectItem value="all" className="py-3 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <span className="font-medium text-sm">Tous les types</span>
+                          <span className="font-semibold text-sm">Tous les types</span>
                         </div>
                       </SelectItem>
-                      <SelectItem value="rendez_vous" className="py-3">
+                      <SelectItem value="rendez_vous" className="py-3 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                          <span className="text-sm">Rendez-vous client</span>
+                          <span className="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50" />
+                          <span className="text-sm font-medium">Rendez-vous client</span>
                         </div>
                       </SelectItem>
-                      <SelectItem value="suivi_projet" className="py-3">
+                      <SelectItem value="suivi_projet" className="py-3 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                          <span className="text-sm">Suivi projet</span>
+                          <span className="w-3 h-3 rounded-full bg-green-500 shadow-lg shadow-green-500/50" />
+                          <span className="text-sm font-medium">Suivi projet</span>
                         </div>
                       </SelectItem>
-                      <SelectItem value="appel_reunion" className="py-3">
+                      <SelectItem value="appel_reunion" className="py-3 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                          <span className="text-sm">Appel ou réunion</span>
+                          <span className="w-3 h-3 rounded-full bg-orange-500 shadow-lg shadow-orange-500/50" />
+                          <span className="text-sm font-medium">Appel ou réunion</span>
                         </div>
                       </SelectItem>
-                      <SelectItem value="urgent" className="py-3">
+                      <SelectItem value="urgent" className="py-3 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                          <span className="text-sm">Urgent / Critique</span>
+                          <span className="w-3 h-3 rounded-full bg-red-500 shadow-lg shadow-red-500/50" />
+                          <span className="text-sm font-medium">Urgent / Critique</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
                   </Select>
 
-                  {/* User Filter */}
-                  <Select value={filterUser} onValueChange={setFilterUser}>
-                    <SelectTrigger className="w-[220px] h-11 px-4 bg-background/50">
-                      <SelectValue placeholder="Utilisateur" />
-                    </SelectTrigger>
-                    <SelectContent className="min-w-[240px]">
-                      <SelectItem value="all" className="py-3">
-                        <span className="font-medium text-sm">Tous les utilisateurs</span>
-                      </SelectItem>
-                      {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id} className="py-3">
+                  {/* Architect Filter - Only for Gestionnaire/Admin */}
+                  {(currentUserRole === 'admin' || currentUserRole === 'gestionnaire') && (
+                    <Select value={architectFilter} onValueChange={setArchitectFilter}>
+                      <SelectTrigger className="w-[300px] h-12 px-4 bg-background/50 border-border/60 rounded-xl hover:border-primary/50 transition-all duration-300">
+                        <SelectValue placeholder="Voir les RDV de" />
+                      </SelectTrigger>
+                      <SelectContent className="min-w-[320px] rounded-xl border-border/60">
+                        <SelectItem value="all" className="py-3.5 rounded-lg">
                           <div className="flex items-center gap-3">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">{user.name}</span>
+                            <div className="p-1.5 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg">
+                              <LayoutGrid className="h-4 w-4 text-primary" />
+                            </div>
+                            <span className="font-semibold text-sm">Tous les architectes</span>
                           </div>
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        <SelectItem value={currentUserId} className="py-3.5 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="p-1.5 bg-gradient-to-br from-blue-500/20 to-blue-500/10 rounded-lg">
+                              <User className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <span className="text-sm font-semibold">Moi uniquement</span>
+                          </div>
+                        </SelectItem>
+                        {users
+                          .filter(u => u.role === 'architecte' || u.role === 'commercial' || u.role === 'architect')
+                          .map((user) => (
+                            <SelectItem key={user.id} value={user.id} className="py-3.5 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="p-1.5 bg-muted/50 rounded-lg">
+                                  <User className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <span className="text-sm font-medium">{user.name}</span>
+                                <span className="text-xs px-2.5 py-1 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary font-medium ml-auto capitalize">
+                                  {user.role === 'architecte' || user.role === 'architect' ? 'Architecte' : 'Commercial'}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </div>
             </div>
@@ -386,13 +455,16 @@ function CalendrierContent() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="flex-1 glass rounded-xl border border-border/40 p-4 overflow-hidden"
+            className="flex-1 relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-background via-background to-muted/10 backdrop-blur-xl shadow-2xl p-6"
           >
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <Calendar className="h-12 w-12 text-primary animate-pulse mx-auto mb-4" />
-                  <p className="text-muted-foreground">
+                  <div className="relative inline-block">
+                    <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
+                    <Calendar className="relative h-16 w-16 text-primary animate-pulse mx-auto mb-6" />
+                  </div>
+                  <p className="text-muted-foreground text-lg font-medium">
                     Chargement du calendrier...
                   </p>
                 </div>
@@ -435,7 +507,7 @@ function CalendrierContent() {
 
       {/* Upcoming Events Sidebar */}
       <UpcomingEventsSidebar
-        events={events}
+        events={filteredEvents}
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}
         onEventClick={handleEventClick}
