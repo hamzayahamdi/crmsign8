@@ -20,6 +20,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
+  SelectSeparator,
 } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Sidebar } from "@/components/sidebar"
@@ -292,15 +295,14 @@ export default function UsersPage() {
           <div className="glass rounded-xl border border-border/40 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/40 bg-secondary/30">
-                    <th className="text-left p-4 text-sm font-semibold text-white">Nom</th>
-                    <th className="text-left p-4 text-sm font-semibold text-white">Email</th>
-                    <th className="text-left p-4 text-sm font-semibold text-white">Rôle</th>
-                    <th className="text-left p-4 text-sm font-semibold text-white">Magasin</th>
-                    <th className="text-left p-4 text-sm font-semibold text-white">Date de création</th>
-                    <th className="text-left p-4 text-sm font-semibold text-white">Dernière mise à jour</th>
-                    <th className="text-right p-4 text-sm font-semibold text-white">Actions</th>
+                <thead className="sticky top-0 z-10">
+                  <tr className="border-b border-border/40 bg-secondary/40 backdrop-blur supports-[backdrop-filter]:bg-secondary/30">
+                    <th className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Nom</th>
+                    <th className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Email</th>
+                    <th className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Rôle</th>
+                    <th className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Date de création</th>
+                    <th className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Dernière mise à jour</th>
+                    <th className="text-right p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -310,7 +312,7 @@ export default function UsersPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className="border-b border-border/20 hover:bg-secondary/20 transition-colors"
+                      className="border-b border-border/10 hover:bg-secondary/20 transition-colors"
                     >
                       <td className="p-4">
                         <div className="flex items-center gap-3">
@@ -320,8 +322,8 @@ export default function UsersPage() {
                           <div className="flex flex-col">
                             <span className="text-white font-medium">{user.name}</span>
                             {user.role === "magasiner" && user.magasin && (
-                              <span className="text-xs text-purple-400 flex items-center gap-1 font-medium">
-                                <Building2 className="w-3 h-3" /> 📍 Magasin {user.magasin}
+                              <span className="mt-0.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                <Building2 className="w-3 h-3" /> 📍 {user.magasin}
                               </span>
                             )}
                           </div>
@@ -342,16 +344,6 @@ export default function UsersPage() {
                           <Shield className="w-3 h-3" />
                           {getRoleLabel(user.role)}
                         </span>
-                      </td>
-                      <td className="p-4">
-                        {user.magasin ? (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Building2 className="w-4 h-4 text-purple-400" />
-                            <span className="text-purple-300 font-medium">📍 {user.magasin}</span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">—</span>
-                        )}
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -451,12 +443,23 @@ export default function UsersPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass border-border/40">
-                    <SelectItem value="admin">Administrateur</SelectItem>
-                    <SelectItem value="operator">Opérateur</SelectItem>
-                    <SelectItem value="gestionnaire">Gestionnaire de Projets</SelectItem>
-                    <SelectItem value="architect">Architecte</SelectItem>
-                    <SelectItem value="commercial">Commercial</SelectItem>
-                    <SelectItem value="magasiner">Magasiner</SelectItem>
+                    <SelectGroup>
+                      <SelectLabel>👑 Administration</SelectLabel>
+                      <SelectItem value="admin">Administrateur</SelectItem>
+                      <SelectItem value="operator">Opérateur</SelectItem>
+                    </SelectGroup>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>💼 Gestion & Ventes</SelectLabel>
+                      <SelectItem value="gestionnaire">Gestionnaire de Projets</SelectItem>
+                      <SelectItem value="commercial">Commercial</SelectItem>
+                    </SelectGroup>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>🏗️ Opérations</SelectLabel>
+                      <SelectItem value="architect">Architecte</SelectItem>
+                      <SelectItem value="magasiner">Magasiner</SelectItem>
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </div>
@@ -562,12 +565,23 @@ export default function UsersPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="glass border-border/40">
-                    <SelectItem value="admin">Administrateur</SelectItem>
-                    <SelectItem value="operator">Opérateur</SelectItem>
-                    <SelectItem value="gestionnaire">Gestionnaire de Projets</SelectItem>
-                    <SelectItem value="architect">Architecte</SelectItem>
-                    <SelectItem value="commercial">Commercial</SelectItem>
-                    <SelectItem value="magasiner">Magasiner</SelectItem>
+                    <SelectGroup>
+                      <SelectLabel>👑 Administration</SelectLabel>
+                      <SelectItem value="admin">Administrateur</SelectItem>
+                      <SelectItem value="operator">Opérateur</SelectItem>
+                    </SelectGroup>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>💼 Gestion & Ventes</SelectLabel>
+                      <SelectItem value="gestionnaire">Gestionnaire de Projets</SelectItem>
+                      <SelectItem value="commercial">Commercial</SelectItem>
+                    </SelectGroup>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>🏗️ Opérations</SelectLabel>
+                      <SelectItem value="architect">Architecte</SelectItem>
+                      <SelectItem value="magasiner">Magasiner</SelectItem>
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </div>
@@ -620,7 +634,7 @@ export default function UsersPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="glass border-border/40">
+        <DialogContent className="glass border-border/40 sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-white">Confirmer la suppression</DialogTitle>
             <DialogDescription>

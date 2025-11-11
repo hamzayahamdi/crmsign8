@@ -16,9 +16,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { LeadsTableSkeleton } from "@/components/leads-table-skeleton"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
 interface LeadsTableProps {
@@ -36,6 +42,7 @@ interface LeadsTableProps {
     source: string
     campaign: string
   }
+  onFilterChange?: (filters: LeadsTableProps['filters']) => void
   isLoading?: boolean
   newlyAddedLeadId?: string | null
 }
@@ -65,12 +72,20 @@ const sourceIcons = {
   autre: { icon: Package, label: "Autre", color: "text-gray-400" },
 }
 
-type SortField = 'nom' | 'statut' | 'ville' | 'typeBien' | 'priorite' | 'derniereMaj' | 'createdAt'
+type SortField = 'nom' | 'statut' | 'ville' | 'typeBien' | 'priorite' | 'derniereMaj' | 'createdAt' | 'uploadedAt'
 type SortOrder = 'asc' | 'desc'
 
-export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, searchQuery, filters, isLoading = false, newlyAddedLeadId = null }: LeadsTableProps) {
-  const [sortField, setSortField] = useState<SortField>('createdAt')
+interface CampaignGroup {
+  source: string
+  uploadedAt: string
+  campaignName?: string
+  leads: Lead[]
+}
+
+export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, searchQuery, filters, onFilterChange, isLoading = false, newlyAddedLeadId = null }: LeadsTableProps) {
+  const [sortField, setSortField] = useState<SortField>('uploadedAt')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
+  const [hoveredColumn, setHoveredColumn] = useState<SortField | null>(null)
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
 
@@ -111,12 +126,38 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
   }
 
   const getSortIcon = (field: SortField) => {
-    if (sortField !== field) {
-      return <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+    const isActive = sortField === field
+    const isHovered = hoveredColumn === field
+    
+    if (!isActive && !isHovered) {
+      return <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-30 transition-opacity" />
     }
-    return sortOrder === 'asc' ? 
-      <ArrowUp className="w-3.5 h-3.5 text-primary" /> : 
-      <ArrowDown className="w-3.5 h-3.5 text-primary" />
+    
+    if (isActive) {
+      return sortOrder === 'asc' ? 
+        <ArrowUp className="w-3 h-3 text-[#3B82F6]" /> : 
+        <ArrowDown className="w-3 h-3 text-[#3B82F6]" />
+    }
+    
+    return <ArrowUpDown className="w-3 h-3 opacity-30" />
+  }
+
+  // Check if a lead is from a recent campaign (last 7 days)
+  const isRecentCampaign = (uploadedAt?: string) => {
+    if (!uploadedAt) return false
+    const diffDays = Math.floor((Date.now() - new Date(uploadedAt).getTime()) / (1000 * 60 * 60 * 24))
+    return diffDays <= 7
+  }
+
+  // Format import date for display
+  const formatImportDate = (dateString?: string) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    })
   }
 
   // Handle undefined or null leads
@@ -137,9 +178,9 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
     let bValue: any = b[sortField as keyof Lead]
 
     // Handle date fields
-    if (sortField === 'derniereMaj' || sortField === 'createdAt') {
-      aValue = new Date(aValue).getTime()
-      bValue = new Date(bValue).getTime()
+    if (sortField === 'derniereMaj' || sortField === 'createdAt' || sortField === 'uploadedAt') {
+      aValue = new Date(aValue || 0).getTime()
+      bValue = new Date(bValue || 0).getTime()
     }
 
     // Handle string fields
@@ -152,6 +193,32 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
     if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
     return 0
   })
+
+  // Group leads by campaign
+  const groupedLeads = useMemo(() => {
+    const groups: CampaignGroup[] = []
+    const groupMap = new Map<string, CampaignGroup>()
+
+    sortedLeads.forEach(lead => {
+      // Create a unique key for each campaign
+      const key = `${lead.source}-${lead.uploadedAt || 'unknown'}-${lead.campaignName || ''}`
+      
+      if (!groupMap.has(key)) {
+        const group: CampaignGroup = {
+          source: lead.source,
+          uploadedAt: lead.uploadedAt || '',
+          campaignName: lead.campaignName,
+          leads: []
+        }
+        groupMap.set(key, group)
+        groups.push(group)
+      }
+      
+      groupMap.get(key)!.leads.push(lead)
+    })
+
+    return groups
+  }, [sortedLeads])
 
   // Show skeleton on initial load
   if (isLoading && safeLeads.length === 0) {
@@ -186,13 +253,15 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
   const getSourceDisplay = (lead: Lead) => {
     const sourceInfo = sourceIcons[lead.source as keyof typeof sourceIcons] || sourceIcons.autre
     const Icon = sourceInfo.icon
+    const isRecent = isRecentCampaign(lead.uploadedAt)
     
+    // Special handling for Magasin source
     if (lead.source === 'magasin' && lead.magasin) {
       return (
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1.5">
             <Icon className={cn("w-4 h-4 flex-shrink-0", sourceInfo.color)} />
-            <span className="text-sm font-semibold text-slate-200 truncate">
+            <span className="text-sm font-semibold text-[#E5E7EB] truncate">
               Magasin {lead.magasin.replace('📍 ', '')}
             </span>
           </div>
@@ -209,49 +278,64 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
       )
     }
     
-    if (lead.source === 'tiktok') {
-      return (
-        <div className="flex items-center gap-2">
-          <Icon className={cn("w-4 h-4 flex-shrink-0", sourceInfo.color)} />
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-semibold text-slate-200">TikTok</span>
-            {lead.campaignName && (
-              <span className="text-[10px] text-fuchsia-300/80 truncate max-w-[160px]" title={lead.campaignName}>
-                {lead.campaignName}
-              </span>
-            )}
-          </div>
-        </div>
-      )
-    }
-    
+    // For all other sources (TikTok, Facebook, etc.)
     return (
-      <div className="flex items-center gap-1.5">
-        <Icon className={cn("w-4 h-4 flex-shrink-0", sourceInfo.color)} />
-        <span className="text-sm text-slate-200 capitalize truncate">{sourceInfo.label}</span>
+      <div className="flex flex-col gap-1">
+        {/* Source name with icon, date, and freshness dot */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Icon className={cn("w-4 h-4 flex-shrink-0", sourceInfo.color)} />
+          <span className="text-sm font-medium text-[#E5E7EB]">
+            {sourceInfo.label}
+          </span>
+          
+          {/* Dot separator and date on same line */}
+          {lead.uploadedAt && (
+            <>
+              <span className="text-[#9CA3AF]/40">•</span>
+              <span className="text-[11px] text-[#9CA3AF]/80">
+                {formatImportDate(lead.uploadedAt)}
+              </span>
+            </>
+          )}
+          
+          {/* Freshness indicator */}
+          <span className={cn(
+            "w-1.5 h-1.5 rounded-full flex-shrink-0",
+            isRecent ? "bg-green-400" : "bg-gray-500"
+          )} />
+        </div>
+        
+        {/* Campaign name on separate line (if exists) */}
+        {lead.campaignName && (
+          <div className="text-[10px] font-medium text-fuchsia-400/90 truncate max-w-[200px] pl-5">
+            {lead.campaignName}
+          </div>
+        )}
       </div>
     )
   }
 
   return (
-    <div className="rounded-lg border border-slate-200/20 overflow-hidden bg-white/5 backdrop-blur-sm">
-      {/* Table Header */}
-      <div className="bg-slate-800/30 px-6 py-4 border-b border-slate-200/10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-white">Liste des Leads</h3>
-            <p className="text-sm text-slate-400">
-              {sortedLeads.length} lead{sortedLeads.length > 1 ? 's' : ''} trouvé{sortedLeads.length > 1 ? 's' : ''}
-              {isLoading && filteredLeads.length > 0 && (
-                <span className="ml-2 inline-flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
-                  <span className="text-xs text-blue-400">Actualisation...</span>
-                </span>
-              )}
-            </p>
+    <div className="space-y-3">
+      {/* Table Container */}
+      <div className="rounded-lg border border-[#1F2937] overflow-hidden bg-white/5 backdrop-blur-sm">
+        {/* Table Header */}
+        <div className="bg-slate-800/30 px-6 py-4 border-b border-[#1F2937]">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-[#E5E7EB]">Liste des Leads</h3>
+              <p className="text-sm text-[#9CA3AF]">
+                {sortedLeads.length} lead{sortedLeads.length > 1 ? 's' : ''} trouvé{sortedLeads.length > 1 ? 's' : ''}
+                {isLoading && filteredLeads.length > 0 && (
+                  <span className="ml-2 inline-flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#3B82F6] animate-pulse"></span>
+                    <span className="text-xs text-[#3B82F6]">Actualisation...</span>
+                  </span>
+                )}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Table - Fixed height container to prevent flickering */}
       <div 
@@ -272,65 +356,71 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
             <col className="w-[10%]" />
             <col className="w-[12%]" />
           </colgroup>
-          <thead className="bg-slate-800/20 border-b border-slate-200/10 sticky top-0 z-10 backdrop-blur-sm">
+          <thead className="bg-slate-800/20 border-b border-[#1F2937] sticky top-0 z-10 backdrop-blur-sm">
             <tr>
-              <th className="px-6 py-4 text-left">
+              <th 
+                className="px-6 py-4 text-left group"
+                onMouseEnter={() => setHoveredColumn('nom')}
+                onMouseLeave={() => setHoveredColumn(null)}
+              >
                 <button
                   onClick={() => handleSort('nom')}
-                  className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-[#9CA3AF] hover:text-[#3B82F6] transition-colors"
                 >
-                  👤 Contact
+                  <span>Contact</span>
                   {getSortIcon('nom')}
                 </button>
               </th>
-              <th className="px-4 py-4 text-left">
+              <th 
+                className="px-4 py-4 text-left group"
+                onMouseEnter={() => setHoveredColumn('ville')}
+                onMouseLeave={() => setHoveredColumn(null)}
+              >
                 <button
                   onClick={() => handleSort('ville')}
-                  className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-[#9CA3AF] hover:text-[#3B82F6] transition-colors"
                 >
-                  🏙️ Ville
+                  <span>Ville</span>
                   {getSortIcon('ville')}
                 </button>
               </th>
-              <th className="px-4 py-4 text-left">
-                <button
-                  onClick={() => handleSort('typeBien')}
-                  className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
-                >
-                  🏠 Bien
-                  {getSortIcon('typeBien')}
-                </button>
+              <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
+                Bien
               </th>
-              <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                🧭 Source
+              <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
+                Source
               </th>
-              <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                👤 Assigné à
+              <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
+                Assigné à
               </th>
-              <th className="px-4 py-4 text-left">
+              <th 
+                className="px-4 py-4 text-left group"
+                onMouseEnter={() => setHoveredColumn('statut')}
+                onMouseLeave={() => setHoveredColumn(null)}
+              >
                 <button
                   onClick={() => handleSort('statut')}
-                  className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-[#9CA3AF] hover:text-[#3B82F6] transition-colors"
                 >
-                  🔖 Statut
+                  <span>Statut</span>
                   {getSortIcon('statut')}
                 </button>
               </th>
-              <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                ⏱️ Durée en lead
+              <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
+                Durée en lead
               </th>
-              <th className="px-4 py-4 text-right text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                ⚙️ Actions
+              <th className="px-4 py-4 text-right text-xs font-semibold text-[#9CA3AF]">
+                {/* Actions - no text, just icons */}
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200/10">
+          <tbody className="divide-y divide-[#1F2937]">
             <AnimatePresence mode="popLayout">
               {sortedLeads.map((lead) => {
-                const statusInfo = statusConfig[lead.statut]
-                const isNewlyAdded = lead.id === newlyAddedLeadId
-                return (
-                  <motion.tr 
+                    const statusInfo = statusConfig[lead.statut]
+                    const isNewlyAdded = lead.id === newlyAddedLeadId
+                    return (
+                      <motion.tr 
                     key={lead.id}
                     layout
                     initial={{ opacity: 0, y: -10 }}
@@ -349,15 +439,16 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                       ease: "easeOut"
                     }}
                     className={cn(
-                      "hover:bg-slate-700/10 transition-all duration-300 group",
+                      "transition-all duration-200 group",
+                      "hover:bg-[rgba(255,255,255,0.03)]",
                       isNewlyAdded && "bg-primary/10 ring-2 ring-primary/50"
                     )}  
                   >
                   {/* Contact (Nom & Téléphone) */}
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
-                      <p className="text-sm font-semibold text-white truncate">{lead.nom}</p>
-                      <div className="flex items-center gap-1.5 text-slate-400">
+                      <p className="text-sm font-semibold text-[#E5E7EB] truncate">{lead.nom}</p>
+                      <div className="flex items-center gap-1.5 text-[#9CA3AF]">
                         <Phone className="w-3.5 h-3.5 flex-shrink-0" />
                         <span className="text-xs truncate">{lead.telephone}</span>
                       </div>
@@ -367,14 +458,14 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                   {/* Ville */}
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                      <span className="text-sm text-slate-200 truncate">{lead.ville}</span>
+                      <MapPin className="w-4 h-4 text-[#9CA3AF] flex-shrink-0" />
+                      <span className="text-sm text-[#E5E7EB] truncate">{lead.ville}</span>
                     </div>
                   </td>
 
                   {/* Type de bien */}
                   <td className="px-4 py-4">
-                    <span className="text-sm text-slate-200 truncate">{lead.typeBien}</span>
+                    <span className="text-sm text-[#E5E7EB] truncate">{lead.typeBien}</span>
                   </td>
 
                   {/* Source */}
@@ -385,8 +476,8 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                   {/* Assigné à */}
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                      <span className="text-sm text-slate-200 font-medium truncate">{lead.assignePar}</span>
+                      <User className="w-3.5 h-3.5 text-[#9CA3AF] flex-shrink-0" />
+                      <span className="text-sm text-[#E5E7EB] font-medium truncate">{lead.assignePar}</span>
                     </div>
                   </td>
 
@@ -419,39 +510,56 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
 
                   {/* Actions */}
                   <td className="px-4 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
+                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       {onViewHistory && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onViewHistory(lead)}
-                          className="h-9 w-9 p-0 hover:bg-gradient-to-br hover:from-primary/20 hover:to-purple-500/20 transition-all text-primary hover:text-white border border-transparent hover:border-primary/30 hover:shadow-lg hover:shadow-primary/20"
-                          title="📝 Notes & Historique"
-                        >
-                          <MessageSquarePlus className="w-4 h-4" />
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onViewHistory(lead)}
+                                className="h-8 w-8 p-0 hover:bg-primary/10 transition-all text-[#9CA3AF] hover:text-[#3B82F6]"
+                              >
+                                <MessageSquarePlus className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Notes & Historique</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onLeadClick(lead)}
-                        className="h-9 px-3 hover:bg-slate-600/50 transition-all text-slate-300 hover:text-white"
-                        title="Voir / Modifier"
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Modifier
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onLeadClick(lead)}
+                              className="h-8 w-8 p-0 hover:bg-slate-600/30 transition-all text-[#9CA3AF] hover:text-[#E5E7EB]"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">Modifier</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-9 w-9 p-0 hover:bg-red-500/20 text-red-400 transition-all"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-all"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Supprimer</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Supprimer ce lead ?</AlertDialogTitle>
@@ -473,8 +581,8 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                     </div>
                   </td>
                 </motion.tr>
-              )
-            })}
+                    )
+              })}
             </AnimatePresence>
           </tbody>
         </table>
@@ -502,6 +610,7 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
   )

@@ -36,6 +36,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select"
+import { motion, AnimatePresence } from "framer-motion"
 
 // Dummy data - not used anymore, fetching from database instead
 const initialLeads: any[] = [
@@ -569,6 +570,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         sans_reponse: "Sans réponse",
         non_interesse: "Non intéressé",
         converti: "Converti",
+        qualifie: "Qualifié",
+        refuse: "Refusé",
       }
       
       toast({
@@ -1044,112 +1047,207 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
             {error && (
               <div className="mb-3 p-3 bg-red-500/20 border border-red-500/40 rounded-lg flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-red-400" />
-                <p className="text-red-400 text-sm">{error}</p>
+                <p className="text-red-400 text-sm">{error instanceof Error ? error.message : String(error)}</p>
               </div>
             )}
 
             {/* Filter Accordion - Compact Luxury Design */}
             <div className="glass rounded-xl border border-slate-600/30 overflow-hidden shadow-lg">
               {/* Filter Header - Compact */}
-              <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-slate-800/60 to-slate-800/40 backdrop-blur-md">
-                {/* Left: Filter Section */}
-                <button 
-                  className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-all flex-1 group"
-                  onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-                >
-                  <div className="p-1.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <Filter className="w-4 h-4 text-primary" />
-                  </div>
-                  <span className="font-semibold text-white text-sm">Filtres</span>
-                  {getActiveFiltersCount() > 0 && (
-                    <span className="bg-gradient-to-r from-primary/30 to-primary/20 text-primary px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-primary/30 shadow-sm">
-                      {getActiveFiltersCount()}
-                    </span>
-                  )}
-                  <ChevronDown className={cn(
-                    "w-4 h-4 text-slate-400 transition-transform ml-auto",
-                    isFiltersOpen && "rotate-180 text-primary"
-                  )} />
-                </button>
-
-                {/* Right: Clear Filters */}
-                {getActiveFiltersCount() > 0 && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      clearAllFilters()
-                    }}
-                    className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-all px-3 py-1.5 rounded-lg hover:bg-red-500/10 border border-transparent hover:border-red-500/30 ml-3"
+              <div className="px-5 py-3 bg-gradient-to-r from-slate-800/60 to-slate-800/40 backdrop-blur-md space-y-3">
+                {/* Top Row: Filter Button and Clear */}
+                <div className="flex items-center justify-between">
+                  {/* Left: Filter Section */}
+                  <button 
+                    className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-all flex-1 group"
+                    onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span className="font-medium">Réinitialiser</span>
+                    <div className="p-1.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                      <Filter className="w-4 h-4 text-primary" />
+                    </div>
+                    <span className="font-semibold text-white text-sm">Filtres</span>
+                    {getActiveFiltersCount() > 0 && (
+                      <span className="bg-gradient-to-r from-primary/30 to-primary/20 text-primary px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-primary/30 shadow-sm">
+                        {getActiveFiltersCount()}
+                      </span>
+                    )}
+                    <ChevronDown className={cn(
+                      "w-4 h-4 text-slate-400 transition-transform ml-auto",
+                      isFiltersOpen && "rotate-180 text-primary"
+                    )} />
                   </button>
-                )}
-              </div>
 
-              {/* Active Filter Chips - Compact */}
-              {getActiveFiltersCount() > 0 && !isFiltersOpen && (
-                <div className="border-t border-slate-600/20 px-5 py-2.5 bg-slate-800/20">
-                  <div className="flex flex-wrap gap-1.5">
-                    {filters.status !== "all" && (
-                      <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
-                        Statut: {columns.find(c => c.status === filters.status)?.label}
-                        <button onClick={() => removeFilter('status')} className="hover:text-primary/70">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                    {filters.city !== "all" && (
-                      <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
-                        Ville: {filters.city}
-                        <button onClick={() => removeFilter('city')} className="hover:text-primary/70">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                    {filters.type !== "all" && (
-                      <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
-                        Type: {filters.type}
-                        <button onClick={() => removeFilter('type')} className="hover:text-primary/70">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                    {filters.assigned !== "all" && (
-                      <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
-                        Assigné: {filters.assigned}
-                        <button onClick={() => removeFilter('assigned')} className="hover:text-primary/70">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                    {filters.priority !== "all" && (
-                      <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
-                        Priorité: {filters.priority === 'haute' ? 'Haute' : filters.priority === 'moyenne' ? 'Moyenne' : 'Basse'}
-                        <button onClick={() => removeFilter('priority')} className="hover:text-primary/70">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                    {filters.source !== "all" && (
-                      <div className="bg-fuchsia-500/20 text-fuchsia-300 px-3 py-1 rounded-full text-xs flex items-center gap-2 border border-fuchsia-500/30">
-                        Source: {filters.source.charAt(0).toUpperCase() + filters.source.slice(1)}
-                        <button onClick={() => removeFilter('source')} className="hover:text-fuchsia-300/70">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                    {filters.campaign !== "all" && (
-                      <div className="bg-fuchsia-500/20 text-fuchsia-300 px-3 py-1 rounded-full text-xs flex items-center gap-2 border border-fuchsia-500/30">
-                        Campagne: {filters.campaign}
-                        <button onClick={() => removeFilter('campaign')} className="hover:text-fuchsia-300/70">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  {/* Right: Clear Filters */}
+                  {getActiveFiltersCount() > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        clearAllFilters()
+                      }}
+                      className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-all px-3 py-1.5 rounded-lg hover:bg-red-500/10 border border-transparent hover:border-red-500/30 ml-3"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span className="font-medium">Réinitialiser</span>
+                    </button>
+                  )}
                 </div>
-              )}
+
+                {/* Active Filter Chips - Inside Header */}
+                <AnimatePresence>
+                  {getActiveFiltersCount() > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {filters.status !== "all" && (
+                          <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 border border-blue-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-blue-500/25 transition-colors"
+                          >
+                            <span className="truncate max-w-[100px]">{columns.find(c => c.status === filters.status)?.label}</span>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeFilter('status')
+                              }} 
+                              className="hover:text-blue-200 transition-colors flex-shrink-0"
+                              aria-label="Remove status filter"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </motion.div>
+                        )}
+                        {filters.city !== "all" && (
+                          <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 border border-blue-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-blue-500/25 transition-colors"
+                          >
+                            <span className="truncate max-w-[100px]">{filters.city}</span>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeFilter('city')
+                              }} 
+                              className="hover:text-blue-200 transition-colors flex-shrink-0"
+                              aria-label="Remove city filter"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </motion.div>
+                        )}
+                        {filters.type !== "all" && (
+                          <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 border border-blue-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-blue-500/25 transition-colors"
+                          >
+                            <span className="truncate max-w-[100px]">{filters.type}</span>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeFilter('type')
+                              }} 
+                              className="hover:text-blue-200 transition-colors flex-shrink-0"
+                              aria-label="Remove type filter"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </motion.div>
+                        )}
+                        {filters.assigned !== "all" && (
+                          <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 border border-blue-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-blue-500/25 transition-colors"
+                          >
+                            <span className="truncate max-w-[100px]">{filters.assigned}</span>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeFilter('assigned')
+                              }} 
+                              className="hover:text-blue-200 transition-colors flex-shrink-0"
+                              aria-label="Remove assigned filter"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </motion.div>
+                        )}
+                        {filters.priority !== "all" && (
+                          <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 border border-blue-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-blue-500/25 transition-colors"
+                          >
+                            <span className="truncate max-w-[100px]">{filters.priority === 'haute' ? 'Haute' : filters.priority === 'moyenne' ? 'Moyenne' : 'Basse'}</span>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeFilter('priority')
+                              }} 
+                              className="hover:text-blue-200 transition-colors flex-shrink-0"
+                              aria-label="Remove priority filter"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </motion.div>
+                        )}
+                        {filters.source !== "all" && (
+                          <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            className="inline-flex items-center gap-1 bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-fuchsia-500/25 transition-colors"
+                          >
+                            <span className="truncate max-w-[100px]">{filters.source.charAt(0).toUpperCase() + filters.source.slice(1)}</span>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeFilter('source')
+                              }} 
+                              className="hover:text-fuchsia-200 transition-colors flex-shrink-0"
+                              aria-label="Remove source filter"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </motion.div>
+                        )}
+                        {filters.campaign !== "all" && (
+                          <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            className="inline-flex items-center gap-1 bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-fuchsia-500/25 transition-colors"
+                          >
+                            <span className="truncate max-w-[100px]">{filters.campaign}</span>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeFilter('campaign')
+                              }} 
+                              className="hover:text-fuchsia-200 transition-colors flex-shrink-0"
+                              aria-label="Remove campaign filter"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </motion.div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               {/* Filter Content - Compact Grid */}
               {isFiltersOpen && (
