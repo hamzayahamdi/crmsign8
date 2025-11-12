@@ -24,6 +24,10 @@ export async function POST(
     const resolvedParams = await Promise.resolve(params)
     const leadId = resolvedParams.id
     
+    // Get architect ID from request body
+    const body = await request.json().catch(() => ({}))
+    const architectId = body.architectId
+    
     // Verify JWT - Admin only
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -131,8 +135,27 @@ export async function POST(
     const now = new Date().toISOString()
     const clientId = generateCuid()
     
+    // Fetch architect name if architectId is provided
+    let architectName = lead.assignePar // Default to lead's original assignment
+    if (architectId) {
+      try {
+        const architect = await prisma.user.findUnique({
+          where: { id: architectId },
+          select: { name: true }
+        })
+        if (architect) {
+          architectName = architect.name
+          console.log(`[Convert Lead] Architect found: ${architectName} (ID: ${architectId})`)
+        } else {
+          console.warn(`[Convert Lead] Architect ID ${architectId} not found, using default`)
+        }
+      } catch (error) {
+        console.error(`[Convert Lead] Error fetching architect:`, error)
+      }
+    }
+    
     // 1. Create client in database with complete lead data for restoration
-    console.log(`[Convert Lead] Creating client in database for lead: ${leadId}`)
+    console.log(`[Convert Lead] Creating client in database for lead: ${leadId} with architect: ${architectName}`)
     const { data: newClient, error: insertError } = await supabase
       .from('clients')
       .insert({
@@ -141,7 +164,7 @@ export async function POST(
         telephone: lead.telephone,
         ville: lead.ville,
         type_projet: typeProjet,
-        architecte_assigne: lead.assignePar,
+        architecte_assigne: architectName,
         statut_projet: 'qualifie', // Start at first stage
         derniere_maj: now,
         lead_id: lead.id, // Link back to original lead ID

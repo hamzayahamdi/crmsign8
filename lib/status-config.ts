@@ -1,6 +1,6 @@
 import type { ProjectStatus } from '@/types/client'
 import { 
-  User, DollarSign, Palette, FileText, CheckCircle, XCircle, 
+  User, ClipboardList, DollarSign, Palette, FileText, CheckCircle, XCircle, 
   Wallet, Briefcase, HardHat, Receipt, Truck 
 } from 'lucide-react'
 
@@ -36,6 +36,23 @@ export const STATUS_CONFIG: Record<ProjectStatus, StatusConfig> = {
       'Préparer présentation'
     ]
   },
+  prise_de_besoin: {
+    value: 'prise_de_besoin',
+    label: 'Prise de besoin',
+    color: 'sky',
+    bgColor: 'bg-sky-500/20',
+    textColor: 'text-sky-300',
+    borderColor: 'border-sky-500/30',
+    gradient: 'from-sky-400 to-sky-500',
+    icon: ClipboardList,
+    progress: 20,
+    description: 'Prise détaillée des besoins du client et qualification avancée',
+    nextActions: [
+      'Organiser un atelier découverte',
+      'Documenter les besoins et contraintes',
+      'Préparer les éléments du devis'
+    ]
+  },
   acompte_recu: {
     value: 'acompte_recu',
     label: 'Acompte reçu',
@@ -45,8 +62,8 @@ export const STATUS_CONFIG: Record<ProjectStatus, StatusConfig> = {
     borderColor: 'border-green-500/30',
     gradient: 'from-green-400 to-green-500',
     icon: DollarSign,
-    progress: 20,
-    description: 'Acompte initial reçu, prêt à démarrer',
+    progress: 30,
+    description: 'Acompte initial reçu, prêt à démarrer la conception',
     nextActions: [
       'Démarrer la conception',
       'Planifier réunion de brief',
@@ -62,7 +79,7 @@ export const STATUS_CONFIG: Record<ProjectStatus, StatusConfig> = {
     borderColor: 'border-purple-500/30',
     gradient: 'from-purple-400 to-purple-500',
     icon: Palette,
-    progress: 35,
+    progress: 45,
     description: 'Phase de conception et design en cours',
     nextActions: [
       'Finaliser les plans',
@@ -79,7 +96,7 @@ export const STATUS_CONFIG: Record<ProjectStatus, StatusConfig> = {
     borderColor: 'border-yellow-500/30',
     gradient: 'from-yellow-400 to-yellow-500',
     icon: FileText,
-    progress: 45,
+    progress: 55,
     description: 'Devis envoyé, en attente de validation',
     nextActions: [
       'Envoyer le devis',
@@ -96,7 +113,7 @@ export const STATUS_CONFIG: Record<ProjectStatus, StatusConfig> = {
     borderColor: 'border-emerald-500/30',
     gradient: 'from-emerald-400 to-emerald-500',
     icon: CheckCircle,
-    progress: 55,
+    progress: 65,
     description: 'Devis accepté par le client',
     nextActions: [
       'Préparer le contrat',
@@ -130,7 +147,7 @@ export const STATUS_CONFIG: Record<ProjectStatus, StatusConfig> = {
     borderColor: 'border-cyan-500/30',
     gradient: 'from-cyan-400 to-cyan-500',
     icon: Wallet,
-    progress: 65,
+    progress: 75,
     description: 'Premier dépôt reçu, projet lancé',
     nextActions: [
       'Lancer le projet',
@@ -147,7 +164,7 @@ export const STATUS_CONFIG: Record<ProjectStatus, StatusConfig> = {
     borderColor: 'border-indigo-500/30',
     gradient: 'from-indigo-400 to-indigo-500',
     icon: Briefcase,
-    progress: 75,
+    progress: 85,
     description: 'Projet activement en cours de réalisation',
     nextActions: [
       'Suivre l\'avancement',
@@ -157,19 +174,18 @@ export const STATUS_CONFIG: Record<ProjectStatus, StatusConfig> = {
   },
   chantier: {
     value: 'chantier',
-    label: 'Chantier',
-    color: 'blue',
-    bgColor: 'bg-blue-600/20',
-    textColor: 'text-blue-300',
-    borderColor: 'border-blue-600/30',
-    gradient: 'from-blue-500 to-blue-600',
+    label: 'Travaux (héritage)',
+    color: 'indigo',
+    bgColor: 'bg-indigo-500/20',
+    textColor: 'text-indigo-300',
+    borderColor: 'border-indigo-500/30',
+    gradient: 'from-indigo-400 to-indigo-500',
     icon: HardHat,
     progress: 85,
-    description: 'Phase chantier - travaux en cours',
+    description: 'Statut hérité. Mettez à jour le projet vers "Projet en cours" pour profiter du nouveau suivi.',
     nextActions: [
-      'Visiter le chantier',
-      'Documenter l\'avancement',
-      'Gérer les imprévus'
+      'Basculer vers Projet en cours',
+      'Documenter l\'avancement dans Projet en cours'
     ]
   },
   facture_reglee: {

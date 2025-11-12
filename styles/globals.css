@@ -40,38 +40,59 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* Deep navy-dark background matching reference */
+  --background: 11 14 24;
+  --foreground: 248 250 252;
+  
+  /* Card with navy elevation */
+  --card: 15 20 32;
+  --card-foreground: 248 250 252;
+  
+  /* Popover/Dialog */
+  --popover: 15 20 32;
+  --popover-foreground: 248 250 252;
+  
+  /* Primary blue accent - vibrant */
+  --primary: 59 130 246;
+  --primary-foreground: 255 255 255;
+  
+  /* Secondary navy */
+  --secondary: 20 26 42;
+  --secondary-foreground: 248 250 252;
+  
+  /* Muted elements */
+  --muted: 20 26 42;
+  --muted-foreground: 148 163 184;
+  
+  /* Accent */
+  --accent: 20 26 42;
+  --accent-foreground: 248 250 252;
+  
+  /* Destructive red */
+  --destructive: 239 68 68;
+  --destructive-foreground: 255 255 255;
+  
+  /* Borders - navy subtle */
+  --border: 30 41 59;
+  --input: 30 41 59;
+  --ring: 59 130 246;
+  
+  /* Charts */
+  --chart-1: 59 130 246;
+  --chart-2: 16 185 129;
+  --chart-3: 251 146 60;
+  --chart-4: 168 85 247;
+  --chart-5: 236 72 153;
+  
+  /* Sidebar - navy dark */
+  --sidebar: 13 17 28;
+  --sidebar-foreground: 248 250 252;
+  --sidebar-primary: 59 130 246;
+  --sidebar-primary-foreground: 255 255 255;
+  --sidebar-accent: 20 26 42;
+  --sidebar-accent-foreground: 248 250 252;
+  --sidebar-border: 30 41 59;
+  --sidebar-ring: 59 130 246;
 }
 
 @theme inline {
@@ -120,7 +141,12 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+  
+  /* Force dark theme globally */
+  :root {
+    color-scheme: dark;
   }
 }
 
@@ -150,10 +176,12 @@
   scrollbar-color: rgba(255, 255, 255, 0.1) rgba(255, 255, 255, 0.02);
 }
 
-/* Smooth animations for glass effect */
+/* Smooth animations for glass effect - Navy Dark Theme */
 .glass {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(15, 20, 32, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(59, 130, 246, 0.1);
 }
 
 /* Kanban Scrollbar Styling */
@@ -274,12 +302,12 @@
 
 .kanban-container::before {
   left: 0;
-  background: linear-gradient(to right, rgba(13, 13, 18, 1) 0%, rgba(13, 13, 18, 0) 100%);
+  background: linear-gradient(to right, rgb(11, 14, 24) 0%, rgba(11, 14, 24, 0) 100%);
 }
 
 .kanban-container::after {
   right: 0;
-  background: linear-gradient(to left, rgba(13, 13, 18, 1) 0%, rgba(13, 13, 18, 0) 100%);
+  background: linear-gradient(to left, rgb(11, 14, 24) 0%, rgba(11, 14, 24, 0) 100%);
 }
 
 /* Hide fade indicators when at scroll edges */
@@ -289,4 +317,24 @@
 
 .kanban-container.at-end::after {
   opacity: 0;
+}
+
+/* Custom scrollbar for architect selection dialog */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }

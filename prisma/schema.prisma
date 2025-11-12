@@ -347,6 +347,7 @@ enum ProjectType {
 
 enum ProjectStatus {
   qualifie
+  prise_de_besoin
   acompte_recu
   conception
   devis_negociation
@@ -354,7 +355,7 @@ enum ProjectStatus {
   refuse
   premier_depot
   projet_en_cours
-  chantier
+  chantier // legacy - kept for backward compatibility only
   facture_reglee
   livraison_termine
   nouveau

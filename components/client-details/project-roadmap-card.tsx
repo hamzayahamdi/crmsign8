@@ -37,14 +37,14 @@ interface RoadmapStage {
 
 const ROADMAP_STAGES: RoadmapStage[] = [
   { id: "qualifie", label: "Qualifié", icon: "✓", order: 1 },
-  { id: "acompte_recu", label: "Acompte", icon: "💰", order: 2 },
-  { id: "conception", label: "Conception", icon: "🧩", order: 3 },
-  { id: "devis_negociation", label: "Devis", icon: "📄", order: 4 },
-  { id: "accepte", label: "Accepté", icon: "✅", order: 5 },
+  { id: "prise_de_besoin", label: "Prise de besoin", icon: "📝", order: 2 },
+  { id: "acompte_recu", label: "Acompte", icon: "💰", order: 3 },
+  { id: "conception", label: "Conception", icon: "🧩", order: 4 },
+  { id: "devis_negociation", label: "Devis", icon: "📄", order: 5 },
+  { id: "accepte", label: "Accepté", icon: "✅", order: 6 },
   { id: "refuse", label: "Refusé", icon: "❌", order: 99 }, // Terminal state
-  { id: "premier_depot", label: "1er Dépôt", icon: "💵", order: 6 },
-  { id: "projet_en_cours", label: "En Cours", icon: "⚙️", order: 7 },
-  { id: "chantier", label: "Chantier", icon: "🔨", order: 8 },
+  { id: "premier_depot", label: "1er Dépôt", icon: "💵", order: 7 },
+  { id: "projet_en_cours", label: "En Cours", icon: "⚙️", order: 8 },
   { id: "facture_reglee", label: "Facturé", icon: "🧾", order: 9 },
   { id: "livraison_termine", label: "Livré", icon: "🚚", order: 10 },
   { id: "annule", label: "Annulé", icon: "🚫", order: 98 }, // Terminal state

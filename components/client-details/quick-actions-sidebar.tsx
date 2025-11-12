@@ -1,8 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, DollarSign, Paperclip, Share2, Trash2, MessageSquare } from "lucide-react"
-import type { Client } from "@/types/client"
+import { 
+  Plus, DollarSign, Paperclip, Trash2, MessageSquare, 
+  ArrowRight, Wand2, Sparkles, CheckCircle2 
+} from "lucide-react"
+import type { Client, ProjectStatus } from "@/types/client"
 import { Button } from "@/components/ui/button"
 import { AddNoteModal } from "./add-note-modal"
 import { AddDevisModal } from "./add-devis-modal"
@@ -11,6 +14,9 @@ import { DocumentsModal } from "@/components/documents-modal"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/permissions"
+import { cn } from "@/lib/utils"
+import { updateClientStage } from "@/lib/client-stage-service"
+import { getStatusConfig } from "@/lib/status-config"
 
 interface QuickActionsSidebarProps {
   client: Client
@@ -25,6 +31,56 @@ export function QuickActionsSidebar({ client, onUpdate, onDelete }: QuickActions
   const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false)
   const { toast } = useToast()
   const { user } = useAuth()
+
+  const canUpdateStage = hasPermission(user?.role, 'projectProgress', 'update')
+  const depositLocked = client.statutProjet === "qualifie"
+
+  const fetchAndUpdateClient = async () => {
+    try {
+      const response = await fetch(`/api/clients/${client.id}`, {
+        credentials: 'include'
+      })
+      if (response.ok) {
+        const result = await response.json()
+        onUpdate(result.data)
+        return result.data as Client
+      }
+    } catch (error) {
+      console.error('[QuickActionsSidebar] Failed to refresh client:', error)
+    }
+    return null
+  }
+
+  const handleStageAdvance = async (targetStatus: ProjectStatus) => {
+    if (!canUpdateStage) return
+    const changedBy = user?.name || 'Utilisateur'
+
+    try {
+      const result = await updateClientStage(client.id, targetStatus, changedBy)
+      if (!result.success) {
+        throw new Error(result.error || "Impossible de mettre à jour le statut")
+      }
+
+      const updatedClient = await fetchAndUpdateClient()
+      const statusConfig = getStatusConfig(targetStatus)
+
+      toast({
+        title: "Statut mis à jour",
+        description: `Le projet est maintenant à l'étape « ${statusConfig.label} »`,
+      })
+
+      window.dispatchEvent(new CustomEvent('stage-updated', {
+        detail: { clientId: client.id, newStatus: targetStatus, changedBy }
+      }))
+    } catch (error) {
+      console.error('[QuickActionsSidebar] Error updating stage:', error)
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Impossible de mettre à jour le statut du projet",
+        variant: "destructive"
+      })
+    }
+  }
 
   const handleAddPayment = async (payment: PaymentData) => {
     const now = new Date().toISOString()
@@ -57,20 +113,12 @@ export function QuickActionsSidebar({ client, onUpdate, onDelete }: QuickActions
       // Check if stage was auto-progressed
       const wasAutoProgressed = result.stageProgressed || false
 
-      // Re-fetch client data to get updated payments, historique, and stage
-      const clientResponse = await fetch(`/api/clients/${client.id}`, {
-        credentials: 'include'
-      })
-      
-      if (clientResponse.ok) {
-        const clientResult = await clientResponse.json()
+      const updatedClient = await fetchAndUpdateClient()
+      if (updatedClient) {
         console.log('[Add Payment] Updated client data:', {
-          statutProjet: clientResult.data.statutProjet,
-          paymentsCount: clientResult.data.payments?.length || 0
+          statutProjet: updatedClient.statutProjet,
+          paymentsCount: updatedClient.payments?.length || 0
         })
-        onUpdate(clientResult.data)
-        
-        // Trigger payment update event for real-time sync
         window.dispatchEvent(new CustomEvent('payment-updated', { 
           detail: { clientId: client.id } 
         }))
@@ -115,76 +163,100 @@ export function QuickActionsSidebar({ client, onUpdate, onDelete }: QuickActions
     }
   }
 
-  const handleShare = () => {
-    if (typeof window !== 'undefined') {
-      const shareUrl = `${window.location.origin}/clients/${client.id}`
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        toast({
-          title: "Lien copié",
-          description: "Le lien du projet a été copié dans le presse-papier",
-        })
-      }).catch(() => {
-        toast({
-          title: "Lien de partage",
-          description: shareUrl,
-        })
-      })
+  const stageCallout = (() => {
+    if (!canUpdateStage) return null
+    if (client.statutProjet === "qualifie") {
+      return {
+        title: "Activez la prise de besoin",
+        description: "Planifiez la découverte pour qualifier précisément le projet.",
+        actionLabel: "Passer à Prise de besoin",
+        gradient: "from-[#4458f1]/85 via-[#8c4af7]/80 to-[#d54dee]/85",
+        icon: Wand2,
+        onClick: () => handleStageAdvance("prise_de_besoin")
+      }
     }
-  }
+
+    if (client.statutProjet === "prise_de_besoin") {
+      return {
+        title: "Prise de besoin validée",
+        description: "Brief confirmé. Ajoutez l'acompte pour lancer la conception.",
+        actionLabel: "Ajouter un acompte",
+        gradient: "from-[#38cfa3]/80 via-[#4ad5c4]/75 to-[#66e6f4]/80",
+        icon: CheckCircle2,
+        onClick: () => setIsPaymentModalOpen(true)
+      }
+    }
+
+    return null
+  })()
+  const CalloutIcon = stageCallout?.icon
 
   return (
     <>
-    <div className="bg-[#171B22] rounded-2xl border border-white/10 p-6 sticky top-24">
-      <div className="mb-6">
-        <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-1">Actions Rapides</h3>
-        <p className="text-xs text-white/50">Gérer le projet</p>
+    <div className="sticky top-24 rounded-3xl border border-white/10 bg-[#161a23] p-4 shadow-[0_12px_24px_rgba(9,11,20,0.45)]">
+      <div className="mb-3">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">Actions Rapides</h3>
       </div>
 
+      {stageCallout && CalloutIcon && (
+        <div className="relative mb-3 overflow-hidden rounded-2xl border border-white/12 bg-[#181d29] px-3 py-2.5">
+          <div className={`pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-r ${stageCallout.gradient} opacity-18`} />
+          <div className="relative flex items-center gap-2.5">
+            <div className="flex h-8.5 w-8.5 items-center justify-center rounded-lg bg-white/10 text-white shadow-[0_6px_14px_rgba(12,14,20,0.4)]">
+              <CalloutIcon className="h-4 w-4" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[13px] font-semibold text-white leading-tight tracking-wide">{stageCallout.title}</p>
+              <p className="mt-0.5 text-[11px] text-white/65 leading-snug">
+                {stageCallout.description}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={stageCallout.onClick}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/[0.08] px-3 py-1.5 text-[11px] font-semibold text-white/90 shadow-[0_6px_16px_rgba(15,18,30,0.4)] transition hover:bg-white/[0.12]"
+            >
+              <ArrowRight className="h-3 w-3" />
+              {stageCallout.actionLabel}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
-        <Button
+        <ActionButton
+          icon={MessageSquare}
+          label="Ajouter note"
+          description="Consignez un échange clé"
+          accent="from-sky-500 via-indigo-500 to-purple-500"
           onClick={() => setIsNoteModalOpen(true)}
-          className="w-full justify-start h-11 bg-white/5 hover:bg-white/10 text-white border border-white/10"
-          variant="ghost"
-        >
-          <MessageSquare className="w-4 h-4 mr-3" />
-          Ajouter note
-        </Button>
+        />
 
-        <Button
+        <ActionButton
+          icon={DollarSign}
+          label="Ajouter acompte"
+          description="Enregistrez un acompte"
+          accent="from-emerald-400 via-teal-400 to-cyan-400"
           onClick={() => setIsPaymentModalOpen(true)}
-          className="w-full justify-start h-11 bg-white/5 hover:bg-white/10 text-white border border-white/10"
-          variant="ghost"
-        >
-          <DollarSign className="w-4 h-4 mr-3" />
-          Ajouter acompte
-        </Button>
+          disabled={depositLocked}
+          elevated={false}
+        />
 
-        <Button
+        <ActionButton
+          icon={Paperclip}
+          label="Documents"
+          description="Partagez les pièces du dossier"
+          accent="from-fuchsia-500 to-rose-500"
           onClick={() => setIsDocumentsModalOpen(true)}
-          className="w-full justify-start h-11 bg-white/5 hover:bg-white/10 text-white border border-white/10"
-          variant="ghost"
-        >
-          <Paperclip className="w-4 h-4 mr-3" />
-          Documents
-        </Button>
+        />
 
-        <Button
-          onClick={handleShare}
-          className="w-full justify-start h-11 bg-white/5 hover:bg-white/10 text-white border border-white/10"
-          variant="ghost"
-        >
-          <Share2 className="w-4 h-4 mr-3" />
-          Partager projet
-        </Button>
-
-        <Button
+        <ActionButton
+          icon={Plus}
+          label="Créer devis"
+          description="Générez un nouveau devis"
+          accent="from-amber-400 to-orange-500"
           onClick={() => setIsDevisModalOpen(true)}
-          className="w-full justify-start h-11 bg-white/5 hover:bg-white/10 text-white border border-white/10"
-          variant="ghost"
-        >
-          <Plus className="w-4 h-4 mr-3" />
-          Créer devis
-        </Button>
+        />
       </div>
 
       {/* Delete button - only visible for Admin and Operator */}
@@ -230,5 +302,56 @@ export function QuickActionsSidebar({ client, onUpdate, onDelete }: QuickActions
         onDocumentsAdded={handleDocumentsAdded}
       />
     </>  
+  )
+}
+
+interface ActionButtonProps {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  description?: string
+  onClick: () => void
+  accent?: string
+  disabled?: boolean
+}
+
+function ActionButton({
+  icon: Icon,
+  label,
+  description,
+  onClick,
+  accent,
+  disabled = false
+}: ActionButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "group relative flex w-full items-center gap-2.5 rounded-xl border border-white/10 px-3.5 py-2.5 text-left transition-all duration-200",
+        "bg-white/[0.03] hover:border-white/18 hover:bg-white/[0.06]",
+        "focus:outline-none focus:ring-2 focus:ring-white/15",
+        disabled && "cursor-not-allowed opacity-55 hover:border-white/10 hover:bg-white/[0.03]"
+      )}
+    >
+      <span className={cn(
+        "flex h-8 w-8 items-center justify-center rounded-lg text-white shadow-[0_4px_12px_rgba(10,12,18,0.4)] transition-all duration-200",
+        "bg-white/8",
+        accent && !disabled && `bg-gradient-to-r ${accent} text-white shadow-[0_8px_18px_rgba(85,90,220,0.4)] group-hover:shadow-[0_10px_22px_rgba(85,90,220,0.5)]`
+      )}>
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <div className="flex-1">
+        <p className="text-[13px] font-semibold text-white/85 leading-tight">{label}</p>
+        {description && (
+          <p className="mt-0.5 text-[11px] text-white/55 leading-snug">
+            {description}
+          </p>
+        )}
+      </div>
+      {!disabled && (
+        <ArrowRight className="h-3 w-3 text-white/20 transition group-hover:translate-x-0.5 group-hover:text-white/55" />
+      )}
+    </button>
   )
 }

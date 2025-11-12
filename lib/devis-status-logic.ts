@@ -73,6 +73,7 @@ export function getAutoProjectStatus(client: Client): ProjectStatus | null {
  */
 const STATUS_ORDER: ProjectStatus[] = [
   "qualifie",
+  "prise_de_besoin",
   "acompte_recu",
   "conception",
   "devis_negociation",
@@ -80,9 +81,9 @@ const STATUS_ORDER: ProjectStatus[] = [
   "refuse",
   "premier_depot",
   "projet_en_cours",
-  "chantier",
   "facture_reglee",
   "livraison_termine",
+  "chantier",
   // Legacy (mapped elsewhere, but included for safety)
   "nouveau",
   "acompte_verse",
@@ -190,7 +191,6 @@ export function canMoveToStatus(client: Client, targetStatus: ProjectStatus): {
   const forwardStatuses: ProjectStatus[] = [
     "premier_depot",
     "projet_en_cours",
-    "chantier",
     "facture_reglee",
     "livraison_termine"
   ]
@@ -256,7 +256,6 @@ export function getDevisWarnings(client: Client): string[] {
   const forwardStatuses: ProjectStatus[] = [
     "premier_depot",
     "projet_en_cours",
-    "chantier",
     "facture_reglee",
     "livraison_termine"
   ]

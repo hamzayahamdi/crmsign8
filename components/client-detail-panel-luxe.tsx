@@ -28,7 +28,7 @@ interface ClientDetailPanelProps {
   onDelete?: (client: Client) => void
 }
 
-const statusConfig: Record<ProjectStatus, { 
+  const statusConfig: Record<string, { 
   label: string
   progress: number
   gradient: string
@@ -127,7 +127,7 @@ export function ClientDetailPanelLuxe({
   // Check if user can edit status (Admin or Architecte)
   // Case-insensitive role check - database stores roles in lowercase
   const userRole = user?.role?.toLowerCase()
-  const canEditStatus = userRole === 'admin' || userRole === 'architecte' || userRole === 'architect'
+  const canEditStatus = ['admin', 'administrateur', 'architecte', 'architect'].includes(userRole ?? '')
   
   // Debug: Log user info to console (helpful for troubleshooting)
   useEffect(() => {
@@ -368,6 +368,7 @@ export function ClientDetailPanelLuxe({
       description: task.title,
     })
   }
+
 
   // New project creation removed from quick actions
 
@@ -712,7 +713,6 @@ export function ClientDetailPanelLuxe({
                         variant="secondary"
                       />
                     </div>
-
                     {/* Documents */}
                     <ActionButton
                       icon={<FolderOpen className="w-4 h-4" />}

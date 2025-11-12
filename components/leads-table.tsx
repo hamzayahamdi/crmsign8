@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { LeadsTableSkeleton } from "@/components/leads-table-skeleton"
+import { LeadActionDialog } from "@/components/lead-action-dialog"
 import { useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -32,6 +33,7 @@ interface LeadsTableProps {
   onLeadClick: (lead: Lead) => void
   onDeleteLead: (leadId: string) => void
   onViewHistory?: (lead: Lead) => void
+  onConvertToClient?: (lead: Lead, architectId: string) => void
   searchQuery: string
   filters: {
     status: "all" | LeadStatus
@@ -82,10 +84,12 @@ interface CampaignGroup {
   leads: Lead[]
 }
 
-export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, searchQuery, filters, onFilterChange, isLoading = false, newlyAddedLeadId = null }: LeadsTableProps) {
+export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, onConvertToClient, searchQuery, filters, onFilterChange, isLoading = false, newlyAddedLeadId = null }: LeadsTableProps) {
   const [sortField, setSortField] = useState<SortField>('uploadedAt')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [hoveredColumn, setHoveredColumn] = useState<SortField | null>(null)
+  const [actionDialogLead, setActionDialogLead] = useState<Lead | null>(null)
+  const [actionDialogOpen, setActionDialogOpen] = useState(false)
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
 
@@ -438,8 +442,12 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                       duration: 0.3,
                       ease: "easeOut"
                     }}
+                    onClick={() => {
+                      setActionDialogLead(lead)
+                      setActionDialogOpen(true)
+                    }}
                     className={cn(
-                      "transition-all duration-200 group",
+                      "transition-all duration-200 group cursor-pointer",
                       "hover:bg-[rgba(255,255,255,0.03)]",
                       isNewlyAdded && "bg-primary/10 ring-2 ring-primary/50"
                     )}  
@@ -518,7 +526,10 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => onViewHistory(lead)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onViewHistory(lead)
+                                }}
                                 className="h-8 w-8 p-0 hover:bg-primary/10 transition-all text-[#9CA3AF] hover:text-[#3B82F6]"
                               >
                                 <MessageSquarePlus className="w-4 h-4" />
@@ -534,7 +545,10 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => onLeadClick(lead)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onLeadClick(lead)
+                              }}
                               className="h-8 w-8 p-0 hover:bg-slate-600/30 transition-all text-[#9CA3AF] hover:text-[#E5E7EB]"
                             >
                               <Edit className="w-4 h-4" />
@@ -551,6 +565,7 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  onClick={(e) => e.stopPropagation()}
                                   className="h-8 w-8 p-0 hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-all"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -612,6 +627,23 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, se
         )}
       </div>
       </div>
+
+      {/* Lead Action Dialog */}
+      <LeadActionDialog
+        lead={actionDialogLead}
+        open={actionDialogOpen}
+        onOpenChange={setActionDialogOpen}
+        onEdit={(lead) => {
+          setActionDialogOpen(false)
+          onLeadClick(lead)
+        }}
+        onConvertToClient={(lead, architectId) => {
+          setActionDialogOpen(false)
+          if (onConvertToClient) {
+            onConvertToClient(lead, architectId)
+          }
+        }}
+      />
     </div>
   )
 }

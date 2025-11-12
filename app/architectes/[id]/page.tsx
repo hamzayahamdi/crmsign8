@@ -582,6 +582,7 @@ export default function ArchitectDetailPage() {
                     <SelectContent className="glass border-slate-600/30">
                       <SelectItem value="all" className="text-white text-xs">Tous les états</SelectItem>
                       <SelectItem value="qualifie" className="text-white text-xs">Qualifié</SelectItem>
+                      <SelectItem value="prise_de_besoin" className="text-white text-xs">Prise de besoin</SelectItem>
                       <SelectItem value="acompte_recu" className="text-white text-xs">Acompte reçu</SelectItem>
                       <SelectItem value="conception" className="text-white text-xs">Conception</SelectItem>
                       <SelectItem value="devis_negociation" className="text-white text-xs">Devis/Négociation</SelectItem>
@@ -589,7 +590,7 @@ export default function ArchitectDetailPage() {
                       <SelectItem value="refuse" className="text-white text-xs">Refusé</SelectItem>
                       <SelectItem value="premier_depot" className="text-white text-xs">1er Dépôt</SelectItem>
                       <SelectItem value="projet_en_cours" className="text-white text-xs">Projet en cours</SelectItem>
-                      <SelectItem value="chantier" className="text-white text-xs">Chantier</SelectItem>
+                      <SelectItem value="chantier" className="text-white text-xs">Travaux (héritage)</SelectItem>
                       <SelectItem value="facture_reglee" className="text-white text-xs">Facture réglée</SelectItem>
                       <SelectItem value="livraison_termine" className="text-white text-xs">Livraison & Terminé</SelectItem>
                       <SelectItem value="annule" className="text-white text-xs">Annulé</SelectItem>

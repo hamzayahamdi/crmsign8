@@ -54,7 +54,7 @@ export default function HomePage() {
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-[rgb(11,14,24)]">
         <Sidebar />
         <main className="flex-1 flex flex-col">
           <Header 

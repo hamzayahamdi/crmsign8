@@ -91,6 +91,7 @@ export function formatRelativeTime(dateString: string): string {
 export function getStatusLabel(status: ProjectStatus): string {
   const statusLabels: Record<ProjectStatus, string> = {
     qualifie: "Qualifié",
+    prise_de_besoin: "Prise de besoin",
     acompte_recu: "Acompte reçu",
     conception: "Conception",
     devis_negociation: "Devis/Négociation",
@@ -98,7 +99,7 @@ export function getStatusLabel(status: ProjectStatus): string {
     refuse: "Refusé",
     premier_depot: "1er Dépôt",
     projet_en_cours: "Projet en cours",
-    chantier: "Chantier",
+    chantier: "Projet en cours (héritage)",
     facture_reglee: "Facture réglée",
     livraison_termine: "Livraison & Terminé",
     // Legacy

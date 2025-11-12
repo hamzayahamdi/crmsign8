@@ -476,7 +476,7 @@ export default function ClientDetailsPage() {
   if (isLoading) {
     return (
       <AuthGuard>
-        <div className="flex min-h-screen bg-[#0D0D12]">
+        <div className="flex min-h-screen bg-[rgb(11,14,24)]">
           <Sidebar />
           <main className="flex-1 flex items-center justify-center">
             <div className="text-white">Chargement...</div>
@@ -489,7 +489,7 @@ export default function ClientDetailsPage() {
   if (!client) {
     return (
       <AuthGuard>
-        <div className="flex min-h-screen bg-[#0D0D12]">
+        <div className="flex min-h-screen bg-[rgb(11,14,24)]">
           <Sidebar />
           <main className="flex-1 flex flex-col">
             <Header />
@@ -510,7 +510,7 @@ export default function ClientDetailsPage() {
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen bg-[#0D0D12]">
+      <div className="flex min-h-screen bg-[rgb(11,14,24)]">
         <Sidebar />
         
         <main className="flex-1 flex flex-col overflow-hidden">
@@ -534,7 +534,7 @@ export default function ClientDetailsPage() {
           )}
 
           {/* Sticky Header */}
-          <div className="sticky top-0 z-30 bg-[#0D0D12]/95 backdrop-blur-lg border-b border-white/5">
+          <div className="sticky top-0 z-30 bg-[rgb(11,14,24)]/95 backdrop-blur-lg border-b border-[rgb(30,41,59)]">
             <ClientDetailsHeader 
               client={client}
               onUpdate={handleUpdateClient}

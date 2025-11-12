@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Plus, Filter, X, ChevronDown, Users, TrendingUp, LayoutGrid, Table as TableIcon, Loader2 } from "lucide-react"
 import type { Client, ProjectStatus } from "@/types/client"
 import { Sidebar } from "@/components/sidebar"
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export default function ClientsPage() {
+  const router = useRouter()
   const { user } = useAuth()
   const { toast } = useToast()
   const [clients, setClients] = useState<Client[]>([])
@@ -82,10 +84,8 @@ export default function ClientsPage() {
   }, [])
 
   const handleClientClick = (client: Client) => {
-    // Navigate to full-page client details view
-    if (typeof window !== 'undefined') {
-      window.location.href = `/clients/${client.id}`
-    }
+    // Navigate to full-page client details view using Next.js router (no refresh)
+    router.push(`/clients/${client.id}`)
   }
 
   const handleAddClient = () => {
@@ -303,7 +303,7 @@ export default function ClientsPage() {
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
+      <div className="flex min-h-screen bg-[rgb(11,14,24)]">
         <Sidebar />
         <main className="flex-1 flex flex-col overflow-x-hidden">
           <Header />

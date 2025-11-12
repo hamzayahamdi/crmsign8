@@ -3,6 +3,7 @@
 import { KanbanColumn } from "@/components/kanban-column"
 import type { Lead, LeadStatus, LeadPriority } from "@/types/lead"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
   DndContext,
   type DragEndEvent,
@@ -310,6 +311,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps) {
+  const router = useRouter()
   const { toast } = useToast()
   const [activeLead, setActiveLead] = useState<Lead | null>(null)
   const [editingLead, setEditingLead] = useState<Lead | null>(null)
@@ -619,8 +621,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
             const client = clients[0]
             console.log('[KanbanBoard] ✅ Found associated client:', client.id)
             
-            // Redirect to client details page
-            window.location.href = `/clients/${client.id}`
+            // Redirect to client details page using Next.js router (no refresh)
+            router.push(`/clients/${client.id}`)
             return
           } else {
             console.warn('[KanbanBoard] ⚠️ No client found for converted lead:', lead.id)
@@ -860,8 +862,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     }
   }
 
-  const handleConvertToClient = async (lead: Lead) => {
-    console.log('🔄 [Conversion] Starting conversion for lead:', lead.id, lead.nom)
+  const handleConvertToClient = async (lead: Lead, architectId?: string) => {
+    console.log('🔄 [Conversion] Starting conversion for lead:', lead.id, lead.nom, 'Architect:', architectId)
     
     // Close modal immediately
     setIsModalOpen(false)
@@ -900,6 +902,9 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          architectId: architectId
+        }),
       })
 
       console.log('📡 [Conversion] Response status:', response.status)
@@ -960,7 +965,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
       
       setTimeout(() => {
         console.log('🔄 [Conversion] Executing redirect now...')
-        window.location.href = `/clients/${clientId}`
+        router.push(`/clients/${clientId}`)
       }, 2000) // Increased delay to allow animation to complete
       
     } catch (error) {
@@ -1437,6 +1442,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
               setHistoryLead(lead)
               setIsHistoryPanelOpen(true)
             }}
+            onConvertToClient={handleConvertToClient}
             searchQuery={searchQuery}
             filters={filters}
             isLoading={isLoading}

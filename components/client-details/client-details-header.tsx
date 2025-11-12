@@ -67,20 +67,33 @@ export function ClientDetailsHeader({ client, onUpdate }: ClientDetailsHeaderPro
 
   // Calculate next action based on current status
   const getNextAction = () => {
-    if (client.statutProjet === "qualifie") return "Créer un devis"
-    if (client.statutProjet === "devis_negociation") return "Valider le devis"
-    if (client.statutProjet === "accepte") return "Recevoir 1er dépôt"
-    if (client.statutProjet === "premier_depot") return "Démarrer conception"
-    if (client.statutProjet === "conception") return "Valider plans"
-    if (client.statutProjet === "projet_en_cours") return "Lancer chantier"
-    if (client.statutProjet === "chantier") return "Finaliser travaux"
-    if (client.statutProjet === "facture_reglee") return "Préparer livraison"
+    switch (client.statutProjet) {
+      case "qualifie":
+        return "Planifier la prise de besoin"
+      case "prise_de_besoin":
+        return "Créer un devis"
+      case "devis_negociation":
+        return "Valider le devis"
+      case "accepte":
+        return "Recevoir 1er dépôt"
+      case "acompte_recu":
+        return "Lancer la conception"
+      case "premier_depot":
+        return "Démarrer conception"
+      case "conception":
+        return "Valider plans"
+      case "projet_en_cours":
+        return "Suivre l'exécution"
+      case "facture_reglee":
+        return "Préparer livraison"
+      default:
     return "Aucune action"
+    }
   }
 
   // Calculate project completion percentage based on stage
   const getProjectCompletion = () => {
-    const stages = ["qualifie", "acompte_recu", "conception", "devis_negociation", "accepte", "premier_depot", "projet_en_cours", "chantier", "facture_reglee", "livraison_termine"]
+    const stages = ["qualifie", "prise_de_besoin", "acompte_recu", "conception", "devis_negociation", "accepte", "premier_depot", "projet_en_cours", "facture_reglee", "livraison_termine"]
     const currentIndex = stages.indexOf(client.statutProjet)
     if (currentIndex === -1) return 0
     return Math.round(((currentIndex + 1) / stages.length) * 100)

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { TrendingUp, Calendar, Plus, Upload, Send, CheckCircle, FileText, DollarSign, MessageSquare } from "lucide-react"
+import { TrendingUp, Calendar, Plus, Upload, Send, CheckCircle, FileText, DollarSign, MessageSquare, ArrowRight, NotebookPen } from "lucide-react"
 import type { Client, ProjectStatus } from "@/types/client"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -185,12 +185,38 @@ export function ProjectProgressCard({ client, onUpdate }: ProjectProgressCardPro
           variant: 'default'
         },
         {
-          id: 'request_payment',
-          label: 'Demander acompte',
-          description: 'Envoyer demande d\'acompte au client',
-          action: () => setIsPaymentModalOpen(true),
-          icon: <DollarSign className="w-4 h-4" />,
+          id: 'start_discovery',
+          label: 'Lancer prise de besoin',
+          description: 'Passer en phase de recueil des besoins',
+          action: () => handleStatusChange('prise_de_besoin'),
+          icon: <ArrowRight className="w-4 h-4" />,
           variant: 'outline'
+        }
+      ],
+      prise_de_besoin: [
+        {
+          id: 'schedule_discovery',
+          label: 'Programmer atelier',
+          description: 'Planifier une réunion de découverte détaillée',
+          action: handleScheduleMeeting,
+          icon: <Calendar className="w-4 h-4" />,
+          variant: 'default'
+        },
+        {
+          id: 'document_needs',
+          label: 'Documenter besoins',
+          description: 'Capturer les besoins clés dans une note',
+          action: () => handleAddNote('Synthèse prise de besoin: '),
+          icon: <NotebookPen className="w-4 h-4" />,
+          variant: 'outline'
+        },
+        {
+          id: 'move_to_deposit',
+          label: 'Passer à l\'acompte',
+          description: 'Valider la prise de besoin et enregistrer l\'acompte',
+          action: () => handleStatusChange('acompte_recu'),
+          icon: <ArrowRight className="w-4 h-4" />,
+          variant: 'secondary'
         }
       ],
       acompte_recu: [
@@ -317,19 +343,19 @@ export function ProjectProgressCard({ client, onUpdate }: ProjectProgressCardPro
       ],
       chantier: [
         {
-          id: 'upload_site_photos',
-          label: 'Photos chantier',
-          description: 'Documenter l\'avancement du chantier',
-          action: () => setIsDocumentsModalOpen(true),
-          icon: <Upload className="w-4 h-4" />,
+          id: 'legacy_status',
+          label: 'Mettre à jour le statut',
+          description: 'Ce stade est remplacé par "Projet en cours". Basculez pour profiter des nouvelles actions.',
+          action: () => handleStatusChange('projet_en_cours'),
+          icon: <ArrowRight className="w-4 h-4" />,
           variant: 'default'
         },
         {
-          id: 'add_progress_note',
-          label: 'Note d\'avancement',
-          description: 'Ajouter un rapport d\'avancement',
-          action: () => handleAddNote('Avancement du chantier: '),
-          icon: <MessageSquare className="w-4 h-4" />,
+          id: 'document_travaux',
+          label: 'Documenter les travaux',
+          description: 'Continuez à suivre vos travaux depuis la phase Projet en cours.',
+          action: () => setIsDocumentsModalOpen(true),
+          icon: <Upload className="w-4 h-4" />,
           variant: 'outline'
         }
       ],

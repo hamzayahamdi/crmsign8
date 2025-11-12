@@ -51,6 +51,12 @@ const columns: {
     gradient: "from-blue-400 to-blue-500"
   },
   { 
+    status: "prise_de_besoin", 
+    label: "Prise de besoin", 
+    color: "sky",
+    gradient: "from-sky-400 to-sky-500"
+  },
+  { 
     status: "acompte_recu", 
     label: "Acompte reçu", 
     color: "green",
@@ -91,12 +97,6 @@ const columns: {
     label: "Projet en cours", 
     color: "indigo",
     gradient: "from-indigo-400 to-indigo-500"
-  },
-  { 
-    status: "chantier", 
-    label: "Chantier", 
-    color: "blue",
-    gradient: "from-blue-500 to-blue-600"
   },
   { 
     status: "facture_reglee", 
@@ -213,6 +213,7 @@ export function ClientKanbanBoard({
     const statusMapping: Record<ProjectStatus, ProjectStatus> = {
       // New statuses (direct mapping)
       qualifie: "qualifie",
+      prise_de_besoin: "prise_de_besoin",
       acompte_recu: "acompte_recu",
       conception: "conception",
       devis_negociation: "devis_negociation",
@@ -220,7 +221,7 @@ export function ClientKanbanBoard({
       refuse: "refuse",
       premier_depot: "premier_depot",
       projet_en_cours: "projet_en_cours",
-      chantier: "chantier",
+      chantier: "projet_en_cours",
       facture_reglee: "facture_reglee",
       livraison_termine: "livraison_termine",
       
@@ -229,7 +230,7 @@ export function ClientKanbanBoard({
       acompte_verse: "acompte_recu",
       en_conception: "conception",
       en_validation: "devis_negociation",
-      en_chantier: "chantier",
+      en_chantier: "projet_en_cours",
       livraison: "livraison_termine",
       termine: "livraison_termine",
       annule: "refuse",
@@ -279,6 +280,7 @@ export function ClientKanbanBoard({
     const overId = String(over.id)
     const possibleStatuses: ProjectStatus[] = [
       "qualifie",
+      "prise_de_besoin",
       "acompte_recu",
       "conception",
       "devis_negociation",
@@ -286,7 +288,6 @@ export function ClientKanbanBoard({
       "refuse",
       "premier_depot",
       "projet_en_cours",
-      "chantier",
       "facture_reglee",
       "livraison_termine",
     ]
@@ -372,6 +373,7 @@ export function ClientKanbanBoard({
       // Show success toast
       const statusLabels: Record<ProjectStatus, string> = {
         qualifie: "Qualifié",
+        prise_de_besoin: "Prise de besoin",
         acompte_recu: "Acompte reçu",
         conception: "Conception",
         devis_negociation: "Devis/Négociation",
@@ -379,7 +381,7 @@ export function ClientKanbanBoard({
         refuse: "Refusé",
         premier_depot: "1er Dépôt",
         projet_en_cours: "Projet en cours",
-        chantier: "Chantier",
+        chantier: "Projet en cours",
         facture_reglee: "Facture réglée",
         livraison_termine: "Livraison & Terminé",
         // Legacy
@@ -427,6 +429,7 @@ export function ClientKanbanBoard({
   const getStatusLabel = (status: ProjectStatus): string => {
     const statusLabels: Record<ProjectStatus, string> = {
       qualifie: "Qualifié",
+      prise_de_besoin: "Prise de besoin",
       acompte_recu: "Acompte reçu",
       conception: "Conception",
       devis_negociation: "Devis/Négociation",
@@ -434,7 +437,7 @@ export function ClientKanbanBoard({
       refuse: "Refusé",
       premier_depot: "1er Dépôt",
       projet_en_cours: "Projet en cours",
-      chantier: "Chantier",
+      chantier: "Projet en cours",
       facture_reglee: "Facture réglée",
       livraison_termine: "Livraison & Terminé",
       // Legacy

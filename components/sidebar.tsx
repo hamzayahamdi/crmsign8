@@ -140,14 +140,14 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-72 glass border-r border-border/40 flex flex-col h-screen sticky top-0 z-30 shrink-0">
+    <aside className="w-72 bg-[rgb(13,17,28)] border-r border-[rgb(30,41,59)] flex flex-col h-screen sticky top-0 z-30 shrink-0">
       {/* Logo */}
-      <div className="p-6 border-b border-border/40 shrink-0">
+      <div className="p-6 border-b border-[rgb(30,41,59)] shrink-0">
         <div className="flex items-center gap-3">
           <Signature8Logo size={48} />
           <div>
             <h1 className="text-xl font-bold text-white tracking-tight">Signature8</h1>
-            <p className="text-xs text-muted-foreground font-medium">CRM Tailor-Made</p>
+            <p className="text-xs text-gray-400 font-medium">CRM Tailor-Made</p>
           </div>
         </div>
       </div>
@@ -177,14 +177,14 @@ export function Sidebar() {
             <Link key={item.name} href={item.href} className="block">
               <div
                 className={cn(
-                  "relative flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 group",
-                  isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                  "relative flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group",
+                  isActive ? "text-white" : "text-slate-400 hover:text-white hover:bg-white/[0.03]"
                 )}
               >
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-active-bg"
-                    className="absolute inset-0 rounded-lg bg-primary/15 border border-primary/25 shadow-[0_0_20px_rgba(59,130,246,0.25)]"
+                    className="absolute inset-0 rounded-lg bg-blue-500/15 border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.25),inset_0_0_20px_rgba(59,130,246,0.1)]"
                     transition={{ type: "spring", stiffness: 500, damping: 40, mass: 0.8 }}
                   />
                 )}
@@ -245,24 +245,24 @@ export function Sidebar() {
       </nav>
 
       {user && (
-        <div className="shrink-0 border-t border-border/40 bg-background/50 backdrop-blur-sm">
+        <div className="shrink-0 border-t border-[rgb(30,41,59)] bg-[rgb(13,17,28)]">
           <div className="p-4 space-y-3">
-            <div className="glass rounded-xl p-3 space-y-1.5 border border-border/40">
+            <div className="rounded-xl p-3 space-y-1.5 border border-[rgb(30,41,59)] bg-[rgb(15,20,32)]/50">
               <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10 border-2 border-primary/30 ring-2 ring-primary/10">
-                  <AvatarFallback className="bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-primary-foreground font-bold text-sm">
+                <Avatar className="h-10 w-10 border-2 border-blue-500/30 ring-2 ring-blue-500/10">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white font-bold text-sm">
                     {getInitials(user.name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">
+                  <p className="text-sm font-semibold text-white truncate">
                     {user.name}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-xs text-gray-400 truncate">
                     {user.email}
                   </p>
                   {user.role && (
-                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
+                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20">
                       {getRoleLabel(user.role)}
                     </span>
                   )}
@@ -274,24 +274,24 @@ export function Sidebar() {
               <AlertDialogTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full justify-start gap-2 h-11 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-all duration-200 group"
+                  className="w-full justify-start gap-2 h-11 border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200 group bg-transparent"
                 >
                   <LogOut className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                   <span className="font-medium">Déconnexion</span>
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="glass border-border/40">
+              <AlertDialogContent className="bg-[rgb(15,20,32)] border border-[rgb(30,41,59)]">
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-xl">Confirmer la déconnexion</AlertDialogTitle>
-                  <AlertDialogDescription className="text-base">
+                  <AlertDialogTitle className="text-xl text-white">Confirmer la déconnexion</AlertDialogTitle>
+                  <AlertDialogDescription className="text-base text-gray-400">
                     Êtes-vous sûr de vouloir vous déconnecter ? Vous devrez vous reconnecter pour accéder à nouveau au CRM.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="hover:bg-accent">Annuler</AlertDialogCancel>
+                  <AlertDialogCancel className="hover:bg-white/[0.05] bg-transparent border-[rgb(30,41,59)] text-white">Annuler</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleLogout}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    className="bg-red-500 text-white hover:bg-red-600"
                   >
                     Se déconnecter
                   </AlertDialogAction>

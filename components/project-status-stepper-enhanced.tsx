@@ -2,8 +2,8 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import { 
-  User, DollarSign, Puzzle, FileText, CheckCircle, XCircle, 
-  Banknote, Hammer, Wrench, Receipt, Truck, Circle, Check,
+  User, ClipboardList, DollarSign, Puzzle, FileText, CheckCircle, XCircle, 
+  Banknote, Hammer, Receipt, Truck, Circle, Check,
   Clock
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -38,13 +38,22 @@ const PROJECT_STEPS: {
     order: 0 
   },
   { 
+    key: "prise_de_besoin",
+    label: "Prise de besoin",
+    icon: ClipboardList,
+    color: "text-sky-400",
+    gradient: "from-sky-400 to-sky-500",
+    glowColor: "shadow-sky-500/50",
+    order: 1
+  },
+  { 
     key: "acompte_recu", 
     label: "Acompte reçu", 
     icon: DollarSign, 
     color: "text-green-400", 
     gradient: "from-green-400 to-green-500",
     glowColor: "shadow-green-500/50",
-    order: 1 
+    order: 2 
   },
   { 
     key: "conception", 
@@ -53,7 +62,7 @@ const PROJECT_STEPS: {
     color: "text-purple-400", 
     gradient: "from-purple-400 to-purple-500",
     glowColor: "shadow-purple-500/50",
-    order: 2 
+    order: 3 
   },
   { 
     key: "devis_negociation", 
@@ -62,7 +71,7 @@ const PROJECT_STEPS: {
     color: "text-yellow-400", 
     gradient: "from-yellow-400 to-yellow-500",
     glowColor: "shadow-yellow-500/50",
-    order: 3 
+    order: 4 
   },
   { 
     key: "accepte", 
@@ -71,7 +80,7 @@ const PROJECT_STEPS: {
     color: "text-emerald-400", 
     gradient: "from-emerald-400 to-emerald-500",
     glowColor: "shadow-emerald-500/50",
-    order: 4 
+    order: 5 
   },
   { 
     key: "refuse", 
@@ -80,7 +89,7 @@ const PROJECT_STEPS: {
     color: "text-red-400", 
     gradient: "from-red-400 to-red-500",
     glowColor: "shadow-red-500/50",
-    order: 5 
+    order: 6 
   },
   { 
     key: "premier_depot", 
@@ -89,7 +98,7 @@ const PROJECT_STEPS: {
     color: "text-cyan-400", 
     gradient: "from-cyan-400 to-cyan-500",
     glowColor: "shadow-cyan-500/50",
-    order: 6 
+    order: 7 
   },
   { 
     key: "projet_en_cours", 
@@ -98,15 +107,6 @@ const PROJECT_STEPS: {
     color: "text-indigo-400", 
     gradient: "from-indigo-400 to-indigo-500",
     glowColor: "shadow-indigo-500/50",
-    order: 7 
-  },
-  { 
-    key: "chantier", 
-    label: "Chantier", 
-    icon: Wrench, 
-    color: "text-blue-500", 
-    gradient: "from-blue-500 to-blue-600",
-    glowColor: "shadow-blue-600/50",
     order: 8 
   },
   { 

@@ -4,7 +4,7 @@ import { motion } from "framer-motion"
 import { 
   Upload, FileText, Send, CheckCircle, XCircle, Calendar,
   Image as ImageIcon, MessageSquare, DollarSign, Clock,
-  TrendingUp, Star, Package
+  TrendingUp, Star, Package, NotebookPen, ArrowRight
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ProjectStatus, Client } from "@/types/client"
@@ -175,12 +175,46 @@ function getStageContent(status: ProjectStatus, client: Client): StageContent {
         }
       ]
     },
+    prise_de_besoin: {
+      title: "📝 Prise de besoin",
+      description: "Collecte détaillée des besoins et cadrage du projet",
+      badge: "En découverte",
+      badgeClass: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+      progress: 20,
+      sections: [
+        {
+          icon: <Calendar className="w-4 h-4 text-sky-400" />,
+          title: "Atelier de découverte",
+          content: "Organisez un temps d'échange pour cadrer les attentes, contraintes et budget.",
+          actions: [
+            { key: "schedule_discovery", label: "Programmer atelier", icon: <Calendar className="w-3 h-3" />, variant: "default", className: "bg-sky-600 hover:bg-sky-700" }
+          ]
+        },
+        {
+          icon: <NotebookPen className="w-4 h-4 text-sky-400" />,
+          title: "Synthèse des besoins",
+          content: "Consignez les besoins clés, priorités et éléments techniques du client.",
+          actions: [
+            { key: "capture_brief", label: "Ajouter une note", icon: <MessageSquare className="w-3 h-3" /> },
+            { key: "upload_brief", label: "Télécharger brief", icon: <Upload className="w-3 h-3" /> }
+          ]
+        },
+        {
+          icon: <ArrowRight className="w-4 h-4 text-sky-400" />,
+          title: "Valider la prise de besoin",
+          content: "Confirmez que la découverte est terminée pour lancer les démarches financières.",
+          actions: [
+            { key: "move_to_deposit", label: "Passer à l'acompte", icon: <CheckCircle className="w-3 h-3" />, variant: "secondary" }
+          ]
+        }
+      ]
+    },
     acompte_recu: {
       title: "💰 Acompte reçu",
       description: "L'acompte initial a été versé par le client",
       badge: "Acompte confirmé",
       badgeClass: "bg-green-500/20 text-green-300 border-green-500/30",
-      progress: 25,
+      progress: 30,
       sections: [
         {
           icon: <DollarSign className="w-4 h-4 text-green-400" />,
@@ -210,7 +244,7 @@ function getStageContent(status: ProjectStatus, client: Client): StageContent {
       description: "Phase de conception et création des plans",
       badge: "En conception",
       badgeClass: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-      progress: 40,
+      progress: 45,
       sections: [
         {
           icon: <Upload className="w-4 h-4 text-purple-400" />,
@@ -315,7 +349,7 @@ function getStageContent(status: ProjectStatus, client: Client): StageContent {
       description: "Premier dépôt reçu, projet validé",
       badge: "Dépôt reçu",
       badgeClass: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
-      progress: 70,
+      progress: 75,
       sections: [
         {
           icon: <DollarSign className="w-4 h-4 text-cyan-400" />,
@@ -344,7 +378,7 @@ function getStageContent(status: ProjectStatus, client: Client): StageContent {
       description: "Le projet est en cours de réalisation",
       badge: "En cours",
       badgeClass: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
-      progress: 75,
+      progress: 85,
       sections: [
         {
           icon: <Clock className="w-4 h-4 text-indigo-400" />,
@@ -367,28 +401,27 @@ function getStageContent(status: ProjectStatus, client: Client): StageContent {
       ]
     },
     chantier: {
-      title: "🛠️ Chantier",
-      description: "Phase de construction/chantier en cours",
-      badge: "Chantier actif",
-      badgeClass: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+      title: "🛠️ Travaux (héritage)",
+      description: "Ce statut est désormais fusionné avec \"Projet en cours\". Pensez à mettre à jour le projet.",
+      badge: "Statut hérité",
+      badgeClass: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
       progress: 85,
       sections: [
         {
-          icon: <ImageIcon className="w-4 h-4 text-blue-400" />,
-          title: "Photos de chantier",
-          content: "Documentez l'avancement du chantier avec des photos régulières.",
+          icon: <ArrowRight className="w-4 h-4 text-indigo-400" />,
+          title: "Mettre à jour le statut",
+          content: "Basculez vers \"Projet en cours\" pour suivre les travaux avec la nouvelle expérience.",
           actions: [
-            { key: "upload_site_photos", label: "Ajouter photos", icon: <Upload className="w-3 h-3" /> },
-            { key: "view_gallery", label: "Voir galerie", icon: <ImageIcon className="w-3 h-3" /> }
+            { key: "move_to_projet_en_cours", label: "Passer à Projet en cours", icon: <CheckCircle className="w-3 h-3" />, variant: "default", className: "bg-indigo-600 hover:bg-indigo-700" }
           ]
         },
         {
-          icon: <CheckCircle className="w-4 h-4 text-blue-400" />,
+          icon: <ImageIcon className="w-4 h-4 text-indigo-400" />,
           title: "Suivi des travaux",
-          content: "Gérez les tâches et validez les étapes du chantier.",
+          content: "Continuez à documenter les avancées et à partager les livrables depuis la phase Projet en cours.",
           actions: [
-            { key: "update_progress", label: "Mettre à jour", icon: <TrendingUp className="w-3 h-3" /> },
-            { key: "add_note", label: "Ajouter note", icon: <MessageSquare className="w-3 h-3" /> }
+            { key: "upload_progress", label: "Documenter avancement", icon: <Upload className="w-3 h-3" /> },
+            { key: "view_documents", label: "Voir documents", icon: <FileText className="w-3 h-3" /> }
           ]
         }
       ]

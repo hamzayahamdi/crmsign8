@@ -29,6 +29,12 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
       bgColor: "bg-blue-500/10",
       borderColor: "border-blue-500/30"
     },
+    prise_de_besoin: {
+      label: "Prise de besoin",
+      color: "text-sky-400",
+      bgColor: "bg-sky-500/10",
+      borderColor: "border-sky-500/30"
+    },
     acompte_recu: {
       label: "Acompte reçu",
       color: "text-green-400",
@@ -71,12 +77,6 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
       bgColor: "bg-indigo-500/10",
       borderColor: "border-indigo-500/30"
     },
-    chantier: {
-      label: "Chantier",
-      color: "text-amber-400",
-      bgColor: "bg-amber-500/10",
-      borderColor: "border-amber-500/30"
-    },
     facture_reglee: {
       label: "Facture réglée",
       color: "text-teal-400",
@@ -113,6 +113,12 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
       color: "text-orange-400",
       bgColor: "bg-orange-500/10",
       borderColor: "border-orange-500/30"
+    },
+    chantier: {
+      label: "Projet en cours",
+      color: "text-indigo-400",
+      bgColor: "bg-indigo-500/10",
+      borderColor: "border-indigo-500/30"
     },
     en_chantier: {
       label: "En chantier",

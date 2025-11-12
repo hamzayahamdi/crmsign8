@@ -39,11 +39,11 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
   }
 
   return (
-    <header className="glass border-b border-border/40 px-6 py-4">
+    <header className="bg-[rgb(13,17,28)]/90 backdrop-blur-xl border-b border-[rgb(30,41,59)] px-6 py-4 sticky top-0 z-20">
       <div className="flex items-center justify-between gap-4">
         {/* Search */}
         <div className="flex-1 max-w-xl relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             type="search"
             placeholder="Rechercher un lead..."
@@ -53,7 +53,7 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
               setLocalQuery(v)
               onSearchChange?.(v)
             }}
-            className="h-11 rounded-lg pl-10 glass border-border/40 focus:border-primary/50"
+            className="h-11 rounded-lg pl-10 bg-[rgb(15,20,32)] border-[rgb(30,41,59)] focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 text-white placeholder:text-slate-500"
           />
         </div>
 
@@ -64,14 +64,14 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
               <Button
                 onClick={onImportLeads}
                 variant="outline"
-                className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all"
+                className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all bg-transparent"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Importer
               </Button>
               <Button
                 onClick={onCreateLead}
-                className="bg-linear-to-r from-primary to-premium hover:opacity-90 transition-opacity glow"
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transition-all shadow-lg shadow-blue-500/20"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Nouveau lead
@@ -84,29 +84,29 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="glass hover:bg-secondary rounded-full relative group">
-                <Avatar className="h-9 w-9 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
-                  <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold">
+              <Button variant="ghost" size="icon" className="hover:bg-white/[0.05] rounded-full relative group bg-transparent">
+                <Avatar className="h-9 w-9 ring-2 ring-transparent group-hover:ring-blue-500/20 transition-all">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
                     {user ? getInitials(user.name) : "U"}
                   </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuContent align="end" className="w-64 bg-[rgb(15,20,32)] border-[rgb(30,41,59)]">
               <DropdownMenuLabel>
                 <div className="flex items-center gap-3 py-2">
                   <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
                       {user ? getInitials(user.name) : "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col space-y-1 flex-1 min-w-0">
-                    <p className="text-sm font-semibold leading-none truncate">{user?.name}</p>
-                    <p className="text-xs leading-none text-muted-foreground truncate">
+                    <p className="text-sm font-semibold leading-none truncate text-white">{user?.name}</p>
+                    <p className="text-xs leading-none text-gray-400 truncate">
                       {user?.email}
                     </p>
                     {user?.role && (
-                      <span className="text-xs text-primary font-medium">
+                      <span className="text-xs text-blue-400 font-medium">
                         {user.role === "admin" ? "Administrateur" : "Utilisateur"}
                       </span>
                     )}
@@ -116,7 +116,7 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={() => logout()} 
-                className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                className="text-red-400 focus:text-red-400 focus:bg-red-500/10 cursor-pointer"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Se déconnecter
