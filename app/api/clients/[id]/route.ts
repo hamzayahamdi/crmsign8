@@ -72,6 +72,106 @@ export async function GET(
         .single()
     ])
 
+    // Prepare lead data & notes (include legacy lead notes for complete history)
+    let parsedLeadData: any = null
+    let leadNotesFromLeadData: any[] = []
+
+    if (client.lead_data) {
+      try {
+        parsedLeadData = typeof client.lead_data === 'string'
+          ? JSON.parse(client.lead_data)
+          : client.lead_data
+
+        if (Array.isArray(parsedLeadData?.notes)) {
+          leadNotesFromLeadData = parsedLeadData.notes
+        }
+      } catch (error) {
+        console.error('[GET /api/clients/[id]] Failed to parse lead_data JSON:', error)
+      }
+    }
+
+    let leadNotesFromTable: any[] = []
+    if (client.lead_id) {
+      try {
+        const { data: leadNotesData, error: leadNotesError } = await supabase
+          .from('lead_notes')
+          .select('*')
+          .eq('leadId', client.lead_id)
+          .order('createdAt', { ascending: false })
+
+        if (leadNotesError) {
+          console.warn('[GET /api/clients/[id]] Failed to fetch lead notes from table:', leadNotesError)
+        } else if (leadNotesData) {
+          leadNotesFromTable = leadNotesData
+        }
+      } catch (error) {
+        console.error('[GET /api/clients/[id]] Unexpected error when fetching lead notes:', error)
+      }
+    }
+
+    const leadNotesMap = new Map<string, any>()
+    const mergeLeadNote = (note: any) => {
+      if (!note) return
+      const rawKey = note.id ?? note.noteId ?? note.createdAt ?? note.created_at
+      const key = typeof rawKey === 'string' && rawKey.trim().length > 0
+        ? rawKey
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      if (!leadNotesMap.has(key)) {
+        leadNotesMap.set(key, note)
+      }
+    }
+
+    leadNotesFromLeadData.forEach(mergeLeadNote)
+    leadNotesFromTable.forEach(mergeLeadNote)
+
+    const mergedLeadNotes = Array.from(leadNotesMap.values())
+
+    const leadHistoriqueEntries = mergedLeadNotes
+      .map((note) => {
+        const rawDate =
+          note.createdAt ??
+          note.created_at ??
+          note.date ??
+          note.timestamp ??
+          null
+
+        const dateObj = rawDate ? new Date(rawDate) : null
+        const isoDate = dateObj && !Number.isNaN(dateObj.getTime())
+          ? dateObj.toISOString()
+          : null
+
+        const description = note.content ?? note.description ?? ''
+        const auteur = note.author ?? note.auteur ?? 'Lead'
+
+        if (!isoDate || !description) {
+          return null
+        }
+
+        const historyIdBase = note.id ?? note.noteId ?? isoDate
+        const historyId = `lead-note-${historyIdBase}`
+
+        return {
+          id: historyId,
+          date: isoDate,
+          type: 'note' as const,
+          description,
+          auteur,
+          metadata: {
+            source: 'lead',
+            leadNoteId: note.id ?? null,
+            leadId: note.leadId ?? note.lead_id ?? client.lead_id ?? null
+          }
+        }
+      })
+      .filter((entry): entry is {
+        id: string
+        date: string
+        type: 'note'
+        description: string
+        auteur: string
+        metadata: Record<string, any>
+      } => Boolean(entry))
+
     // Use stage from history as source of truth, fallback to client.statut_projet
     const actualStatus = currentStage?.stage_name || client.statut_projet
 
@@ -83,6 +183,23 @@ export async function GET(
     })
 
     // Transform to frontend format
+    const supabaseHistorique = (historique || []).map(h => ({
+      id: h.id,
+      date: h.date,
+      type: h.type,
+      description: h.description,
+      auteur: h.auteur,
+      previousStatus: h.previous_status,
+      newStatus: h.new_status,
+      durationInHours: h.duration_in_hours,
+      timestampStart: h.timestamp_start,
+      timestampEnd: h.timestamp_end,
+      metadata: h.metadata
+    }))
+
+    const combinedHistorique = [...supabaseHistorique, ...leadHistoriqueEntries]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
     const transformedClient = {
       id: client.id,
       nom: client.nom,
@@ -93,6 +210,7 @@ export async function GET(
       statutProjet: actualStatus,
       derniereMaj: client.derniere_maj,
       leadId: client.lead_id,
+      leadData: parsedLeadData,
       email: client.email,
       adresse: client.adresse,
       budget: client.budget,
@@ -101,19 +219,7 @@ export async function GET(
       commercialAttribue: client.commercial_attribue,
       createdAt: client.created_at,
       updatedAt: client.updated_at,
-      historique: historique?.map(h => ({
-        id: h.id,
-        date: h.date,
-        type: h.type,
-        description: h.description,
-        auteur: h.auteur,
-        previousStatus: h.previous_status,
-        newStatus: h.new_status,
-        durationInHours: h.duration_in_hours,
-        timestampStart: h.timestamp_start,
-        timestampEnd: h.timestamp_end,
-        metadata: h.metadata
-      })) || [],
+      historique: combinedHistorique,
       rendezVous: appointments?.map(a => ({
         id: a.id,
         title: a.title,
