@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { notifyTaskAssigned } from '@/lib/notification-creator'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -83,10 +84,32 @@ export async function PUT(
     if (body.reminderEnabled !== undefined) updateData.reminderEnabled = Boolean(body.reminderEnabled)
     if (body.reminderDays !== undefined) updateData.reminderDays = body.reminderDays === null ? null : Number(body.reminderDays)
 
+    // Fetch previous task to detect assignee change
+    const previous = await prisma.task.findUnique({ where: { id } })
+
     const task = await prisma.task.update({
       where: { id },
       data: updateData
     })
+
+    // If assignedTo changed, notify new assignee
+    try {
+      if (previous && updateData.assignedTo && previous.assignedTo !== updateData.assignedTo) {
+        const user = await prisma.user.findFirst({ where: { name: String(updateData.assignedTo) } })
+        if (user?.id) {
+          await notifyTaskAssigned({
+            userId: user.id,
+            taskTitle: task.title,
+            taskId: task.id,
+            dueDate: task.dueDate.toISOString(),
+            linkedName: task.linkedName || undefined,
+            createdBy: body?.updatedBy || task.createdBy || 'Système',
+          })
+        }
+      }
+    } catch (notifyError) {
+      console.error('[API/tasks:id] Failed to send reassignment notification:', notifyError)
+    }
 
     return NextResponse.json({
       success: true,

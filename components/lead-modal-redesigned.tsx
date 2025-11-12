@@ -1,32 +1,15 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { useEffect, useMemo, useState } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CreatableSelect } from "@/components/creatable-select"
 import { Textarea } from "@/components/ui/textarea"
-import type { Lead, LeadStatus, LeadSource, LeadPriority, LeadNote } from "@/types/lead"
-import { 
-  X, 
-  User, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Building2, 
-  FileText, 
-  Save, 
-  ArrowRightLeft, 
-  Ban,
-  Loader2,
-  MessageSquare,
-  Clock,
-  Home,
-  Globe
-} from "lucide-react"
+import type { Lead, LeadPriority, LeadSource, LeadStatus } from "@/types/lead"
+import { AnimatePresence, motion } from "framer-motion"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,10 +21,37 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  ArrowRightLeft,
+  ArrowLeft,
+  Ban,
+  Building2,
+  CalendarDays,
+  Clock,
+  FileText,
+  Globe,
+  Home,
+  ListTodo,
+  Loader2,
+  Mail,
+  MapPin,
+  MessageSquare,
+  Phone,
+  Save,
+  Shield,
+  Sparkles,
+  User,
+  Users,
+  X,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { LeadCallHistory } from "@/components/lead-call-history"
 import { CampaignBadge } from "@/components/campaign-badge"
+import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/contexts/auth-context"
+import { addDays, format } from "date-fns"
+import { UserAutocomplete } from "@/components/user-autocomplete"
 
 interface LeadModalRedesignedProps {
   open: boolean
@@ -56,25 +66,8 @@ interface LeadModalRedesignedProps {
   currentUserMagasin?: string
 }
 
-const defaultVilles = [
-  "Casablanca",
-  "Rabat",
-  "Marrakech",
-  "Tanger",
-  "Fès",
-  "Agadir",
-  "Meknès",
-  "Oujda",
-  "Bouskoura",
-  "Sale",
-]
-
-const defaultTypesBien = [
-  "Villa",
-  "Appartement",
-  "B2B",
-  "Autre",
-]
+const defaultVilles = ["Casablanca", "Rabat", "Marrakech", "Tanger", "Fès", "Agadir", "Meknès", "Oujda", "Bouskoura", "Sale"]
+const defaultTypesBien = ["Villa", "Appartement", "B2B", "Autre"]
 
 const statuts: { value: LeadStatus; label: string }[] = [
   { value: "nouveau", label: "🟢 Nouveau" },
@@ -95,13 +88,7 @@ const sources: { value: LeadSource; label: string }[] = [
   { value: "autre", label: "📦 Autre" },
 ]
 
-const magasins = [
-  "Casa",
-  "Rabat",
-  "Tanger",
-  "Marrakech",
-  "Bouskoura",
-]
+const magasins = ["Casa", "Rabat", "Tanger", "Marrakech", "Bouskoura"]
 
 const calculatePriority = (source: LeadSource): LeadPriority => {
   switch (source) {
@@ -130,8 +117,9 @@ export function LeadModalRedesigned({
   onMarkAsNotInterested,
   currentUserRole = "admin",
   currentUserName = "Admin",
-  currentUserMagasin
+  currentUserMagasin,
 }: LeadModalRedesignedProps) {
+  const { user: authUser } = useAuth()
   const [architects, setArchitects] = useState<string[]>(["Radia"])
   const [commercials, setCommercials] = useState<string[]>(["Radia"])
   const [villes, setVilles] = useState<string[]>(defaultVilles)
@@ -141,6 +129,18 @@ export function LeadModalRedesigned({
   const [isMarkingNotInterested, setIsMarkingNotInterested] = useState(false)
   const [showNotInterestedDialog, setShowNotInterestedDialog] = useState(false)
   const [showConvertDialog, setShowConvertDialog] = useState(false)
+  const [showTaskComposer, setShowTaskComposer] = useState(false)
+  const [isLeadContentVisible, setIsLeadContentVisible] = useState(true)
+  const [taskUsers, setTaskUsers] = useState<Array<{ id: string; name: string; role: string }>>([])
+  const [isTaskSubmitting, setIsTaskSubmitting] = useState(false)
+  const [isLoadingTaskUsers, setIsLoadingTaskUsers] = useState(false)
+  const defaultTaskDueDate = useMemo(() => format(addDays(new Date(), 2), "yyyy-MM-dd"), [])
+  const [taskForm, setTaskForm] = useState({
+    title: "",
+    description: "",
+    dueDate: defaultTaskDueDate,
+    assignedTo: "",
+  })
   
   const initialForm = {
     nom: lead?.nom || "",
@@ -161,38 +161,109 @@ export function LeadModalRedesigned({
 
   const [formData, setFormData] = useState(initialForm)
 
-  // Load architects and commercials from Users API
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const res = await fetch('/api/users')
+        const res = await fetch("/api/users")
         if (res.ok) {
-          const users = (await res.json()) as any[]
+          const users = (await res.json()) as Array<{ role?: string; name?: string }>
           
-          // Filter architects (for assignePar)
-          const architectList: string[] = Array.from(new Set(
+          const architectList = Array.from(
+            new Set(
             users
-              .filter((u: any) => ['admin', 'architect'].includes((u.role || '').toLowerCase()))
-              .map((u: any) => (u.name || '').trim())
-              .filter((n: string) => n)
-          ))
-          setArchitects(architectList.length ? architectList : ['Radia'])
-          
-          // Filter commercials (for commercialMagasin)
-          const commercialList: string[] = Array.from(new Set(
+                .filter((u) => ["admin", "architect"].includes((u.role || "").toLowerCase()))
+                .map((u) => (u.name || "").trim())
+                .filter(Boolean),
+            ),
+          )
+          setArchitects(architectList.length ? architectList : ["Radia"])
+
+          const commercialList = Array.from(
+            new Set(
             users
-              .filter((u: any) => (u.role || '').toLowerCase() === 'commercial')
-              .map((u: any) => (u.name || '').trim())
-              .filter((n: string) => n)
-          ))
+                .filter((u) => (u.role || "").toLowerCase() === "commercial")
+                .map((u) => (u.name || "").trim())
+                .filter(Boolean),
+            ),
+          )
           setCommercials(commercialList.length ? commercialList : [])
         }
       } catch (error) {
-        console.error('Error loading users:', error)
+        console.error("Error loading users:", error)
       }
     }
+
     loadUsers()
   }, [])
+
+  useEffect(() => {
+    if (!open) return
+
+    const loadTaskUsers = async () => {
+      setIsLoadingTaskUsers(true)
+      try {
+        const res = await fetch("/api/users", { cache: "no-store" })
+        if (res.ok) {
+          const allUsers = (await res.json()) as Array<{ id: string; name: string; role: string }>
+          
+          // Filter users based on role - prioritize architects
+          const userRole = (authUser?.role || currentUserRole || "").toLowerCase()
+          let filteredUsers: Array<{ id: string; name: string; role: string }> = []
+          
+          if (userRole === "architect" || userRole === "architecte") {
+            // Architects can only see and assign to other architects and admins
+            filteredUsers = allUsers.filter(
+              (u) => {
+                const role = (u.role || "").toLowerCase()
+                return role === "architect" || role === "architecte" || role === "admin"
+              }
+            )
+          } else if (userRole === "admin" || userRole === "manager") {
+            // Admins and managers can see all users, but prioritize architects
+            filteredUsers = allUsers
+          } else {
+            // Other roles see architects and admins only (default: show architects first)
+            filteredUsers = allUsers.filter(
+              (u) => {
+                const role = (u.role || "").toLowerCase()
+                return role === "architect" || role === "architecte" || role === "admin"
+              }
+            )
+          }
+          
+          // Sort: architects first, then admins, then others
+          filteredUsers.sort((a, b) => {
+            const roleA = (a.role || "").toLowerCase()
+            const roleB = (b.role || "").toLowerCase()
+            
+            if (roleA === "architect" || roleA === "architecte") {
+              if (roleB === "architect" || roleB === "architecte") return 0
+              return -1
+            }
+            if (roleB === "architect" || roleB === "architecte") return 1
+            if (roleA === "admin") {
+              if (roleB === "admin") return 0
+              return -1
+            }
+            if (roleB === "admin") return 1
+            return 0
+          })
+          
+          setTaskUsers(filteredUsers)
+          setTaskForm((prev) => ({
+            ...prev,
+            assignedTo: prev.assignedTo || authUser?.id || (filteredUsers.length ? filteredUsers[0].id : ""),
+          }))
+        }
+      } catch (error) {
+        console.error("Error loading task users:", error)
+      } finally {
+        setIsLoadingTaskUsers(false)
+      }
+    }
+
+    loadTaskUsers()
+  }, [open, authUser?.id, currentUserRole])
 
   const resetForm = () => {
     setFormData({
@@ -227,18 +298,64 @@ export function LeadModalRedesigned({
         assignePar: lead.assignePar,
         source: lead.source,
         priorite: lead.priorite,
-        magasin: lead.magasin || (currentUserRole === 'commercial' ? (currentUserMagasin || "") : ""),
-        commercialMagasin: lead.commercialMagasin || (currentUserRole === 'commercial' ? currentUserName : ""),
+        magasin: lead.magasin || (currentUserRole === "commercial" ? currentUserMagasin || "" : ""),
+        commercialMagasin: lead.commercialMagasin || (currentUserRole === "commercial" ? currentUserName : ""),
         notes: lead.notes || [],
       })
     }
-  }, [lead, open])
+  }, [lead, open, currentUserRole, currentUserMagasin, currentUserName])
 
   useEffect(() => {
     if (open && !lead) {
       resetForm()
     }
+    // Reset visibility when modal opens
+    if (open) {
+      setIsLeadContentVisible(true)
+      setShowTaskComposer(false)
+    }
   }, [open, lead])
+
+  useEffect(() => {
+    if (!authUser?.id) return
+    setTaskForm((prev) => ({
+      ...prev,
+      assignedTo: prev.assignedTo || authUser.id,
+    }))
+  }, [authUser?.id])
+
+  const handleOpenTaskComposer = () => {
+    // Reset form immediately
+    setTaskForm((prev) => ({
+      ...prev,
+      title: "",
+      description: "",
+      dueDate: defaultTaskDueDate,
+      assignedTo: prev.assignedTo || authUser?.id || "",
+    }))
+    
+    // Hide lead content and show task composer immediately for instant response
+    setIsLeadContentVisible(false)
+    // Single requestAnimationFrame for immediate visual feedback
+    requestAnimationFrame(() => {
+      setShowTaskComposer(true)
+      if (!lead?.id) {
+        toast({
+          title: "Enregistrez le lead",
+          description: "Sauvegardez la fiche pour lier cette tâche automatiquement.",
+        })
+      }
+    })
+  }
+
+  const handleCloseTaskComposer = () => {
+    // Hide task composer and show lead content immediately
+    setShowTaskComposer(false)
+    // Single requestAnimationFrame for immediate visual feedback
+    requestAnimationFrame(() => {
+      setIsLeadContentVisible(true)
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -255,17 +372,10 @@ export function LeadModalRedesigned({
         updatedAt: new Date().toISOString(),
       }
       
-      console.log('[Modal] Saving lead data:', dataToSave)
       await onSave(dataToSave)
-      console.log('[Modal] Save completed successfully')
-      
-      // Reset saving state after successful save
       setIsSaving(false)
-      
-      // Don't show toast or close here - let parent handle it
-      // Parent (kanban-board) will show toast and close modal
     } catch (error) {
-      console.error('[Modal] Save error:', error)
+      console.error("[Modal] Save error:", error)
       toast({
         title: "Erreur",
         description: error instanceof Error ? error.message : "Une erreur est survenue lors de l'enregistrement",
@@ -280,22 +390,18 @@ export function LeadModalRedesigned({
       setIsConverting(true)
       setShowConvertDialog(false)
       
-      // Show immediate feedback
       toast({
         title: "⏳ Conversion en cours...",
         description: "Le lead est en cours de conversion",
       })
       
       try {
-        // Call parent handler (non-blocking)
         onConvertToClient(lead)
-        
-        // Close modal immediately for better UX
         setTimeout(() => {
           onOpenChange(false)
         }, 100)
       } catch (error) {
-        console.error('Conversion error:', error)
+        console.error("Conversion error:", error)
         setIsConverting(false)
         toast({
           title: "❌ Erreur",
@@ -312,35 +418,188 @@ export function LeadModalRedesigned({
       try {
         await onMarkAsNotInterested(lead)
         setShowNotInterestedDialog(false)
-        // Parent will handle closing modal and showing toast
       } catch (error) {
-        console.error('Mark not interested error:', error)
+        console.error("Mark not interested error:", error)
         setIsMarkingNotInterested(false)
       }
     }
   }
 
-  const isAdmin = currentUserRole === 'admin'
+  const handleTaskSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (!lead?.id) {
+      toast({
+        title: "Lead requis",
+        description: "Enregistrez d'abord le lead avant de créer une tâche liée.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!taskForm.title.trim()) {
+      toast({
+        title: "Titre requis",
+        description: "Veuillez renseigner un titre de tâche.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!taskForm.assignedTo) {
+      toast({
+        title: "Assignation requise",
+        description: "Sélectionnez un destinataire pour cette tâche.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setIsTaskSubmitting(true)
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
+      const response = await fetch("/api/tasks/assign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          title: taskForm.title.trim(),
+          description: taskForm.description.trim(),
+          dueDate: taskForm.dueDate,
+          assignedTo: taskForm.assignedTo,
+          linkedType: "lead",
+          linkedId: lead.id,
+          linkedName: lead.nom,
+        }),
+      })
+      const payload = await response.json()
+      if (!response.ok) {
+        throw new Error(payload?.error || payload?.message || "Impossible de créer la tâche")
+      }
+
+      toast({
+        title: "Tâche assignée",
+        description: payload?.message || "La nouvelle tâche a été créée et assignée.",
+      })
+
+      setTaskForm({
+        title: "",
+        description: "",
+        dueDate: defaultTaskDueDate,
+        assignedTo: authUser?.id || taskForm.assignedTo,
+      })
+      setShowTaskComposer(false)
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error?.message || "Une erreur est survenue lors de l'assignation.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsTaskSubmitting(false)
+    }
+  }
+
+  const selectedAssignee = useMemo(
+    () => taskUsers.find((user) => user.id === taskForm.assignedTo),
+    [taskUsers, taskForm.assignedTo],
+  )
+
+  const latestNote = lead?.notes && lead.notes.length > 0 ? lead.notes[lead.notes.length - 1] : undefined
+
+  const composerFormVariants = {
+    hidden: { opacity: 0, y: 8 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        staggerChildren: 0.02,
+        delayChildren: 0.01,
+        duration: 0.15,
+        ease: [0.4, 0, 1, 1],
+      },
+    },
+    exit: { 
+      opacity: 0, 
+      y: 4,
+      transition: {
+        duration: 0.1,
+        ease: [0.4, 0, 1, 1],
+      }
+    },
+  }
+
+  const composerFieldVariants = {
+    hidden: { opacity: 0, y: 4 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.15,
+        ease: [0.4, 0, 1, 1],
+      }
+    },
+    exit: { 
+      opacity: 0, 
+      y: 3,
+      transition: {
+        duration: 0.08,
+        ease: [0.4, 0, 1, 1],
+      }
+    },
+  }
+
+  const composerSummaryVariants = {
+    hidden: { opacity: 0, x: 16 },
+    visible: { 
+      opacity: 1, 
+      x: 0,
+      transition: {
+        duration: 0.25,
+        ease: [0.16, 1, 0.3, 1],
+        delay: 0.08
+      }
+    },
+    exit: { 
+      opacity: 0, 
+      x: 12,
+      transition: {
+        duration: 0.15,
+        ease: [0.4, 0, 0.2, 1],
+      }
+    },
+  }
+
+  const normalizedRole = (authUser?.role || currentUserRole || "").toLowerCase()
+  const isAdmin = normalizedRole === "admin"
+  const canAssignToOthers = normalizedRole === "admin" || normalizedRole === "manager"
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent showCloseButton={false} className="sm:max-w-[900px] max-h-[92vh] p-0 gap-0 rounded-2xl overflow-hidden glass backdrop-blur-xl bg-slate-900/90 border border-white/10 ring-1 ring-white/10 shadow-2xl">
-          {/* Header */}
-          <DialogHeader className="px-6 py-5 border-b border-slate-200/10 bg-gradient-to-br from-slate-900/50 to-slate-800/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <DialogTitle className="text-xl font-semibold text-white">
+        <DialogContent
+          showCloseButton={false}
+          className="sm:max-w-[1100px] max-h-[92vh] p-0 gap-0 rounded-3xl overflow-visible glass backdrop-blur-xl bg-slate-950/95 border border-white/10 ring-1 ring-cyan-500/20 shadow-[0_20px_60px_rgba(8,24,68,0.65)] relative"
+        >
+          <DialogHeader className="px-8 py-6 border-b border-slate-200/10 bg-linear-to-br from-slate-950/80 via-slate-900/70 to-slate-900/40">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="h-11 w-11 rounded-2xl bg-linear-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                  <Sparkles className="h-5 w-5 text-white" />
+                </div>
+                <DialogTitle className="text-2xl font-semibold text-white tracking-tight">
                   {lead ? "Modifier le lead" : "Créer un lead"}
                 </DialogTitle>
-                {lead?.campaignName && (
-                  <CampaignBadge campaignName={lead.campaignName} size="md" />
-                )}
+                {lead?.campaignName && <CampaignBadge campaignName={lead.campaignName} size="md" />}
               </div>
+
+              <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 rounded-full bg-red-500/90 hover:bg-red-500 text-white transition-colors shadow focus:ring-2 focus:ring-red-400"
+                  className="h-10 w-10 rounded-full bg-red-500/90 hover:bg-red-500 text-white transition-colors shadow focus:ring-2 focus:ring-red-400"
                 onClick={() => onOpenChange(false)}
                 aria-label="Fermer"
                 title="Fermer"
@@ -348,24 +607,97 @@ export function LeadModalRedesigned({
                 <X className="h-4 w-4 text-white" />
               </Button>
             </div>
+            </div>
+
             {lead && (
-              <p className="text-sm text-slate-400 mt-1">
-                Créé par {lead.createdBy || lead.assignePar} • {new Date(lead.createdAt).toLocaleDateString('fr-FR')}
-              </p>
+              <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-300/90">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1.5">
+                  <Users className="h-3.5 w-3.5" />
+                  Assigné à <span className="font-semibold text-white">{lead.assignePar}</span>
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  Créé le {new Date(lead.createdAt).toLocaleDateString("fr-FR")}
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1.5">
+                  <Badge variant="outline" className="border-blue-500/30 text-blue-200 bg-blue-500/10">
+                    Priorité {lead.priorite}
+                  </Badge>
+                </span>
+              </div>
             )}
           </DialogHeader>
 
-          {/* Form Content */}
-          <form onSubmit={handleSubmit} className="flex flex-col">
-            <div className="px-6 py-5 space-y-5 max-h-[74vh] overflow-y-auto">
-              {/* Contact Information Section */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+          {isLeadContentVisible ? (
+            <motion.form
+              key="lead-form"
+              initial={false}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, scale: 0.99, y: -4 }}
+              transition={{ 
+                duration: 0.08, 
+                ease: [0.4, 0, 1, 1],
+                opacity: { duration: 0.06 }
+              }}
+              onSubmit={handleSubmit}
+              className="flex flex-col"
+              style={{ willChange: "opacity, transform" }}
+            >
+                <div className="px-8 py-6 space-y-6 max-h-[74vh] overflow-y-auto custom-scrollbar">
+              {lead && (
+                <div className="rounded-2xl border border-white/10 bg-linear-to-r from-slate-900/70 via-slate-900/50 to-slate-900/40 p-5 space-y-5 shadow-inner shadow-black/20">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-400/90">Statut du lead</p>
+                      <p className="mt-2 flex flex-wrap items-center gap-2 text-lg font-semibold text-white">
+                        <Badge variant="outline" className="border-emerald-400/40 text-emerald-200 bg-emerald-500/10">
+                          {statuts.find((s) => s.value === lead.statut)?.label ?? lead.statut}
+                        </Badge>
+                        <span className="text-sm text-slate-300">
+                          • Priorité <span className="font-semibold text-white">{lead.priorite}</span>
+                        </span>
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        type="button"
+                        onClick={handleOpenTaskComposer}
+                        className="rounded-xl bg-white/15 border border-white/10 text-white hover:bg-white/20 transition-all shadow-lg shadow-cyan-500/20"
+                      >
+                        <ListTodo className="h-4 w-4 mr-2" />
+                        Créer une tâche de suivi
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs text-slate-200">
+                    <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5">
+                      <Phone className="h-3.5 w-3.5" />
+                      {lead.telephone}
+                    </span>
+                    {lead.email && (
+                      <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5">
+                        <Mail className="h-3.5 w-3.5" />
+                        {lead.email}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {lead.ville}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-6">
+                  <section className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-inner shadow-black/20">
+                    <div className="mb-6 flex items-center justify-between">
+                      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
                   <User className="w-4 h-4" />
                   Informations de contact
                 </h3>
+                    </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="nom" className="text-sm text-slate-300">
                       Nom complet *
@@ -397,11 +729,9 @@ export function LeadModalRedesigned({
                         placeholder="06 XX XX XX XX"
                         required
                       />
-                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm text-slate-300">
                       Email
@@ -432,7 +762,9 @@ export function LeadModalRedesigned({
                           </SelectTrigger>
                           <SelectContent>
                             {villes.map((v) => (
-                              <SelectItem key={v} value={v}>{v}</SelectItem>
+                                  <SelectItem key={v} value={v}>
+                                    {v}
+                                  </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -440,16 +772,17 @@ export function LeadModalRedesigned({
                     </div>
                   </div>
                 </div>
-              </div>
+                  </section>
 
-              {/* Property & Source Section */}
-              <div className="space-y-4 pt-4 border-t border-slate-700/30">
-                <h3 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                  <section className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-inner shadow-black/20 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
                   Bien & Source
                 </h3>
+                    </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="typeBien" className="text-sm text-slate-300">
                       Type de bien *
@@ -463,7 +796,9 @@ export function LeadModalRedesigned({
                           </SelectTrigger>
                           <SelectContent>
                             {typesBien.map((t) => (
-                              <SelectItem key={t} value={t}>{t}</SelectItem>
+                                  <SelectItem key={t} value={t}>
+                                    {t}
+                                  </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -487,12 +822,14 @@ export function LeadModalRedesigned({
                               ...formData, 
                               source: newSource, 
                               priorite: calculatedPriority,
-                              magasin: newSource !== 'magasin' 
-                                ? '' 
-                                : (formData.magasin || (currentUserRole === 'commercial' ? (currentUserMagasin || '') : '')),
-                              commercialMagasin: newSource !== 'magasin' 
-                                ? '' 
-                                : (formData.commercialMagasin || (currentUserRole === 'commercial' ? currentUserName : '')),
+                                  magasin:
+                                    newSource !== "magasin"
+                                      ? ""
+                                      : formData.magasin || (currentUserRole === "commercial" ? currentUserMagasin || "" : ""),
+                                  commercialMagasin:
+                                    newSource !== "magasin"
+                                      ? ""
+                                      : formData.commercialMagasin || (currentUserRole === "commercial" ? currentUserName : ""),
                             })
                           }}
                         >
@@ -512,17 +849,13 @@ export function LeadModalRedesigned({
                   </div>
                 </div>
 
-                {/* Magasin sub-fields */}
-                {formData.source === 'magasin' && (
-                  <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-blue-500/30">
+                    {formData.source === "magasin" && (
+                      <div className="grid gap-4 rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="magasin" className="text-sm text-slate-300">
+                          <Label htmlFor="magasin" className="text-sm text-slate-200">
                         Magasin *
                       </Label>
-                      <Select
-                        value={formData.magasin}
-                        onValueChange={(value) => setFormData({ ...formData, magasin: value })}
-                      >
+                          <Select value={formData.magasin} onValueChange={(value) => setFormData({ ...formData, magasin: value })}>
                         <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
                           <SelectValue placeholder="Sélectionner" />
                         </SelectTrigger>
@@ -537,7 +870,7 @@ export function LeadModalRedesigned({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="commercialMagasin" className="text-sm text-slate-300">
+                          <Label htmlFor="commercialMagasin" className="text-sm text-slate-200">
                         Commercial magasin *
                       </Label>
                       <Input
@@ -545,7 +878,7 @@ export function LeadModalRedesigned({
                         value={formData.commercialMagasin}
                         onChange={(e) => setFormData({ ...formData, commercialMagasin: e.target.value })}
                         className="glass rounded-xl bg-white/10 border border-white/10 text-white"
-                        placeholder="Saisir le nom du commercial"
+                            placeholder="Nom du commercial"
                         required
                       />
                     </div>
@@ -559,10 +892,7 @@ export function LeadModalRedesigned({
   <div className="relative">
     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white z-30 pointer-events-none drop-shadow-[0_0_12px_rgba(255,255,255,0.65)]" />
     <div className="[&>button]:pl-10">
-      <Select
-        value={formData.assignePar}
-        onValueChange={(value) => setFormData({ ...formData, assignePar: value })}
-      >
+                          <Select value={formData.assignePar} onValueChange={(value) => setFormData({ ...formData, assignePar: value })}>
                         <SelectTrigger className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white">
                           <SelectValue />
                         </SelectTrigger>
@@ -577,23 +907,21 @@ export function LeadModalRedesigned({
                     </div>
                   </div>
                 </div>
-              </div>
+                  </section>
 
-              {/* Status Section */}
-              <div className="space-y-4 pt-4 border-t border-slate-700/30">
-                <h3 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                  <section className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-inner shadow-black/20 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
                   <FileText className="w-4 h-4" />
                   Statut & Notes
                 </h3>
+                    </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="statut" className="text-sm text-slate-300">
                     État du lead
                   </Label>
-                  <Select
-                    value={formData.statut}
-                    onValueChange={(value) => setFormData({ ...formData, statut: value as LeadStatus })}
-                  >
+                      <Select value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value as LeadStatus })}>
                     <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
                       <SelectValue />
                     </SelectTrigger>
@@ -615,78 +943,74 @@ export function LeadModalRedesigned({
                     id="message"
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    className="glass rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all min-h-[80px] resize-none"
+                        className="glass rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all min-h-[90px] resize-none"
                     placeholder="Informations complémentaires sur le lead..."
                   />
                 </div>
+                  </section>
               </div>
 
-              {/* Call History Section - Only show for existing leads with call notes */}
               {lead && lead.notes && lead.notes.length > 0 && (
-                <div className="pt-4 border-t border-slate-700/30">
-                  <LeadCallHistory notes={lead.notes} />
-                </div>
-              )}
-
-              {/* Notes History Section - Only show for existing leads with notes */}
-              {lead && lead.notes && lead.notes.length > 0 && (
-                <div className="space-y-3 pt-4 border-t border-slate-700/30">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                  <section className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-inner shadow-black/20 space-y-4">
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
                       <MessageSquare className="w-4 h-4 text-primary" />
                       Historique des notes ({lead.notes.length})
                     </h3>
-                  </div>
-                  
-                  <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
-                    {[...lead.notes].reverse().slice(0, 5).map((note, index) => (
-                      <div
-                        key={note.id}
-                        className={cn(
-                          "p-3 rounded-lg border transition-all",
-                          index === 0 
-                            ? "bg-gradient-to-br from-primary/10 to-purple-500/10 border-primary/30" 
-                            : "bg-slate-800/40 border-slate-700/30"
-                        )}
-                      >
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className={cn(
-                            "text-xs font-medium flex items-center gap-1",
-                            index === 0 ? "text-primary" : "text-slate-300"
-                          )}>
-                            <User className="w-3 h-3" />
-                            {note.author}
-                          </span>
-                          <span className="text-xs text-slate-500">•</span>
-                          <span className="text-xs text-slate-400 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {new Date(note.createdAt).toLocaleDateString('fr-FR', { 
-                              day: 'numeric', 
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
+                    <div className="space-y-3 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
+                      {[...lead.notes].reverse().slice(0, 6).map((note, index) => (
+                        <div
+                          key={note.id}
+                          className={cn(
+                            "p-3 rounded-xl border transition-all",
+                            index === 0
+                              ? "bg-linear-to-br from-primary/15 to-purple-500/10 border-primary/40"
+                              : "bg-slate-800/40 border-slate-700/30",
+                          )}
+                        >
+                          <div className="mb-1.5 flex items-center gap-2">
+                            <span
+                              className={cn(
+                                "text-xs font-medium flex items-center gap-1",
+                                index === 0 ? "text-primary" : "text-slate-300",
+                              )}
+                            >
+                              <User className="w-3 h-3" />
+                              {note.author}
+                            </span>
+                            <span className="text-xs text-slate-500">•</span>
+                            <span className="text-xs text-slate-400 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(note.createdAt).toLocaleDateString("fr-FR", {
+                                day: "numeric",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap wrap-break-word">
+                            {note.content}
+                          </p>
                         </div>
-                        <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap break-words">
-                          {note.content}
+                      ))}
+                      {lead.notes.length > 6 && (
+                        <p className="py-2 text-center text-xs text-slate-500">
+                          + {lead.notes.length - 6} note{lead.notes.length - 6 > 1 ? "s" : ""} supplémentaire{lead.notes.length - 6 > 1 ? "s" : ""}
                         </p>
-                      </div>
-                    ))}
-                    {lead.notes.length > 5 && (
-                      <p className="text-xs text-slate-500 text-center py-2">
-                        + {lead.notes.length - 5} note{lead.notes.length - 5 > 1 ? 's' : ''} supplémentaire{lead.notes.length - 5 > 1 ? 's' : ''}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+                      )}
+                    </div>
+                  </section>
+                )}
 
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-slate-200/10 bg-slate-900/30">
-              <div className="flex items-center justify-between gap-3">
-                {/* Left side - Cancel */}
+                {lead && lead.notes && lead.notes.length > 0 && (
+                  <section className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-inner shadow-black/20">
+                    <LeadCallHistory notes={lead.notes} />
+                  </section>
+                )}
+              </div>
+
+            <div className="px-8 py-5 border-t border-slate-200/10 bg-slate-900/40">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <Button
                   type="button"
                   variant="outline"
@@ -696,9 +1020,7 @@ export function LeadModalRedesigned({
                   Annuler
                 </Button>
 
-                {/* Right side - Action buttons */}
                 <div className="flex items-center gap-2">
-                {/* Pas intéressé - Only for existing leads */}
                 {lead && onMarkAsNotInterested && (
                   <AlertDialog open={showNotInterestedDialog} onOpenChange={setShowNotInterestedDialog}>
                     <AlertDialogTrigger asChild>
@@ -729,7 +1051,9 @@ export function LeadModalRedesigned({
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel className="rounded-xl" disabled={isMarkingNotInterested}>Annuler</AlertDialogCancel>
+                          <AlertDialogCancel className="rounded-xl" disabled={isMarkingNotInterested}>
+                            Annuler
+                          </AlertDialogCancel>
                         <AlertDialogAction 
                           className="bg-red-600 hover:bg-red-700 text-white rounded-xl disabled:opacity-50"
                           onClick={handleMarkAsNotInterested}
@@ -741,7 +1065,7 @@ export function LeadModalRedesigned({
                               Traitement...
                             </>
                           ) : (
-                            'Confirmer'
+                              "Confirmer"
                           )}
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -749,8 +1073,7 @@ export function LeadModalRedesigned({
                   </AlertDialog>
                 )}
 
-                {/* Convertir - Only for existing leads and admins */}
-                {lead && onConvertToClient && isAdmin && lead.statut !== 'qualifie' && (
+                  {lead && onConvertToClient && isAdmin && lead.statut !== "qualifie" && (
                   <AlertDialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
                     <AlertDialogTrigger asChild>
                       <Button
@@ -775,11 +1098,13 @@ export function LeadModalRedesigned({
                       <AlertDialogHeader>
                         <AlertDialogTitle>Convertir en client ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Souhaitez-vous convertir ce lead en client ? Un nouveau client sera créé automatiquement dans la section Clients & Projets.
+                            Souhaitez-vous convertir ce lead en client ? Un nouveau client sera créé automatiquement dans la section Clients &amp; Projets.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel className="rounded-xl" disabled={isConverting}>Annuler</AlertDialogCancel>
+                          <AlertDialogCancel className="rounded-xl" disabled={isConverting}>
+                            Annuler
+                          </AlertDialogCancel>
                         <AlertDialogAction 
                           className="bg-green-600 hover:bg-green-700 text-white rounded-xl disabled:opacity-50"
                           onClick={handleConvertToClient}
@@ -791,7 +1116,7 @@ export function LeadModalRedesigned({
                               Conversion...
                             </>
                           ) : (
-                            'Convertir'
+                              "Convertir"
                           )}
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -799,11 +1124,19 @@ export function LeadModalRedesigned({
                   </AlertDialog>
                 )}
 
-                {/* Enregistrer */}
-                <Button 
-                  type="submit" 
+                <Button
+                  type="button"
+                  onClick={handleOpenTaskComposer}
+                  className="rounded-xl bg-linear-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white shadow-lg shadow-violet-600/30"
+                >
+                  <ListTodo className="w-4 h-4 mr-2" />
+                  Créer une tâche
+                </Button>
+
+                <Button
+                  type="submit"
                   disabled={isSaving}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all shadow-lg shadow-blue-600/20 min-w-[120px]"
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all shadow-lg shadow-blue-600/20 min-w-[140px]"
                 >
                   {isSaving ? (
                     <>
@@ -820,9 +1153,287 @@ export function LeadModalRedesigned({
                 </div>
               </div>
             </div>
-          </form>
+              </motion.form>
+          ) : null}
+          <AnimatePresence mode="wait">
+            {showTaskComposer && (
+              <>
+                <motion.div
+                  key="task-composer-overlay"
+                  className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-xl"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ 
+                    duration: 0.12, 
+                    ease: [0.4, 0, 1, 1],
+                    opacity: { duration: 0.1 }
+                  }}
+                  onClick={handleCloseTaskComposer}
+                  style={{ willChange: "opacity" }}
+                />
+                <motion.div
+                  key="task-composer-modal"
+                  initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                  transition={{ 
+                    duration: 0.18, 
+                    ease: [0.16, 1, 0.3, 1],
+                    opacity: { duration: 0.15 },
+                    scale: { duration: 0.18, ease: [0.16, 1, 0.3, 1] }
+                  }}
+                  className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl mx-auto rounded-[32px] border border-white/10 bg-slate-950/98 shadow-[0_40px_120px_rgba(8,24,68,0.75)] backdrop-blur-2xl z-[101] max-h-[90vh] overflow-y-auto custom-scrollbar overflow-x-visible"
+                  onClick={(event) => event.stopPropagation()}
+                  style={{ willChange: "opacity, transform" }}
+                >
+                  <div className="absolute inset-0 opacity-70 bg-linear-to-br from-violet-500/25 via-slate-900/70 to-slate-950/90 pointer-events-none" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(139,92,246,0.15),transparent_50%)] pointer-events-none" />
+                  <div className="relative z-10 flex flex-col gap-8 px-8 py-9 sm:px-10 sm:py-11 min-h-0">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-4">
+                        <motion.div
+                          initial={{ rotate: -4, scale: 0.97, opacity: 0 }}
+                          animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                          transition={{ 
+                            duration: 0.2, 
+                            ease: [0.16, 1, 0.3, 1],
+                            delay: 0.02
+                          }}
+                          className="h-14 w-14 rounded-2xl bg-linear-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-xl shadow-violet-600/40 ring-2 ring-violet-400/20"
+                          style={{ willChange: "transform, opacity" }}
+                        >
+                          <ListTodo className="h-6 w-6 text-white" />
+                        </motion.div>
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold text-white sm:text-3xl tracking-tight">Nouvelle tâche de suivi</h3>
+                          <p className="text-sm text-slate-300/90 sm:text-base mt-1">
+                            Connectez votre équipe {lead?.nom ? (
+                              <>au lead <span className="font-semibold text-violet-300">{lead.nom}</span></>
+                            ) : (
+                              <>à ce lead</>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="rounded-xl border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white transition-all px-5 h-10 shadow-sm"
+                        onClick={handleCloseTaskComposer}
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Retour à la fiche
+                      </Button>
+                    </div>
+
+                    <div className="grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
+                      <motion.form
+                        variants={composerFormVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        onSubmit={handleTaskSubmit}
+                        className="rounded-2xl border border-white/10 bg-linear-to-br from-slate-950/60 via-slate-900/60 to-slate-900/40 p-7 shadow-inner shadow-black/30 space-y-7"
+                      >
+                        <motion.div variants={composerFieldVariants} className="space-y-2.5">
+                          <Label htmlFor="overlay-task-title" className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                            <ListTodo className="h-3.5 w-3.5 text-violet-400" />
+                            Titre de la tâche *
+                          </Label>
+                          <Input
+                            id="overlay-task-title"
+                            value={taskForm.title}
+                            onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                            placeholder="Ex: Rappeler le lead demain matin"
+                            className="h-12 bg-white/10 border border-white/10 text-white placeholder:text-slate-300/60 rounded-xl focus:ring-2 focus:ring-violet-400/50 focus:border-violet-400/50 transition-all shadow-sm"
+                            required
+                          />
+                        </motion.div>
+
+                        <motion.div variants={composerFieldVariants} className="space-y-2.5">
+                          <Label htmlFor="overlay-task-description" className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                            <FileText className="h-3.5 w-3.5 text-violet-400" />
+                            Détails
+                          </Label>
+                          <Textarea
+                            id="overlay-task-description"
+                            value={taskForm.description}
+                            onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                            placeholder="Ex: Confirmer la disponibilité et envoyer la proposition."
+                            className="bg-white/10 border border-white/10 text-white rounded-xl min-h-[120px] focus:ring-2 focus:ring-violet-400/50 focus:border-violet-400/50 transition-all shadow-sm resize-none"
+                          />
+                        </motion.div>
+
+                        <motion.div variants={composerFieldVariants} className="grid gap-5 sm:grid-cols-2">
+                          <div className="space-y-2.5">
+                            <Label htmlFor="overlay-task-due" className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                              <CalendarDays className="h-3.5 w-3.5 text-violet-400" />
+                              Échéance
+                            </Label>
+                            <div className="relative">
+                              <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-violet-300 z-10 pointer-events-none" />
+                              <Input
+                                id="overlay-task-due"
+                                type="date"
+                                value={taskForm.dueDate}
+                                onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
+                                className="pl-11 h-12 bg-white/10 border border-white/10 text-white rounded-xl focus:ring-2 focus:ring-violet-400/50 focus:border-violet-400/50 transition-all shadow-sm"
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2.5">
+                            <Label htmlFor="overlay-task-assignee" className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                              <Users className="h-3.5 w-3.5 text-violet-400" />
+                              Assigner à
+                            </Label>
+                            <UserAutocomplete
+                              value={taskForm.assignedTo}
+                              onValueChange={(userId) => setTaskForm({ ...taskForm, assignedTo: userId })}
+                              users={taskUsers.map((u) => ({
+                                id: u.id,
+                                name: u.name,
+                                role: u.role,
+                              }))}
+                              placeholder="Rechercher un utilisateur..."
+                              disabled={isLoadingTaskUsers || !canAssignToOthers}
+                              isLoading={isLoadingTaskUsers}
+                            />
+                            {selectedAssignee && (
+                              <motion.p
+                                initial={{ opacity: 0, y: -4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="text-xs text-slate-300/80 leading-tight flex items-center gap-1.5 mt-2"
+                              >
+                                <Shield className="h-3 w-3 text-violet-400" />
+                                Rôle&nbsp;: <span className="capitalize font-medium text-violet-300">{selectedAssignee.role}</span>
+                              </motion.p>
+                            )}
+                            {!canAssignToOthers && (
+                              <p className="text-xs text-amber-300/80 flex items-center gap-1.5 mt-2">
+                                <Ban className="h-3 w-3" />
+                                Vous ne pouvez assigner que des tâches à vous-même.
+                              </p>
+                            )}
+                          </div>
+                        </motion.div>
+
+                        <motion.div variants={composerFieldVariants} className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-white/5">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={handleCloseTaskComposer}
+                            className="text-slate-200 hover:bg-white/10 hover:text-white rounded-xl px-5 h-10 transition-all"
+                            disabled={isTaskSubmitting}
+                          >
+                            Annuler
+                          </Button>
+                          <Button
+                            type="submit"
+                            disabled={isTaskSubmitting || !lead?.id}
+                            className="rounded-xl bg-linear-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white shadow-lg shadow-violet-600/30 px-6 h-10 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isTaskSubmitting ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Assignation...
+                              </>
+                            ) : (
+                              <>
+                                <ListTodo className="h-4 w-4 mr-2" />
+                                Valider la tâche
+                              </>
+                            )}
+                          </Button>
+                        </motion.div>
+                      </motion.form>
+
+                      {lead ? (
+                        <motion.div
+                          variants={composerSummaryVariants}
+                          initial="hidden"
+                          animate="visible"
+                          exit="exit"
+                          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
+                          className="rounded-2xl border border-white/10 bg-linear-to-br from-white/5 via-slate-900/50 to-slate-950/60 p-6 space-y-5 shadow-inner shadow-black/30"
+                        >
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-2xl bg-white/10 p-2.5 shadow-inner shadow-black/40">
+                            <Sparkles className="h-5 w-5 text-violet-200" />
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.25em] text-slate-300/70">Lead en cours</p>
+                            <p className="text-sm font-semibold text-white">{lead.nom}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className="border-emerald-400/40 text-emerald-200 bg-emerald-500/10">
+                            {statuts.find((s) => s.value === lead.statut)?.label ?? lead.statut}
+                          </Badge>
+                          <Badge variant="outline" className="border-blue-500/40 text-blue-200 bg-blue-500/10">
+                            Priorité {lead.priorite}
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-3 text-sm text-slate-200/90">
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-3.5 w-3.5 text-slate-300" />
+                            <span>{lead.telephone}</span>
+                          </div>
+                          {lead.email && (
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-3.5 w-3.5 text-slate-300" />
+                              <span>{lead.email}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-3.5 w-3.5 text-slate-300" />
+                            <span>{lead.ville}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <User className="h-3.5 w-3.5 text-slate-300" />
+                            <span>Assigné à {lead.assignePar}</span>
+                          </div>
+                        </div>
+
+                        {latestNote ? (
+                          <div className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
+                            <p className="text-xs uppercase tracking-[0.3em] text-slate-300/80">Dernière note</p>
+                            <p className="text-sm text-slate-100 leading-relaxed whitespace-pre-wrap">{latestNote.content}</p>
+                            <div className="flex items-center gap-2 text-[11px] text-slate-400 uppercase tracking-wide">
+                              <Users className="h-3 w-3" />
+                              <span>{latestNote.author}</span>
+                              <span>•</span>
+                              <Clock className="h-3 w-3" />
+                              <span>
+                                {new Date(latestNote.createdAt).toLocaleDateString("fr-FR", {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-4 text-sm text-slate-300/70">
+                            Aucune note encore enregistrée. Ajoutez votre premier suivi dès que la tâche est créée.
+                          </div>
+                        )}
+                        </motion.div>
+                      ) : null}
+                    </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </DialogContent>
       </Dialog>
     </>
   )
 }
+

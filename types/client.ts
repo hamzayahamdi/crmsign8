@@ -1,5 +1,6 @@
 export type ProjectStatus = 
   | "qualifie"           // 1️⃣ Qualifié
+  | "prise_de_besoin"   // 📝 Prise de besoin
   | "acompte_recu"       // 2️⃣ Acompte reçu
   | "conception"         // 3️⃣ Conception
   | "devis_negociation"  // 4️⃣ Devis / Négociation

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { notifyTaskAssigned } from '@/lib/notification-creator'
 
 // Ensure we run on Node.js runtime (Prisma is not supported on edge)
 export const runtime = 'nodejs'
@@ -67,6 +68,25 @@ export async function POST(request: NextRequest) {
         createdBy: body.createdBy || 'Système',
       }
     })
+
+    // Try to notify assignee immediately
+    try {
+      // Find the userId from the assigned user name
+      const user = await prisma.user.findFirst({ where: { name: body.assignedTo } })
+      if (user?.id) {
+        await notifyTaskAssigned({
+          userId: user.id,
+          taskTitle: body.title,
+          taskId: task.id,
+          dueDate: new Date(body.dueDate).toISOString(),
+          linkedName: body.linkedName || undefined,
+          createdBy: body.createdBy || 'Système',
+        })
+      }
+    } catch (notifyError) {
+      console.error('[API/tasks] Failed to send assignment notification:', notifyError)
+      // Do not fail the request because of notification errors
+    }
 
     // Create historique entry if linked to a client
     if (body.linkedType === 'client' && body.linkedId) {

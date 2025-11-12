@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { LeadsService } from "@/lib/leads-service"
 import { Phone, MapPin, Home, Building2, User } from "lucide-react"
+import { CalendarIcon } from "lucide-react"
+import { TasksService } from "@/lib/tasks-service"
 
 interface CommercialAddLeadModalProps {
   open: boolean
@@ -62,6 +64,29 @@ export function CommercialAddLeadModal({
     message: ""
   })
 
+  // Optional task creation state
+  const [createTask, setCreateTask] = useState(false)
+  const [taskTitle, setTaskTitle] = useState("")
+  const [taskDueDate, setTaskDueDate] = useState("")
+  const [taskAssignedTo, setTaskAssignedTo] = useState("")
+  const [users, setUsers] = useState<string[]>([])
+
+  // Load users when modal opens for assignment options
+  useEffect(() => {
+    if (!open) return
+    const loadUsers = async () => {
+      try {
+        const res = await fetch('/api/users', { cache: 'no-store' })
+        if (res.ok) {
+          const data = await res.json()
+          const names = (Array.isArray(data) ? data : []).map((u: any) => (u?.name || '').trim()).filter((n: string) => n)
+          setUsers(names)
+        }
+      } catch {}
+    }
+    loadUsers()
+  }, [open])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -89,7 +114,7 @@ export function CommercialAddLeadModal({
 
     setLoading(true)
     try {
-      await LeadsService.createLead({
+      const createdLead = await LeadsService.createLead({
         nom: formData.nom.trim(),
         telephone: formData.telephone.trim(),
         ville: formData.ville,
@@ -112,6 +137,32 @@ export function CommercialAddLeadModal({
         description: `${formData.nom} a été ajouté à votre liste`
       })
 
+      // Optionally create a task and assign to someone
+      if (createTask) {
+        try {
+          const dueIso = taskDueDate ? new Date(taskDueDate).toISOString() : new Date().toISOString()
+          const title = taskTitle?.trim() || `Suivi lead: ${formData.nom}`
+          const assigned = taskAssignedTo?.trim() || commercialName
+          await TasksService.createTask({
+            title,
+            description: formData.message?.trim() || `Suivi initial pour le lead ${formData.nom}`,
+            dueDate: dueIso,
+            assignedTo: assigned,
+            linkedType: 'lead',
+            linkedId: createdLead.id,
+            linkedName: formData.nom,
+            status: 'a_faire',
+            reminderEnabled: true,
+            reminderDays: 1,
+            createdBy: commercialName,
+          } as any)
+          toast.success('📌 Tâche créée et assignée')
+        } catch (err) {
+          console.error('Error creating task from lead modal:', err)
+          toast.error("La tâche n'a pas pu être créée")
+        }
+      }
+
       // Reset form
       setFormData({
         nom: "",
@@ -121,6 +172,10 @@ export function CommercialAddLeadModal({
         magasin: magasin || "",
         message: ""
       })
+      setCreateTask(false)
+      setTaskTitle("")
+      setTaskDueDate("")
+      setTaskAssignedTo("")
 
       onLeadAdded()
       onOpenChange(false)
@@ -143,6 +198,10 @@ export function CommercialAddLeadModal({
       magasin: magasin || "",
       message: ""
     })
+    setCreateTask(false)
+    setTaskTitle("")
+    setTaskDueDate("")
+    setTaskAssignedTo("")
     onOpenChange(false)
   }
 
@@ -276,6 +335,57 @@ export function CommercialAddLeadModal({
               placeholder="Informations complémentaires..."
               className="min-h-[80px] resize-none"
             />
+          </div>
+
+          {/* Optional Task Creation */}
+          <div className="space-y-3 border rounded-lg p-4 bg-white/50 border-border/40">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-800">Créer une tâche de suivi</Label>
+              <input
+                type="checkbox"
+                checked={createTask}
+                onChange={(e) => setCreateTask(e.target.checked)}
+                className="h-4 w-4 accent-blue-600"
+              />
+            </div>
+
+            {createTask && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-sm text-gray-700">Titre de la tâche</Label>
+                  <Input
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                    placeholder={`Suivi lead: ${formData.nom || ''}`}
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm text-gray-700 flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4" /> Échéance
+                  </Label>
+                  <Input
+                    type="date"
+                    value={taskDueDate}
+                    onChange={(e) => setTaskDueDate(e.target.value)}
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm text-gray-700">Assigné à</Label>
+                  <Select value={taskAssignedTo} onValueChange={setTaskAssignedTo}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder={commercialName || 'Sélectionner'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(users.length ? users : [commercialName]).filter(Boolean).map((u) => (
+                        <SelectItem key={u as string} value={u as string}>{u}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Buttons */}
