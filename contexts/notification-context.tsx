@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useAuth } from './auth-context';
 import { usePathname } from 'next/navigation';
@@ -32,6 +32,67 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const ensureAudioContext = useCallback(async () => {
+    try {
+      if (!audioCtxRef.current) {
+        const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (!Ctx) return null;
+        audioCtxRef.current = new Ctx();
+      }
+      if (audioCtxRef.current.state === 'suspended') {
+        await audioCtxRef.current.resume().catch(() => {});
+      }
+      return audioCtxRef.current;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const playNotificationSound = useCallback(async (priority: Notification['priority']) => {
+    const ctx = await ensureAudioContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, now);
+
+      const baseFreq = priority === 'high' ? 880 : 660;
+
+      const o1 = ctx.createOscillator();
+      o1.type = 'sine';
+      o1.frequency.setValueAtTime(baseFreq, now);
+
+      const o2 = ctx.createOscillator();
+      o2.type = 'triangle';
+      o2.frequency.setValueAtTime(baseFreq * 1.25, now);
+
+      o1.connect(gain);
+      o2.connect(gain);
+      gain.connect(ctx.destination);
+
+      // Quick pleasant envelope: fade in, ping, slight echo ping
+      const attack = 0.005;
+      const decay = 0.12;
+      const pause = 0.06;
+      const secondPing = 0.08;
+
+      gain.gain.linearRampToValueAtTime(0.6, now + attack);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + attack + decay);
+      gain.gain.setValueAtTime(0, now + attack + decay + pause);
+      gain.gain.linearRampToValueAtTime(0.45, now + attack + decay + pause + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + attack + decay + pause + secondPing);
+
+      o1.start(now);
+      o2.start(now);
+      o1.stop(now + 0.5);
+      o2.stop(now + 0.5);
+    } catch {
+      // ignore sound errors
+    }
+  }, [ensureAudioContext]);
 
   // Initialize Supabase client
   const supabase = React.useMemo(() => {
@@ -108,10 +169,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         }
       });
       console.log('[NotificationProvider] Toast displayed successfully');
+      // Attempt to play a subtle chime. Some browsers may block on first load until a user gesture.
+      void playNotificationSound(notification.priority);
     } catch (error) {
       console.error('[NotificationProvider] Error showing toast:', error);
     }
-  }, [pathname, router]);
+  }, [pathname, router, playNotificationSound]);
 
   // Mark notification as read
   const markAsRead = useCallback(async (notificationId: string) => {
