@@ -36,8 +36,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="fr" className="dark">
-      <body className={`${inter.variable} font-sans antialiased bg-[rgb(11,14,24)] text-white`}>
+    <html lang="fr" className="dark h-full">
+      <body className={`${inter.variable} font-sans antialiased bg-[rgb(11,14,24)] text-white min-h-screen overflow-x-hidden`}>
         <AuthProvider>
           <NotificationProvider>
             {children}

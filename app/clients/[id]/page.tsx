@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, type ReactNode } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { ArrowLeft } from "lucide-react"
@@ -25,6 +25,20 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { getCurrentClientStage } from "@/lib/client-stage-service"
+
+const PageShell = ({ children }: { children: ReactNode }) => (
+  <div className="relative flex min-h-screen bg-gradient-to-br from-slate-950 via-[#0b1529] to-slate-950 overflow-x-hidden overflow-y-hidden">
+    <div className="pointer-events-none absolute inset-0 z-0">
+      <div className="absolute -top-24 -left-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
+      <div className="absolute top-1/3 right-[-18%] h-[26rem] w-[26rem] rounded-full bg-sky-500/15 blur-[140px]" />
+      <div className="absolute bottom-[-30%] left-1/2 h-[28rem] w-[46rem] -translate-x-1/2 rounded-full bg-purple-500/10 blur-[160px]" />
+    </div>
+    <div className="relative z-10 shrink-0">
+      <Sidebar />
+    </div>
+    {children}
+  </div>
+)
 
 export default function ClientDetailsPage() {
   const params = useParams()
@@ -476,12 +490,11 @@ export default function ClientDetailsPage() {
   if (isLoading) {
     return (
       <AuthGuard>
-        <div className="flex min-h-screen bg-[rgb(11,14,24)]">
-          <Sidebar />
-          <main className="flex-1 flex items-center justify-center">
-            <div className="text-white">Chargement...</div>
+        <PageShell>
+          <main className="relative z-10 flex-1 flex items-center justify-center">
+            <div className="text-slate-200 animate-pulse">Chargement...</div>
           </main>
-        </div>
+        </PageShell>
       </AuthGuard>
     )
   }
@@ -489,31 +502,32 @@ export default function ClientDetailsPage() {
   if (!client) {
     return (
       <AuthGuard>
-        <div className="flex min-h-screen bg-[rgb(11,14,24)]">
-          <Sidebar />
-          <main className="flex-1 flex flex-col">
+        <PageShell>
+          <main className="relative z-10 flex-1 flex flex-col">
             <Header />
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-white mb-4">Client non trouvé</h2>
-                <Button onClick={() => router.push("/clients")}>
+            <div className="flex-1 flex items-center justify-center px-6 pb-10">
+              <div className="text-center space-y-4">
+                <h2 className="text-2xl font-bold text-white">Client non trouvé</h2>
+                <Button
+                  onClick={() => router.push("/clients")}
+                  className="px-4 py-2 bg-primary/90 hover:bg-primary text-white shadow-lg shadow-primary/20"
+                >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Retour aux clients
                 </Button>
               </div>
             </div>
           </main>
-        </div>
+        </PageShell>
       </AuthGuard>
     )
   }
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen bg-[rgb(11,14,24)]">
-        <Sidebar />
-        
-        <main className="flex-1 flex flex-col overflow-hidden">
+      <PageShell>
+        <>
+          <main className="relative z-10 flex-1 flex flex-col overflow-hidden">
           <Header />
           
           {/* Back Button */}
@@ -521,20 +535,22 @@ export default function ClientDetailsPage() {
             <Button
               variant="ghost"
               onClick={() => router.push("/clients")}
-              className="text-white/60 hover:text-white hover:bg-white/5"
+                className="group inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] text-slate-300 transition-colors hover:bg-white/[0.08] hover:text-white/90 shadow-lg shadow-black/10"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
               Retour aux clients
             </Button>
           </div>
 
           {/* Upcoming RDV Banner */}
           {client.rendezVous && client.rendezVous.length > 0 && (
+              <div className="px-8 pt-4">
             <UpcomingRdvBanner appointments={client.rendezVous} />
+              </div>
           )}
 
           {/* Sticky Header */}
-          <div className="sticky top-0 z-30 bg-[rgb(11,14,24)]/95 backdrop-blur-lg border-b border-[rgb(30,41,59)]">
+            <div className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-2xl shadow-[0_12px_50px_rgba(15,23,42,0.35)]">
             <ClientDetailsHeader 
               client={client}
               onUpdate={handleUpdateClient}
@@ -542,11 +558,17 @@ export default function ClientDetailsPage() {
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <div className="px-8 py-4">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="relative flex-1 overflow-y-auto custom-scrollbar">
+              <div className="pointer-events-none absolute inset-0 z-0">
+                <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/10 via-transparent to-transparent" />
+                <div className="absolute top-28 right-12 h-64 w-64 rounded-full bg-sky-500/12 blur-[120px]" />
+                <div className="absolute bottom-[-25%] left-16 h-72 w-72 rounded-full bg-purple-600/12 blur-[140px]" />
+              </div>
+
+              <div className="relative z-10 px-8 py-6">
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-6">
                 {/* Left Column - Main Content (70%) */}
-                <div className="lg:col-span-2 space-y-6">
+                  <div className="space-y-6 lg:col-span-2">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -656,7 +678,8 @@ export default function ClientDetailsPage() {
             editingTask={null}
           />
         )}
-      </div>
+        </>
+      </PageShell>
     </AuthGuard>
   )
 }

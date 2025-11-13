@@ -158,7 +158,7 @@ export default function TasksPage() {
     <AuthGuard>
       <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
         <Sidebar />
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col overflow-x-hidden">
           <Header />
           
           {/* Removed page title and subtitle for a cleaner layout */}
