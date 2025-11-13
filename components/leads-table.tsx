@@ -85,7 +85,7 @@ interface CampaignGroup {
 }
 
 export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, onConvertToClient, searchQuery, filters, onFilterChange, isLoading = false, newlyAddedLeadId = null }: LeadsTableProps) {
-  const [sortField, setSortField] = useState<SortField>('uploadedAt')
+  const [sortField, setSortField] = useState<SortField>('createdAt')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [hoveredColumn, setHoveredColumn] = useState<SortField | null>(null)
   const [actionDialogLead, setActionDialogLead] = useState<Lead | null>(null)

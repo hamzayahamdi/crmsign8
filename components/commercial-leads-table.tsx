@@ -62,6 +62,7 @@ const getStatusConfig = (status: LeadStatus) => {
 }
 
 export function CommercialLeadsTable({ leads, onViewLead }: CommercialLeadsTableProps) {
+  const sortedLeads = [...leads].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   if (leads.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4">
@@ -111,7 +112,7 @@ export function CommercialLeadsTable({ leads, onViewLead }: CommercialLeadsTable
               </th>
             </tr>
           </thead>          <tbody className="divide-y divide-white/10 bg-slate-800/30 backdrop-blur-sm">
-            {leads.map((lead) => (
+            {sortedLeads.map((lead) => (
               <tr key={lead.id} className="hover:bg-slate-700/30 transition-colors duration-150">
                 <td className="px-6 py-4">
                   <div className="font-semibold text-white text-base">{lead.nom}</div>
@@ -185,7 +186,7 @@ export function CommercialLeadsTable({ leads, onViewLead }: CommercialLeadsTable
 
       {/* Mobile Card View */}
       <div className="lg:hidden space-y-4">
-        {leads.map((lead) => (
+        {sortedLeads.map((lead) => (
           <Card key={lead.id} className="bg-gradient-to-br from-slate-800/90 to-slate-700/90 border border-white/10 overflow-hidden backdrop-blur-xl">
             <CardContent className="p-5">
               <div className="flex items-start justify-between mb-4">

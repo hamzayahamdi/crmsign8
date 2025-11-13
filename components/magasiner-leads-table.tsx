@@ -70,6 +70,7 @@ const getStatusConfig = (status: LeadStatus) => {
 }
 
 export function MagasinerLeadsTable({ leads, onEdit, onDelete }: MagasinerLeadsTableProps) {
+  const sortedLeads = [...leads].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   if (leads.length === 0) {
     return (
       <motion.div
@@ -125,7 +126,7 @@ export function MagasinerLeadsTable({ leads, onEdit, onDelete }: MagasinerLeadsT
             </tr>
           </thead>
           <tbody className="divide-y divide-white/10 bg-slate-800/30 backdrop-blur-sm text-sm">
-            {leads.map((lead, index) => (
+            {sortedLeads.map((lead, index) => (
               <motion.tr
                 key={lead.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -214,7 +215,7 @@ export function MagasinerLeadsTable({ leads, onEdit, onDelete }: MagasinerLeadsT
 
       {/* Mobile Card View */}
       <div className="lg:hidden space-y-3">
-        {leads.map((lead, index) => (
+        {sortedLeads.map((lead, index) => (
           <motion.div
             key={lead.id}
             initial={{ opacity: 0, y: 20 }}

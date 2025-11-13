@@ -35,8 +35,20 @@ export async function GET(request: NextRequest) {
     // Build where clause based on role
     const where: any = {}
     if (user?.role === 'architect') {
-      // Filter by assigned name
-      where.assignePar = user.name
+      // Filter by assigned name (case-insensitive). Also try a fallback on first/last name tokens.
+      const normalizedName = (user.name || '').trim()
+      const tokens = normalizedName.split(/\s+/)
+      // Prefer exact equals (insensitive); also allow contains on the full name as a safe fallback
+      where.OR = [
+        { assignePar: { equals: normalizedName, mode: 'insensitive' } },
+        { assignePar: { contains: normalizedName, mode: 'insensitive' } },
+        ...(tokens.length >= 2
+          ? [
+              { assignePar: { contains: tokens[0], mode: 'insensitive' } },
+              { assignePar: { contains: tokens[tokens.length - 1], mode: 'insensitive' } },
+            ]
+          : []),
+      ]
     } else if (user?.role === 'commercial') {
       // Commercial can see their own leads; match by creator name or commercialMagasin for robustness
       where.OR = [
@@ -146,7 +158,40 @@ export async function POST(request: NextRequest) {
       month = `${monthNames[now.getMonth()]} ${now.getFullYear()}`
       uploadedAt = now
     }
-    
+    // If an assignment was provided, try to canonicalize it to an exact architect user name
+    if (assignePar && assignePar !== 'Non assigné') {
+      const raw = (assignePar || '').trim()
+      const norm = (s: string) => s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+      const tokens = (s: string) => norm(s).split(/\s+/).filter(Boolean)
+      const allArchitects = await prisma.user.findMany({
+        where: { role: { equals: 'architect', mode: 'insensitive' } },
+        select: { name: true }
+      })
+      const nraw = norm(raw)
+      let best: string | null = null
+      for (const u of allArchitects) {
+        const uname = u.name || ''
+        const nuser = norm(uname)
+        if (nraw === nuser) { best = uname; break }
+      }
+      if (!best) {
+        for (const u of allArchitects) {
+          const uname = u.name || ''
+          const nuser = norm(uname)
+          if (nraw && nuser.includes(nraw)) { best = uname; break }
+        }
+      }
+      if (!best) {
+        const tt = tokens(raw)
+        for (const u of allArchitects) {
+          const uname = u.name || ''
+          const nuser = norm(uname)
+          if (tt.length >= 1 && tt.some(t => nuser.includes(t))) { best = uname; break }
+        }
+      }
+      if (best) assignePar = best
+    }
+
     const lead = await prisma.lead.create({
       data: {
         nom: body.nom,

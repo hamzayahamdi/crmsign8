@@ -44,8 +44,8 @@ export async function GET(
       )
     }
     
-    // If architect, ensure the lead is assigned to them
-    if (user?.role === 'architect' && lead.assignePar !== user.name) {
+    // If architect, ensure the lead is assigned to them (case-insensitive)
+    if (user?.role === 'architect' && (lead.assignePar || '').trim().toLowerCase() !== (user.name || '').trim().toLowerCase()) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
@@ -156,6 +156,42 @@ export async function PUT(
       console.log(`[Lead Update] Clearing convertedAt timestamp for lead ${leadId}`)
     }
     
+    // Canonicalize assignePar if admin/operator is changing it
+    let nextAssignePar: string | undefined = undefined
+    const canChangeAssignment = user && (user.role === 'admin' || user.role === 'operator')
+    if (canChangeAssignment && typeof body.assignePar === 'string' && body.assignePar.trim()) {
+      const raw = (body.assignePar || '').trim()
+      const norm = (s: string) => s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+      const tokens = (s: string) => norm(s).split(/\s+/).filter(Boolean)
+      const architects = await prisma.user.findMany({
+        where: { role: { equals: 'architect', mode: 'insensitive' } },
+        select: { name: true }
+      })
+      const nraw = norm(raw)
+      let best: string | null = null
+      for (const u of architects) {
+        const uname = u.name || ''
+        const nuser = norm(uname)
+        if (nraw === nuser) { best = uname; break }
+      }
+      if (!best) {
+        for (const u of architects) {
+          const uname = u.name || ''
+          const nuser = norm(uname)
+          if (nraw && nuser.includes(nraw)) { best = uname; break }
+        }
+      }
+      if (!best) {
+        const tt = tokens(raw)
+        for (const u of architects) {
+          const uname = u.name || ''
+          const nuser = norm(uname)
+          if (tt.length >= 1 && tt.some(t => nuser.includes(t))) { best = uname; break }
+        }
+      }
+      nextAssignePar = best || raw
+    }
+
     // Build update data with only valid fields
     const updateData: any = {
       nom: body.nom,
@@ -166,7 +202,7 @@ export async function PUT(
       statutDetaille: body.statutDetaille || '',
       message: body.message || null,
       // Prevent architects and commercials from reassigning; keep existing assignment
-      assignePar: (user?.role === 'architect' || user?.role === 'commercial' || user?.role === 'magasiner') ? existing.assignePar : body.assignePar,
+      assignePar: (user?.role === 'architect' || user?.role === 'commercial' || user?.role === 'magasiner') ? existing.assignePar : (nextAssignePar ?? body.assignePar),
       source: body.source as any, // Cast to any to bypass enum validation
       priorite: body.priorite,
       derniereMaj: new Date(body.derniereMaj || new Date())
