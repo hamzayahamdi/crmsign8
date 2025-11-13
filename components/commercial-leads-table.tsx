@@ -57,6 +57,22 @@ const getStatusConfig = (status: LeadStatus) => {
       text: "text-blue-200",
       border: "border-blue-500/40",
     },
+    qualifie: {
+      label: "Qualifié",
+      bg: "bg-teal-500/20",
+      dot: "bg-teal-400",
+      ring: "ring-teal-500/30",
+      text: "text-teal-200",
+      border: "border-teal-500/40",
+    },
+    refuse: {
+      label: "Refusé",
+      bg: "bg-red-500/20",
+      dot: "bg-red-400",
+      ring: "ring-red-500/30",
+      text: "text-red-200",
+      border: "border-red-500/40",
+    },
   }
   return configs[status]
 }
