@@ -160,7 +160,7 @@ export default function ArchitectesPage() {
             <Header />
           
           {/* Stats Cards - Compact */}
-          <div className="px-6 pb-3">
+          <div className="px-6 pt-6 pb-3">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
