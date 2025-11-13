@@ -150,7 +150,22 @@ export class TasksService {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to delete task')
+        let message = 'Failed to delete task'
+        try {
+          const errorBody = await response.json()
+          if (errorBody?.error) {
+            message = errorBody.error
+          }
+        } catch {
+          // Ignore JSON parsing errors (e.g. empty body)
+        }
+
+        if (response.status === 404) {
+          console.warn('[TasksService] Task already removed on server, ignoring 404.')
+          return
+        }
+
+        throw new Error(message)
       }
     } catch (error) {
       console.error('Error deleting task:', error)

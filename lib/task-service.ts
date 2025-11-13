@@ -71,14 +71,14 @@ export async function assignTask(input: AssignTaskInput, currentUser: CurrentUse
           title: input.title,
           description: input.description,
           dueDate: due,
-          assignedTo: input.assignedTo,
+          assignedTo: recipient.name,
           linkedType: isLead ? LinkedType.lead : LinkedType.client,
           linkedId: input.linkedId,
           linkedName,
           status: taskStatus,
           reminderEnabled: Boolean(input.reminderEnabled),
           reminderDays: input.reminderDays ?? null,
-          createdBy: currentUser.id,
+          createdBy: currentUser.name,
         },
       })
 
@@ -93,7 +93,7 @@ export async function assignTask(input: AssignTaskInput, currentUser: CurrentUse
           linkedType: isLead ? 'lead' : 'client',
           linkedId: input.linkedId,
           linkedName,
-          createdBy: currentUser.id,
+          createdBy: currentUser.name,
         },
       })
 

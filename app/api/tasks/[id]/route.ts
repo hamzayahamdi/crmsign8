@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { notifyTaskAssigned } from '@/lib/notification-creator'
+import { Prisma } from '@prisma/client'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -130,15 +131,57 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await prisma.task.delete({
-      where: { id: params.id }
+    const url = new URL(request.url)
+    const segments = url.pathname.split('/').filter(Boolean)
+    const idFromUrl = segments.length > 2 ? segments[segments.length - 1] : undefined
+
+    const rawId = params?.id ?? idFromUrl ?? ''
+    const id = Array.isArray(rawId) ? rawId[0]?.trim() : String(rawId).trim()
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Missing task id' },
+        { status: 400 }
+      )
+    }
+
+    const existing = await prisma.task.findUnique({
+      where: { id },
+      select: { id: true },
+    })
+
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, error: 'Task not found' },
+        { status: 404 }
+      )
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.notification.deleteMany({
+        where: {
+          linkedType: 'task',
+          linkedId: id,
+        },
+      })
+
+      await tx.task.delete({
+        where: { id },
+      })
     })
 
     return NextResponse.json({
       success: true,
       message: 'Task deleted successfully'
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return NextResponse.json(
+        { success: false, error: 'Task not found' },
+        { status: 404 }
+      )
+    }
+
     console.error('Error deleting task:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to delete task' },

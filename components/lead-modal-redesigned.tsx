@@ -3,6 +3,7 @@
 import type React from "react"
 import { useEffect, useMemo, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ToastAction } from "@/components/ui/toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,7 +25,6 @@ import {
 import {
   ArrowRightLeft,
   ArrowLeft,
-  Ban,
   Building2,
   CalendarDays,
   Clock,
@@ -42,6 +42,7 @@ import {
   UserPlus,
   User,
   Users,
+  Ban,
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -126,8 +127,6 @@ export function LeadModalRedesigned({
   const [typesBien, setTypesBien] = useState<string[]>(defaultTypesBien)
   const [isSaving, setIsSaving] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
-  const [isMarkingNotInterested, setIsMarkingNotInterested] = useState(false)
-  const [showNotInterestedDialog, setShowNotInterestedDialog] = useState(false)
   const [showConvertDialog, setShowConvertDialog] = useState(false)
   const [showTaskComposer, setShowTaskComposer] = useState(false)
   const [isLeadContentVisible, setIsLeadContentVisible] = useState(true)
@@ -412,19 +411,6 @@ export function LeadModalRedesigned({
     }
   }
 
-  const handleMarkAsNotInterested = async () => {
-    if (lead && onMarkAsNotInterested) {
-      setIsMarkingNotInterested(true)
-      try {
-        await onMarkAsNotInterested(lead)
-        setShowNotInterestedDialog(false)
-      } catch (error) {
-        console.error("Mark not interested error:", error)
-        setIsMarkingNotInterested(false)
-      }
-    }
-  }
-
   const handleTaskSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
@@ -479,9 +465,13 @@ export function LeadModalRedesigned({
         throw new Error(payload?.error || payload?.message || "Impossible de créer la tâche")
       }
 
+      const assignedUser = taskUsers.find(u => u.id === taskForm.assignedTo)
+      const due = taskForm.dueDate ? format(new Date(taskForm.dueDate), "dd/MM/yyyy") : undefined
+
       toast({
         title: "Tâche assignée",
-        description: payload?.message || "La nouvelle tâche a été créée et assignée.",
+        description: `“${taskForm.title.trim()}” assignée à ${assignedUser?.name || 'l\'utilisateur'}${due ? ` · échéance ${due}` : ''}.`,
+        action: <ToastAction altText="Fermer">OK</ToastAction>,
       })
 
       setTaskForm({
@@ -490,7 +480,12 @@ export function LeadModalRedesigned({
         dueDate: defaultTaskDueDate,
         assignedTo: authUser?.id || taskForm.assignedTo,
       })
+      
+      // Close task composer and return to lead form
       setShowTaskComposer(false)
+      setTimeout(() => {
+        setIsLeadContentVisible(true)
+      }, 190)
     } catch (error: any) {
       toast({
         title: "Erreur",
@@ -518,7 +513,7 @@ export function LeadModalRedesigned({
         staggerChildren: 0.02,
         delayChildren: 0.02,
         duration: 0.15,
-        ease: [0.4, 0.0, 0.2, 1],
+        ease: [0.4, 0.0, 0.2, 1] as const,
       },
     },
     exit: { 
@@ -526,7 +521,7 @@ export function LeadModalRedesigned({
       y: 0,
       transition: {
         duration: 0.12,
-        ease: [0.4, 0.0, 0.2, 1],
+        ease: [0.4, 0.0, 0.2, 1] as const,
       }
     },
   }
@@ -538,7 +533,7 @@ export function LeadModalRedesigned({
       y: 0,
       transition: {
         duration: 0.15,
-        ease: [0.4, 0.0, 0.2, 1],
+        ease: [0.4, 0.0, 0.2, 1] as const,
       }
     },
     exit: { 
@@ -546,7 +541,7 @@ export function LeadModalRedesigned({
       y: 0,
       transition: {
         duration: 0.1,
-        ease: [0.4, 0.0, 0.2, 1],
+        ease: [0.4, 0.0, 0.2, 1] as const,
       }
     },
   }
@@ -558,7 +553,7 @@ export function LeadModalRedesigned({
       x: 0,
       transition: {
         duration: 0.15,
-        ease: [0.4, 0.0, 0.2, 1],
+        ease: [0.4, 0.0, 0.2, 1] as const,
         delay: 0.03
       }
     },
@@ -567,7 +562,7 @@ export function LeadModalRedesigned({
       x: 0,
       transition: {
         duration: 0.1,
-        ease: [0.4, 0.0, 0.2, 1],
+        ease: [0.4, 0.0, 0.2, 1] as const,
       }
     },
   }
@@ -581,7 +576,7 @@ export function LeadModalRedesigned({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           showCloseButton={false}
-          className="sm:max-w-[1100px] max-h-[92vh] p-0 gap-0 rounded-3xl overflow-visible glass bg-slate-950/95 border border-white/10 ring-1 ring-cyan-500/20 shadow-[0_20px_60px_rgba(8,24,68,0.65)] relative"
+          className="sm:max-w-[1100px] h-[92vh] sm:h-[88vh] p-0 gap-0 rounded-3xl overflow-hidden glass bg-slate-950/95 border border-white/10 ring-1 ring-cyan-500/20 shadow-[0_20px_60px_rgba(8,24,68,0.65)] relative flex flex-col"
         >
           <DialogHeader className="px-8 py-6 border-b border-slate-200/10 bg-linear-to-br from-slate-950/80 via-slate-900/70 to-slate-900/40">
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -637,12 +632,12 @@ export function LeadModalRedesigned({
                 exit={{ opacity: 0 }}
                 transition={{ 
                   duration: 0.15,
-                  ease: [0.4, 0.0, 0.2, 1]
+                  ease: [0.4, 0.0, 0.2, 1] as const
                 }}
                 onSubmit={handleSubmit}
-                className="flex flex-col"
+                className="flex-1 min-h-0 flex flex-col"
               >
-                <div className="px-8 py-6 space-y-6 max-h-[74vh] overflow-y-auto custom-scrollbar">
+                <div className="flex-1 min-h-0 px-8 py-6 space-y-6 overflow-y-auto custom-scrollbar">
               {lead && (
                 <div className="rounded-2xl border border-white/10 bg-linear-to-r from-slate-900/70 via-slate-900/50 to-slate-900/40 p-5 space-y-5 shadow-inner shadow-black/20">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -1008,77 +1003,25 @@ export function LeadModalRedesigned({
                 )}
               </div>
 
-            <div className="px-8 py-5 border-t border-slate-200/10 bg-slate-900/40">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="px-8 py-6 border-t border-white/10 bg-gradient-to-r from-slate-900/60 via-slate-900/50 to-slate-900/60 backdrop-blur-sm">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
-                  className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white rounded-xl transition-all"
+                  className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-slate-500 rounded-xl transition-all px-6 h-11 font-medium"
                 >
                   Annuler
                 </Button>
 
-                <div className="flex items-center gap-2">
-                {lead && onMarkAsNotInterested && (
-                  <AlertDialog open={showNotInterestedDialog} onOpenChange={setShowNotInterestedDialog}>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={isMarkingNotInterested || isConverting || isSaving}
-                        className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 rounded-xl transition-all disabled:opacity-50"
-                      >
-                        {isMarkingNotInterested ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Traitement...
-                          </>
-                        ) : (
-                          <>
-                            <Ban className="w-4 h-4 mr-2" />
-                            Pas intéressé
-                          </>
-                        )}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="rounded-2xl">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Marquer comme non intéressé ?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Êtes-vous sûr de vouloir marquer ce lead comme pas intéressé ? Cette action mettra à jour le statut du lead.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                          <AlertDialogCancel className="rounded-xl" disabled={isMarkingNotInterested}>
-                            Annuler
-                          </AlertDialogCancel>
-                        <AlertDialogAction 
-                          className="bg-red-600 hover:bg-red-700 text-white rounded-xl disabled:opacity-50"
-                          onClick={handleMarkAsNotInterested}
-                          disabled={isMarkingNotInterested}
-                        >
-                          {isMarkingNotInterested ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Traitement...
-                            </>
-                          ) : (
-                              "Confirmer"
-                          )}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-
+                <div className="flex items-center gap-3">
                   {lead && onConvertToClient && isAdmin && lead.statut !== "qualifie" && (
                   <AlertDialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
                     <AlertDialogTrigger asChild>
                       <Button
                         type="button"
-                        disabled={isConverting || isMarkingNotInterested || isSaving}
-                        className="bg-green-600 hover:bg-green-700 text-white rounded-xl transition-all shadow-lg shadow-green-600/20 disabled:opacity-50"
+                        disabled={isConverting || isSaving}
+                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl transition-all shadow-lg shadow-green-600/30 hover:shadow-green-600/40 disabled:opacity-50 px-6 h-11 font-medium"
                       >
                         {isConverting ? (
                           <>
@@ -1088,24 +1031,24 @@ export function LeadModalRedesigned({
                         ) : (
                           <>
                             <ArrowRightLeft className="w-4 h-4 mr-2" />
-                            Convertir
+                            Convertir en client
                           </>
                         )}
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="rounded-2xl">
+                    <AlertDialogContent className="rounded-2xl border border-white/10 bg-slate-950">
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Convertir en client ?</AlertDialogTitle>
-                        <AlertDialogDescription>
+                        <AlertDialogTitle className="text-white">Convertir en client ?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-400">
                             Souhaitez-vous convertir ce lead en client ? Un nouveau client sera créé automatiquement dans la section Clients &amp; Projets.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                          <AlertDialogCancel className="rounded-xl" disabled={isConverting}>
+                          <AlertDialogCancel className="rounded-xl border-slate-600 hover:bg-slate-800" disabled={isConverting}>
                             Annuler
                           </AlertDialogCancel>
                         <AlertDialogAction 
-                          className="bg-green-600 hover:bg-green-700 text-white rounded-xl disabled:opacity-50"
+                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl disabled:opacity-50"
                           onClick={handleConvertToClient}
                           disabled={isConverting}
                         >
@@ -1126,7 +1069,7 @@ export function LeadModalRedesigned({
                 <Button
                   type="button"
                   onClick={handleOpenTaskComposer}
-                  className="rounded-xl bg-linear-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white shadow-lg shadow-violet-600/30"
+                  className="rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-lg shadow-violet-600/30 hover:shadow-violet-600/40 transition-all px-6 h-11 font-medium"
                 >
                   <ListTodo className="w-4 h-4 mr-2" />
                   Créer une tâche
@@ -1135,7 +1078,7 @@ export function LeadModalRedesigned({
                 <Button
                   type="submit"
                   disabled={isSaving}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all shadow-lg shadow-blue-600/20 min-w-[140px]"
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-xl transition-all shadow-lg shadow-blue-600/30 hover:shadow-blue-600/40 min-w-[160px] h-11 font-semibold"
                 >
                   {isSaving ? (
                     <>
@@ -1167,7 +1110,7 @@ export function LeadModalRedesigned({
                   exit={{ opacity: 0 }}
                   transition={{ 
                     duration: 0.15,
-                    ease: [0.4, 0.0, 0.2, 1],
+                    ease: [0.4, 0.0, 0.2, 1] as const,
                   }}
                   onClick={handleCloseTaskComposer}
                 />
@@ -1178,7 +1121,7 @@ export function LeadModalRedesigned({
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ 
                     duration: 0.18,
-                    ease: [0.4, 0.0, 0.2, 1]
+                    ease: [0.4, 0.0, 0.2, 1] as const
                   }}
                   className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl mx-auto rounded-[32px] border border-white/10 bg-slate-950/98 shadow-[0_40px_120px_rgba(8,24,68,0.75)] z-[101] max-h-[90vh] overflow-y-auto custom-scrollbar overflow-x-visible"
                   onClick={(event) => event.stopPropagation()}
@@ -1193,7 +1136,7 @@ export function LeadModalRedesigned({
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ 
                             duration: 0.15, 
-                            ease: [0.4, 0.0, 0.2, 1],
+                            ease: [0.4, 0.0, 0.2, 1] as const,
                             delay: 0.02
                           }}
                           className="h-14 w-14 rounded-2xl bg-linear-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-xl shadow-violet-600/40 ring-2 ring-violet-400/20"
@@ -1207,7 +1150,7 @@ export function LeadModalRedesigned({
                           transition={{ 
                             duration: 0.15,
                             delay: 0.03,
-                            ease: [0.4, 0.0, 0.2, 1]
+                            ease: [0.4, 0.0, 0.2, 1] as const
                           }}
                         >
                           <h3 className="text-2xl font-bold text-white sm:text-3xl tracking-tight">Nouvelle tâche de suivi</h3>
@@ -1218,7 +1161,7 @@ export function LeadModalRedesigned({
                             transition={{ 
                               duration: 0.15,
                               delay: 0.05,
-                              ease: [0.4, 0.0, 0.2, 1]
+                              ease: [0.4, 0.0, 0.2, 1] as const
                             }}
                           >
                             Connectez votre équipe {lead?.nom ? (
@@ -1333,33 +1276,43 @@ export function LeadModalRedesigned({
                           </div>
                         </motion.div>
 
-                        <motion.div variants={composerFieldVariants} className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-white/5">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={handleCloseTaskComposer}
-                            className="text-slate-200 hover:bg-white/10 hover:text-white rounded-xl px-5 h-10 transition-all"
-                            disabled={isTaskSubmitting}
-                          >
-                            Annuler
-                          </Button>
-                          <Button
-                            type="submit"
-                            disabled={isTaskSubmitting || !lead?.id}
-                            className="rounded-xl bg-linear-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white shadow-lg shadow-violet-600/30 px-6 h-10 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isTaskSubmitting ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Assignation...
-                              </>
-                            ) : (
-                              <>
-                                <ListTodo className="h-4 w-4 mr-2" />
-                                Valider la tâche
-                              </>
-                            )}
-                          </Button>
+                        <motion.div variants={composerFieldVariants} className="space-y-3 pt-4 border-t border-white/5">
+                          {!lead?.id && (
+                            <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm">
+                              <span className="text-lg">⚠️</span>
+                              <p>
+                                <strong>Attention:</strong> Enregistrez d'abord le lead pour créer la tâche liée.
+                              </p>
+                            </div>
+                          )}
+                          <div className="flex flex-wrap items-center justify-end gap-3">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={handleCloseTaskComposer}
+                              className="text-slate-200 hover:bg-white/10 hover:text-white rounded-xl px-5 h-10 transition-all"
+                              disabled={isTaskSubmitting}
+                            >
+                              Annuler
+                            </Button>
+                            <Button
+                              type="submit"
+                              disabled={isTaskSubmitting || !taskForm.title.trim() || !taskForm.assignedTo}
+                              className="rounded-xl bg-linear-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white shadow-lg shadow-violet-600/30 px-6 h-10 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isTaskSubmitting ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Création en cours...
+                                </>
+                              ) : (
+                                <>
+                                  <ListTodo className="h-4 w-4 mr-2" />
+                                  Créer et assigner
+                                </>
+                              )}
+                            </Button>
+                          </div>
                         </motion.div>
                       </motion.form>
 

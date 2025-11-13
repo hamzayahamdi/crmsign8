@@ -139,7 +139,10 @@ export default function TasksPage() {
   // Guard against malformed items missing an id
   const validTasks = tasks.filter(t => !!t.id)
   const filteredTasksByRole = userRole === 'architect' 
-    ? validTasks.filter(t => t.assignedTo === user?.name)
+    ? validTasks.filter(t => {
+        if (!user) return false
+        return t.assignedTo === user.name || t.assignedTo === user.id
+      })
     : validTasks
 
   // Calculate statistics

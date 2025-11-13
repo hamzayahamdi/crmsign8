@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Edit2, Trash2, ExternalLink, CheckCircle2, Clock, CircleDashed, Loader2 } from "lucide-react"
+import { Edit2, Trash2, ExternalLink, CheckCircle2, Clock, CircleDashed, Loader2, User } from "lucide-react"
 import type { Task, TaskStatus } from "@/types/task"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -51,6 +51,7 @@ export function TasksTable({
       task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       task.assignedTo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (task.createdBy && task.createdBy.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (task.linkedName && task.linkedName.toLowerCase().includes(searchQuery.toLowerCase()))
 
     // Status filter
@@ -152,6 +153,7 @@ export function TasksTable({
             <tr>
               <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Tâche</th>
               <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Assigné à</th>
+              <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Créée par</th>
               <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Échéance</th>
               <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Statut</th>
               <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Lié à</th>
@@ -161,7 +163,7 @@ export function TasksTable({
           <tbody className="divide-y divide-slate-600/30">
             {filteredTasks.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
                   Aucune tâche trouvée
                 </td>
               </tr>
@@ -178,7 +180,13 @@ export function TasksTable({
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-sm text-white">{task.assignedTo}</p>
+                    <p className="text-sm text-white">{task.assignedTo || "—"}</p>
+                  </td>
+                  <td className="px-6 py-4">
+                    <p className="text-sm text-slate-300 flex items-center gap-2">
+                      <User className="w-4 h-4 text-slate-400" />
+                      {task.createdBy || "—"}
+                    </p>
                   </td>
                   <td className="px-6 py-4">
                     <p className="text-sm">{formatDate(task.dueDate)}</p>
