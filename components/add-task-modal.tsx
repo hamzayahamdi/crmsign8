@@ -34,6 +34,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { LeadsService } from "@/lib/leads-service"
+import { useClientStore } from "@/stores/client-store"
 
 interface AddTaskModalProps {
   isOpen: boolean
@@ -60,6 +61,7 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask }: AddTaskMo
   const [leads, setLeads] = useState<Lead[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [users, setUsers] = useState<string[]>([])
+  const { clients: storeClients, fetchClients, isLoading: isClientsLoading } = useClientStore()
 
   // Load data sources
   useEffect(() => {
@@ -70,16 +72,6 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask }: AddTaskMo
         setLeads(apiLeads || [])
       } catch {
         setLeads([])
-      }
-    }
-
-    // Clients from localStorage for now
-    const loadClients = () => {
-      try {
-        const storedClients = localStorage.getItem("signature8-clients")
-        setClients(storedClients ? JSON.parse(storedClients) : [])
-      } catch {
-        setClients([])
       }
     }
 
@@ -100,9 +92,17 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask }: AddTaskMo
     }
 
     loadLeads()
-    loadClients()
+    // Fetch latest clients from DB via store when modal opens
+    if (isOpen) {
+      fetchClients()
+    }
     loadUsers()
-  }, [isOpen, user?.name])
+  }, [isOpen, user?.name, fetchClients])
+
+  // Sync local clients with store clients
+  useEffect(() => {
+    setClients(storeClients || [])
+  }, [storeClients])
 
   // Populate form when editing
   useEffect(() => {
@@ -380,106 +380,97 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask }: AddTaskMo
           </div>
 
           {/* Linked Type and Item */}
-          <div className="space-y-3 p-4 rounded-xl bg-gradient-to-br from-slate-800/40 to-slate-800/20 border border-slate-600/40">
-            <div className="flex items-center gap-2">
-              <Link2 className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-semibold text-white">Lier cette tâche à un Lead ou Client</h3>
+          <div className="space-y-2 p-3 rounded-xl bg-slate-900/50 border border-slate-700/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Link2 className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-semibold text-white">Lier cette tâche à un Lead ou Client</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, linkedType: "lead", linkedId: "", linkedName: "" })}
+                  className={cn(
+                    "px-3 py-1.5 rounded-md border text-xs font-medium transition-all",
+                    formData.linkedType === "lead"
+                      ? "bg-primary/20 border-primary text-primary"
+                      : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:border-slate-500"
+                  )}
+                >
+                  Lead
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, linkedType: "client", linkedId: "", linkedName: "" })}
+                  className={cn(
+                    "px-3 py-1.5 rounded-md border text-xs font-medium transition-all",
+                    formData.linkedType === "client"
+                      ? "bg-primary/20 border-primary text-primary"
+                      : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:border-slate-500"
+                  )}
+                >
+                  Client
+                </button>
+              </div>
             </div>
-            <p className="text-xs text-slate-400">Associez cette tâche à un lead ou client existant pour un meilleur suivi.</p>
-            
-            <div className="space-y-3">
-              {/* Type Selection */}
-              <div className="space-y-2">
-                <Label className="text-white text-xs">Type de liaison <span className="text-red-400">*</span></Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, linkedType: "lead", linkedId: "", linkedName: "" })}
-                    className={cn(
-                      "flex items-center justify-center gap-2 p-2 rounded-lg border-2 transition-all text-sm font-medium",
-                      formData.linkedType === "lead"
-                        ? "bg-primary/20 border-primary text-primary"
-                        : "bg-slate-800/50 border-slate-600/50 text-slate-400 hover:border-slate-500"
-                    )}
-                  >
-                    <User className="w-3.5 h-3.5" />
-                    Lead
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, linkedType: "client", linkedId: "", linkedName: "" })}
-                    className={cn(
-                      "flex items-center justify-center gap-2 p-2 rounded-lg border-2 transition-all text-sm font-medium",
-                      formData.linkedType === "client"
-                        ? "bg-primary/20 border-primary text-primary"
-                        : "bg-slate-800/50 border-slate-600/50 text-slate-400 hover:border-slate-500"
-                    )}
-                  >
-                    <User className="w-3.5 h-3.5" />
-                    Client
-                  </button>
-                </div>
-              </div>
 
-              {/* Smart Search for Lead/Client */}
-              <div className="space-y-2">
-                <Label className="text-white text-xs">
-                  Sélectionner {formData.linkedType === "lead" ? "le lead" : "le client"} <span className="text-red-400">*</span>
-                </Label>
-                <Popover open={linkedSearchOpen} onOpenChange={setLinkedSearchOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className={cn(
-                        "w-full justify-between bg-slate-800/50 border-slate-600/50 text-white hover:bg-slate-700/50 hover:text-white",
-                        !formData.linkedId && "text-slate-400"
-                      )}
-                    >
-                      {formData.linkedId 
-                        ? getLinkedOptions().find(opt => opt.id === formData.linkedId)?.name 
-                        : `Rechercher un ${formData.linkedType === "lead" ? "lead" : "client"}...`
-                      }
-                      <Search className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[450px] p-0 glass border-border/40">
-                    <Command className="bg-transparent">
-                      <CommandInput 
-                        placeholder={`Rechercher par nom, téléphone, ville...`} 
-                        className="text-white" 
-                      />
-                      <CommandList>
-                        <CommandEmpty className="text-slate-400 py-6 text-center text-sm">
-                          Aucun {formData.linkedType === "lead" ? "lead" : "client"} trouvé.
-                        </CommandEmpty>
-                        <CommandGroup>
-                          {getLinkedOptions().map((option) => (
-                            <CommandItem
-                              key={option.id}
-                              value={option.name}
-                              onSelect={() => {
-                                setFormData({ ...formData, linkedId: option.id, linkedName: option.name })
-                                setLinkedSearchOpen(false)
-                              }}
-                              className="text-white hover:bg-slate-700/50 cursor-pointer"
-                            >
-                              <User className="mr-2 h-4 w-4" />
-                              <span className="flex-1">{option.name}</span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {formData.linkedId && (
-                  <p className="text-xs text-green-400 flex items-center gap-1 mt-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    {formData.linkedType === "lead" ? "Lead" : "Client"} sélectionné
-                  </p>
-                )}
-              </div>
+            <div className="space-y-1">
+              <Label className="text-white text-xs">
+                Sélectionner {formData.linkedType === "lead" ? "le lead" : "le client"} <span className="text-red-400">*</span>
+              </Label>
+              <Popover open={linkedSearchOpen} onOpenChange={setLinkedSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className={cn(
+                      "h-9 w-full justify-between bg-slate-800/50 border-slate-600/50 text-white hover:bg-slate-700/50 hover:text-white text-sm",
+                      !formData.linkedId && "text-slate-400"
+                    )}
+                  >
+                    {formData.linkedId 
+                      ? getLinkedOptions().find(opt => opt.id === formData.linkedId)?.name 
+                      : `Rechercher un ${formData.linkedType === "lead" ? "lead" : "client"}...`
+                    }
+                    <Search className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[520px] max-w-[90vw] p-0 glass border-border/40">
+                  <Command className="bg-transparent">
+                    <CommandInput 
+                      placeholder={`Rechercher par nom, téléphone, ville...`} 
+                      className="text-white"
+                    />
+                    <CommandList>
+                      <CommandEmpty className="text-slate-400 py-6 text-center text-sm">
+                        {isClientsLoading && formData.linkedType === 'client' ? 'Chargement des clients...' : `Aucun ${formData.linkedType === 'lead' ? 'lead' : 'client'} trouvé.`}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {getLinkedOptions().map((option) => (
+                          <CommandItem
+                            key={option.id}
+                            value={option.name}
+                            onSelect={() => {
+                              setFormData({ ...formData, linkedId: option.id, linkedName: option.name })
+                              setLinkedSearchOpen(false)
+                            }}
+                            className="text-white hover:bg-slate-700/50 cursor-pointer"
+                          >
+                            <User className="mr-2 h-4 w-4" />
+                            <span className="flex-1 truncate">{option.name}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {formData.linkedId && (
+                <p className="text-xs text-green-400 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  {formData.linkedType === "lead" ? "Lead" : "Client"} sélectionné
+                </p>
+              )}
             </div>
           </div>
 
