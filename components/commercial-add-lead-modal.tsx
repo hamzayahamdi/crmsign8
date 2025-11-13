@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { LeadsService } from "@/lib/leads-service"
-import { Phone, MapPin, Home, Building2, User } from "lucide-react"
+import { Phone, MapPin, Home, Building2, User, UserPlus } from "lucide-react"
 import { CalendarIcon } from "lucide-react"
 import { TasksService } from "@/lib/tasks-service"
 
@@ -207,13 +207,13 @@ export function CommercialAddLeadModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto glass border-border/40 backdrop-blur-xl">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto glass border-border/40">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 bg-clip-text text-transparent flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
-              <User className="h-5 w-5 text-white" />
+              <UserPlus className="h-5 w-5 text-white" />
             </div>
-            Ajouter un nouveau Lead
+            Créer un lead
           </DialogTitle>
         </DialogHeader>
 

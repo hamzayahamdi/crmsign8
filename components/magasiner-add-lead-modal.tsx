@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { LeadsService } from "@/lib/leads-service"
-import { Phone, MapPin, Home, Building2, User, Calendar } from "lucide-react"
+import { Phone, MapPin, Home, Building2, User, UserPlus, Calendar } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { TasksService } from "@/lib/tasks-service"
 
@@ -202,19 +202,19 @@ export function MagasinerAddLeadModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <AnimatePresence>
         {open && (
-          <DialogContent className="sm:max-w-[840px] max-h-[92vh] overflow-y-auto glass backdrop-blur-xl bg-slate-900/90 border border-white/10 ring-1 ring-white/10">
+          <DialogContent className="sm:max-w-[840px] max-h-[92vh] overflow-y-auto glass bg-slate-900/90 border border-white/10 ring-1 ring-white/10">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: [0.4, 0.0, 0.2, 1] }}
             >
               <DialogHeader>
                 <DialogTitle className="text-2xl font-bold text-white flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center shadow-lg shadow-primary/30">
-                    <User className="h-6 w-6 text-white" />
+                    <UserPlus className="h-6 w-6 text-white" />
                   </div>
-                  Ajouter un nouveau Lead
+                  Créer un lead
                 </DialogTitle>
                 <p className="text-sm text-muted-foreground mt-2">
                   Remplissez les informations du client pour créer un nouveau lead
@@ -225,9 +225,9 @@ export function MagasinerAddLeadModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Nom complet */}
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.03, duration: 0.15, ease: [0.4, 0.0, 0.2, 1] }}
                   className="space-y-2"
                 >
                   <Label htmlFor="nom" className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -246,9 +246,9 @@ export function MagasinerAddLeadModal({
 
                 {/* Téléphone */}
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.15 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.05, duration: 0.15, ease: [0.4, 0.0, 0.2, 1] }}
                   className="space-y-2"
                 >
                   <Label htmlFor="telephone" className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -268,9 +268,9 @@ export function MagasinerAddLeadModal({
 
                 {/* Ville */}
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.07, duration: 0.15, ease: [0.4, 0.0, 0.2, 1] }}
                   className="space-y-2"
                 >
                   <Label htmlFor="ville" className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -293,9 +293,9 @@ export function MagasinerAddLeadModal({
 
                 {/* Type de bien */}
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.25 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.09, duration: 0.15, ease: [0.4, 0.0, 0.2, 1] }}
                   className="space-y-2"
                 >
                   <Label htmlFor="typeBien" className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -318,9 +318,9 @@ export function MagasinerAddLeadModal({
 
                 {/* Magasin (read-only) */}
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.11, duration: 0.15, ease: [0.4, 0.0, 0.2, 1] }}
                   className="space-y-2"
                 >
                   <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -336,9 +336,9 @@ export function MagasinerAddLeadModal({
 
                 {/* Nom du commercial */}
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.35 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.13, duration: 0.15, ease: [0.4, 0.0, 0.2, 1] }}
                   className="space-y-2"
                 >
                   <Label htmlFor="commercialName" className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -360,9 +360,9 @@ export function MagasinerAddLeadModal({
 
                 {/* Date de création (auto-generated, display only) */}
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.15, duration: 0.15, ease: [0.4, 0.0, 0.2, 1] }}
                   className="space-y-2"
                 >
                   <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -383,9 +383,9 @@ export function MagasinerAddLeadModal({
                 {/* Message (optional) */}
                 <motion.div
                   className="md:col-span-2 space-y-2"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.45 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.17, duration: 0.15, ease: [0.4, 0.0, 0.2, 1] }}
                 >
                   <Label htmlFor="message" className="text-sm font-semibold text-foreground">
                     Message ou notes (optionnel)
@@ -402,105 +402,104 @@ export function MagasinerAddLeadModal({
                 {/* Statut indicator */}
                 <motion.div
                   className="md:col-span-2 flex items-center gap-2"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.19, duration: 0.15, ease: [0.4, 0.0, 0.2, 1] }}
                 >
                   <span className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 border text-sm font-medium bg-emerald-500/10 text-emerald-300 border-emerald-500/30 ring-1 ring-emerald-500/20">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
                     Statut du lead: 🟢 Nouveau
                   </span>
-                </motion.div>
+
+  {/* Optional Task Creation */}
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ delay: 0.21, duration: 0.15, ease: [0.4, 0.0, 0.2, 1] }}
+    className="mt-6 space-y-3 border rounded-lg p-4 bg-white/5 border-border/40"
+  >
+    <div className="flex items-center justify-between">
+      <Label className="text-sm font-medium text-white/80">Créer une tâche de suivi</Label>
+      <input
+        type="checkbox"
+        checked={createTask}
+        onChange={(e) => setCreateTask(e.target.checked)}
+        className="h-4 w-4 accent-blue-500"
+      />
+    </div>
+    {createTask && (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="space-y-2 md:col-span-2">
+          <Label className="text-sm text-white/70">Titre de la tâche</Label>
+          <Input
+            value={taskTitle}
+            onChange={(e) => setTaskTitle(e.target.value)}
+            placeholder={`Suivi lead: ${formData.nom || ''}`}
+            className="h-10 glass border-white/10"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-sm text-white/70">Échéance</Label>
+          <Input
+            type="date"
+            value={taskDueDate}
+            onChange={(e) => setTaskDueDate(e.target.value)}
+            className="h-10 glass border-white/10"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-sm text-white/70">Assigné à</Label>
+          <Select value={taskAssignedTo} onValueChange={setTaskAssignedTo}>
+            <SelectTrigger className="h-10 glass border-white/10">
+              <SelectValue placeholder={formData.commercialName || magasinerName || 'Sélectionner'} />
+            </SelectTrigger>
+            <SelectContent className="glass bg-slate-900/95 border-white/10">
+              {(users.length ? users : [formData.commercialName, magasinerName]).filter(Boolean).map((u) => (
+                <SelectItem key={u as string} value={u as string}>{u}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    )}
+  </motion.div>
+
+  {/* Buttons */}
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ delay: 0.23, duration: 0.15, ease: [0.4, 0.0, 0.2, 1] }}
+    className="flex gap-3 pt-6 border-t border-border/40 mt-6"
+  >
+    <Button
+      type="button"
+      variant="outline"
+      onClick={handleCancel}
+      disabled={loading}
+      className="flex-1 h-11 glass border-border/40 hover:bg-destructive/10 hover:text-destructive font-semibold rounded-xl"
+    >
+      Annuler
+    </Button>
+    <Button
+      type="submit"
+      disabled={loading}
+      className="flex-1 h-11 bg-gradient-to-r from-primary to-blue-500 hover:opacity-90 shadow-primary/30 font-semibold rounded-xl"
+    >
+      {loading ? (
+        <span className="flex items-center gap-2">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+          />
+          Enregistrement...
+        </span>
+      ) : (
+        "✅ Enregistrer le Lead"
+      )}
+    </Button>
+  </motion.div>
                 </div>
-
-                {/* Optional Task Creation */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="md:col-span-2 space-y-3 border rounded-xl p-4 bg-white/5 border-white/10"
-                >
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium text-white/80">Créer une tâche de suivi</Label>
-                    <input
-                      type="checkbox"
-                      checked={createTask}
-                      onChange={(e) => setCreateTask(e.target.checked)}
-                      className="h-4 w-4 accent-blue-500"
-                    />
-                  </div>
-                  {createTask && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="space-y-2 md:col-span-2">
-                        <Label className="text-sm text-white/70">Titre de la tâche</Label>
-                        <Input
-                          value={taskTitle}
-                          onChange={(e) => setTaskTitle(e.target.value)}
-                          placeholder={`Suivi lead: ${formData.nom || ''}`}
-                          className="h-10 glass border-white/10"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm text-white/70">Échéance</Label>
-                        <Input
-                          type="date"
-                          value={taskDueDate}
-                          onChange={(e) => setTaskDueDate(e.target.value)}
-                          className="h-10 glass border-white/10"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm text-white/70">Assigné à</Label>
-                        <Select value={taskAssignedTo} onValueChange={setTaskAssignedTo}>
-                          <SelectTrigger className="h-10 glass border-white/10">
-                            <SelectValue placeholder={formData.commercialName || magasinerName || 'Sélectionner'} />
-                          </SelectTrigger>
-                          <SelectContent className="glass bg-slate-900/95 border-white/10">
-                            {(users.length ? users : [formData.commercialName, magasinerName]).filter(Boolean).map((u) => (
-                              <SelectItem key={u as string} value={u as string}>{u}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-
-                {/* Buttons */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.55 }}
-                  className="flex gap-3 pt-5 border-t border-border/40"
-                >
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleCancel}
-                    disabled={loading}
-                    className="flex-1 h-11 glass border-border/40 hover:bg-destructive/10 hover:text-destructive font-semibold rounded-xl"
-                  >
-                    Annuler
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="flex-1 h-11 bg-gradient-to-r from-primary to-blue-500 hover:opacity-90 shadow-primary/30 font-semibold rounded-xl"
-                  >
-                    {loading ? (
-                      <span className="flex items-center gap-2">
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
-                        />
-                        Enregistrement...
-                      </span>
-                    ) : (
-                      "✅ Enregistrer le Lead"
-                    )}
-                  </Button>
-                </motion.div>
               </form>
             </motion.div>
           </DialogContent>

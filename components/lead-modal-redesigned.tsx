@@ -39,7 +39,7 @@ import {
   Phone,
   Save,
   Shield,
-  Sparkles,
+  UserPlus,
   User,
   Users,
   X,
@@ -345,7 +345,7 @@ export function LeadModalRedesigned({
           description: "Sauvegardez la fiche pour lier cette tâche automatiquement.",
         })
       }
-    }, 320) // Wait for exit animation to complete (0.35s duration)
+    }, 160) // Match exit animation duration (150ms + small buffer)
   }
 
   const handleCloseTaskComposer = () => {
@@ -354,7 +354,7 @@ export function LeadModalRedesigned({
     // Use a delay to allow exit animation to complete smoothly
     setTimeout(() => {
       setIsLeadContentVisible(true)
-    }, 420) // Wait for exit animation to complete (0.45s duration)
+    }, 190) // Match exit animation duration (180ms + small buffer)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -510,70 +510,64 @@ export function LeadModalRedesigned({
   const latestNote = lead?.notes && lead.notes.length > 0 ? lead.notes[lead.notes.length - 1] : undefined
 
   const composerFormVariants = {
-    hidden: { opacity: 0, y: 12, scale: 0.98 },
+    hidden: { opacity: 0, y: 0 },
     visible: {
       opacity: 1,
       y: 0,
-      scale: 1,
       transition: {
-        staggerChildren: 0.04,
-        delayChildren: 0.08,
-        duration: 0.35,
-        ease: [0.16, 1, 0.3, 1],
+        staggerChildren: 0.02,
+        delayChildren: 0.02,
+        duration: 0.15,
+        ease: [0.4, 0.0, 0.2, 1],
       },
     },
     exit: { 
       opacity: 0, 
-      y: 8,
-      scale: 0.99,
+      y: 0,
       transition: {
-        duration: 0.25,
-        ease: [0.4, 0, 0.2, 1],
+        duration: 0.12,
+        ease: [0.4, 0.0, 0.2, 1],
       }
     },
   }
 
   const composerFieldVariants = {
-    hidden: { opacity: 0, y: 8, scale: 0.98 },
+    hidden: { opacity: 0, y: 0 },
     visible: { 
       opacity: 1, 
       y: 0,
-      scale: 1,
       transition: {
-        duration: 0.3,
-        ease: [0.16, 1, 0.3, 1],
+        duration: 0.15,
+        ease: [0.4, 0.0, 0.2, 1],
       }
     },
     exit: { 
       opacity: 0, 
-      y: 6,
-      scale: 0.99,
+      y: 0,
       transition: {
-        duration: 0.2,
-        ease: [0.4, 0, 0.2, 1],
+        duration: 0.1,
+        ease: [0.4, 0.0, 0.2, 1],
       }
     },
   }
 
   const composerSummaryVariants = {
-    hidden: { opacity: 0, x: 20, scale: 0.97 },
+    hidden: { opacity: 0, x: 0 },
     visible: { 
       opacity: 1, 
       x: 0,
-      scale: 1,
       transition: {
-        duration: 0.4,
-        ease: [0.16, 1, 0.3, 1],
-        delay: 0.12
+        duration: 0.15,
+        ease: [0.4, 0.0, 0.2, 1],
+        delay: 0.03
       }
     },
     exit: { 
       opacity: 0, 
-      x: 16,
-      scale: 0.98,
+      x: 0,
       transition: {
-        duration: 0.25,
-        ease: [0.4, 0, 0.2, 1],
+        duration: 0.1,
+        ease: [0.4, 0.0, 0.2, 1],
       }
     },
   }
@@ -587,13 +581,13 @@ export function LeadModalRedesigned({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           showCloseButton={false}
-          className="sm:max-w-[1100px] max-h-[92vh] p-0 gap-0 rounded-3xl overflow-visible glass backdrop-blur-xl bg-slate-950/95 border border-white/10 ring-1 ring-cyan-500/20 shadow-[0_20px_60px_rgba(8,24,68,0.65)] relative"
+          className="sm:max-w-[1100px] max-h-[92vh] p-0 gap-0 rounded-3xl overflow-visible glass bg-slate-950/95 border border-white/10 ring-1 ring-cyan-500/20 shadow-[0_20px_60px_rgba(8,24,68,0.65)] relative"
         >
           <DialogHeader className="px-8 py-6 border-b border-slate-200/10 bg-linear-to-br from-slate-950/80 via-slate-900/70 to-slate-900/40">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="h-11 w-11 rounded-2xl bg-linear-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                  <Sparkles className="h-5 w-5 text-white" />
+                  <UserPlus className="h-5 w-5 text-white" />
                 </div>
                 <DialogTitle className="text-2xl font-semibold text-white tracking-tight">
                   {lead ? "Modifier le lead" : "Créer un lead"}
@@ -638,20 +632,15 @@ export function LeadModalRedesigned({
             {isLeadContentVisible && (
               <motion.form
                 key="lead-form"
-                initial={{ opacity: 0, scale: 0.97, y: 12 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -12, filter: "blur(6px)" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={{ 
-                  duration: 0.35,
-                  ease: [0.16, 1, 0.3, 1],
-                  opacity: { duration: 0.3 },
-                  scale: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-                  y: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-                  filter: { duration: 0.25 }
+                  duration: 0.15,
+                  ease: [0.4, 0.0, 0.2, 1]
                 }}
                 onSubmit={handleSubmit}
                 className="flex flex-col"
-                style={{ willChange: "opacity, transform, filter" }}
               >
                 <div className="px-8 py-6 space-y-6 max-h-[74vh] overflow-y-auto custom-scrollbar">
               {lead && (
@@ -1172,34 +1161,27 @@ export function LeadModalRedesigned({
               <>
                 <motion.div
                   key="task-composer-overlay"
-                  className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-2xl"
+                  className="fixed inset-0 z-[100] bg-slate-950/95"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ 
-                    duration: 0.4,
-                    ease: [0.16, 1, 0.3, 1],
-                    opacity: { duration: 0.35 }
+                    duration: 0.15,
+                    ease: [0.4, 0.0, 0.2, 1],
                   }}
                   onClick={handleCloseTaskComposer}
-                  style={{ willChange: "opacity" }}
                 />
                 <motion.div
                   key="task-composer-modal"
-                  initial={{ opacity: 0, y: 24, scale: 0.94, filter: "blur(10px)" }}
-                  animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, y: 20, scale: 0.96, filter: "blur(8px)" }}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ 
-                    duration: 0.45,
-                    ease: [0.16, 1, 0.3, 1],
-                    opacity: { duration: 0.4 },
-                    scale: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                    y: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                    filter: { duration: 0.35 }
+                    duration: 0.18,
+                    ease: [0.4, 0.0, 0.2, 1]
                   }}
-                  className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl mx-auto rounded-[32px] border border-white/10 bg-slate-950/98 shadow-[0_40px_120px_rgba(8,24,68,0.75)] backdrop-blur-2xl z-[101] max-h-[90vh] overflow-y-auto custom-scrollbar overflow-x-visible"
+                  className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl mx-auto rounded-[32px] border border-white/10 bg-slate-950/98 shadow-[0_40px_120px_rgba(8,24,68,0.75)] z-[101] max-h-[90vh] overflow-y-auto custom-scrollbar overflow-x-visible"
                   onClick={(event) => event.stopPropagation()}
-                  style={{ willChange: "opacity, transform, filter" }}
                 >
                   <div className="absolute inset-0 opacity-70 bg-linear-to-br from-violet-500/25 via-slate-900/70 to-slate-950/90 pointer-events-none" />
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(139,92,246,0.15),transparent_50%)] pointer-events-none" />
@@ -1207,48 +1189,36 @@ export function LeadModalRedesigned({
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-4">
                         <motion.div
-                          initial={{ rotate: -8, scale: 0.9, opacity: 0 }}
-                          animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                          initial={{ scale: 0.95, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
                           transition={{ 
-                            duration: 0.4, 
-                            ease: [0.16, 1, 0.3, 1],
-                            delay: 0.1,
-                            rotate: { type: "spring", stiffness: 200, damping: 15 }
+                            duration: 0.15, 
+                            ease: [0.4, 0.0, 0.2, 1],
+                            delay: 0.02
                           }}
                           className="h-14 w-14 rounded-2xl bg-linear-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-xl shadow-violet-600/40 ring-2 ring-violet-400/20"
-                          style={{ willChange: "transform, opacity" }}
                         >
-                          <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ 
-                              duration: 0.3,
-                              delay: 0.2,
-                              ease: [0.16, 1, 0.3, 1]
-                            }}
-                          >
-                            <ListTodo className="h-6 w-6 text-white" />
-                          </motion.div>
+                          <ListTodo className="h-6 w-6 text-white" />
                         </motion.div>
                         <motion.div 
                           className="flex-1"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
                           transition={{ 
-                            duration: 0.4,
-                            delay: 0.15,
-                            ease: [0.16, 1, 0.3, 1]
+                            duration: 0.15,
+                            delay: 0.03,
+                            ease: [0.4, 0.0, 0.2, 1]
                           }}
                         >
                           <h3 className="text-2xl font-bold text-white sm:text-3xl tracking-tight">Nouvelle tâche de suivi</h3>
                           <motion.p 
                             className="text-sm text-slate-300/90 sm:text-base mt-1"
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
                             transition={{ 
-                              duration: 0.35,
-                              delay: 0.2,
-                              ease: [0.16, 1, 0.3, 1]
+                              duration: 0.15,
+                              delay: 0.05,
+                              ease: [0.4, 0.0, 0.2, 1]
                             }}
                           >
                             Connectez votre équipe {lead?.nom ? (
@@ -1399,12 +1369,11 @@ export function LeadModalRedesigned({
                           initial="hidden"
                           animate="visible"
                           exit="exit"
-                          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
                           className="rounded-2xl border border-white/10 bg-linear-to-br from-white/5 via-slate-900/50 to-slate-950/60 p-6 space-y-5 shadow-inner shadow-black/30"
                         >
                         <div className="flex items-center gap-3">
                           <div className="rounded-2xl bg-white/10 p-2.5 shadow-inner shadow-black/40">
-                            <Sparkles className="h-5 w-5 text-violet-200" />
+                            <UserPlus className="h-5 w-5 text-violet-200" />
                           </div>
                           <div>
                             <p className="text-xs uppercase tracking-[0.25em] text-slate-300/70">Lead en cours</p>
