@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { useMemo, useEffect, useState } from "react"
+import { motion, LayoutGroup } from "framer-motion"
 import { TasksService } from "@/lib/tasks-service"
 import { toast } from "sonner"
 import {
@@ -25,7 +26,7 @@ import {
 
 const baseNav = [
   { name: "Tableau des Leads", href: "/", icon: Home },
-  { name: "Clients & Projets", href: "/clients", icon: Users },
+  { name: "Clients & Opportunités", href: "/clients", icon: Users },
   { name: "Architectes", href: "/architectes", icon: Compass },
   { name: "Tâches & Rappels", href: "/tasks", icon: CalendarDays },
   { name: "Calendrier", href: "/calendrier", icon: Calendar },
@@ -128,6 +129,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <LayoutGroup id="sidebar-nav">
         {useMemo(() => {
           const role = (user?.role || '').toLowerCase()
           if (role === 'architect') {
@@ -157,54 +159,83 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group",
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
-              )}
+              className="block"
             >
-              <item.icon className={cn(
-                "w-5 h-5 transition-transform duration-200",
-                isActive ? "scale-110" : "group-hover:scale-105"
-              )} />
-              <span className="font-medium text-sm flex-1">{item.name}</span>
-              {item.href === "/tasks" && (
-                <span className="ml-auto inline-flex items-center gap-2">
-                  {/* New Tasks - Red Pulse Dot */}
-                  {myNewTasks > 0 && (
-                    <span className="relative inline-flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-lg shadow-red-500/50"></span>
-                    </span>
+              <motion.div
+                layout
+                className={cn(
+                  "relative flex items-center gap-3 px-4 py-3 rounded-xl group overflow-hidden",
+                  isActive
+                    ? "text-sky-50"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+                whileHover={{ x: 3 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 340, damping: 32, mass: 0.9 }}
+              >
+                {isActive && (
+                  <>
+                    <motion.div
+                      layoutId="sidebar-active-pill"
+                      className="absolute inset-[1.5px] rounded-[0.95rem] bg-[radial-gradient(circle_at_top,_rgba(248,250,252,0.7),_transparent_45%),_linear-gradient(to_right,rgba(56,189,248,0.98),rgba(59,130,246,0.98))]"
+                      style={{ boxShadow: "0 0 36px rgba(56,189,248,0.9)" }}
+                      transition={{ type: "spring", stiffness: 320, damping: 30, mass: 1 }}
+                    />
+                    <motion.div
+                      layoutId="sidebar-active-glow"
+                      className="pointer-events-none absolute -inset-3 rounded-2xl bg-sky-400/45 blur-2xl"
+                      animate={{ opacity: [0.65, 1, 0.65], scale: [0.98, 1.03, 0.98] }}
+                      transition={{ duration: 2.2, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+                    />
+                  </>
+                )}
+                <item.icon
+                  className={cn(
+                    "w-5 h-5 relative z-10 transition-transform duration-200",
+                    isActive
+                      ? "scale-110 drop-shadow-[0_0_15px_rgba(56,189,248,0.9)]"
+                      : "group-hover:scale-105",
                   )}
-                  {/* Pending Tasks - Badge */}
-                  {myPendingTasks > 0 && (
-                    <span className={cn(
-                      "min-w-[1.75rem] h-7 px-2.5 inline-flex items-center justify-center rounded-full text-xs font-bold shadow-lg",
-                      isActive
-                        ? "bg-white text-primary shadow-white/20"
-                        : "bg-gradient-to-r from-primary to-blue-500 text-white shadow-primary/30 animate-pulse"
-                    )}>
-                      {myPendingTasks}
-                    </span>
-                  )}
-                  {/* Admin Updates - Toaster Style Badge */}
-                  {((user?.role || '').toLowerCase() === 'admin' || (user?.role || '').toLowerCase() === 'operator') && adminUpdatesCount > 0 && (
-                    <span className={cn(
-                      "min-w-[1.75rem] h-7 px-2.5 inline-flex items-center justify-center rounded-full text-xs font-bold shadow-lg border-2",
-                      isActive
-                        ? "bg-orange-500 border-orange-300 text-white shadow-orange-500/30"
-                        : "bg-gradient-to-r from-orange-400 to-amber-500 border-orange-300 text-white shadow-orange-500/40 animate-pulse"
-                    )}>
-                      {adminUpdatesCount}
-                    </span>
-                  )}
-                </span>
-              )}
+                />
+                <span className="relative z-10 flex-1 truncate text-sm font-medium">{item.name}</span>
+                {item.href === "/tasks" && (
+                  <span className="ml-auto inline-flex items-center gap-2">
+                    {/* New Tasks - Red Pulse Dot */}
+                    {myNewTasks > 0 && (
+                      <span className="relative inline-flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-lg shadow-red-500/50"></span>
+                      </span>
+                    )}
+                    {/* Pending Tasks - Badge */}
+                    {myPendingTasks > 0 && (
+                      <span className={cn(
+                        "min-w-[1.75rem] h-7 px-2.5 inline-flex items-center justify-center rounded-full text-xs font-bold shadow-lg",
+                        isActive
+                          ? "bg-white text-primary shadow-white/20"
+                          : "bg-gradient-to-r from-primary to-blue-500 text-white shadow-primary/30 animate-pulse",
+                      )}>
+                        {myPendingTasks}
+                      </span>
+                    )}
+                    {/* Admin Updates - Toaster Style Badge */}
+                    {((user?.role || '').toLowerCase() === 'admin' || (user?.role || '').toLowerCase() === 'operator') && adminUpdatesCount > 0 && (
+                      <span className={cn(
+                        "min-w-[1.75rem] h-7 px-2.5 inline-flex items-center justify-center rounded-full text-xs font-bold shadow-lg border-2",
+                        isActive
+                          ? "bg-orange-500 border-orange-300 text-white shadow-orange-500/30"
+                          : "bg-gradient-to-r from-orange-400 to-amber-500 border-orange-300 text-white shadow-orange-500/40 animate-pulse",
+                      )}>
+                        {adminUpdatesCount}
+                      </span>
+                    )}
+                  </span>
+                )}
+              </motion.div>
             </Link>
           )
         })}
+        </LayoutGroup>
       </nav>
 
       {user && (
