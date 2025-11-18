@@ -366,9 +366,9 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
             )}
           </button>
 
-          {/* Roadmap Timeline - Scrollable */}
+          {/* Roadmap Timeline */}
           {!isRoadmapCollapsed && (
-            <div className="space-y-1.5 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-1.5">
             {ROADMAP_STAGES.map((stage, index) => {
               const status = getStageStatus(stage)
               const isLast = index === ROADMAP_STAGES.length - 1
@@ -556,7 +556,7 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
           </div>
 
           {!isActionsCollapsed && (
-            <div className="space-y-2 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-2">
             {/* Upcoming Appointments */}
             {upcomingAppointments.length > 0 && (
               <div className="space-y-1.5">

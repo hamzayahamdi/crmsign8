@@ -27,16 +27,18 @@ import { useAuth } from "@/contexts/auth-context"
 import { getCurrentClientStage } from "@/lib/client-stage-service"
 
 const PageShell = ({ children }: { children: ReactNode }) => (
-  <div className="relative flex min-h-screen bg-gradient-to-br from-slate-950 via-[#0b1529] to-slate-950 overflow-x-hidden overflow-y-hidden">
-    <div className="pointer-events-none absolute inset-0 z-0">
+  <div className="relative flex min-h-screen w-full bg-gradient-to-br from-slate-950 via-[#0b1529] to-slate-950">
+    <div className="pointer-events-none fixed inset-0 z-0">
       <div className="absolute -top-24 -left-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
       <div className="absolute top-1/3 right-[-18%] h-[26rem] w-[26rem] rounded-full bg-sky-500/15 blur-[140px]" />
       <div className="absolute bottom-[-30%] left-1/2 h-[28rem] w-[46rem] -translate-x-1/2 rounded-full bg-purple-500/10 blur-[160px]" />
     </div>
-    <div className="relative z-10 shrink-0">
+    <div className="relative z-10">
       <Sidebar />
     </div>
-    {children}
+    <div className="flex-1">
+      {children}
+    </div>
   </div>
 )
 
@@ -491,9 +493,15 @@ export default function ClientDetailsPage() {
     return (
       <AuthGuard>
         <PageShell>
-          <main className="relative z-10 flex-1 flex items-center justify-center">
-            <div className="text-slate-200 animate-pulse">Chargement...</div>
-          </main>
+          <div className="relative z-10 flex flex-col h-screen">
+            <Header />
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <p className="text-slate-300 font-medium">Chargement des données du client...</p>
+              </div>
+            </div>
+          </div>
         </PageShell>
       </AuthGuard>
     )
@@ -526,8 +534,7 @@ export default function ClientDetailsPage() {
   return (
     <AuthGuard>
       <PageShell>
-        <>
-          <main className="relative z-10 flex-1 flex flex-col overflow-hidden">
+        <div className="w-full">
           <Header />
           
           {/* Back Button */}
@@ -550,7 +557,7 @@ export default function ClientDetailsPage() {
           )}
 
           {/* Sticky Header */}
-            <div className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-2xl shadow-[0_12px_50px_rgba(15,23,42,0.35)]">
+            <div className="z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-2xl shadow-[0_12px_50px_rgba(15,23,42,0.35)]">
             <ClientDetailsHeader 
               client={client}
               onUpdate={handleUpdateClient}
@@ -558,8 +565,8 @@ export default function ClientDetailsPage() {
           </div>
 
           {/* Main Content Area */}
-            <div className="relative flex-1 overflow-y-auto custom-scrollbar">
-              <div className="pointer-events-none absolute inset-0 z-0">
+            <div className="relative w-full">
+              <div className="pointer-events-none fixed inset-0 z-0">
                 <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/10 via-transparent to-transparent" />
                 <div className="absolute top-28 right-12 h-64 w-64 rounded-full bg-sky-500/12 blur-[120px]" />
                 <div className="absolute bottom-[-25%] left-16 h-72 w-72 rounded-full bg-purple-600/12 blur-[140px]" />
@@ -657,28 +664,27 @@ export default function ClientDetailsPage() {
               </div>
             </div>
           </div>
-        </main>
 
-        {/* RDV Modal */}
-        {client && (
-          <AddRdvModal
-            isOpen={isRdvModalOpen}
-            onClose={() => setIsRdvModalOpen(false)}
-            client={client}
-            onAddRdv={handleAddRdv}
-          />
-        )}
+          {/* RDV Modal */}
+          {client && (
+            <AddRdvModal
+              isOpen={isRdvModalOpen}
+              onClose={() => setIsRdvModalOpen(false)}
+              client={client}
+              onAddRdv={handleAddRdv}
+            />
+          )}
 
-        {/* Task Modal */}
-        {client && (
-          <AddTaskModal
-            isOpen={isTaskModalOpen}
-            onClose={() => setIsTaskModalOpen(false)}
-            onSave={handleSaveTask}
-            editingTask={null}
-          />
-        )}
-        </>
+          {/* Task Modal */}
+          {client && (
+            <AddTaskModal
+              isOpen={isTaskModalOpen}
+              onClose={() => setIsTaskModalOpen(false)}
+              onSave={handleSaveTask}
+              editingTask={null}
+            />
+          )}
+        </div>
       </PageShell>
     </AuthGuard>
   )

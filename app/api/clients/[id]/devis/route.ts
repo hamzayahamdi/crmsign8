@@ -100,7 +100,7 @@ export async function POST(
         statut: body.statut || 'en_attente',
         created_by: body.createdBy || 'Utilisateur',
         validated_at: body.statut === 'accepte' || body.statut === 'refuse' ? now : null,
-        facture_reglee: body.statut === 'accepte' ? false : null,
+        facture_reglee: false, // Always set to false by default when creating a new devis
         date: now,
         updated_at: now,
         notes: body.notes || null,

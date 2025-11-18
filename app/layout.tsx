@@ -37,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className="dark h-full">
-      <body className={`${inter.variable} font-sans antialiased bg-[rgb(11,14,24)] text-white min-h-screen overflow-x-hidden`}>
+      <body className={`${inter.variable} font-sans antialiased bg-[rgb(11,14,24)] text-white min-h-screen`}>
         <AuthProvider>
           <NotificationProvider>
             {children}
