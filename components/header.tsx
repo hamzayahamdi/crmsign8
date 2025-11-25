@@ -16,6 +16,7 @@ import { NotificationBell } from "@/components/notification-bell"
 import { useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { usePathname } from "next/navigation"
+import { hasPermission } from "@/lib/permissions"
 
 interface HeaderProps {
   onCreateLead?: () => void
@@ -59,23 +60,27 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          {user?.role?.toLowerCase() === "admin" && pathname === "/" && (
+          {pathname === "/" && (
             <>
-              <Button
-                onClick={onImportLeads}
-                variant="outline"
-                className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all bg-transparent"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Importer
-              </Button>
-              <Button
-                onClick={onCreateLead}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transition-all shadow-lg shadow-blue-500/20"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Nouveau lead
-              </Button>
+              {user?.role?.toLowerCase() === "admin" && onImportLeads && (
+                <Button
+                  onClick={onImportLeads}
+                  variant="outline"
+                  className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all bg-transparent"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Importer
+                </Button>
+              )}
+              {hasPermission(user?.role, 'leads', 'create') && onCreateLead && (
+                <Button
+                  onClick={onCreateLead}
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transition-all shadow-lg shadow-blue-500/20"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nouveau lead
+                </Button>
+              )}
             </>
           )}
 

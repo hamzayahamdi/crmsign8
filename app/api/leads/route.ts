@@ -129,8 +129,8 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
-    if (user.role !== 'admin' && user.role !== 'commercial' && user.role !== 'magasiner') {
-      return NextResponse.json({ error: 'Forbidden: Admins, Commercials, and Magasiniers only' }, { status: 403 })
+    if (user.role !== 'admin' && user.role !== 'operator' && user.role !== 'gestionnaire' && user.role !== 'commercial' && user.role !== 'magasiner') {
+      return NextResponse.json({ error: 'Forbidden: Admins, Operators, Gestionnaires, Commercials, and Magasiniers only' }, { status: 403 })
     }
 
     const body = await request.json()

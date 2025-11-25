@@ -36,3 +36,4 @@ export interface Lead {
   createdAt: string
   updatedAt: string
 }
+
