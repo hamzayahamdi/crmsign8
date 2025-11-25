@@ -11,7 +11,7 @@ import { EventDetailModal } from '@/components/event-detail-modal';
 import { UpcomingEventsSidebar } from '@/components/upcoming-events-sidebar';
 import { NotificationPermissionDialog } from '@/components/notification-permission-dialog';
 import { useEventReminders } from '@/hooks/useEventReminders';
-import { notificationService } from '@/lib/notification-service';
+import { notificationService } from '@/lib/notification-service-client';
 import { Sidebar } from '@/components/sidebar';
 import { AuthGuard } from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';

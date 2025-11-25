@@ -1,18 +1,50 @@
 /**
- * Notification Service
+ * Server-Side Notification Service
  * 
- * Handles both in-app notifications and SMS notifications for architects
+ * Handles in-app notifications and SMS notifications for architects
  * when contacts are assigned to them.
- * Also handles browser push notifications and user preferences.
+ * 
+ * ⚠️ This file is SERVER-ONLY and should NOT be imported in client components.
+ * Use lib/notification-service-client.ts for client-side code.
  */
 
-import { PrismaClient } from '@prisma/client';
-import { sendNotificationSMS, isMoceanConfigured } from './mocean-service';
+'use server';
 
-const prisma = new PrismaClient();
+// Prisma client - only available server-side
+let prisma: any = null;
 
-// Service worker registration
-let serviceWorkerRegistration: ServiceWorkerRegistration | null = null;
+function getPrisma() {
+  // Only initialize Prisma on server-side
+  if (typeof window !== 'undefined') {
+    throw new Error('Prisma can only be used server-side');
+  }
+  
+  if (!prisma) {
+    const { PrismaClient } = require('@prisma/client');
+    prisma = new PrismaClient();
+  }
+  
+  return prisma;
+}
+
+// Client-side methods have been moved to lib/notification-service-client.ts
+
+// Dynamic import for Mocean service (server-side only)
+// This prevents Next.js from bundling Node.js modules for the client
+async function getMoceanService() {
+  if (typeof window !== 'undefined') {
+    // Client-side: return null, SMS not available
+    return null;
+  }
+  // Server-side: dynamically import Mocean service
+  try {
+    const moceanService = await import('./mocean-service');
+    return moceanService;
+  } catch (error) {
+    console.warn('[Notification] Mocean service not available:', error);
+    return null;
+  }
+}
 
 export type NotificationOptions = {
   userId: string;
@@ -47,9 +79,16 @@ export async function sendNotification(options: NotificationOptions) {
     sendSMS = false,
   } = options;
 
+  // Only run on server-side
+  if (typeof window !== 'undefined') {
+    throw new Error('sendNotification can only be used server-side. Use API routes instead.');
+  }
+
   try {
+    const db = getPrisma();
+    
     // 1. Create in-app notification
-    const notification = await prisma.notification.create({
+    const notification = await db.notification.create({
       data: {
         userId,
         type: type as any,
@@ -64,9 +103,9 @@ export async function sendNotification(options: NotificationOptions) {
       },
     });
 
-    // 2. Send SMS if enabled
+    // 2. Send SMS if enabled (server-side only)
     if (sendSMS) {
-      const user = await prisma.user.findUnique({
+      const user = await db.user.findUnique({
         where: { id: userId },
         select: { phone: true, name: true },
       });
@@ -86,22 +125,37 @@ export async function sendNotification(options: NotificationOptions) {
 }
 
 /**
- * Send SMS notification using MoceanAPI
+ * Send SMS notification using MoceanAPI (server-side only)
  * 
  * Uses the MoceanAPI service configured in lib/mocean-service.ts
  * If MoceanAPI is not configured, only logs the intent
  */
 async function sendSMSNotification(phoneNumber: string, title: string, message: string) {
+  // Only run on server-side
+  if (typeof window !== 'undefined') {
+    console.warn('[SMS] SMS notifications are server-side only');
+    return { success: false, error: 'SMS not available on client-side' };
+  }
+
   try {
+    // Dynamically import Mocean service (server-side only)
+    const moceanService = await getMoceanService();
+    
+    if (!moceanService) {
+      console.log(`[SMS] MoceanAPI not available. Would send to ${phoneNumber}: ${title} - ${message}`);
+      console.log(`[SMS] Add MOCEAN_API_KEY and MOCEAN_API_SECRET to .env to enable SMS`);
+      return { success: true, note: 'SMS sending not yet configured' };
+    }
+
     // Check if MoceanAPI is configured
-    if (!isMoceanConfigured()) {
+    if (!moceanService.isMoceanConfigured()) {
       console.log(`[SMS] MoceanAPI not configured. Would send to ${phoneNumber}: ${title} - ${message}`);
       console.log(`[SMS] Add MOCEAN_API_KEY and MOCEAN_API_SECRET to .env to enable SMS`);
       return { success: true, note: 'SMS sending not yet configured' };
     }
 
     // Send SMS via MoceanAPI
-    const result = await sendNotificationSMS(phoneNumber, title, message);
+    const result = await moceanService.sendNotificationSMS(phoneNumber, title, message);
     
     if (result.success) {
       console.log(`[SMS] Sent to ${phoneNumber}: ${result.messageId}`);
@@ -161,139 +215,5 @@ export async function notifyArchitectContactAssigned(
   });
 }
 
-/**
- * Browser Notification Service (Client-side)
- * Handles service worker registration and browser push notifications
- */
-
-/**
- * Initialize service worker for push notifications
- */
-export async function initServiceWorker(): Promise<void> {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
-    console.warn('[Notification] Service workers not supported');
-    return;
-  }
-
-  try {
-    const registration = await navigator.serviceWorker.register('/sw.js');
-    serviceWorkerRegistration = registration;
-    console.log('[Notification] Service worker registered:', registration.scope);
-  } catch (error) {
-    console.error('[Notification] Service worker registration failed:', error);
-  }
-}
-
-/**
- * Get current browser notification permission status
- */
-export function getPermissionStatus(): NotificationPermission {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
-    return 'denied';
-  }
-  return Notification.permission;
-}
-
-/**
- * Request browser notification permission
- */
-export async function requestPermission(): Promise<NotificationPermission> {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
-    return 'denied';
-  }
-
-  if (Notification.permission === 'granted') {
-    return 'granted';
-  }
-
-  if (Notification.permission === 'denied') {
-    return 'denied';
-  }
-
-  const permission = await Notification.requestPermission();
-  return permission;
-}
-
-/**
- * Get user notification preferences
- */
-export async function getPreferences(userId: string): Promise<{
-  pushEnabled: boolean;
-  emailEnabled: boolean;
-  email?: string;
-} | null> {
-  try {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (!token) {
-      return null;
-    }
-
-    const response = await fetch(`/api/notifications/preferences?userId=${userId}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('[Notification] Error getting preferences:', error);
-    return null;
-  }
-}
-
-/**
- * Update user notification preferences
- */
-export async function updatePreferences(
-  userId: string,
-  preferences: {
-    pushEnabled: boolean;
-    emailEnabled: boolean;
-    email?: string;
-  }
-): Promise<boolean> {
-  try {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (!token) {
-      return false;
-    }
-
-    const response = await fetch('/api/notifications/preferences', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        userId,
-        ...preferences,
-      }),
-    });
-
-    return response.ok;
-  } catch (error) {
-    console.error('[Notification] Error updating preferences:', error);
-    return false;
-  }
-}
-
-/**
- * Notification Service Object
- * Exports all notification methods as a service object
- */
-export const notificationService = {
-  // Server-side notification methods
-  sendNotification,
-  notifyArchitectContactAssigned,
-  
-  // Browser notification methods
-  initServiceWorker,
-  getPermissionStatus,
-  requestPermission,
-  getPreferences,
-  updatePreferences,
-};
+// Client-side methods are in lib/notification-service-client.ts
+// This file only exports server-side functions

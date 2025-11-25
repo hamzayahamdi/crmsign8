@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Bell, Mail, Smartphone, X } from 'lucide-react';
-import { notificationService } from '@/lib/notification-service';
+import { notificationService } from '@/lib/notification-service-client';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
