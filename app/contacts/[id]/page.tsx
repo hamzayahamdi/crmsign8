@@ -262,8 +262,10 @@ export default function ContactPage() {
     ? architectNameMap[contact.architecteAssigne] || contact.architecteAssigne
     : null
 
-  // Helper: Count won opportunities
-  const wonOpportunitiesCount = contact.opportunities?.filter(o => o.statut === 'won').length || 0
+  // Helper: Count won opportunities (including acompte_recu - deposit received means won)
+  const wonOpportunitiesCount = contact.opportunities?.filter(o => 
+    o.statut === 'won' || o.pipelineStage === 'acompte_recu' || o.pipelineStage === 'gagnee'
+  ).length || 0
 
   // Helper: Get status badge configuration
   const getStatusBadge = () => {
@@ -560,7 +562,11 @@ export default function ContactPage() {
                   />
                 )}
                 {activeTab === 'timeline' && (
-                  <TimelineTab contact={contact} userNameMap={architectNameMap} />
+                  <TimelineTab 
+                    contact={contact} 
+                    userNameMap={architectNameMap} 
+                    architectNameMap={architectNameMap}
+                  />
                 )}
                 {activeTab === 'tasks' && <TasksTab contact={contact} />}
                 {activeTab === 'documents' && <DocumentsTab contact={contact} />}
@@ -739,11 +745,20 @@ function OpportunitiesTab({ contact, onUpdate, architectNameMap, onCreateOpportu
   )
 }
 
-function TimelineTab({ contact, userNameMap }: { contact: ContactWithDetails; userNameMap: Record<string, string> }) {
+function TimelineTab({ 
+  contact, 
+  userNameMap,
+  architectNameMap 
+}: { 
+  contact: ContactWithDetails; 
+  userNameMap: Record<string, string>;
+  architectNameMap: Record<string, string>;
+}) {
   return (
     <ContactEnhancedTimeline 
       contact={contact}
       userNameMap={userNameMap}
+      architectNameMap={architectNameMap}
       showFilters={true}
       maxItems={15}
     />

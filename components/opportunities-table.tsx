@@ -158,8 +158,10 @@ export function OpportunitiesTable({ opportunities, architectNameMap, onUpdate, 
     }
 
     const getResultatDisplay = (statut: OpportunityStatus, pipelineStage: OpportunityPipelineStage) => {
-        // If pipeline stage is projet_accepte or gagnee, show Gagnée
-        if (statut === 'won' || pipelineStage === 'projet_accepte' || pipelineStage === 'gagnee') {
+        // If pipeline stage is acompte_recu or gagnee, show Gagnée
+        // Acompte Reçu means the opportunity is won (deposit received)
+        // Note: projet_accepte is NOT considered won - only acompte_recu and gagnee
+        if (statut === 'won' || pipelineStage === 'acompte_recu' || pipelineStage === 'gagnee') {
             return (
                 <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold border bg-green-500/20 text-green-300 border-green-500/50">
                     Gagnée

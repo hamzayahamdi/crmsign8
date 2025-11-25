@@ -6,51 +6,105 @@ import { Opportunity } from '@/types/contact'
 import {
   Phone,
   MapPin,
-  ChevronRight,
+  Eye,
+  Edit2,
+  Trash2,
   Calendar,
   Briefcase,
   TrendingUp,
   Trophy,
   Flame,
   Target,
+  Home,
+  Building2,
+  Store,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { useAuth } from '@/contexts/auth-context'
 
 interface ContactsTableProps {
   contacts: (Contact & { opportunities?: Opportunity[] })[]
   onRowClick: (contactId: string) => void
+  onEditContact?: (contactId: string) => void
+  onDeleteContact?: (contactId: string) => void
   isLoading?: boolean
 }
 
 /**
- * Professional CRM-style Contacts Table - REDESIGNED
- * Clean, intuitive, focused on opportunities and workflow status
- * Removed unnecessary "Client" status badge for better readability
+ * Professional CRM-style Contacts Table - FULLY REDESIGNED
+ * Clean, minimal, role-based, focused on opportunities and workflow
+ * Role-based visibility: Admin sees all, Architect sees limited info
  */
-export function ContactsTable({ contacts, onRowClick, isLoading = false }: ContactsTableProps) {
-  // Status badge configuration - NO MORE "Client" status display
-  const getStatusBadge = (contact: Contact) => {
-    // If contact is marked as perdu, show that
+export function ContactsTable({ 
+  contacts, 
+  onRowClick, 
+  onEditContact, 
+  onDeleteContact, 
+  isLoading = false 
+}: ContactsTableProps) {
+  const { user } = useAuth()
+  const isAdmin = user?.role?.toLowerCase() === 'admin'
+  const isArchitect = user?.role?.toLowerCase() === 'architect' || user?.role?.toLowerCase() === 'architecte'
+
+  // Get pipeline stage badge for Admin only
+  const getPipelineBadge = (contact: Contact) => {
     if (contact.status === 'perdu') {
-      return { label: 'Perdu', className: 'bg-red-500/20 text-red-300 border-red-500/50', show: true }
+      return { label: 'Perdu', className: 'bg-red-500/20 text-red-300 border-red-500/30' }
     }
 
-    // Workflow statuses - only show non-client statuses
-    const map: Record<string, { label: string, className: string, show: boolean }> = {
-      'qualifie': { label: 'Qualifié', className: 'bg-blue-500/20 text-blue-300 border-blue-500/50', show: true },
-      'prise_de_besoin': { label: 'Prise de besoin', className: 'bg-purple-500/20 text-purple-300 border-purple-500/50', show: true },
-      'acompte_recu': { label: 'Acompte Reçu', className: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50', show: true }
+    const map: Record<string, { label: string, className: string }> = {
+      'qualifie': { label: 'Qualifié', className: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
+      'prise_de_besoin': { label: 'Prise de besoin', className: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+      'acompte_recu': { label: 'Acompte reçu', className: 'bg-green-500/20 text-green-300 border-green-500/30' }
     }
 
-    // If contact is a client (tag === 'client'), don't show status badge
-    if (contact.tag === 'client') {
-      return { label: '', className: '', show: false }
-    }
+    return map[contact.status] || null
+  }
 
-    return map[contact.status] || { label: '', className: '', show: false }
+  // Get most common project type from opportunities
+  const getProjectType = (opportunities: Opportunity[] = []) => {
+    if (opportunities.length === 0) return null
+    
+    // Count types
+    const typeCounts: Record<string, number> = {}
+    opportunities.forEach(opp => {
+      typeCounts[opp.type] = (typeCounts[opp.type] || 0) + 1
+    })
+    
+    // Get most common
+    const mostCommon = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]
+    return mostCommon ? mostCommon[0] : null
+  }
+
+  const getProjectTypeIcon = (type: string) => {
+    const icons: Record<string, any> = {
+      'villa': Home,
+      'appartement': Building2,
+      'magasin': Store,
+      'bureau': Building2,
+      'riad': Home,
+      'studio': Building2,
+      'renovation': Building2,
+      'autre': Building2,
+    }
+    return icons[type] || Building2
+  }
+
+  const getProjectTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      'villa': 'Villa',
+      'appartement': 'Appartement',
+      'magasin': 'Magasin',
+      'bureau': 'Bureau',
+      'riad': 'Riad',
+      'studio': 'Studio',
+      'renovation': 'Rénovation',
+      'autre': 'Autre',
+    }
+    return labels[type] || type
   }
 
   const [architectNameMap, setArchitectNameMap] = React.useState<Record<string, string>>({})
@@ -89,30 +143,66 @@ export function ContactsTable({ contacts, onRowClick, isLoading = false }: Conta
       <div className="glass rounded-2xl border border-slate-600/30 overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-slate-600/30 bg-slate-800/60">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Contact</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Téléphone</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Ville</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Opportunités</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Dernière activité</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Architecte</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Statut</th>
-              <th className="text-center px-6 py-4 text-sm font-semibold text-slate-300"></th>
+            <tr className="border-b border-slate-600/30 bg-slate-800/40">
+              <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contact</th>
+              <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Téléphone</th>
+              <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ville</th>
+              <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Type de projet</th>
+              {!isArchitect && (
+                <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Architecte</th>
+              )}
+              <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Opportunités</th>
+              <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Dernière activité</th>
+              {isAdmin && (
+                <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Pipeline</th>
+              )}
+              <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <tr key={i} className="border-b border-slate-600/20 animate-pulse">
-                <td className="px-6 py-4">
-                  <div className="h-4 w-40 bg-slate-700/50 rounded" />
+            {Array.from({ length: 8 }).map((_, i) => (
+              <tr key={i} className="border-b border-slate-600/10 animate-pulse">
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-slate-700/30 rounded-lg" />
+                    <div className="h-3 w-28 bg-slate-700/30 rounded" />
+                  </div>
                 </td>
-                {Array.from({ length: 6 }).map((_, j) => (
-                  <td key={j} className="px-6 py-4">
-                    <div className="h-4 w-20 bg-slate-700/30 rounded" />
+                <td className="px-4 py-2.5">
+                  <div className="h-3 w-20 bg-slate-700/20 rounded" />
+                </td>
+                <td className="px-4 py-2.5">
+                  <div className="h-3 w-16 bg-slate-700/20 rounded" />
+                </td>
+                <td className="px-4 py-2.5">
+                  <div className="h-5 w-20 bg-slate-700/20 rounded" />
+                </td>
+                {!isArchitect && (
+                  <td className="px-4 py-2.5">
+                    <div className="h-5 w-16 bg-slate-700/20 rounded" />
                   </td>
-                ))}
-                <td className="px-6 py-4">
-                  <div className="h-4 w-8 bg-slate-700/30 rounded mx-auto" />
+                )}
+                <td className="px-4 py-2.5">
+                  <div className="h-4 w-14 bg-slate-700/20 rounded" />
+                </td>
+                <td className="px-4 py-2.5">
+                  <div className="h-3 w-16 bg-slate-700/20 rounded" />
+                </td>
+                {isAdmin && (
+                  <td className="px-4 py-2.5">
+                    <div className="h-5 w-20 bg-slate-700/20 rounded" />
+                  </td>
+                )}
+                <td className="px-4 py-2.5">
+                  <div className="flex justify-center gap-0.5">
+                    <div className="h-6 w-6 bg-slate-700/20 rounded" />
+                    {isAdmin && (
+                      <>
+                        <div className="h-6 w-6 bg-slate-700/20 rounded" />
+                        <div className="h-6 w-6 bg-slate-700/20 rounded" />
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -126,7 +216,7 @@ export function ContactsTable({ contacts, onRowClick, isLoading = false }: Conta
     return (
       <div className="glass rounded-2xl border border-slate-600/30 p-12 text-center">
         <Phone className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-        <p className="text-slate-300 text-lg font-medium">Aucun contact</p>
+        <p className="text-slate-300 text-lg font-medium">Aucun contact trouvé</p>
         <p className="text-sm text-slate-500 mt-1">Les contacts proviennent de la conversion des leads</p>
       </div>
     )
@@ -137,26 +227,46 @@ export function ContactsTable({ contacts, onRowClick, isLoading = false }: Conta
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-slate-600/30 bg-slate-800/60">
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Contact</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Téléphone</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Ville</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Opportunités</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Dernière activité</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Architecte</th>
-              <th className="text-left px-6 py-4 text-sm font-semibold text-slate-300">Statut</th>
-              <th className="text-center px-6 py-4 text-sm font-semibold text-slate-300"></th>
+            <tr className="border-b border-slate-600/30 bg-slate-800/40">
+              <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contact</th>
+              <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Téléphone</th>
+              <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ville</th>
+              <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Type de projet</th>
+              {!isArchitect && (
+                <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Architecte</th>
+              )}
+              <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Opportunités</th>
+              <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Dernière activité</th>
+              {isAdmin && (
+                <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Pipeline</th>
+              )}
+              <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-600/20">
+          <tbody className="divide-y divide-slate-600/10">
             {contacts.map((contact, index) => {
               const opportunities = contact.opportunities || []
+              
+              // Helper: Check if opportunity is won (by statut or pipeline stage)
+              // Acompte Reçu (acompte_recu) means the opportunity is won (deposit received)
+              const isWon = (o: Opportunity) => 
+                o.statut === 'won' || o.pipelineStage === 'acompte_recu' || o.pipelineStage === 'gagnee'
+              
+              // Helper: Check if opportunity is open (statut is open AND not won, lost, or on hold)
+              const isOpen = (o: Opportunity) => 
+                o.statut === 'open' && !isWon(o) && o.statut !== 'lost' && o.statut !== 'on_hold'
+              
               const opportunityCounts = {
-                open: opportunities.filter((o) => o.statut === 'open').length,
-                won: opportunities.filter((o) => o.statut === 'won').length,
-                lost: opportunities.filter((o) => o.statut === 'lost').length,
+                open: opportunities.filter(isOpen).length,
+                won: opportunities.filter(isWon).length,
+                lost: opportunities.filter((o) => o.statut === 'lost' || o.pipelineStage === 'perdue').length,
                 onHold: opportunities.filter((o) => o.statut === 'on_hold').length,
               }
+              const projectType = getProjectType(opportunities)
+              const pipelineBadge = getPipelineBadge(contact)
+
+              // Check if contact has unread/untreated opportunities
+              const hasUntreatedOpps = opportunityCounts.open > 0
 
               return (
                 <motion.tr
@@ -164,99 +274,131 @@ export function ContactsTable({ contacts, onRowClick, isLoading = false }: Conta
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.02 }}
-                  className="group hover:bg-slate-700/40 transition-all duration-200 cursor-pointer border-b border-slate-600/10 last:border-0"
-                  onClick={() => onRowClick(contact.id)}
+                  className="group hover:bg-slate-800/30 transition-colors duration-150 border-b border-slate-600/10 last:border-0"
                 >
-                  {/* Contact Name */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center flex-shrink-0 font-bold text-white text-base border border-primary/20 shadow-sm">
+                  {/* Contact Name + Avatar + Tag */}
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center flex-shrink-0 font-semibold text-white text-xs border border-primary/20">
                         {contact.nom.charAt(0).toUpperCase()}
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-white truncate text-sm leading-snug">{contact.nom}</p>
-                        {contact.email && (
-                          <p className="text-xs text-slate-400 truncate mt-0.5">{contact.email}</p>
-                        )}
-                        {contact.tag === 'client' && (
-                          <span className="inline-flex items-center gap-1 mt-1 text-xs text-green-400 font-medium">
-                            <Trophy className="w-3 h-3" />
-                            Client
-                          </span>
-                        )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium text-white text-xs leading-tight truncate">{contact.nom}</p>
+                          {contact.tag === 'client' && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 whitespace-nowrap flex-shrink-0">
+                              CLIENT
+                            </span>
+                          )}
+                          {contact.tag === 'prospect' && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] text-blue-400 font-semibold bg-blue-500/10 border border-blue-500/20 whitespace-nowrap flex-shrink-0">
+                              PROSPECT
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
 
-                  {/* Phone */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-                      <span className="text-sm font-medium text-slate-200">{contact.telephone}</span>
-                    </div>
+                  {/* Phone - Clickable */}
+                  <td className="px-4 py-2.5">
+                    <a
+                      href={`tel:${contact.telephone}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1.5 hover:text-blue-400 transition-colors group/phone"
+                    >
+                      <Phone className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                      <span className="text-xs font-medium text-slate-200 group-hover/phone:text-blue-300 whitespace-nowrap">{contact.telephone}</span>
+                    </a>
                   </td>
 
-                  {/* City */}
-                  <td className="px-6 py-5">
+                  {/* City - with icon */}
+                  <td className="px-4 py-2.5">
                     {contact.ville ? (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                        <span className="text-sm font-medium text-slate-200">{contact.ville}</span>
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                        <span className="text-xs font-medium text-slate-200 whitespace-nowrap">{contact.ville}</span>
                       </div>
                     ) : (
-                      <span className="text-slate-500 text-sm">—</span>
+                      <span className="text-slate-500 text-xs">—</span>
                     )}
                   </td>
 
-                  {/* Opportunities - REDESIGNED FOR CLARITY */}
-                  <td className="px-6 py-5">
+                  {/* Type de projet */}
+                  <td className="px-4 py-2.5">
+                    {projectType ? (
+                      <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-700/30 border border-slate-600/30">
+                        {React.createElement(getProjectTypeIcon(projectType), {
+                          className: "w-3 h-3 text-slate-400 flex-shrink-0"
+                        })}
+                        <span className="text-xs font-medium text-slate-200 whitespace-nowrap">
+                          {getProjectTypeLabel(projectType)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-500 text-xs">—</span>
+                    )}
+                  </td>
+
+                  {/* Architect - Hidden for Architects */}
+                  {!isArchitect && (
+                    <td className="px-4 py-2.5">
+                      {contact.architecteAssigne ? (
+                        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-700/30 border border-slate-600/30">
+                          <TrendingUp className="w-3 h-3 text-slate-400" />
+                          <span className="text-xs font-medium text-slate-200 whitespace-nowrap truncate max-w-[120px]">
+                            {architectNameMap[contact.architecteAssigne] || contact.architecteAssigne}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-500 text-xs">—</span>
+                      )}
+                    </td>
+                  )}
+
+                  {/* Opportunities - Simplified with count + status badges */}
+                  <td className="px-4 py-2.5">
                     {opportunities.length > 0 ? (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Total with icon */}
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-700/50 border border-slate-600/50">
-                          <Briefcase className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                          <span className="text-sm font-bold text-white">{opportunities.length}</span>
+                      <div className="flex items-center gap-1 flex-nowrap">
+                        {/* Total Count */}
+                        <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-slate-700/30 border border-slate-600/30">
+                          <Briefcase className="w-2.5 h-2.5 text-slate-400" />
+                          <span className="text-[10px] font-bold text-white">{opportunities.length}</span>
                         </div>
 
-                        {/* Open Counter - Prominent */}
+                        {/* Open (Ouvert) */}
                         {opportunityCounts.open > 0 && (
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-500/20 border border-orange-500/40">
-                            <Flame className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
-                            <span className="text-xs font-semibold text-orange-200">Ouvert:</span>
-                            <span className="text-sm font-bold text-orange-100">{opportunityCounts.open}</span>
+                          <div className="px-1.5 py-0.5 rounded bg-orange-500/15 border border-orange-500/30">
+                            <span className="text-[10px] font-semibold text-orange-300 whitespace-nowrap">{opportunityCounts.open} Ouvert</span>
                           </div>
                         )}
 
-                        {/* Won Counter - Success */}
+                        {/* Won (Gagnée) */}
                         {opportunityCounts.won > 0 && (
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-500/20 border border-green-500/40">
-                            <Trophy className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                            <span className="text-xs font-semibold text-green-200">Gagnée:</span>
-                            <span className="text-sm font-bold text-green-100">{opportunityCounts.won}</span>
+                          <div className="px-1.5 py-0.5 rounded bg-green-500/15 border border-green-500/30">
+                            <span className="text-[10px] font-semibold text-green-300 whitespace-nowrap">{opportunityCounts.won} Gagnée</span>
                           </div>
                         )}
 
-                        {/* Lost/On Hold - Subtle */}
-                        {opportunityCounts.open === 0 && opportunityCounts.won === 0 && (opportunityCounts.lost > 0 || opportunityCounts.onHold > 0) && (
-                          <div className="flex items-center gap-1 text-slate-500 text-xs">
-                            {opportunityCounts.lost > 0 && <span>{opportunityCounts.lost} perdue{opportunityCounts.lost > 1 ? 's' : ''}</span>}
-                            {opportunityCounts.onHold > 0 && <span>• {opportunityCounts.onHold} suspendue{opportunityCounts.onHold > 1 ? 's' : ''}</span>}
+                        {/* Lost (Perdue) */}
+                        {opportunityCounts.lost > 0 && (
+                          <div className="px-1.5 py-0.5 rounded bg-red-500/15 border border-red-500/30">
+                            <span className="text-[10px] font-semibold text-red-300 whitespace-nowrap">{opportunityCounts.lost} Perdue</span>
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <Target className="w-4 h-4 opacity-40" />
-                        <span className="text-xs">Aucune</span>
-                      </div>
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-700/20 border border-slate-600/20 text-slate-500 text-[10px]">
+                        Aucune
+                      </span>
                     )}
                   </td>
 
-                  {/* Last Activity */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
-                      <span className="text-sm text-slate-300">
+                  {/* Last Activity - Human format, smaller font */}
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-2.5 h-2.5 text-slate-500 flex-shrink-0" />
+                      <span className="text-[10px] text-slate-400 whitespace-nowrap">
                         {formatDistanceToNow(new Date(contact.updatedAt), {
                           addSuffix: true,
                           locale: fr,
@@ -265,47 +407,66 @@ export function ContactsTable({ contacts, onRowClick, isLoading = false }: Conta
                     </div>
                   </td>
 
-                  {/* Architect */}
-                  <td className="px-6 py-5">
-                    {contact.architecteAssigne ? (
-                      <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-700/50 border border-slate-600/40">
-                        <TrendingUp className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="text-sm font-medium text-slate-200">
-                          {architectNameMap[contact.architecteAssigne] || contact.architecteAssigne}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-500 text-sm">—</span>
-                    )}
-                  </td>
-
-                  {/* Contact Status - Clean & Minimal */}
-                  <td className="px-6 py-5">
-                    {(() => {
-                      const badge = getStatusBadge(contact)
-                      
-                      // Don't show badge if it shouldn't be displayed (e.g., client status)
-                      if (!badge.show) {
-                        return <span className="text-slate-500 text-sm">—</span>
-                      }
-                      
-                      return (
+                  {/* Pipeline - Admin only, Color coded */}
+                  {isAdmin && (
+                    <td className="px-4 py-2.5">
+                      {pipelineBadge ? (
                         <span
                           className={cn(
-                            'inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold border',
-                            badge.className
+                            'inline-flex items-center px-2 py-1 rounded-md text-[10px] font-semibold border whitespace-nowrap',
+                            pipelineBadge.className
                           )}
                         >
-                          {badge.label}
+                          {pipelineBadge.label}
                         </span>
-                      )
-                    })()}
-                  </td>
+                      ) : (
+                        <span className="text-slate-500 text-xs">—</span>
+                      )}
+                    </td>
+                  )}
 
-                  {/* View Button */}
-                  <td className="px-6 py-5 text-center">
-                    <div className="flex justify-center">
-                      <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-200" />
+                  {/* Actions - Eye for all, Edit/Delete for Admin */}
+                  <td className="px-4 py-2.5">
+                    <div className="flex justify-center items-center gap-0.5">
+                      {/* View */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onRowClick(contact.id)
+                        }}
+                        className="p-1.5 rounded-md hover:bg-blue-500/20 hover:text-blue-400 text-slate-400 transition-colors"
+                        title="Voir le contact"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Edit - Admin only */}
+                      {isAdmin && onEditContact && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onEditContact(contact.id)
+                          }}
+                          className="p-1.5 rounded-md hover:bg-yellow-500/20 hover:text-yellow-400 text-slate-400 transition-colors"
+                          title="Modifier"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      {/* Delete - Admin only */}
+                      {isAdmin && onDeleteContact && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteContact(contact.id)
+                          }}
+                          className="p-1.5 rounded-md hover:bg-red-500/20 hover:text-red-400 text-slate-400 transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </motion.tr>

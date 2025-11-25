@@ -199,32 +199,38 @@ export function LeadModalRedesigned({
     })
   }
 
+  // Update form data when lead changes or modal opens
   useEffect(() => {
-    if (lead && open) {
-      setFormData({
-        nom: lead.nom,
-        telephone: lead.telephone,
-        email: lead.email || "",
-        ville: lead.ville,
-        typeBien: lead.typeBien,
-        statut: lead.statut,
-        statutDetaille: lead.statutDetaille || "",
-        message: lead.message || "",
-        assignePar: lead.assignePar,
-        source: lead.source,
-        priorite: lead.priorite,
-        magasin: lead.magasin || (currentUserRole === "commercial" ? currentUserMagasin || "" : ""),
-        commercialMagasin: lead.commercialMagasin || (currentUserRole === "commercial" ? currentUserName : ""),
-        notes: lead.notes || [],
-      })
+    if (open) {
+      if (lead) {
+        console.log('[LeadModal] Loading lead data into form:', lead)
+        // Load lead data into form with all fields
+        setFormData({
+          nom: lead.nom || "",
+          telephone: lead.telephone || "",
+          email: lead.email || "",
+          ville: lead.ville || "",
+          typeBien: lead.typeBien || "",
+          statut: lead.statut || ("nouveau" as LeadStatus),
+          statutDetaille: lead.statutDetaille || "",
+          message: lead.message || "",
+          assignePar: lead.assignePar || architects[0] || "Radia",
+          source: lead.source || ("site_web" as LeadSource),
+          priorite: lead.priorite || ("moyenne" as LeadPriority),
+          magasin: lead.magasin || (currentUserRole === "commercial" ? currentUserMagasin || "" : ""),
+          commercialMagasin: lead.commercialMagasin || (currentUserRole === "commercial" ? currentUserName : ""),
+          notes: lead.notes || [],
+        })
+        console.log('[LeadModal] Form data updated for lead:', lead.id)
+      } else {
+        // Reset form for new lead
+        console.log('[LeadModal] Resetting form for new lead')
+        resetForm()
+        // Set default assignee when creating
+        setFormData((prev) => ({ ...prev, assignePar: architects[0] || "Radia" }))
+      }
     }
-  }, [lead, open, currentUserRole, currentUserMagasin, currentUserName])
-
-  useEffect(() => {
-    if (open && !lead) {
-      resetForm()
-    }
-  }, [open, lead])
+  }, [lead, open, currentUserRole, currentUserMagasin, currentUserName, architects])
 
   
 

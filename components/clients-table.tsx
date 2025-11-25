@@ -26,12 +26,13 @@ interface ClientsTableProps {
 
 // Use centralized status config for unified colors/labels
 
-type SortField = 'nomProjet' | 'nom' | 'ville' | 'typeProjet' | 'architecteAssigne' | 'statutProjet' | 'budget'
+type SortField = 'nomProjet' | 'nom' | 'ville' | 'typeProjet' | 'architecteAssigne' | 'statutProjet' | 'budget' | 'createdAt'
 type SortOrder = 'asc' | 'desc'
 
 export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteClient, searchQuery, filters, isLoading = false }: ClientsTableProps) {
-  const [sortField, setSortField] = useState<SortField>('nomProjet')
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
+  // Default sort: most recently converted/created clients first
+  const [sortField, setSortField] = useState<SortField>('createdAt')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
 
@@ -83,6 +84,16 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
   const sortedClients = [...filteredClients].sort((a, b) => {
     let aValue: any = a[sortField]
     let bValue: any = b[sortField]
+
+    // Handle date fields (createdAt, updatedAt, derniereMaj)
+    if (sortField === 'createdAt') {
+      aValue = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      bValue = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      // Most recent first (desc) by default
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
+      return 0
+    }
 
     // Handle budget (number field with potential null/undefined)
     if (sortField === 'budget') {

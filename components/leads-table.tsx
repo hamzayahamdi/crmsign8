@@ -31,6 +31,7 @@ import { motion, AnimatePresence } from "framer-motion"
 interface LeadsTableProps {
   leads: Lead[]
   onLeadClick: (lead: Lead) => void
+  onEditLead?: (lead: Lead) => void  // Optional handler specifically for edit button
   onDeleteLead: (leadId: string) => void
   onViewHistory?: (lead: Lead) => void
   onConvertToClient?: (lead: Lead) => void
@@ -85,7 +86,7 @@ interface CampaignGroup {
   leads: Lead[]
 }
 
-export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, onConvertToClient, searchQuery, filters, onFilterChange, isLoading = false, newlyAddedLeadId = null }: LeadsTableProps) {
+export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onViewHistory, onConvertToClient, searchQuery, filters, onFilterChange, isLoading = false, newlyAddedLeadId = null }: LeadsTableProps) {
   const [sortField, setSortField] = useState<SortField>('createdAt')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [hoveredColumn, setHoveredColumn] = useState<SortField | null>(null)
@@ -539,7 +540,12 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, on
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                onLeadClick(lead)
+                                // Use onEditLead if provided (always opens modal), otherwise use onLeadClick
+                                if (onEditLead) {
+                                  onEditLead(lead)
+                                } else {
+                                  onLeadClick(lead)
+                                }
                               }}
                               className="h-8 w-8 p-0 hover:bg-slate-600/30 transition-all text-[#9CA3AF] hover:text-[#E5E7EB]"
                             >
@@ -627,7 +633,12 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, on
         onOpenChange={setActionDialogOpen}
         onEdit={(lead) => {
           setActionDialogOpen(false)
-          onLeadClick(lead)
+          // Use onEditLead if provided (always opens modal), otherwise use onLeadClick
+          if (onEditLead) {
+            onEditLead(lead)
+          } else {
+            onLeadClick(lead)
+          }
         }}
         onConvertToClient={onConvertToClient}
       />

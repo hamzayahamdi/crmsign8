@@ -596,6 +596,39 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     }
   }
 
+  // Handler for editing leads - always opens modal, never redirects
+  const handleEditLead = async (lead: Lead) => {
+    // Always open the edit modal, even for converted leads
+    try {
+      console.log('[KanbanBoard] 📝 Opening edit modal for lead:', lead.id)
+      const token = localStorage.getItem('token')
+      
+      // Fetch the latest lead data to ensure we have all fields
+      const leadResponse = await fetch(`/api/leads/${lead.id}`, {
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      })
+      
+      if (leadResponse.ok) {
+        const freshLeadData = await leadResponse.json()
+        console.log('[KanbanBoard] ✅ Loaded fresh lead data:', freshLeadData)
+        setEditingLead(freshLeadData)
+        setIsModalOpen(true)
+      } else {
+        // If fetch fails, use the lead data we have
+        console.warn('[KanbanBoard] ⚠️ Failed to fetch fresh lead data, using cached data')
+        setEditingLead(lead)
+        setIsModalOpen(true)
+      }
+    } catch (error) {
+      console.error('[KanbanBoard] ❌ Error fetching lead data:', error)
+      // If error, use the lead data we have
+      setEditingLead(lead)
+      setIsModalOpen(true)
+    }
+  }
+
   const handleLeadClick = async (lead: Lead) => {
     // If lead is converted, redirect to the associated contact details page
     if (lead.statut === 'qualifie' || lead.convertedToContactId) {
@@ -635,11 +668,10 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         console.error('[KanbanBoard] ❌ Error fetching contact:', error)
         toast.error("Impossible de charger le contact associé.")
       }
+    } else {
+      // For non-converted leads, open the modal
+      handleEditLead(lead)
     }
-    
-    // For non-converted leads, open the modal as usual
-    setEditingLead(lead)
-    setIsModalOpen(true)
   }
 
   const handleCreateLead = () => {
@@ -1294,6 +1326,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
           <LeadsTable
             leads={leads}
             onLeadClick={handleLeadClick}
+            onEditLead={handleEditLead}
             onDeleteLead={handleDeleteLead}
             onViewHistory={(lead) => {
               setHistoryLead(lead)
@@ -1353,8 +1386,14 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
       </DndContext>
 
       <LeadModal
+        key={editingLead?.id || 'new-lead'}
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}
+        onOpenChange={(open) => {
+          setIsModalOpen(open)
+          if (!open) {
+            setEditingLead(null)
+          }
+        }}
         lead={editingLead || undefined}
         onSave={handleSaveLead}
         onDelete={editingLead ? () => handleDeleteLead(editingLead.id) : undefined}

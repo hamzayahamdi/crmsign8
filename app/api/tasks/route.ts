@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/database'
 import { notifyTaskAssigned } from '@/lib/notification-creator'
 import { createTaskWithEvent } from '@/lib/task-calendar-sync'
 import { verify } from 'jsonwebtoken'
@@ -9,8 +9,6 @@ import { shouldViewOwnDataOnly } from '@/lib/permissions'
 // Ensure we run on Node.js runtime (Prisma is not supported on edge)
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-const prisma = new PrismaClient()
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
 interface JWTPayload {
@@ -97,9 +95,28 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json({ success: true, data: tasks, count: tasks.length })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching tasks:', error)
-    return NextResponse.json({ success: false, error: 'Failed to fetch tasks' }, { status: 500 })
+    
+    // Handle Prisma connection errors
+    if (error?.code === 'P1001') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Database connection failed. Please check your database configuration and ensure the server is running.',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        },
+        { status: 503 }
+      )
+    }
+    
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error?.message || 'Failed to fetch tasks' 
+      },
+      { status: 500 }
+    )
   }
 }
 
@@ -192,8 +209,24 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
   } catch (error: any) {
     console.error('Error creating task:', error)
+    
+    // Handle Prisma connection errors
+    if (error?.code === 'P1001') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Database connection failed. Please check your database configuration and ensure the server is running.',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        },
+        { status: 503 }
+      )
+    }
+    
     return NextResponse.json(
-      { success: false, error: error?.message || 'Failed to create task' },
+      { 
+        success: false, 
+        error: error?.message || 'Failed to create task' 
+      },
       { status: 500 }
     )
   }

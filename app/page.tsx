@@ -22,7 +22,9 @@ export default function HomePage() {
     if (!isLoading && user?.role) {
       const role = user.role.toLowerCase()
       
-      if (role === "commercial") {
+      if (role === "architect") {
+        router.push("/contacts")
+      } else if (role === "commercial") {
         router.push("/commercial")
       } else if (role === "magasiner") {
         router.push("/magasiner")
@@ -50,7 +52,7 @@ export default function HomePage() {
 
   // Show loading while checking role
   const role = user?.role?.toLowerCase()
-  if (isLoading || role === "commercial" || role === "magasiner") {
+  if (isLoading || role === "architect" || role === "commercial" || role === "magasiner") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />

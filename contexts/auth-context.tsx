@@ -88,8 +88,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Small delay to show the success state before redirect
     await new Promise(resolve => setTimeout(resolve, 800))
     
-    // Redirect to dashboard
-    router.push("/")
+    // Redirect based on role
+    const userRole = data.user.role?.toLowerCase()
+    if (userRole === "architect") {
+      router.push("/contacts")
+    } else if (userRole === "commercial") {
+      router.push("/commercial")
+    } else if (userRole === "magasiner") {
+      router.push("/magasiner")
+    } else {
+      router.push("/")
+    }
     router.refresh()
   }
 

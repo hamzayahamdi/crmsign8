@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { cookies } from 'next/headers'
 import { randomBytes } from 'crypto'
+import { verify } from 'jsonwebtoken'
 
 const prisma = new PrismaClient()
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
 // Generate CUID-like ID (compatible with Prisma's cuid())
 function generateCuid(): string {
@@ -28,8 +30,35 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Get authenticated user for role-based filtering
+    let user: { id: string; role: string | null; name: string | null } | null = null
+    try {
+      const token = authCookie.value
+      const decoded = verify(token, JWT_SECRET) as any
+      const userId = decoded.userId
+      
+      user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, role: true, name: true }
+      })
+    } catch (error) {
+      console.error('[Client API] Error verifying token:', error)
+      // Continue without user filtering if token is invalid (for backward compatibility)
+    }
+
     // 1. Fetch existing Clients (Legacy/Project table)
+    // Filter legacy clients by architect if user is architect
+    const legacyClientWhere: any = {}
+    if (user?.role?.toLowerCase() === 'architect' && user.name) {
+      // Match by either user ID or user name (database can contain either)
+      legacyClientWhere.OR = [
+        { architecteAssigne: user.id },
+        { architecteAssigne: user.name }
+      ]
+    }
+    
     const clients = await prisma.client.findMany({
+      where: legacyClientWhere,
       orderBy: { createdAt: 'desc' }
     })
 
@@ -56,8 +85,40 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Fetch Contacts that are Clients (Unified model)
+    // Filter by architect role - architects only see their assigned contacts/opportunities
+    const contactWhere: any = {
+      tag: 'client' // Always filter for clients
+    }
+    
+    if (user?.role?.toLowerCase() === 'architect' && user.name) {
+      // Architect sees contacts where:
+      // 1. Tagged as 'client' AND
+      // 2. (Contact is assigned to them OR has at least one opportunity assigned to them)
+      // Note: architecteAssigne can be either user ID or user name, so we check both
+      contactWhere.AND = [
+        {
+          OR: [
+            { architecteAssigne: user.id },
+            { architecteAssigne: user.name },
+            {
+              opportunities: {
+                some: {
+                  OR: [
+                    { architecteAssigne: user.id },
+                    { architecteAssigne: user.name }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+    
+    console.log('[Client API] Contact filter:', JSON.stringify(contactWhere, null, 2))
+    
     const contactClients = await prisma.contact.findMany({
-      where: { tag: 'client' },
+      where: contactWhere,
       include: { opportunities: true },
       orderBy: { createdAt: 'desc' }
     })
@@ -65,7 +126,16 @@ export async function GET(request: NextRequest) {
     // 4. Map Contacts to Client interface - CREATE ONE ROW PER OPPORTUNITY
     const mappedContacts = contactClients.flatMap(c => {
       // If contact has no opportunities, create one entry for the contact
+      // BUT: Only include if architect is assigned to this contact (for architect role)
       if (!c.opportunities || c.opportunities.length === 0) {
+        // For architects, only show contacts assigned to them (by ID or name)
+        if (user?.role?.toLowerCase() === 'architect' && user.name) {
+          const isAssignedToArchitect = c.architecteAssigne === user.id || c.architecteAssigne === user.name
+          if (!isAssignedToArchitect) {
+            return [] // Skip this contact if not assigned to architect
+          }
+        }
+        
         console.log(`[Client API] Contact ${c.nom} has NO opportunities`)
         
         // Get architect name from ID or name
@@ -116,7 +186,20 @@ export async function GET(request: NextRequest) {
       }
 
       // Create ONE row for EACH opportunity
-      return c.opportunities.map(opp => {
+      // Filter opportunities by architect if user is architect (check both ID and name)
+      let opportunitiesToShow = c.opportunities
+      if (user?.role?.toLowerCase() === 'architect' && user.name) {
+        opportunitiesToShow = c.opportunities.filter(
+          opp => opp.architecteAssigne === user.id || opp.architecteAssigne === user.name
+        )
+      }
+      
+      // If no opportunities match after filtering, return empty array
+      if (opportunitiesToShow.length === 0) {
+        return []
+      }
+      
+      return opportunitiesToShow.map(opp => {
         console.log(`[Client API] Contact ${c.nom} -> Opportunity: "${opp.titre}" (budget: ${opp.budget})`)
 
         // Map Status from opportunity pipeline stage - Show actual pipeline stages
@@ -237,7 +320,8 @@ export async function GET(request: NextRequest) {
     // Sort by createdAt desc
     allClients.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
-    console.log(`[GET /api/clients] ✅ Fetched ${allClients.length} clients (${clients.length} legacy, ${uniqueMappedContacts.length} contacts)`)
+    const roleInfo = user?.role ? ` (Role: ${user.role})` : ''
+    console.log(`[GET /api/clients] ✅ Fetched ${allClients.length} clients (${clients.length} legacy, ${uniqueMappedContacts.length} contacts)${roleInfo}`)
 
     return NextResponse.json({
       success: true,

@@ -270,3 +270,5 @@ For issues or questions about the Gestionnaire role:
 3. Check API logs in browser console
 4. Verify database role value is exactly: `gestionnaire` (lowercase)
 
+
+
