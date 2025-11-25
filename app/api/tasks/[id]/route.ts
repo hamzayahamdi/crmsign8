@@ -11,11 +11,12 @@ const prisma = new PrismaClient()
 // GET single task
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const task = await prisma.task.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!task) {
@@ -41,11 +42,12 @@ export async function GET(
 // PUT - Update task
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json()
-    let id = params?.id
+    const { id: paramId } = await params
+    let id = paramId
     if (!id || id === 'undefined' || id === 'null') {
       if (body?.id && typeof body.id === 'string') {
         id = body.id
@@ -128,14 +130,15 @@ export async function PUT(
 // DELETE task
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const url = new URL(request.url)
     const segments = url.pathname.split('/').filter(Boolean)
     const idFromUrl = segments.length > 2 ? segments[segments.length - 1] : undefined
 
-    const rawId = params?.id ?? idFromUrl ?? ''
+    const { id: paramId } = await params
+    const rawId = paramId ?? idFromUrl ?? ''
     const id = Array.isArray(rawId) ? rawId[0]?.trim() : String(rawId).trim()
 
     if (!id) {

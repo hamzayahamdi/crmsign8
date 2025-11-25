@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
+import { hasPermission } from "@/lib/permissions"
 import { AddPaymentModal, type PaymentData } from "@/components/add-payment-modal"
 import { CreateTaskModal, type TaskData } from "@/components/create-task-modal"
 import { DocumentsModal } from "@/components/documents-modal"
@@ -125,20 +126,18 @@ export function ClientDetailPanelLuxe({
   const [pendingStatus, setPendingStatus] = useState<ProjectStatus | null>(null)
   
   // Check if user can edit status (Admin or Architecte)
-  // Case-insensitive role check - database stores roles in lowercase
-  const userRole = user?.role?.toLowerCase()
-  const canEditStatus = ['admin', 'administrateur', 'architecte', 'architect'].includes(userRole ?? '')
+  // Check permissions using centralized permission system
+  const canEditStatus = hasPermission(user?.role, 'clients', 'edit')
   
   // Debug: Log user info to console (helpful for troubleshooting)
   useEffect(() => {
     if (isOpen && user) {
       console.log('🔐 Auth Debug - Client Detail Panel')
       console.log('User:', user)
-      console.log('Role (original):', user.role)
-      console.log('Role (lowercase):', userRole)
+      console.log('Role:', user.role)
       console.log('Can edit status:', canEditStatus)
     }
-  }, [user, canEditStatus, isOpen, userRole])
+  }, [user, canEditStatus, isOpen])
 
   useEffect(() => {
     if (client) {

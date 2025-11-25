@@ -30,6 +30,7 @@ export interface Lead {
   campaignName?: string
   uploadedAt?: string
   convertedAt?: string
+  convertedToContactId?: string
   notes?: LeadNote[]
   createdBy?: string
   createdAt: string

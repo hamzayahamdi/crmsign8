@@ -1,298 +1,158 @@
-'use client';
+/**
+ * Notification Service
+ * 
+ * Handles both in-app notifications and SMS notifications for architects
+ * when contacts are assigned to them.
+ */
 
-import { NotificationPreferences } from '@/types/calendar';
+import { PrismaClient } from '@prisma/client';
+import { sendNotificationSMS, isMoceanConfigured } from './mocean-service';
 
-// VAPID keys - these should be generated and stored securely
-// For production, use environment variables
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+const prisma = new PrismaClient();
 
-export class NotificationService {
-  private static instance: NotificationService;
-  private swRegistration: ServiceWorkerRegistration | null = null;
+export type NotificationOptions = {
+  userId: string;
+  type: 'client_assigned' | 'task_assigned' | 'rdv_created' | 'rdv_reminder';
+  priority: 'high' | 'medium' | 'low';
+  title: string;
+  message: string;
+  linkedType?: string;
+  linkedId?: string;
+  linkedName?: string;
+  metadata?: any;
+  createdBy?: string;
+  sendSMS?: boolean; // Enable SMS notification
+};
 
-  private constructor() {}
+/**
+ * Send a notification to a user
+ * Creates an in-app notification and optionally sends SMS
+ */
+export async function sendNotification(options: NotificationOptions) {
+  const {
+    userId,
+    type,
+    priority,
+    title,
+    message,
+    linkedType,
+    linkedId,
+    linkedName,
+    metadata,
+    createdBy,
+    sendSMS = false,
+  } = options;
 
-  static getInstance(): NotificationService {
-    if (!NotificationService.instance) {
-      NotificationService.instance = new NotificationService();
-    }
-    return NotificationService.instance;
-  }
+  try {
+    // 1. Create in-app notification
+    const notification = await prisma.notification.create({
+      data: {
+        userId,
+        type: type as any,
+        priority: priority as any,
+        title,
+        message,
+        linkedType,
+        linkedId,
+        linkedName,
+        metadata,
+        createdBy,
+      },
+    });
 
-  /**
-   * Initialize service worker
-   */
-  async initServiceWorker(): Promise<ServiceWorkerRegistration | null> {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
-      console.warn('Service Workers not supported');
-      return null;
-    }
-
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/'
+    // 2. Send SMS if enabled
+    if (sendSMS) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { phone: true, name: true },
       });
 
-      console.log('[NotificationService] Service Worker registered:', registration);
-      this.swRegistration = registration;
-
-      // Wait for the service worker to be ready
-      await navigator.serviceWorker.ready;
-      
-      return registration;
-    } catch (error) {
-      console.error('[NotificationService] Service Worker registration failed:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Request notification permission
-   */
-  async requestPermission(): Promise<NotificationPermission> {
-    if (!('Notification' in window)) {
-      console.warn('Notifications not supported');
-      return 'denied';
-    }
-
-    if (Notification.permission === 'granted') {
-      return 'granted';
-    }
-
-    if (Notification.permission !== 'denied') {
-      const permission = await Notification.requestPermission();
-      return permission;
-    }
-
-    return Notification.permission;
-  }
-
-  /**
-   * Subscribe to push notifications
-   */
-  async subscribeToPush(userId: string): Promise<PushSubscription | null> {
-    if (!this.swRegistration) {
-      await this.initServiceWorker();
-    }
-
-    if (!this.swRegistration) {
-      console.error('[NotificationService] No service worker registration');
-      return null;
-    }
-
-    try {
-      // Check if already subscribed
-      let subscription = await this.swRegistration.pushManager.getSubscription();
-
-      if (!subscription) {
-        // Subscribe to push notifications
-        const applicationServerKey = this.urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-        subscription = await this.swRegistration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: applicationServerKey as BufferSource
-        });
-
-        console.log('[NotificationService] Push subscription created:', subscription);
-      }
-
-      // Save subscription to backend
-      await this.savePushSubscription(userId, subscription);
-
-      return subscription;
-    } catch (error) {
-      console.error('[NotificationService] Failed to subscribe to push:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Unsubscribe from push notifications
-   */
-  async unsubscribeFromPush(userId: string): Promise<boolean> {
-    if (!this.swRegistration) {
-      return false;
-    }
-
-    try {
-      const subscription = await this.swRegistration.pushManager.getSubscription();
-      
-      if (subscription) {
-        await subscription.unsubscribe();
-        await this.removePushSubscription(userId);
-        console.log('[NotificationService] Unsubscribed from push');
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error('[NotificationService] Failed to unsubscribe:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Save push subscription to backend
-   */
-  private async savePushSubscription(userId: string, subscription: PushSubscription): Promise<void> {
-    try {
-      const response = await fetch('/api/notifications/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          userId,
-          subscription: subscription.toJSON()
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save push subscription');
-      }
-    } catch (error) {
-      console.error('[NotificationService] Error saving subscription:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove push subscription from backend
-   */
-  private async removePushSubscription(userId: string): Promise<void> {
-    try {
-      const response = await fetch('/api/notifications/unsubscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ userId })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to remove push subscription');
-      }
-    } catch (error) {
-      console.error('[NotificationService] Error removing subscription:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get notification preferences
-   */
-  async getPreferences(userId: string): Promise<NotificationPreferences | null> {
-    try {
-      const response = await fetch(`/api/notifications/preferences?userId=${userId}`, {
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get preferences');
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error('[NotificationService] Error getting preferences:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Update notification preferences
-   */
-  async updatePreferences(userId: string, preferences: NotificationPreferences): Promise<boolean> {
-    try {
-      const response = await fetch('/api/notifications/preferences', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ userId, ...preferences })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update preferences');
-      }
-
-      // If push is enabled, subscribe
-      if (preferences.pushEnabled) {
-        await this.subscribeToPush(userId);
+      if (user?.phone) {
+        await sendSMSNotification(user.phone, title, message);
       } else {
-        await this.unsubscribeFromPush(userId);
-      }
-
-      return true;
-    } catch (error) {
-      console.error('[NotificationService] Error updating preferences:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Show a local notification (for testing or immediate notifications)
-   */
-  async showLocalNotification(title: string, options?: NotificationOptions): Promise<void> {
-    if (!('Notification' in window)) {
-      console.warn('Notifications not supported');
-      return;
-    }
-
-    if (Notification.permission === 'granted') {
-      if (this.swRegistration) {
-        // Use service worker to show notification
-        await this.swRegistration.showNotification(title, {
-          icon: '/favicon-32x32.png',
-          badge: '/favicon-32x32.png',
-          ...options
-        });
-      } else {
-        // Fallback to regular notification
-        new Notification(title, {
-          icon: '/favicon-32x32.png',
-          ...options
-        });
+        console.warn(`[Notification] SMS requested for user ${userId} but no phone number found`);
       }
     }
-  }
 
-  /**
-   * Convert VAPID key from base64 to Uint8Array
-   */
-  private urlBase64ToUint8Array(base64String: string): Uint8Array {
-    if (!base64String) {
-      return new Uint8Array(0);
-    }
-    
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/\-/g, '+')
-      .replace(/_/g, '/');
-
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-  }
-
-  /**
-   * Check if notifications are supported
-   */
-  isSupported(): boolean {
-    return typeof window !== 'undefined' && 
-           'Notification' in window && 
-           'serviceWorker' in navigator &&
-           'PushManager' in window;
-  }
-
-  /**
-   * Get current permission status
-   */
-  getPermissionStatus(): NotificationPermission {
-    if (!('Notification' in window)) {
-      return 'denied';
-    }
-    return Notification.permission;
+    return { success: true, notification };
+  } catch (error) {
+    console.error('[Notification] Error sending notification:', error);
+    return { success: false, error };
   }
 }
 
-export const notificationService = NotificationService.getInstance();
+/**
+ * Send SMS notification using MoceanAPI
+ * 
+ * Uses the MoceanAPI service configured in lib/mocean-service.ts
+ * If MoceanAPI is not configured, only logs the intent
+ */
+async function sendSMSNotification(phoneNumber: string, title: string, message: string) {
+  try {
+    // Check if MoceanAPI is configured
+    if (!isMoceanConfigured()) {
+      console.log(`[SMS] MoceanAPI not configured. Would send to ${phoneNumber}: ${title} - ${message}`);
+      console.log(`[SMS] Add MOCEAN_API_KEY and MOCEAN_API_SECRET to .env to enable SMS`);
+      return { success: true, note: 'SMS sending not yet configured' };
+    }
+
+    // Send SMS via MoceanAPI
+    const result = await sendNotificationSMS(phoneNumber, title, message);
+    
+    if (result.success) {
+      console.log(`[SMS] Sent to ${phoneNumber}: ${result.messageId}`);
+    } else {
+      console.error(`[SMS] Failed to send to ${phoneNumber}:`, result.error);
+    }
+
+    return result;
+  } catch (error) {
+    console.error(`[SMS] Error sending SMS to ${phoneNumber}:`, error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Notify architect when a contact is assigned to them
+ */
+export async function notifyArchitectContactAssigned(
+  architectId: string,
+  contact: {
+    id: string;
+    nom: string;
+    telephone: string;
+    ville?: string | null;
+  },
+  options: {
+    isReassignment?: boolean;
+    previousArchitect?: string | null;
+    createdBy?: string;
+    sendSMS?: boolean;
+  } = {}
+) {
+  const { isReassignment = false, previousArchitect, createdBy, sendSMS = true } = options;
+
+  const title = isReassignment ? 'Contact Réassigné' : 'Nouveau Contact Assigné';
+  const message = isReassignment && previousArchitect
+    ? `Le contact "${contact.nom}" vous a été réassigné (précédemment: ${previousArchitect}). Téléphone: ${contact.telephone}`
+    : `Le contact "${contact.nom}" vous a été assigné. Téléphone: ${contact.telephone}`;
+
+  return sendNotification({
+    userId: architectId,
+    type: 'client_assigned',
+    priority: 'high',
+    title,
+    message,
+    linkedType: 'contact',
+    linkedId: contact.id,
+    linkedName: contact.nom,
+    metadata: {
+      contactPhone: contact.telephone,
+      contactVille: contact.ville,
+      previousArchitect,
+      assignmentType: isReassignment ? 'reassigned' : 'new_assignment',
+    },
+    createdBy,
+    sendSMS,
+  });
+}

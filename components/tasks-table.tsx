@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Edit2, Trash2, ExternalLink, CheckCircle2, Clock, CircleDashed, Loader2, User } from "lucide-react"
 import type { Task, TaskStatus } from "@/types/task"
 import { cn } from "@/lib/utils"
@@ -42,6 +42,29 @@ export function TasksTable({
 }: TasksTableProps) {
   const router = useRouter()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [userNameById, setUserNameById] = useState<Record<string, string>>({})
+
+  // Load users once to resolve assignedTo ids into human-readable names
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const res = await fetch("/api/users")
+        if (!res.ok) return
+        const users = (await res.json()) as Array<{ id?: string; name?: string }>
+        const map: Record<string, string> = {}
+        for (const u of users) {
+          if (u.id && u.name) {
+            map[u.id] = u.name
+          }
+        }
+        setUserNameById(map)
+      } catch (error) {
+        console.error("[TasksTable] Failed to load users for assignedTo mapping", error)
+      }
+    }
+
+    loadUsers()
+  }, [])
 
   // Filter tasks
   const filteredTasks = tasks.filter((task) => {
@@ -60,10 +83,21 @@ export function TasksTable({
     // Linked type filter
     const matchesLinkedType = filters.linkedType === "all" || task.linkedType === filters.linkedType
 
-    // Assigned to filter
-    const matchesAssignedTo = filters.assignedTo === "all" || task.assignedTo === filters.assignedTo
+    // Assigned to filter (supports both raw id and resolved name)
+    const assignedDisplayName = userNameById[task.assignedTo] || task.assignedTo
+    const matchesAssignedTo =
+      filters.assignedTo === "all" ||
+      task.assignedTo === filters.assignedTo ||
+      assignedDisplayName === filters.assignedTo
 
     return matchesSearch && matchesStatus && matchesLinkedType && matchesAssignedTo
+  })
+
+  // Sort by creation date (newest first)
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    const dateA = new Date(a.createdAt).getTime()
+    const dateB = new Date(b.createdAt).getTime()
+    return dateB - dateA
   })
 
   const getStatusBadge = (status: TaskStatus) => {
@@ -141,7 +175,12 @@ export function TasksTable({
     if (task.linkedType === "lead") {
       router.push("/")
     } else {
-      router.push("/clients")
+      // For CRM v2, tasks linked to a dossier should open the Contact workspace
+      if (task.linkedId) {
+        router.push(`/contacts/${task.linkedId}`)
+      } else {
+        router.push("/contacts")
+      }
     }
   }
 
@@ -161,14 +200,14 @@ export function TasksTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-600/30">
-            {filteredTasks.length === 0 ? (
+            {sortedTasks.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
                   Aucune tâche trouvée
                 </td>
               </tr>
             ) : (
-              filteredTasks.map((task, idx) => (
+              sortedTasks.map((task, idx) => (
                 <tr
                   key={task.id}
                   className={cn("transition-colors group", idx % 2 === 1 ? "bg-slate-800/20" : "", "hover:bg-slate-800/40")}
@@ -180,7 +219,9 @@ export function TasksTable({
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-sm text-white">{task.assignedTo || "—"}</p>
+                    <p className="text-sm text-white">
+                      {userNameById[task.assignedTo] || task.assignedTo || "—"}
+                    </p>
                   </td>
                   <td className="px-6 py-4">
                     <p className="text-sm text-slate-300 flex items-center gap-2">

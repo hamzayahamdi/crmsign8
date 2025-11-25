@@ -61,18 +61,20 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
       const result = await response.json()
       console.log('[Add Devis] ✅ Devis created in database:', result.data)
 
-      // The real-time subscription will handle updating other browsers
-      // Just update local client for immediate feedback
+      // Transform API response from snake_case to camelCase
       const newDevis: Devis = {
         id: result.data.id,
-        title: formData.title,
-        montant: parseFloat(formData.montant),
-        date: new Date().toISOString(),
-        statut: formData.statut,
-        facture_reglee: false,
-        description: formData.description,
-        createdBy: "current-user",
-        createdAt: new Date().toISOString()
+        title: result.data.title,
+        montant: result.data.montant,
+        date: result.data.date,
+        statut: result.data.statut,
+        facture_reglee: result.data.facture_reglee || false,
+        description: result.data.description,
+        fichier: result.data.fichier,
+        createdBy: result.data.created_by || "Utilisateur",
+        createdAt: result.data.created_at,
+        validatedAt: result.data.validated_at,
+        notes: result.data.notes
       }
 
       const updatedClient = {
@@ -82,6 +84,11 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
       }
 
       onSave(updatedClient)
+      
+      // Dispatch event to refresh client data from server (ensures UI stays in sync)
+      window.dispatchEvent(new CustomEvent('devis-updated', {
+        detail: { clientId: client.id }
+      }))
       
       setFormData({ title: "", montant: "", description: "", statut: "en_attente" })
       onClose()

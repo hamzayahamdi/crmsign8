@@ -90,8 +90,8 @@ export default function ClientsPage() {
     return unsubscribe
   }, [])
 
-  const handleClientClick = (client: Client) => {
-    // Navigate to full-page client details view using Next.js router (no refresh)
+  const handleClientClick = (client: Client & { isContact?: boolean }) => {
+    // Always navigate to client details page (not contact details)
     router.push(`/clients/${client.id}`)
   }
 
@@ -100,7 +100,12 @@ export default function ClientsPage() {
     setIsAddModalOpen(true)
   }
 
-  const handleEditClient = (client: Client) => {
+  const handleEditClient = (client: Client & { isContact?: boolean }) => {
+    // For opportunity-based clients, navigate to client details page to edit
+    if (client.isContact) {
+      router.push(`/clients/${client.id}`)
+      return
+    }
     setEditingClient(client)
     setIsAddModalOpen(true)
     setIsDetailPanelOpen(false)
@@ -116,14 +121,14 @@ export default function ClientsPage() {
           credentials: 'include',
           body: JSON.stringify(clientData)
         })
-        
+
         if (!response.ok) {
           throw new Error('Failed to update client')
         }
-        
+
         const result = await response.json()
         console.log('[Clients Page] ✅ Client updated in database:', result.data)
-        
+
         toast({
           title: "Client mis à jour",
           description: `Le client "${clientData.nom}" a été mis à jour avec succès`,
@@ -139,23 +144,23 @@ export default function ClientsPage() {
             commercialAttribue: user?.name || 'Système'
           })
         })
-        
+
         if (!response.ok) {
           throw new Error('Failed to create client')
         }
-        
+
         const result = await response.json()
         console.log('[Clients Page] ✅ Client created in database:', result.data)
-        
+
         toast({
           title: "Client créé",
           description: `Le client "${clientData.nom}" a été créé avec succès`,
         })
       }
-      
+
       // Refresh clients from database (real-time sync will also update)
       await fetchClients()
-      
+
       setIsAddModalOpen(false)
       setEditingClient(null)
     } catch (error) {
@@ -173,7 +178,7 @@ export default function ClientsPage() {
       // Update local state immediately for optimistic UI
       updateStoreClient(updatedClient.id, updatedClient)
       setSelectedClient(updatedClient)
-      
+
       // Update via API
       const response = await fetch(`/api/clients/${updatedClient.id}`, {
         method: 'PATCH',
@@ -181,13 +186,13 @@ export default function ClientsPage() {
         credentials: 'include',
         body: JSON.stringify(updatedClient)
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to update client')
       }
-      
+
       console.log('[Clients Page] ✅ Client updated in database')
-      
+
       // Real-time sync will update the store automatically for other users
     } catch (error) {
       console.error('[Clients Page] Error updating client:', error)
@@ -201,7 +206,15 @@ export default function ClientsPage() {
   }
 
   // Open confirm dialog for deletion
-  const requestDeleteClient = (client: Client) => {
+  const requestDeleteClient = (client: Client & { isContact?: boolean }) => {
+    if (client.isContact) {
+      toast({
+        title: "Action non autorisée",
+        description: "Ce client est lié à un contact. Veuillez le gérer depuis la page Contacts.",
+        variant: "destructive"
+      })
+      return
+    }
     setClientToDelete(client)
     setDeleteDialogOpen(true)
   }
@@ -209,27 +222,33 @@ export default function ClientsPage() {
   const confirmDeleteClient = async () => {
     if (clientToDelete) {
       try {
+        const clientName = clientToDelete.nom
+
         // Delete via API
         const response = await fetch(`/api/clients/${clientToDelete.id}`, {
           method: 'DELETE',
           credentials: 'include'
         })
-        
+
         if (!response.ok) {
           throw new Error('Failed to delete client')
         }
-        
+
         console.log('[Clients Page] ✅ Client deleted from database')
-        
-        // Real-time sync will update the store automatically
+
+        // Immediately update the local store (optimistic update)
+        deleteStoreClient(clientToDelete.id)
+
+        // Close detail panel if the deleted client was selected
         if (selectedClient?.id === clientToDelete.id) {
           setIsDetailPanelOpen(false)
           setSelectedClient(null)
         }
-        
+
+        // Show success toast
         toast({
-          title: "Client supprimé",
-          description: `Le client "${clientToDelete.nom}" a été supprimé avec succès`,
+          title: "✅ Client supprimé",
+          description: `Le client "${clientName}" a été supprimé avec succès`,
         })
       } catch (error) {
         console.error('[Clients Page] Error deleting client:', error)
@@ -252,7 +271,7 @@ export default function ClientsPage() {
     const now = new Date().toISOString()
     const updatedClient = {
       ...client,
-      statutProjet: "termine" as ProjectStatus, 
+      statutProjet: "termine" as ProjectStatus,
       derniereMaj: now,
       updatedAt: now,
       historique: [
@@ -266,7 +285,7 @@ export default function ClientsPage() {
         }
       ]
     }
-    setClients(prev => prev.map(c => 
+    setClients(prev => prev.map(c =>
       c.id === client.id ? updatedClient : c
     ))
     setIsDetailPanelOpen(false)
@@ -318,7 +337,7 @@ export default function ClientsPage() {
           {/* Stats Cards */}
           <div className="px-6 pt-6 pb-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="glass relative overflow-hidden rounded-xl px-4 py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(59,130,246,0.6)]"
@@ -338,7 +357,7 @@ export default function ClientsPage() {
                 </div>
               </motion.div>
 
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
@@ -359,7 +378,7 @@ export default function ClientsPage() {
                 </div>
               </motion.div>
 
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
@@ -473,10 +492,10 @@ export default function ClientsPage() {
                         <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
                           Statut: {
                             filters.statut === "nouveau" ? "Nouveau" :
-                            filters.statut === "acompte_verse" ? "Acompte versé" :
-                            filters.statut === "en_conception" ? "En conception" :
-                            filters.statut === "en_chantier" ? "En chantier" :
-                            filters.statut === "livraison" ? "Livraison" : "Terminé"
+                              filters.statut === "acompte_verse" ? "Acompte versé" :
+                                filters.statut === "en_conception" ? "En conception" :
+                                  filters.statut === "en_chantier" ? "En chantier" :
+                                    filters.statut === "livraison" ? "Livraison" : "Terminé"
                           }
                           <button onClick={() => removeFilter('statut')} className="hover:text-primary/70">
                             <X className="w-3 h-3" />
@@ -603,7 +622,7 @@ export default function ClientsPage() {
             <div className="flex h-full w-full flex-col">
               {isLoading ? (
                 <div className="flex h-full items-center justify-center">
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="text-center"
@@ -614,7 +633,7 @@ export default function ClientsPage() {
                 </div>
               ) : clients.length === 0 ? (
                 <div className="flex h-full items-center justify-center">
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="glass rounded-2xl border border-slate-600/30 p-10 max-w-xl w-full text-center shadow-[0_22px_60px_-32px_rgba(59,130,246,0.7)]"
@@ -648,7 +667,7 @@ export default function ClientsPage() {
                           filters={filters}
                         />
                       </div>
-                      
+
                       {/* Mobile List View */}
                       <div className="block lg:hidden">
                         <ClientsListMobile

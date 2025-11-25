@@ -231,7 +231,7 @@ export default function UsersPage() {
       case "architect":
         return "Architecte"
       case "magasiner":
-        return "Magasiner"
+        return "Responsable magasinier"
       case "operator":
         return "Opérateur"
       case "gestionnaire":
@@ -545,7 +545,7 @@ export default function UsersPage() {
                     <SelectGroup>
                       <SelectLabel>🏗️ Opérations</SelectLabel>
                       <SelectItem value="architect">Architecte</SelectItem>
-                      <SelectItem value="magasiner">Magasiner</SelectItem>
+                      <SelectItem value="magasiner">Responsable magasinier</SelectItem>
                       <SelectItem value="chef_de_chantier">Chef de chantier</SelectItem>
                     </SelectGroup>
                   </SelectContent>
@@ -573,7 +573,7 @@ export default function UsersPage() {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Le magasiner ne pourra voir que les leads de ce magasin
+                    Le responsable magasinier ne pourra voir que les leads de ce magasin
                   </p>
                 </div>
               )}
@@ -668,7 +668,7 @@ export default function UsersPage() {
                     <SelectGroup>
                       <SelectLabel>🏗️ Opérations</SelectLabel>
                       <SelectItem value="architect">Architecte</SelectItem>
-                      <SelectItem value="magasiner">Magasiner</SelectItem>
+                      <SelectItem value="magasiner">Responsable magasinier</SelectItem>
                       <SelectItem value="chef_de_chantier">Chef de chantier</SelectItem>
                     </SelectGroup>
                   </SelectContent>

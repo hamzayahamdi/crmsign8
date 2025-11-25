@@ -95,7 +95,9 @@ export function ClientOverviewCard({ client }: ClientOverviewCardProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-white/40 mb-0.5">Commercial Attribué</p>
-                <p className="text-sm text-white font-medium">{client.commercialAttribue}</p>
+                <p className="text-sm text-white font-medium truncate" title={client.commercialAttribue}>
+                  {client.commercialAttribue || 'Non assigné'}
+                </p>
               </div>
             </div>
           )}

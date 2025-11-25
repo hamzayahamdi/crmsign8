@@ -163,4 +163,151 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     @apply bg-primary/50;
   }
+
+  /* Sidebar animations and glowing effects */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-thumb-sky-500 {
+    scrollbar-color: rgb(14 165 233 / var(--tw-bg-opacity, 1)) transparent;
+  }
+
+  .scrollbar-track-transparent {
+    scrollbar-color: rgb(14 165 233 / 0.3) transparent;
+  }
+
+  /* Enhanced sidebar glow animation */
+  @keyframes sidebar-glow-pulse {
+    0% {
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 30px rgba(56, 189, 248, 0.8), 0 0 60px rgba(59, 130, 246, 0.5), 0 0 90px rgba(56, 189, 248, 0.3);
+    }
+    100% {
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
+    }
+  }
+
+  .sidebar-glow-pulse {
+    animation: sidebar-glow-pulse 3s ease-in-out infinite;
+  }
+
+  /* Shimmer effect for active items */
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  .shimmer {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.2) 25%,
+      transparent 50%,
+      rgba(255, 255, 255, 0.2) 75%,
+      transparent 100%
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 2.5s infinite;
+  }
+
+  /* Glowing text effect */
+  @keyframes text-glow {
+    0%, 100% {
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.5), 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+    50% {
+      text-shadow: 0 0 20px rgba(56, 189, 248, 0.8), 0 0 40px rgba(59, 130, 246, 0.5);
+    }
+  }
+
+  .text-glow {
+    animation: text-glow 2s ease-in-out infinite;
+  }
+
+  /* Icon glow animation */
+  @keyframes icon-pulse-glow {
+    0%, 100% {
+      filter: drop-shadow(0 0 15px rgba(56, 189, 248, 0.7));
+    }
+    50% {
+      filter: drop-shadow(0 0 25px rgba(56, 189, 248, 1)) drop-shadow(0 0 40px rgba(59, 130, 246, 0.6));
+    }
+  }
+
+  .icon-pulse-glow {
+    animation: icon-pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Background glow expansion */
+  @keyframes glow-expand {
+    0% {
+      transform: scale(0.95);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(0.95);
+      opacity: 0.5;
+    }
+  }
+
+  .glow-expand {
+    animation: glow-expand 3s ease-in-out infinite;
+  }
+
+  /* Smooth transition for active pill */
+  @keyframes pill-appear {
+    from {
+      opacity: 0;
+      transform: scaleX(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+  }
+
+  .pill-appear {
+    animation: pill-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Badge pulse animation */
+  @keyframes badge-scale {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+  }
+
+  .badge-scale {
+    animation: badge-scale 1.5s ease-in-out infinite;
+  }
+
+  /* Smooth page transition */
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .page-enter {
+    animation: page-enter 0.3s ease-out;
+  }
 }

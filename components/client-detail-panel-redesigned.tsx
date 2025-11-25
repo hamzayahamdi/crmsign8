@@ -51,9 +51,8 @@ export function ClientDetailPanelRedesigned({
   const [isStatusConfirmModalOpen, setIsStatusConfirmModalOpen] = useState(false)
   const [pendingStatus, setPendingStatus] = useState<ProjectStatus | null>(null)
   
-  // Check if user can edit status (Admin or Architecte)
-  const userRole = user?.role?.toLowerCase()
-  const canEditStatus = userRole === 'admin' || userRole === 'architecte' || userRole === 'architect'
+  // Check if user can edit status (Admin, Operator, Gestionnaire, or Architecte)
+  const canEditStatus = hasPermission(user?.role, 'clients', 'edit')
 
   useEffect(() => {
     if (client) {

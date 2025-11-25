@@ -17,12 +17,17 @@ export default function HomePage() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
 
-  // Redirect commercial and magasiner users to their dashboard
+  // Redirect users based on their role
   useEffect(() => {
-    if (!isLoading && user?.role === "commercial") {
-      router.push("/commercial")
-    } else if (!isLoading && user?.role === "magasiner") {
-      router.push("/magasiner")
+    if (!isLoading && user?.role) {
+      const role = user.role.toLowerCase()
+      
+      if (role === "commercial") {
+        router.push("/commercial")
+      } else if (role === "magasiner") {
+        router.push("/magasiner")
+      }
+      // Gestionnaire can now access leads page
     }
   }, [user, isLoading, router])
 
@@ -44,7 +49,8 @@ export default function HomePage() {
   }
 
   // Show loading while checking role
-  if (isLoading || user?.role === "commercial" || user?.role === "magasiner") {
+  const role = user?.role?.toLowerCase()
+  if (isLoading || role === "commercial" || role === "magasiner") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />

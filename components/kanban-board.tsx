@@ -23,13 +23,14 @@ import { LeadCard } from "@/components/lead-card"
 import { LeadModalRedesigned as LeadModal } from "@/components/lead-modal-redesigned"
 import { LeadsTable } from "@/components/leads-table"
 import { LeadNotesPanel } from "@/components/lead-notes-panel"
+import { ArchitectSelectionDialog } from "@/components/architect-selection-dialog-improved"
 import { Phone, MapPin, Filter, ChevronDown, X, RotateCcw } from "lucide-react"
 import { useState as useAccordionState } from "react"
 import { cn } from "@/lib/utils"
 import { LeadsService } from "@/lib/leads-service"
 import { useEnhancedInfiniteScroll } from "@/hooks/useEnhancedInfiniteScroll"
 import { Loader2, AlertCircle } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from 'sonner'
 import {
   Select,
   SelectTrigger,
@@ -312,12 +313,13 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps) {
   const router = useRouter()
-  const { toast } = useToast()
   const [activeLead, setActiveLead] = useState<Lead | null>(null)
   const [editingLead, setEditingLead] = useState<Lead | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [historyLead, setHistoryLead] = useState<Lead | null>(null)
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false)
+  const [isArchitectModalOpen, setIsArchitectModalOpen] = useState(false)
+  const [leadToConvert, setLeadToConvert] = useState<Lead | null>(null)
   const [filters, setFilters] = useState({
     status: "all" as "all" | LeadStatus,
     city: "all" as string,
@@ -576,8 +578,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         refuse: "Refusé",
       }
       
-      toast({
-        title: "Lead déplacé",
+      toast.success("Lead déplacé", {
         description: `${draggedLead.nom} a été déplacé vers ${statusLabels[targetStatus]}`
       })
       
@@ -591,55 +592,48 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         derniereMaj: new Date().toISOString()
       })
       
-      toast({
-        title: "Erreur",
-        description: "Échec de la mise à jour du statut. Veuillez réessayer.",
-        variant: "destructive"
-      })
+      toast.error("Échec de la mise à jour du statut. Veuillez réessayer.")
     }
   }
 
   const handleLeadClick = async (lead: Lead) => {
-    // If lead is converted, redirect to the associated client details page
-    if (lead.statut === 'converti') {
-      console.log('[KanbanBoard] 🔄 Lead is converted - fetching associated client...')
+    // If lead is converted, redirect to the associated contact details page
+    if (lead.statut === 'qualifie' || lead.convertedToContactId) {
+      console.log('[KanbanBoard] 🔄 Lead is converted - fetching associated contact...')
       
       try {
-        // Fetch the client associated with this lead
         const token = localStorage.getItem('token')
-        const response = await fetch(`/api/clients?leadId=${lead.id}`, {
-          headers: {
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
-        })
         
-        if (response.ok) {
-          const data = await response.json()
-          const clients = data.data || []
+        // If we have convertedToContactId, use it directly
+        let contactId = lead.convertedToContactId
+        
+        // If not, try to fetch from the lead endpoint
+        if (!contactId) {
+          const leadResponse = await fetch(`/api/leads/${lead.id}`, {
+            headers: {
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+          })
           
-          if (clients.length > 0) {
-            const client = clients[0]
-            console.log('[KanbanBoard] ✅ Found associated client:', client.id)
-            
-            // Redirect to client details page using Next.js router (no refresh)
-            router.push(`/clients/${client.id}`)
-            return
-          } else {
-            console.warn('[KanbanBoard] ⚠️ No client found for converted lead:', lead.id)
-            toast({
-              title: "⚠️ Client introuvable",
-              description: "Ce lead a été converti mais le client associé est introuvable.",
-              variant: "destructive"
-            })
+          if (leadResponse.ok) {
+            const leadData = await leadResponse.json()
+            contactId = leadData.convertedToContactId
           }
         }
+        
+        if (contactId) {
+          console.log('[KanbanBoard] ✅ Found associated contact:', contactId)
+          
+          // Redirect to contact details page using Next.js router (no refresh)
+          router.push(`/contacts/${contactId}`)
+          return
+        } else {
+          console.warn('[KanbanBoard] ⚠️ No contact found for converted lead:', lead.id)
+          toast.error("⚠️ Contact introuvable - Ce lead a été converti mais le contact associé est introuvable.")
+        }
       } catch (error) {
-        console.error('[KanbanBoard] ❌ Error fetching client:', error)
-        toast({
-          title: "❌ Erreur",
-          description: "Impossible de charger le client associé.",
-          variant: "destructive"
-        })
+        console.error('[KanbanBoard] ❌ Error fetching contact:', error)
+        toast.error("Impossible de charger le contact associé.")
       }
     }
     
@@ -669,10 +663,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
   const handleSaveLead = async (leadData: Omit<Lead, "id"> & { id?: string }) => {
     try {
       if (leadData.id) {
-        // Check if status is being changed to 'converti'
-        const isBeingConverted = leadData.statut === 'converti' && editingLead?.statut !== 'converti'
-        
-        // Update existing lead
+        // Update existing lead (no automatic conversion based on status)
         console.log('[KanbanBoard] Updating lead with data:', leadData)
         const updatedLead = await LeadsService.updateLead(leadData.id, leadData)
         console.log('[KanbanBoard] Lead updated from API:', updatedLead)
@@ -683,69 +674,17 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         
         // Update editingLead so modal shows fresh data if reopened
         setEditingLead(updatedLead)
-        
-        // If status changed to 'converti', automatically create client
-        if (isBeingConverted) {
-          console.log('[KanbanBoard] 🔄 Status changed to converti - creating client automatically')
-          
-          // Close modal first
-          setIsModalOpen(false)
-          setEditingLead(null)
-          
-          // Show converting toast
-          toast({
-            title: "🔄 Conversion en cours",
-            description: "Création du client dans la base de données...",
-          })
-          
-          // Call conversion API
-          try {
-            const token = localStorage.getItem('token')
-            if (!token) {
-              throw new Error('Non authentifié')
-            }
-            
-            const response = await fetch(`/api/leads/${leadData.id}/convert`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            })
-            
-            if (!response.ok) {
-              const errorData = await response.json().catch(() => ({}))
-              throw new Error(errorData.message || 'Échec de la conversion')
-            }
-            
-            const data = await response.json()
-            console.log('[KanbanBoard] ✅ Client created:', data.client)
-            
-            toast({
-              title: "✅ Lead converti",
-              description: `${updatedLead.nom} a été converti en client avec succès!`,
-            })
-          } catch (conversionError) {
-            console.error('[KanbanBoard] ❌ Conversion error:', conversionError)
-            toast({
-              title: "⚠️ Conversion échouée",
-              description: conversionError instanceof Error ? conversionError.message : "Le lead a été mis à jour mais la création du client a échoué.",
-              variant: "destructive"
-            })
-          }
-        } else {
-          // Normal update - show success toast and close modal
-          toast({
-            title: "✅ Lead mis à jour",
-            description: "Les modifications ont été enregistrées avec succès",
-          })
-          
-          // Close modal
-          setIsModalOpen(false)
-          setEditingLead(null)
-        }
+
+        // Normal update - show success toast and close modal (conversion is handled only via explicit action)
+        toast.success("✅ Lead mis à jour", {
+          description: "Les modifications ont été enregistrées avec succès",
+        })
+
+        // Close modal
+        setIsModalOpen(false)
+        setEditingLead(null)
       } else {
-        // Create new lead
+        // Create new lead (no automatic conversion to client)
         console.log('[KanbanBoard] Creating lead:', leadData)
         const createdLead = await LeadsService.createLead(leadData)
         console.log('[KanbanBoard] Lead created from API:', createdLead)
@@ -762,75 +701,19 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         setTimeout(() => {
           setNewlyAddedLeadId(null)
         }, 3000)
+
+        // Normal creation - show success toast (conversion will be handled explicitly via Convert Lead → Contact flow)
+        toast.success("✅ Lead créé", {
+          description: "Le nouveau lead a été créé avec succès",
+        })
         
-        // If created with status 'converti', automatically create client
-        if (leadData.statut === 'converti') {
-          console.log('[KanbanBoard] 🔄 New lead created with converti status - creating client automatically')
-          
-          // Close modal first
-          setEditingLead(null)
-          setIsModalOpen(false)
-          
-          // Show converting toast
-          toast({
-            title: "🔄 Lead créé et conversion en cours",
-            description: "Création du client dans la base de données...",
-          })
-          
-          // Call conversion API
-          try {
-            const token = localStorage.getItem('token')
-            if (!token) {
-              throw new Error('Non authentifié')
-            }
-            
-            const response = await fetch(`/api/leads/${createdLead.id}/convert`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            })
-            
-            if (!response.ok) {
-              const errorData = await response.json().catch(() => ({}))
-              throw new Error(errorData.message || 'Échec de la conversion')
-            }
-            
-            const data = await response.json()
-            console.log('[KanbanBoard] ✅ Client created:', data.client)
-            
-            toast({
-              title: "✅ Lead créé et converti",
-              description: `${createdLead.nom} a été créé et converti en client avec succès!`,
-            })
-          } catch (conversionError) {
-            console.error('[KanbanBoard] ❌ Conversion error:', conversionError)
-            toast({
-              title: "⚠️ Conversion échouée",
-              description: conversionError instanceof Error ? conversionError.message : "Le lead a été créé mais la création du client a échoué.",
-              variant: "destructive"
-            })
-          }
-        } else {
-          // Normal creation - show success toast
-          toast({
-            title: "✅ Lead créé",
-            description: "Le nouveau lead a été créé avec succès",
-          })
-          
-          // Close modal after successful creation
-          setEditingLead(null)
-          setIsModalOpen(false)
-        }
+        // Close modal after successful creation
+        setEditingLead(null)
+        setIsModalOpen(false)
       }
     } catch (error) {
       console.error("[KanbanBoard] Error saving lead:", error)
-      toast({
-        title: "❌ Erreur",
-        description: error instanceof Error ? error.message : "Échec de l'enregistrement du lead. Veuillez réessayer.",
-        variant: "destructive"
-      })
+      toast.error(error instanceof Error ? error.message : "Échec de l'enregistrement du lead. Veuillez réessayer.")
       // Re-throw so modal can handle the error state
       throw error
     }
@@ -848,134 +731,113 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
       
       setIsModalOpen(false)
       
-      toast({
-        title: "✅ Lead supprimé",
+      toast.success("✅ Lead supprimé", {
         description: "Le lead a été supprimé avec succès (client préservé si converti)",
       })
     } catch (error) {
       console.error("Error deleting lead:", error)
-      toast({
-        title: "❌ Erreur",
-        description: "Échec de la suppression du lead. Veuillez réessayer.",
-        variant: "destructive"
-      })
+      toast.error("Échec de la suppression du lead. Veuillez réessayer.")
     }
   }
 
-  const handleConvertToClient = async (lead: Lead, architectId?: string) => {
-    console.log('🔄 [Conversion] Starting conversion for lead:', lead.id, lead.nom, 'Architect:', architectId)
+  const handleConvertToClient = (lead: Lead) => {
+    console.log('🔄 [Conversion] Opening architect selection modal for lead:', lead.id, lead.nom)
     
-    // Close modal immediately
+    // Close edit modal if open
     setIsModalOpen(false)
     
-    // Show beautiful loading toast
-    const loadingToast = toast({
-      title: "⏳ Conversion en cours...",
-      description: (
-        <div className="flex items-center gap-3">
-          <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-          <span>Création du client pour {lead.nom}</span>
-        </div>
-      ),
-      duration: Infinity, // Keep it visible until we dismiss it
-    })
+    // Open architect selection modal
+    setLeadToConvert(lead)
+    setIsArchitectModalOpen(true)
+  }
+
+  const handleArchitectSelected = async (architectId: string) => {
+    if (!leadToConvert) return
+
+    console.log('🔄 [Conversion] Architect selected:', architectId || 'none', 'for lead:', leadToConvert.id)
     
-    // Call API to create client in database
+    // Close architect modal
+    setIsArchitectModalOpen(false)
+    const lead = leadToConvert
+    setLeadToConvert(null)
+
+    // Show loading toast
+    const loadingToast = toast.loading(`⏳ Conversion en cours...`, {
+      description: `Création du contact pour ${lead.nom}. Merci de patienter quelques secondes...`,
+      duration: Infinity,
+    })
+
     try {
       const token = localStorage.getItem('token')
       
       if (!token) {
-        console.warn('⚠️ [Conversion] No auth token')
-        loadingToast.dismiss()
-        toast({
-          title: "❌ Erreur",
-          description: "Non authentifié. Veuillez vous reconnecter.",
-          variant: "destructive"
-        })
+        toast.dismiss(loadingToast)
+        toast.error("Non authentifié. Veuillez vous reconnecter.")
         return
       }
-      
-      console.log('📡 [Conversion] Calling API to create client in database...')
-      const response = await fetch(`/api/leads/${lead.id}/convert`, {
+
+      console.log('📡 [Conversion] Calling API to create contact with architect...')
+      const response = await fetch(`/api/contacts/convert-lead`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          architectId: architectId
+          leadId: lead.id,
+          architectId: architectId || undefined, // Empty string becomes undefined
         }),
       })
-
-      console.log('📡 [Conversion] Response status:', response.status)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         console.error('❌ [Conversion] API error:', errorData)
         
-        loadingToast.dismiss()
-        toast({
-          title: "❌ Erreur de conversion",
-          description: errorData.details || errorData.message || "Échec de la conversion. Veuillez réessayer.",
-          variant: "destructive"
-        })
-        
+        toast.dismiss(loadingToast)
+        toast.error(errorData.error || "Échec de la conversion. Veuillez réessayer.")
         return
       }
 
       const data = await response.json()
       console.log('✅ [Conversion] Full API response:', data)
-      console.log('✅ [Conversion] Client created in database:', data.client)
-      console.log('✅ [Conversion] Client ID:', data.client?.id)
       
-      // Verify client data exists
-      if (!data.client || !data.client.id) {
-        console.error('❌ [Conversion] No client data in response!')
-        loadingToast.dismiss()
-        toast({
-          title: "⚠️ Conversion incomplète",
-          description: "Le client a été créé mais les données sont manquantes. Rechargez la page.",
-          variant: "destructive"
-        })
+      if (!data.contact || !data.contact.id) {
+        console.error('❌ [Conversion] No contact data in response!')
+        toast.dismiss(loadingToast)
+        toast.error("Le contact a été créé mais les données sont manquantes. Rechargez la page.")
         return
       }
       
-      // Dismiss loading toast
-      loadingToast.dismiss()
+      // Dismiss loading toast before showing success
+      toast.dismiss(loadingToast)
       
-      // Show success toast
-      toast({
-        title: "✅ Conversion réussie !",
-        description: (
-          <div className="space-y-2">
-            <p className="font-medium">{lead.nom} a été converti en client</p>
-            <p className="text-sm text-muted-foreground">Le lead va disparaître de la table...</p>
-          </div>
-        ),
-        duration: 3000,
+      // Small delay to ensure loading toast is dismissed
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      console.log('🎉 [Kanban] Showing success toast for:', lead.nom)
+      toast.success(`✨ ${lead.nom} converti en contact !`, {
+        description: "Redirection vers le profil du contact...",
+        duration: 2000,
       })
       
-      // ANIMATE: Remove lead from UI with smooth animation
-      console.log('🎬 [Conversion] Removing lead from UI with animation...')
+      // Remove lead from UI
+      console.log('🎬 [Conversion] Removing lead from UI...')
       removeLead(lead.id)
+
+      // Redirect to contact details page with conversion flag after a short delay
+      const contactId = data.contact.id
+      console.log('🔄 [Conversion] Redirecting to:', `/contacts/${contactId}`)
       
-      // Redirect to client details page after animation
-      const clientId = data.client.id
-      console.log('🔄 [Conversion] Preparing redirect to:', `/clients/${clientId}`)
-      
+      // Use setTimeout to ensure redirect happens after toast is shown
+      // Use window.location.href for more reliable navigation
       setTimeout(() => {
-        console.log('🔄 [Conversion] Executing redirect now...')
-        router.push(`/clients/${clientId}`)
-      }, 2000) // Increased delay to allow animation to complete
+        window.location.href = `/contacts/${contactId}?converted=true`
+      }, 800)
       
     } catch (error) {
       console.error("❌ [Conversion] Error:", error)
-      loadingToast.dismiss()
-      toast({
-        title: "❌ Erreur",
-        description: "Échec de la conversion. Veuillez réessayer.",
-        variant: "destructive"
-      })
+      toast.dismiss(loadingToast)
+      toast.error("Échec de la conversion. Veuillez réessayer.")
     }
   }
 
@@ -1022,18 +884,13 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
       setIsModalOpen(false)
       console.log('✅ [Not Interested] Modal closed')
       
-      toast({
-        title: "🔴 Lead marqué",
+      toast.success("🔴 Lead marqué", {
         description: "Le lead a été marqué comme non intéressé",
       })
       console.log('✅ [Not Interested] Update complete!')
     } catch (error) {
       console.error("❌ [Not Interested] Error:", error)
-      toast({
-        title: "❌ Erreur",
-        description: error instanceof Error ? error.message : "Échec de la mise à jour du lead. Veuillez réessayer.",
-        variant: "destructive",
-      })
+      toast.error(error instanceof Error ? error.message : "Échec de la mise à jour du lead. Veuillez réessayer.")
     }
   }
 
@@ -1537,21 +1394,35 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
             // Update the history panel lead
             setHistoryLead(updatedLead)
             
-            toast({
-              title: "✅ Note ajoutée",
+            toast.success("✅ Note ajoutée", {
               description: "La note a été ajoutée avec succès",
             })
           } catch (error) {
             console.error('Error adding note:', error)
-            toast({
-              title: "❌ Erreur",
-              description: "Échec de l'ajout de la note. Veuillez réessayer.",
-              variant: "destructive"
-            })
+            toast.error("Échec de l'ajout de la note. Veuillez réessayer.")
             throw error
           }
         }}
       />
+
+      {/* Architect Selection Modal for Lead Conversion */}
+      {leadToConvert && (
+        <ArchitectSelectionDialog
+          open={isArchitectModalOpen}
+          onOpenChange={(open) => {
+            setIsArchitectModalOpen(open)
+            if (!open) {
+              setLeadToConvert(null)
+            }
+          }}
+          onBack={() => {
+            setIsArchitectModalOpen(false)
+            setLeadToConvert(null)
+          }}
+          onArchitectSelected={handleArchitectSelected}
+          leadName={leadToConvert.nom}
+        />
+      )}
     </>
   )
 }

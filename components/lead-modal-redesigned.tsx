@@ -743,7 +743,7 @@ export function LeadModalRedesigned({
                         ) : (
                           <>
                             <ArrowRightLeft className="w-4 h-4 mr-2" />
-                            Convertir en client
+                            Convertir en Contact
                           </>
                         )}
                       </Button>

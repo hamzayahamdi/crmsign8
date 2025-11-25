@@ -1,22 +1,89 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { notifyTaskAssigned } from '@/lib/notification-creator'
+import { createTaskWithEvent } from '@/lib/task-calendar-sync'
+import { verify } from 'jsonwebtoken'
+import { cookies } from 'next/headers'
+import { shouldViewOwnDataOnly } from '@/lib/permissions'
 
 // Ensure we run on Node.js runtime (Prisma is not supported on edge)
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const prisma = new PrismaClient()
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+
+interface JWTPayload {
+  userId: string
+  email: string
+  role: string
+  name: string
+}
+
+async function getUserFromToken(request?: NextRequest): Promise<JWTPayload | null> {
+  try {
+    let token: string | undefined
+    
+    // First, try to get token from Authorization header
+    if (request) {
+      const authHeader = request.headers.get('authorization')
+      if (authHeader?.startsWith('Bearer ')) {
+        token = authHeader.substring(7)
+      }
+    }
+    
+    // Fall back to cookies if no Authorization header
+    if (!token) {
+      const cookieStore = await cookies()
+      token = cookieStore.get('token')?.value
+    }
+    
+    if (!token) {
+      return null
+    }
+    
+    const decoded = verify(token, JWT_SECRET) as JWTPayload
+    return decoded
+  } catch (error) {
+    console.error('[Tasks Auth] Token verification failed:', error)
+    return null
+  }
+}
 
 // GET all tasks with optional filters
 export async function GET(request: NextRequest) {
   try {
+    // Get authenticated user
+    const user = await getUserFromToken(request)
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const assignedTo = searchParams.get('assignedTo')
     const status = searchParams.get('status')
     const linkedType = searchParams.get('linkedType')
 
     const where: any = {}
+    
+    // Role-based filtering: Gestionnaire and Architect see only their own tasks
+    if (shouldViewOwnDataOnly(user.role)) {
+      // Get user's name from database to match task assignments
+      const userRecord = await prisma.user.findUnique({
+        where: { id: user.userId },
+        select: { name: true }
+      })
+      
+      if (userRecord?.name) {
+        where.OR = [
+          { assignedTo: userRecord.name },
+          { createdBy: userRecord.name },
+          { participants: { has: user.userId } }
+        ]
+      }
+    }
+    
+    // Apply additional filters
     if (assignedTo && assignedTo !== 'all') where.assignedTo = assignedTo
     if (status && status !== 'all') where.status = status
     if (linkedType && linkedType !== 'all') where.linkedType = linkedType
@@ -36,12 +103,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new task
+// POST - Create new task (with automatic calendar event)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    console.log('[API /tasks POST] Received body:', { title: body.title, assignedTo: body.assignedTo, linkedType: body.linkedType });
+    
     // Basic validation
     if (!body?.title || !body?.description || !body?.dueDate || !body?.assignedTo || !body?.linkedType || !body?.linkedId) {
+      console.log('[API /tasks POST] Missing required fields');
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 })
     }
     const validStatus = ['a_faire','en_cours','termine']
@@ -53,21 +123,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid linkedType' }, { status: 400 })
     }
     
-    const task = await prisma.task.create({
-      data: {
-        title: body.title,
-        description: body.description,
-        dueDate: new Date(body.dueDate),
-        assignedTo: body.assignedTo,
-        linkedType: body.linkedType,
-        linkedId: body.linkedId,
-        linkedName: body.linkedName || null,
-        status: body.status || 'a_faire',
-        reminderEnabled: body.reminderEnabled || false,
-        reminderDays: body.reminderDays || null,
-        createdBy: body.createdBy || 'Système',
-      }
+    console.log('[API /tasks POST] Calling createTaskWithEvent...');
+    // Create task WITH automatic calendar event using sync function
+    const result = await createTaskWithEvent({
+      title: body.title,
+      description: body.description,
+      dueDate: new Date(body.dueDate),
+      assignedTo: body.assignedTo,
+      linkedType: body.linkedType,
+      linkedId: body.linkedId,
+      linkedName: body.linkedName || null,
+      status: body.status || 'a_faire',
+      reminderEnabled: body.reminderEnabled || false,
+      reminderDays: body.reminderDays || null,
+      createdBy: body.createdBy || 'Système',
     })
+
+    console.log('[API /tasks POST] Result:', { success: result.success, taskId: result.task?.id, eventId: result.event?.id, error: result.error });
+
+    if (!result.success) {
+      return NextResponse.json({ success: false, error: result.error }, { status: 400 })
+    }
+
+    const task = result.task
 
     // Try to notify assignee immediately
     try {
@@ -98,7 +176,7 @@ export async function POST(request: NextRequest) {
             type: 'tache',
             description: `Tâche créée: "${body.title}"`,
             auteur: body.createdBy || 'Système',
-            metadata: { taskId: task.id }
+            metadata: { taskId: task.id, eventId: result.event?.id }
           }
         })
       } catch (histError) {
@@ -109,7 +187,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: task
+      data: task,
+      event: result.event
     }, { status: 201 })
   } catch (error: any) {
     console.error('Error creating task:', error)

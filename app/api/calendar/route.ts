@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/database';
 import { verify } from 'jsonwebtoken';
 import { cookies } from 'next/headers';
+import { shouldViewOwnDataOnly } from '@/lib/permissions';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -9,6 +10,7 @@ interface JWTPayload {
   userId: string;
   email: string;
   role: string;
+  name?: string;
 }
 
 async function getUserFromToken(request?: NextRequest): Promise<JWTPayload | null> {
@@ -124,14 +126,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Role-based visibility - MUST be applied first
-    const isRestrictedRole = user.role === 'commercial' || 
-                             user.role === 'architecte' || 
-                             user.role === 'architect';
+    const isRestrictedRole = shouldViewOwnDataOnly(user.role);
     
     console.log('[Calendar API] Role check - isRestrictedRole:', isRestrictedRole, 'role:', user.role);
     
     if (isRestrictedRole) {
-      // Architects and commercials see: their own events + events they're invited to + public events
+      // Gestionnaire, Architects and commercials see: their own events + events they're invited to + public events
       where.AND.push({
         OR: [
           { createdBy: user.userId },
@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
         ]
       });
     }
-    // Admins and gestionnaires see all events (no additional filter needed)
+    // Admins and Operators see all events (no additional filter needed)
 
     // Filter by assigned user or participants (additional filter on top of visibility)
     if (assignedTo && assignedTo !== 'all') {
@@ -179,10 +179,18 @@ export async function GET(request: NextRequest) {
     // Get all unique user IDs (assigned, created, and participants)
     const allUserIds = new Set<string>();
     events.forEach((e: any) => {
-      allUserIds.add(e.assignedTo);
-      allUserIds.add(e.createdBy);
+      if (e.assignedTo && e.assignedTo !== 'Système' && e.assignedTo.length > 5) {
+        allUserIds.add(e.assignedTo);
+      }
+      if (e.createdBy && e.createdBy !== 'Système' && e.createdBy.length > 5) {
+        allUserIds.add(e.createdBy);
+      }
       if (e.participants) {
-        e.participants.forEach((p: string) => allUserIds.add(p));
+        e.participants.forEach((p: string) => {
+          if (p && p !== 'Système' && p.length > 5) {
+            allUserIds.add(p);
+          }
+        });
       }
     });
 
@@ -196,8 +204,8 @@ export async function GET(request: NextRequest) {
     // Enrich events with user details
     const enrichedEvents = events.map((event: any) => ({
       ...event,
-      assignedToName: userMap.get(event.assignedTo)?.name || 'Inconnu',
-      createdByName: userMap.get(event.createdBy)?.name || 'Inconnu',
+      assignedToName: userMap.get(event.assignedTo)?.name || event.assignedTo || 'Inconnu',
+      createdByName: userMap.get(event.createdBy)?.name || event.createdBy || 'Inconnu',
       participantDetails: event.participants?.map((pId: string) => {
         const user = userMap.get(pId);
         return user ? {
@@ -346,8 +354,14 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Only admin or creator can update
-    if (user.role !== 'admin' && existingEvent.createdBy !== user.userId) {
+    // Admin, Operator, Gestionnaire can update their own events, or Admin/Operator can update any event
+    const canUpdate = 
+      user.role === 'admin' || 
+      user.role === 'operator' || 
+      (existingEvent.createdBy === user.userId && 
+       (user.role === 'gestionnaire' || user.role === 'architect'));
+    
+    if (!canUpdate) {
       return NextResponse.json(
         { error: 'Non autorisé à modifier cet événement' },
         { status: 403 }
@@ -435,8 +449,14 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Only admin or creator can delete
-    if (user.role !== 'admin' && existingEvent.createdBy !== user.userId) {
+    // Admin, Operator can delete any event, Gestionnaire/Architect can delete their own
+    const canDelete = 
+      user.role === 'admin' || 
+      user.role === 'operator' || 
+      (existingEvent.createdBy === user.userId && 
+       (user.role === 'gestionnaire' || user.role === 'architect'));
+    
+    if (!canDelete) {
       return NextResponse.json(
         { error: 'Non autorisé à supprimer cet événement' },
         { status: 403 }

@@ -122,7 +122,7 @@ export function ClientDetailsHeader({ client, onUpdate }: ClientDetailsHeaderPro
             </div>
             <div className="flex items-center gap-2">
               <User className="w-4 h-4" />
-              <span>Architecte: {client.architecteAssigne}</span>
+              <span>Architecte: {client.architecteAssigne || 'Non assigné'}</span>
             </div>
             {client.magasin && (
               <div className="flex items-center gap-2">

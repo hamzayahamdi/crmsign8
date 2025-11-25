@@ -33,7 +33,7 @@ interface LeadsTableProps {
   onLeadClick: (lead: Lead) => void
   onDeleteLead: (leadId: string) => void
   onViewHistory?: (lead: Lead) => void
-  onConvertToClient?: (lead: Lead, architectId: string) => void
+  onConvertToClient?: (lead: Lead) => void
   searchQuery: string
   filters: {
     status: "all" | LeadStatus
@@ -54,6 +54,7 @@ const statusConfig: Record<LeadStatus, { label: string; color: string; icon: str
   a_recontacter: { label: "À recontacter", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40", icon: "🟡" },
   sans_reponse: { label: "Sans réponse", color: "bg-orange-500/20 text-orange-400 border-orange-500/40", icon: "🟠" },
   non_interesse: { label: "Non intéressé", color: "bg-red-500/20 text-red-400 border-red-500/40", icon: "🔴" },
+  converti: { label: "Converti", color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40", icon: "✅" },
   qualifie: { label: "Qualifié", color: "bg-blue-500/20 text-blue-400 border-blue-500/40", icon: "🔵" },
   refuse: { label: "Refusé", color: "bg-gray-500/20 text-gray-400 border-gray-500/40", icon: "⚫" },
 }
@@ -350,16 +351,7 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, on
         }}
       >
         <table className="w-full table-fixed">
-          <colgroup>
-            <col className="w-[18%]" /> {/* Contact */}
-            <col className="w-[10%]" /> {/* Ville */}
-            <col className="w-[12%]" /> {/* Bien - increased width */}
-            <col className="w-[16%]" /> {/* Source - increased width */}
-            <col className="w-[12%]" /> {/* Assigné à */}
-            <col className="w-[10%]" /> {/* Statut */}
-            <col className="w-[10%]" /> {/* Priorité */}
-            <col className="w-[12%]" /> {/* Durée */}
-          </colgroup>
+          <colgroup><col className="w-[18%]" /><col className="w-[10%]" /><col className="w-[12%]" /><col className="w-[16%]" /><col className="w-[12%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[12%]" /></colgroup>
           <thead className="bg-slate-800/20 border-b border-[#1F2937] sticky top-0 z-10 backdrop-blur-sm">
             <tr>
               <th 
@@ -637,12 +629,7 @@ export function LeadsTable({ leads, onLeadClick, onDeleteLead, onViewHistory, on
           setActionDialogOpen(false)
           onLeadClick(lead)
         }}
-        onConvertToClient={(lead, architectId) => {
-          setActionDialogOpen(false)
-          if (onConvertToClient) {
-            onConvertToClient(lead, architectId)
-          }
-        }}
+        onConvertToClient={onConvertToClient}
       />
     </div>
   )

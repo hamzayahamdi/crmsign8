@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { CalendarEventWithDetails } from '@/types/calendar';
 import { EVENT_TYPE_CONFIG } from '@/types/calendar';
+import { EventBadge } from '@/components/event-badge';
 import { 
   format, 
   startOfMonth, 
@@ -20,7 +21,7 @@ import {
   isWithinInterval
 } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, Clock, CheckSquare, Phone, AlertCircle, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 
@@ -165,6 +166,16 @@ function MonthView({
     });
   };
 
+  const getEventIcon = (eventType: string) => {
+    const iconMap: Record<string, React.ReactNode> = {
+      rendez_vous: <Clock className="w-3 h-3" />,
+      suivi_projet: <CheckSquare className="w-3 h-3" />,
+      appel_reunion: <Phone className="w-3 h-3" />,
+      urgent: <AlertCircle className="w-3 h-3" />
+    };
+    return iconMap[eventType] || null;
+  };
+
   return (
     <div className="flex-1 flex flex-col">
       {/* Week day headers */}
@@ -172,7 +183,7 @@ function MonthView({
         {weekDays.map((day) => (
           <div
             key={day}
-            className="bg-muted/30 p-2 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+            className="bg-gradient-to-b from-muted/50 to-muted/20 p-3 text-center text-xs font-bold text-foreground/70 uppercase tracking-widest"
           >
             {day}
           </div>
@@ -185,66 +196,94 @@ function MonthView({
           const dayEvents = getEventsForDay(day);
           const isCurrentMonth = isSameMonth(day, currentDate);
           const isTodayDate = isToday(day);
+          const hasEvents = dayEvents.length > 0;
 
           return (
             <motion.div
               key={index}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: index * 0.01 }}
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.005 }}
               onClick={() => onDateClick(day)}
               className={`
-                bg-card p-2 min-h-[120px] cursor-pointer
-                hover:bg-accent/50 transition-colors
-                ${!isCurrentMonth ? 'opacity-40' : ''}
+                bg-card p-2.5 min-h-[130px] cursor-pointer
+                transition-all duration-200
+                ${isTodayDate ? 'bg-gradient-to-br from-primary/5 to-primary/10 ring-2 ring-primary/20 shadow-md' : ''}
+                ${hasEvents && !isTodayDate ? 'hover:shadow-md hover:bg-accent/40' : ''}
+                ${!isCurrentMonth ? 'opacity-30 bg-muted/20' : ''}
               `}
             >
               <div className="flex flex-col h-full">
                 <div className={`
-                  text-sm font-medium mb-2 w-7 h-7 flex items-center justify-center rounded-full
-                  ${isTodayDate ? 'bg-primary text-primary-foreground shadow-lg' : 'text-foreground'}
+                  text-sm font-bold mb-2 w-8 h-8 flex items-center justify-center rounded-lg
+                  ${isTodayDate 
+                    ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg' 
+                    : 'text-foreground/70 hover:bg-muted/50'
+                  }
+                  transition-colors
                 `}>
                   {format(day, 'd')}
                 </div>
                 
-                <div className="space-y-1 flex-1 overflow-hidden">
-                  {dayEvents.slice(0, 3).map((event) => {
+                <div className="space-y-1.5 flex-1 overflow-hidden">
+                  {dayEvents.slice(0, 3).map((event, eventIdx) => {
                     const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
                     const isTeamEvent = event.participants && event.participants.length > 0;
-                    const totalParticipants = isTeamEvent ? event.participants.length + 1 : 1; // +1 for assignedTo
+                    const totalParticipants = isTeamEvent ? event.participants.length + 1 : 1;
+                    const isTask = event.eventType === 'suivi_projet';
+                    const isRDV = event.eventType === 'rendez_vous';
                     
                     return (
-                      <div
+                      <motion.div
                         key={event.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: eventIdx * 0.05 }}
                         onClick={(e) => {
                           e.stopPropagation();
                           onEventClick(event);
                         }}
                         className={`
-                          text-xs p-1.5 rounded border-l-2 ${eventConfig.borderColor} ${eventConfig.chipBg}
-                          backdrop-blur-sm hover:shadow-md transition-all cursor-pointer ring-1 ring-border/40
-                          ${isTeamEvent ? 'ring-2 ring-primary/30' : ''}
+                          text-xs p-2 rounded-lg border-l-[3px] ${eventConfig.borderColor}
+                          ${eventConfig.chipBg}
+                          backdrop-blur-sm hover:shadow-lg hover:scale-102 transition-all duration-200
+                          cursor-pointer ring-1 ring-border/30
+                          ${isTeamEvent ? 'ring-2 ring-primary/40' : ''}
+                          ${isTask ? 'border-l-[4px]' : ''}
                         `}
                       >
-                        <div className="flex items-center gap-1 justify-between">
-                          <div className="flex items-center gap-1 flex-1 min-w-0">
-                            <span className={`w-1.5 h-1.5 rounded-full ${eventConfig.color} shrink-0`} />
-                            <span className={`truncate font-medium ${eventConfig.chipText}`}>{event.title}</span>
+                        <div className="flex items-start justify-between gap-1 mb-1">
+                          <div className="flex items-start gap-1.5 flex-1 min-w-0">
+                            <div className={`
+                              w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5
+                              ${eventConfig.color} text-white
+                            `}>
+                              {getEventIcon(event.eventType)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`truncate font-semibold ${eventConfig.chipText}`}>
+                                {event.title.replace('[TÂCHE] ', '')}
+                              </p>
+                            </div>
                           </div>
                           {isTeamEvent && (
-                            <div className="flex items-center gap-0.5 shrink-0">
-                              <Users className="h-3 w-3 text-primary" />
-                              <span className="text-[10px] font-bold text-primary">{totalParticipants}</span>
+                            <div className="flex items-center gap-0.5 shrink-0 bg-primary/15 rounded-full px-1.5 py-0.5">
+                              <Users className="h-2.5 w-2.5 text-primary" />
+                              <span className="text-[9px] font-bold text-primary">{totalParticipants}</span>
                             </div>
                           )}
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })}
                   {dayEvents.length > 3 && (
-                    <div className="text-xs text-muted-foreground pl-1 font-medium">
-                      +{dayEvents.length - 3} autres
-                    </div>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-xs text-muted-foreground pl-1.5 font-semibold"
+                    >
+                      +{dayEvents.length - 3} {dayEvents.length - 3 === 1 ? 'autre' : 'autres'}
+                    </motion.div>
                   )}
                 </div>
               </div>
@@ -283,71 +322,117 @@ function WeekView({
     });
   };
 
+  const getEventIcon = (eventType: string) => {
+    const iconMap: Record<string, React.ReactNode> = {
+      rendez_vous: <Clock className="w-3 h-3" />,
+      suivi_projet: <CheckSquare className="w-3 h-3" />,
+      appel_reunion: <Phone className="w-3 h-3" />,
+      urgent: <AlertCircle className="w-3 h-3" />
+    };
+    return iconMap[eventType] || null;
+  };
+
   return (
-    <div className="grid grid-cols-7 gap-3 flex-1">
-      {weekDays.map((day) => {
+    <div className="grid grid-cols-7 gap-2.5 flex-1">
+      {weekDays.map((day, dayIdx) => {
         const dayEvents = getEventsForDay(day);
         const isTodayDate = isToday(day);
+        const hasEvents = dayEvents.length > 0;
 
         return (
-          <div
+          <motion.div
             key={day.toString()}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: dayIdx * 0.05 }}
             onClick={() => onDateClick(day)}
-            className="flex flex-col bg-card rounded-lg border border-border/40 p-3 cursor-pointer hover:bg-accent/30 transition-all"
+            className={`
+              flex flex-col bg-card rounded-xl border-2 p-3 cursor-pointer
+              transition-all duration-200
+              ${isTodayDate 
+                ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg' 
+                : 'border-border/40 hover:border-primary/30 hover:shadow-md'
+              }
+            `}
           >
             <div className={`
-              text-center mb-3 pb-2 border-b border-border/40
-              ${isTodayDate ? 'text-primary' : ''}
+              text-center mb-3 pb-3 border-b-2
+              ${isTodayDate ? 'border-primary/30' : 'border-border/20'}
             `}>
-              <div className="text-xs font-medium uppercase mb-1 text-muted-foreground">
+              <div className="text-xs font-bold uppercase mb-1.5 text-muted-foreground">
                 {format(day, 'EEE', { locale: fr })}
               </div>
               <div className={`
-                text-2xl font-bold inline-flex items-center justify-center w-10 h-10 rounded-full
-                ${isTodayDate ? 'bg-primary text-primary-foreground shadow-lg' : 'text-foreground'}
+                text-3xl font-bold inline-flex items-center justify-center w-12 h-12 rounded-xl
+                transition-all
+                ${isTodayDate 
+                  ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg' 
+                  : 'text-foreground hover:bg-muted/50'
+                }
               `}>
                 {format(day, 'd')}
               </div>
             </div>
 
-            <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar">
-              {dayEvents.map((event) => {
-                const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
-                const isTeamEvent = event.participants && event.participants.length > 0;
-                const totalParticipants = isTeamEvent ? event.participants.length + 1 : 1;
-                
-                return (
-                  <div
-                    key={event.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEventClick(event);
-                    }}
-                    className={`
-                      p-2 rounded-lg border-l-2 ${eventConfig.borderColor} ${eventConfig.chipBg}
-                      backdrop-blur-sm hover:shadow-md transition-all cursor-pointer ring-1 ring-border/40
-                      ${isTeamEvent ? 'ring-2 ring-primary/30' : ''}
-                    `}
-                  >
-                    <div className="flex items-start justify-between gap-1 mb-1">
-                      <div className={`text-xs font-semibold line-clamp-2 flex-1 ${eventConfig.chipText}`}>
-                        {event.title}
-                      </div>
-                      {isTeamEvent && (
-                        <div className="flex items-center gap-0.5 shrink-0 bg-primary/10 px-1.5 py-0.5 rounded-full">
-                          <Users className="h-3 w-3 text-primary" />
-                          <span className="text-[10px] font-bold text-primary">{totalParticipants}</span>
+            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
+              {dayEvents.length === 0 ? (
+                <div className="text-xs text-muted-foreground/50 text-center py-4">
+                  Aucun événement
+                </div>
+              ) : (
+                dayEvents.map((event, eventIdx) => {
+                  const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
+                  const isTeamEvent = event.participants && event.participants.length > 0;
+                  const totalParticipants = isTeamEvent ? event.participants.length + 1 : 1;
+                  
+                  return (
+                    <motion.div
+                      key={event.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: eventIdx * 0.05 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEventClick(event);
+                      }}
+                      className={`
+                        p-2.5 rounded-lg border-l-[4px] ${eventConfig.borderColor}
+                        ${eventConfig.chipBg}
+                        backdrop-blur-sm hover:shadow-lg hover:scale-105 transition-all duration-200
+                        cursor-pointer ring-1 ring-border/30
+                        ${isTeamEvent ? 'ring-2 ring-primary/40' : ''}
+                      `}
+                    >
+                      <div className="flex items-start justify-between gap-1 mb-1">
+                        <div className="flex items-start gap-1.5 flex-1 min-w-0">
+                          <div className={`
+                            w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5
+                            ${eventConfig.color} text-white
+                          `}>
+                            {getEventIcon(event.eventType)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-semibold line-clamp-1 ${eventConfig.chipText}`}>
+                              {event.title.replace('[TÂCHE] ', '')}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {format(new Date(event.startDate), 'HH:mm')}
+                            </p>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {format(new Date(event.startDate), 'HH:mm')}
-                    </div>
-                  </div>
-                );
-              })}
+                        {isTeamEvent && (
+                          <div className="flex items-center gap-0.5 shrink-0 bg-primary/15 rounded-full px-1 py-0.5">
+                            <Users className="h-2.5 w-2.5 text-primary" />
+                            <span className="text-[9px] font-bold text-primary">{totalParticipants}</span>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
             </div>
-          </div>
+          </motion.div>
         );
       })}
     </div>
@@ -372,116 +457,140 @@ function DayView({
 
   const hours = Array.from({ length: 24 }, (_, i) => i);
 
+  const getEventIcon = (eventType: string) => {
+    const iconMap: Record<string, React.ReactNode> = {
+      rendez_vous: <Clock className="w-4 h-4" />,
+      suivi_projet: <CheckSquare className="w-4 h-4" />,
+      appel_reunion: <Phone className="w-4 h-4" />,
+      urgent: <AlertCircle className="w-4 h-4" />
+    };
+    return iconMap[eventType] || null;
+  };
+
   return (
-    <div className="flex-1 bg-card rounded-lg border border-border/40 overflow-hidden">
-      <div className="flex h-full">
-        {/* Time column */}
-        <div className="w-16 border-r border-border/40 bg-muted/20">
-          {hours.map((hour) => (
-            <div
-              key={hour}
-              className="h-14 border-b border-border/20 px-2 py-1 text-xs text-muted-foreground font-medium"
-            >
-              {hour.toString().padStart(2, '0')}:00
+    <div className="flex-1 bg-card rounded-xl border border-border/40 overflow-hidden flex flex-col">
+      {/* Day header */}
+      <div className="p-4 border-b border-border/40 bg-gradient-to-r from-muted/20 to-muted/10">
+        <h2 className="text-2xl font-bold text-foreground mb-1">
+          {format(currentDate, 'EEEE', { locale: fr })}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {format(currentDate, 'd MMMM yyyy', { locale: fr })}
+        </p>
+      </div>
+
+      {/* Events list */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        {dayEvents.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground p-8">
+            <div className="text-center">
+              <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p className="text-lg font-medium">Aucun événement pour cette journée</p>
+              <p className="text-sm mt-1">Votre agenda est libre!</p>
             </div>
-          ))}
-        </div>
-
-        {/* Events column */}
-        <div className="flex-1 relative overflow-y-auto custom-scrollbar">
-          {hours.map((hour) => (
-            <div
-              key={hour}
-              className="h-14 border-b border-border/20"
-            />
-          ))}
-
-          {/* Events overlay */}
-          <div className="absolute inset-0 p-3">
-            {dayEvents.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                Aucun événement pour cette journée
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {dayEvents.map((event) => {
-                  const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
-                  const startDate = new Date(event.startDate);
-                  const isTeamEvent = event.participants && event.participants.length > 0;
-                  const totalParticipants = isTeamEvent ? event.participants.length + 1 : 1;
-                  
-                  return (
-                    <motion.div
-                      key={event.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      onClick={() => onEventClick(event)}
-                      className={`
-                        p-4 rounded-lg border-l-4 ${eventConfig.borderColor} ${eventConfig.bgLight}
-                        backdrop-blur-sm cursor-pointer hover:shadow-lg transition-all
-                        ${isTeamEvent ? 'ring-2 ring-primary/30' : ''}
-                      `}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-base text-foreground mb-1">{event.title}</h3>
-                          {isTeamEvent && (
-                            <div className="flex items-center gap-2 mt-2">
-                              <div className="flex items-center -space-x-2">
-                                {/* Assigned user avatar */}
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-xs font-bold ring-2 ring-background shadow-md z-10">
-                                  {event.assignedToName?.charAt(0).toUpperCase() || 'A'}
-                                </div>
-                                {/* Participant avatars */}
-                                {event.participantDetails?.slice(0, 3).map((participant, idx) => (
-                                  <div 
-                                    key={participant.id}
-                                    className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold ring-2 ring-background shadow-md"
-                                    style={{ zIndex: 9 - idx }}
-                                  >
-                                    {participant.name.charAt(0).toUpperCase()}
-                                  </div>
-                                ))}
-                                {event.participants && event.participants.length > 3 && (
-                                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white text-xs font-bold ring-2 ring-background shadow-md">
-                                    +{event.participants.length - 3}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1 px-2 py-1 bg-primary/10 rounded-full">
-                                <Users className="h-3.5 w-3.5 text-primary" />
-                                <span className="text-xs font-semibold text-primary">{totalParticipants} participants</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <span className={`px-2.5 py-1 rounded-full text-xs ${eventConfig.color} text-white shrink-0 ml-2 shadow-sm`}>
-                          {eventConfig.label}
-                        </span>
-                      </div>
-                      
-                      <div className="text-sm text-muted-foreground mb-2 font-medium">
-                        {format(startDate, 'HH:mm')} - {format(new Date(event.endDate), 'HH:mm')}
-                      </div>
-
-                      {event.description && (
-                        <p className="text-sm text-foreground/80 mb-2">
-                          {event.description}
-                        </p>
-                      )}
-
-                      {event.location && (
-                        <div className="text-sm text-muted-foreground">
-                          📍 {event.location}
-                        </div>
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
           </div>
-        </div>
+        ) : (
+          <div className="p-4 space-y-3">
+            {dayEvents.map((event, idx) => {
+              const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
+              const startDate = new Date(event.startDate);
+              const endDate = new Date(event.endDate);
+              const isTeamEvent = event.participants && event.participants.length > 0;
+              const totalParticipants = isTeamEvent ? event.participants.length + 1 : 1;
+              const isTask = event.eventType === 'suivi_projet';
+              const isRDV = event.eventType === 'rendez_vous';
+              
+              return (
+                <motion.div
+                  key={event.id}
+                  initial={{ opacity: 0, x: -20, y: 10 }}
+                  animate={{ opacity: 1, x: 0, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  onClick={() => onEventClick(event)}
+                  className={`
+                    p-4 rounded-xl border-l-[5px] ${eventConfig.borderColor}
+                    ${eventConfig.bgLight}
+                    backdrop-blur-sm cursor-pointer hover:shadow-xl transition-all duration-200
+                    ${isTeamEvent ? 'ring-2 ring-primary/40 shadow-md' : 'shadow-sm hover:shadow-lg'}
+                    group
+                  `}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2.5 mb-1">
+                        <div className={`
+                          w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                          ${eventConfig.color} text-white
+                        `}>
+                          {getEventIcon(event.eventType)}
+                        </div>
+                        <h3 className={`font-bold text-lg ${eventConfig.chipText} group-hover:translate-x-0.5 transition-transform`}>
+                          {event.title.replace('[TÂCHE] ', '')}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <EventBadge event={event} size="md" showIcon={true} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Time info */}
+                  <div className="flex items-center gap-4 mb-3 px-10">
+                    <div className="flex items-center gap-1 text-sm font-semibold text-muted-foreground">
+                      <Clock className="w-4 h-4" />
+                      {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  {event.description && (
+                    <div className="mb-3 px-10 text-sm text-foreground/80">
+                      {event.description}
+                    </div>
+                  )}
+
+                  {/* Location */}
+                  {event.location && (
+                    <div className="mb-3 px-10 flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>📍</span>
+                      {event.location}
+                    </div>
+                  )}
+
+                  {/* Team info */}
+                  {isTeamEvent && (
+                    <div className="mt-3 px-10 pt-3 border-t border-border/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-semibold text-primary">{totalParticipants} participants</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-xs font-bold ring-2 ring-background shadow-md" title={event.assignedToName}>
+                          {event.assignedToName?.charAt(0).toUpperCase() || 'A'}
+                        </div>
+                        {event.participantDetails?.slice(0, 3).map((participant, pidx) => (
+                          <div 
+                            key={participant.id}
+                            className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold ring-2 ring-background shadow-md"
+                            title={participant.name}
+                            style={{ zIndex: 9 - pidx }}
+                          >
+                            {participant.name.charAt(0).toUpperCase()}
+                          </div>
+                        ))}
+                        {event.participants && event.participants.length > 3 && (
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white text-xs font-bold ring-2 ring-background shadow-md text-center">
+                            +{event.participants.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,12 +1,15 @@
 "use client"
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useEnhancedInfiniteScroll } from '@/hooks/useEnhancedInfiniteScroll'
 import { LeadsService } from '@/lib/leads-service'
 import { LeadsTable } from '@/components/leads-table'
 import { LeadModal } from '@/components/lead-modal'
+import { ArchitectSelectionDialog } from '@/components/architect-selection-dialog-improved'
 import type { Lead, LeadStatus, LeadPriority } from '@/types/lead'
 import { Loader2, AlertCircle } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface LeadsTableWithInfiniteScrollProps {
   searchQuery?: string
@@ -29,8 +32,11 @@ export function LeadsTableWithInfiniteScroll({
     priority: 'all'
   }
 }: LeadsTableWithInfiniteScrollProps) {
+  const router = useRouter()
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isArchitectModalOpen, setIsArchitectModalOpen] = useState(false)
+  const [leadToConvert, setLeadToConvert] = useState<Lead | null>(null)
 
   // Use the enhanced infinite scroll hook with eager loading
   const {
@@ -92,6 +98,87 @@ export function LeadsTableWithInfiniteScroll({
   const handleLeadSave = async () => {
     // Reset and reload data after save
     reset()
+  }
+
+  // Handle convert to client
+  const handleConvertToClient = (lead: Lead) => {
+    console.log('🔄 [Conversion] Opening architect selection modal for lead:', lead.id, lead.nom)
+    setLeadToConvert(lead)
+    setIsArchitectModalOpen(true)
+  }
+
+  // Handle architect selected
+  const handleArchitectSelected = async (architectId: string) => {
+    if (!leadToConvert) return
+
+    console.log('🔄 [Conversion] Architect selected:', architectId || 'none', 'for lead:', leadToConvert.id)
+    
+    setIsArchitectModalOpen(false)
+    const lead = leadToConvert
+    setLeadToConvert(null)
+
+    const loadingToast = toast.loading(`Conversion de ${lead.nom} en contact...`)
+
+    try {
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        toast.dismiss(loadingToast)
+        toast.error("Non authentifié. Veuillez vous reconnecter.")
+        return
+      }
+
+      const response = await fetch(`/api/contacts/convert-lead`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          leadId: lead.id,
+          architectId: architectId || undefined,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        toast.dismiss(loadingToast)
+        toast.error(errorData.error || "Échec de la conversion.")
+        return
+      }
+
+      const data = await response.json()
+      
+      if (!data.contact || !data.contact.id) {
+        toast.dismiss(loadingToast)
+        toast.error("Conversion incomplète. Rechargez la page.")
+        return
+      }
+      
+      toast.dismiss(loadingToast)
+      toast.success(`✨ ${lead.nom} a été converti en contact avec succès !`, {
+        description: "Redirection vers le profil du contact...",
+        duration: 2000,
+      })
+      
+      // Reset and reload data
+      reset()
+
+      // Redirect to contact details page with conversion flag after a short delay
+      const contactId = data.contact.id
+      console.log('🔄 [Leads Table] Redirecting to:', `/contacts/${contactId}`)
+      
+      // Use setTimeout to ensure redirect happens after toast is shown
+      // Use window.location.href for more reliable navigation
+      setTimeout(() => {
+        window.location.href = `/contacts/${contactId}?converted=true`
+      }, 800)
+      
+    } catch (error) {
+      console.error("❌ [Conversion] Error:", error)
+      toast.dismiss(loadingToast)
+      toast.error("Échec de la conversion. Veuillez réessayer.")
+    }
   }
 
   // Loading state - first page
@@ -182,6 +269,7 @@ export function LeadsTableWithInfiniteScroll({
         leads={leads}
         onLeadClick={handleLeadClick}
         onDeleteLead={handleDeleteLead}
+        onConvertToClient={handleConvertToClient}
         searchQuery={searchQuery}
         filters={filters}
       />
@@ -193,6 +281,25 @@ export function LeadsTableWithInfiniteScroll({
           open={isModalOpen}
           onOpenChange={handleModalClose}
           onSave={handleLeadSave}
+        />
+      )}
+
+      {/* Architect Selection Modal for Lead Conversion */}
+      {leadToConvert && (
+        <ArchitectSelectionDialog
+          open={isArchitectModalOpen}
+          onOpenChange={(open) => {
+            setIsArchitectModalOpen(open)
+            if (!open) {
+              setLeadToConvert(null)
+            }
+          }}
+          onBack={() => {
+            setIsArchitectModalOpen(false)
+            setLeadToConvert(null)
+          }}
+          onArchitectSelected={handleArchitectSelected}
+          leadName={leadToConvert.nom}
         />
       )}
     </div>

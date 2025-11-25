@@ -1,7 +1,7 @@
 "use client"
 
 import type { Client, ProjectStatus } from "@/types/client"
-import { Phone, MapPin, User, Calendar, Eye, ArrowUpDown, ArrowUp, ArrowDown, Building2, Edit2, Trash2 } from "lucide-react"
+import { MapPin, User, Eye, ArrowUpDown, ArrowUp, ArrowDown, Building2, Edit2, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -26,18 +26,19 @@ interface ClientsTableProps {
 
 // Use centralized status config for unified colors/labels
 
-type SortField = 'nom' | 'ville' | 'typeProjet' | 'architecteAssigne' | 'statutProjet' | 'derniereMaj'
+type SortField = 'nomProjet' | 'nom' | 'ville' | 'typeProjet' | 'architecteAssigne' | 'statutProjet' | 'budget'
 type SortOrder = 'asc' | 'desc'
 
 export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteClient, searchQuery, filters, isLoading = false }: ClientsTableProps) {
-  const [sortField, setSortField] = useState<SortField>('derniereMaj')
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
+  const [sortField, setSortField] = useState<SortField>('nomProjet')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
 
   const passesSearch = (client: Client) => {
     if (!normalizedQuery) return true
     const haystack = [
+      client.nomProjet ?? "",
       client.nom,
       client.telephone,
       client.ville,
@@ -83,10 +84,16 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
     let aValue: any = a[sortField]
     let bValue: any = b[sortField]
 
-    // Handle date fields
-    if (sortField === 'derniereMaj') {
-      aValue = new Date(aValue).getTime()
-      bValue = new Date(bValue).getTime()
+    // Handle budget (number field with potential null/undefined)
+    if (sortField === 'budget') {
+      aValue = a.budget ?? 0
+      bValue = b.budget ?? 0
+    }
+
+    // Handle nomProjet (may be undefined, fall back to nom)
+    if (sortField === 'nomProjet') {
+      aValue = (a.nomProjet || a.nom || '').toLowerCase()
+      bValue = (b.nomProjet || b.nom || '').toLowerCase()
     }
 
     // Handle string fields
@@ -163,36 +170,41 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
       <div className="overflow-x-auto">
         <table className="w-full table-fixed">
           <colgroup>
-            <col className="w-[25%]" />
-            <col className="w-[12%]" />
-            <col className="w-[12%]" />
+            <col className="w-[22%]" />
+            <col className="w-[14%]" />
+            <col className="w-[14%]" />
             <col className="w-[13%]" />
-            <col className="w-[13%]" />
-            <col className="w-[12%]" />
-            <col className="w-[10%]" />
+            <col className="w-[15%]" />
+            <col className="w-[14%]" />
             <col className="w-[8%]" />
           </colgroup>
           <thead className="bg-slate-800/20 border-b border-slate-200/10">
             <tr>
               <th className="px-6 py-4 text-left">
                 <button
-                  onClick={() => handleSort('nom')}
+                  onClick={() => handleSort('nomProjet')}
                   className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
                 >
-                  Nom du client
-                  {getSortIcon('nom')}
+                  Nom de projet
+                  {getSortIcon('nomProjet')}
                 </button>
-              </th>
-              <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Téléphone
               </th>
               <th className="px-4 py-4 text-left">
                 <button
-                  onClick={() => handleSort('ville')}
+                  onClick={() => handleSort('budget')}
                   className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
                 >
-                  Ville
-                  {getSortIcon('ville')}
+                  Montant
+                  {getSortIcon('budget')}
+                </button>
+              </th>
+              <th className="px-4 py-4 text-left">
+                <button
+                  onClick={() => handleSort('statutProjet')}
+                  className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
+                >
+                  Statut
+                  {getSortIcon('statutProjet')}
                 </button>
               </th>
               <th className="px-4 py-4 text-left">
@@ -215,20 +227,11 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
               </th>
               <th className="px-4 py-4 text-left">
                 <button
-                  onClick={() => handleSort('statutProjet')}
+                  onClick={() => handleSort('ville')}
                   className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
                 >
-                  Statut
-                  {getSortIcon('statutProjet')}
-                </button>
-              </th>
-              <th className="px-4 py-4 text-left">
-                <button
-                  onClick={() => handleSort('derniereMaj')}
-                  className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
-                >
-                  Dernière MAJ
-                  {getSortIcon('derniereMaj')}
+                  Ville
+                  {getSortIcon('ville')}
                 </button>
               </th>
               <th className="px-4 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
@@ -252,43 +255,32 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
                   className="hover:bg-slate-700/20 transition-all duration-200 group cursor-pointer"
                   onClick={() => onClientClick(client)}
                 >
-                  {/* Nom du client */}
+                  {/* Nom de projet (Opportunity Title) */}
                   <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-sm font-semibold text-white truncate">{client.nom}</p>
-                      {client.email && (
-                        <p className="text-xs text-slate-400 truncate">{client.email}</p>
+                    <div className="flex flex-col gap-0.5">
+                      {client.nomProjet ? (
+                        <>
+                          <p className="text-sm font-semibold text-white truncate">
+                            {client.nomProjet}
+                          </p>
+                          <p className="text-xs text-slate-400 truncate">{client.nom}</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-medium text-slate-400 truncate">
+                            {client.nom}
+                          </p>
+                          <p className="text-xs text-slate-500 italic">Pas d'opportunité</p>
+                        </>
                       )}
                     </div>
                   </td>
 
-                  {/* Téléphone */}
+                  {/* Montant/Budget */}
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <Phone className="w-3.5 h-3.5" />
-                      <span className="text-xs">{client.telephone}</span>
-                    </div>
-                  </td>
-
-                  {/* Ville */}
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <MapPin className="w-3.5 h-3.5" />
-                      <span className="text-sm text-white">{client.ville}</span>
-                    </div>
-                  </td>
-
-                  {/* Type de projet */}
-                  <td className="px-4 py-4">
-                    <span className="text-sm font-medium text-white">{formatProjectType(client.typeProjet)}</span>
-                  </td>
-
-                  {/* Architecte */}
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="text-sm font-medium text-white">{client.architecteAssigne}</span>
-                    </div>
+                    <span className="text-sm font-semibold text-emerald-400">
+                      {client.budget ? `${client.budget.toLocaleString()} DH` : '-'}
+                    </span>
                   </td>
 
                   {/* Statut */}
@@ -298,11 +290,27 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
                     </Badge>
                   </td>
 
-                  {/* Dernière MAJ */}
+                  {/* Type de projet */}
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="text-xs text-slate-300">{formatDate(client.derniereMaj)}</span>
+                    <div className="flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="text-sm text-slate-300">{formatProjectType(client.typeProjet)}</span>
+                    </div>
+                  </td>
+
+                  {/* Architecte */}
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="text-sm text-slate-300">{client.architecteAssigne}</span>
+                    </div>
+                  </td>
+
+                  {/* Ville */}
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="text-sm text-slate-300">{client.ville}</span>
                     </div>
                   </td>
 

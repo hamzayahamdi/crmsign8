@@ -22,6 +22,13 @@ export const sidebarPermissions: SidebarItem[] = [
     label: 'Tableau des Leads',
     href: '/',
     icon: 'Home',
+    roles: ['Admin', 'Operator', 'Gestionnaire']
+  },
+  {
+    id: 'contacts',
+    label: 'Contacts',
+    href: '/contacts',
+    icon: 'Briefcase',
     roles: ['Admin', 'Operator', 'Gestionnaire', 'Architect']
   },
   {
@@ -77,11 +84,23 @@ export const sidebarPermissions: SidebarItem[] = [
 
 /**
  * Module permissions - defines what each role can access
+ * 
+ * NOTE: Gestionnaire (Project Manager) has access to:
+ * - Leads: Can view, create, edit (cannot delete)
+ * - Contacts, Clients, Opportunities: Can view all, create, edit (cannot delete)
+ * - Tasks & Calendar: Can view/manage ONLY their OWN
+ * - CANNOT access: Architects, Users, Settings
  */
 export const modulePermissions = {
   leads: {
     view: ['Admin', 'Operator', 'Gestionnaire', 'Architect', 'Commercial', 'Magasiner'],
     create: ['Admin', 'Operator', 'Gestionnaire', 'Commercial', 'Magasiner'],
+    edit: ['Admin', 'Operator', 'Gestionnaire'],
+    delete: ['Admin', 'Operator']
+  },
+  contacts: {
+    view: ['Admin', 'Operator', 'Gestionnaire', 'Architect'],
+    create: ['Admin', 'Operator', 'Gestionnaire'],
     edit: ['Admin', 'Operator', 'Gestionnaire'],
     delete: ['Admin', 'Operator']
   },
@@ -91,6 +110,12 @@ export const modulePermissions = {
     edit: ['Admin', 'Operator', 'Gestionnaire'],
     delete: ['Admin', 'Operator'] // Gestionnaire CANNOT delete
   },
+  opportunities: {
+    view: ['Admin', 'Operator', 'Gestionnaire', 'Architect'],
+    create: ['Admin', 'Operator', 'Gestionnaire'],
+    edit: ['Admin', 'Operator', 'Gestionnaire'],
+    delete: ['Admin', 'Operator']
+  },
   architectes: {
     view: ['Admin', 'Operator'], // Gestionnaire CANNOT access
     create: ['Admin', 'Operator'],
@@ -99,12 +124,16 @@ export const modulePermissions = {
   },
   tasks: {
     view: ['Admin', 'Operator', 'Gestionnaire', 'Architect'],
+    viewAll: ['Admin', 'Operator'], // Only Admin/Operator can see all tasks
+    viewOwn: ['Gestionnaire', 'Architect'], // Gestionnaire/Architect see only their own
     create: ['Admin', 'Operator', 'Gestionnaire'],
     edit: ['Admin', 'Operator', 'Gestionnaire'],
     delete: ['Admin', 'Operator', 'Gestionnaire']
   },
   calendar: {
     view: ['Admin', 'Operator', 'Gestionnaire', 'Architect'],
+    viewAll: ['Admin', 'Operator'], // Only Admin/Operator can see all events
+    viewOwn: ['Gestionnaire', 'Architect'], // Gestionnaire/Architect see only their own
     create: ['Admin', 'Operator', 'Gestionnaire'],
     edit: ['Admin', 'Operator', 'Gestionnaire'],
     delete: ['Admin', 'Operator', 'Gestionnaire']
@@ -237,4 +266,29 @@ export function getRoleLabel(role: string | undefined): string {
     default:
       return role
   }
+}
+
+/**
+ * Check if user role should only see their own data (tasks/calendar)
+ * Gestionnaire and Architect roles have restricted visibility
+ */
+export function canViewAllData(userRole: string | undefined): boolean {
+  if (!userRole) return false
+  
+  const normalizedRole = normalizeRole(userRole)
+  
+  // Only Admin and Operator can see all data
+  return normalizedRole === 'Admin' || normalizedRole === 'Operator'
+}
+
+/**
+ * Check if user should see only their own data
+ */
+export function shouldViewOwnDataOnly(userRole: string | undefined): boolean {
+  if (!userRole) return true
+  
+  const normalizedRole = normalizeRole(userRole)
+  
+  // Gestionnaire and Architect see only their own tasks/calendar
+  return normalizedRole === 'Gestionnaire' || normalizedRole === 'Architect'
 }

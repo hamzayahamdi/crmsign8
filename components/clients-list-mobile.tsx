@@ -2,7 +2,7 @@
 
 import type { Client, ProjectStatus } from "@/types/client"
 import { Badge } from "@/components/ui/badge"
-import { Phone, MapPin, Calendar, ChevronRight } from "lucide-react"
+import { MapPin, ChevronRight, Building2, DollarSign } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface ClientsListMobileProps {
@@ -36,6 +36,7 @@ export function ClientsListMobile({ clients, onClientClick, searchQuery, filters
   const passesSearch = (client: Client) => {
     if (!normalizedQuery) return true
     const haystack = [
+      client.nomProjet || "",
       client.nom,
       client.telephone,
       client.ville,
@@ -96,33 +97,46 @@ export function ClientsListMobile({ clients, onClientClick, searchQuery, filters
             className="w-full text-left glass rounded-xl border border-slate-600/30 p-4 hover:border-primary/40 hover:bg-primary/5 transition-colors"
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-white truncate">{c.nom}</p>
+              <div className="min-w-0 flex-1 space-y-2">
+                {/* Project name & Client name */}
+                <div>
+                  {c.nomProjet ? (
+                    <>
+                      <p className="font-semibold text-white truncate text-sm">{c.nomProjet}</p>
+                      <p className="text-xs text-slate-400 truncate">{c.nom}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium text-slate-400 truncate text-sm">{c.nom}</p>
+                      <p className="text-xs text-slate-500 italic">Pas d'opportunité</p>
+                    </>
+                  )}
                 </div>
-                <div className="mt-1 grid grid-cols-2 gap-2 text-xs text-slate-300">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <Phone className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                    <span className="truncate">{c.telephone}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                    <span className="truncate">{c.ville}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                    <span className="truncate">{formatDate(c.createdAt)}</span>
-                  </div>
-                  {c.architecteAssigne && (
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="w-3.5 h-3.5 rounded-full bg-primary/60 flex-shrink-0" />
-                      <span className="truncate">{c.architecteAssigne}</span>
+                
+                {/* Budget & Status - Most important */}
+                <div className="flex items-center gap-3">
+                  {c.budget && c.budget > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <DollarSign className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                      <span className="text-xs font-semibold text-emerald-400">{c.budget.toLocaleString()} DH</span>
                     </div>
                   )}
+                  <Badge className={cn("border text-[10px] px-2 py-1 whitespace-nowrap", st.color)}>{st.label}</Badge>
+                </div>
+
+                {/* Secondary info */}
+                <div className="flex items-center gap-3 text-xs text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <Building2 className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate capitalize">{c.typeProjet}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{c.ville}</span>
+                  </div>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">
-                <Badge className={cn("border text-[10px] px-2 py-1", st.color)}>{st.label}</Badge>
                 <ChevronRight className="w-4 h-4 text-slate-400" />
               </div>
             </div>

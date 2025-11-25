@@ -81,14 +81,22 @@ export function ProjectInformationCard({ client }: ProjectInformationCardProps) 
           ) : null
         })()}
 
-        {client.notes && (
-          <div className="flex items-start gap-3">
+        {(client.notes || client.nomProjet) && (
+          <div className="flex items-start gap-3 md:col-span-3">
             <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5 text-purple-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-white/40 mb-1">Notes</p>
-              <p className="text-sm text-white/80 line-clamp-2">{client.notes}</p>
+              <p className="text-xs text-white/40 mb-1">Notes & Détails</p>
+              {client.nomProjet && (
+                <p className="text-sm text-white font-medium mb-1">Projet: {client.nomProjet}</p>
+              )}
+              {client.notes && (
+                <p className="text-sm text-white/80 whitespace-pre-wrap break-words">{client.notes}</p>
+              )}
+              {!client.notes && !client.nomProjet && (
+                <p className="text-sm text-white/40 italic">Aucune note</p>
+              )}
             </div>
           </div>
         )}

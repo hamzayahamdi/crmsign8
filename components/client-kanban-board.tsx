@@ -19,7 +19,7 @@ import {
   closestCenter,
 } from "@dnd-kit/core"
 import { ClientKanbanCard } from "@/components/client-kanban-card"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from 'sonner'
 import { useAuth } from "@/contexts/auth-context"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -119,7 +119,6 @@ export function ClientKanbanBoard({
   searchQuery = "",
   filters 
 }: ClientKanbanBoardProps) {
-  const { toast } = useToast()
   const { user } = useAuth()
   const [activeClient, setActiveClient] = useState<Client | null>(null)
   const [newlyAddedClientId, setNewlyAddedClientId] = useState<string | null>(null)
@@ -344,8 +343,19 @@ export function ClientKanbanBoard({
     // Apply optimistic update to UI
     onUpdateClient(optimisticClient)
 
-    // Update database
+    // Update database - handle opportunity-based clients differently
     try {
+      // For opportunity-based clients, we can't update via drag-and-drop
+      // They should be updated from the contact details page
+      if (draggedClient.isContact && draggedClient.opportunityId) {
+        console.log('[Kanban] ⚠️ Cannot drag opportunity-based clients. Please update from contact details.')
+        // Revert optimistic update
+        onUpdateClient(originalClient)
+        setIsUpdating(false)
+        toast.error('Veuillez mettre à jour cette opportunité depuis la page contact')
+        return
+      }
+
       const response = await fetch(`/api/clients/${draggedClient.id}/stage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -401,8 +411,7 @@ export function ClientKanbanBoard({
         ? `${draggedClient.nom} → ${statusLabels[targetStatus]}\n📋 ${result.devisUpdatedCount} devis ${targetStatus === 'accepte' ? 'accepté(s)' : 'refusé(s)'} automatiquement`
         : `${draggedClient.nom} → ${statusLabels[targetStatus]}`
       
-      toast({
-        title: "✅ Projet déplacé",
+      toast.success("✅ Projet déplacé", {
         description: toastDescription,
         duration: result.devisSynced ? 5000 : 3000
       })
@@ -415,10 +424,7 @@ export function ClientKanbanBoard({
       onUpdateClient(originalClient)
       console.log(`[Kanban] ✅ Rollback complete`)
       
-      toast({
-        title: "❌ Erreur de mise à jour",
-        description: error instanceof Error ? error.message : "Impossible de déplacer le projet. Veuillez réessayer.",
-        variant: "destructive",
+      toast.error(error instanceof Error ? error.message : "Impossible de déplacer le projet. Veuillez réessayer.", {
         duration: 5000
       })
     } finally {

@@ -34,49 +34,259 @@ export async function GET(
     const { id: clientId } = await params
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Fetch client
-    const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('id', clientId)
-      .single()
+    // Fetch all users to map IDs to names (architects and commercials)
+    const allUsers = await prisma.user.findMany({
+      select: { id: true, name: true, email: true, role: true }
+    })
+    const userNameMap: Record<string, string> = {}
+    allUsers.forEach(user => {
+      userNameMap[user.id] = user.name
+    })
 
-    if (clientError || !client) {
-      return NextResponse.json(
-        { error: 'Client non trouvé' },
-        { status: 404 }
-      )
+    // Check if this is an opportunity-based client (composite ID: contactId-opportunityId)
+    const isOpportunityClient = clientId.includes('-') && clientId.split('-').length === 2
+    
+    let client: any = null
+    let contactId: string | null = null
+    let opportunityId: string | null = null
+
+    if (isOpportunityClient) {
+      // Fetch from contacts/opportunities using Prisma
+      const [contactIdPart, opportunityIdPart] = clientId.split('-')
+      contactId = contactIdPart
+      opportunityId = opportunityIdPart
+
+      const contact = await prisma.contact.findUnique({
+        where: { id: contactId },
+        include: {
+          opportunities: {
+            where: { id: opportunityId }
+          }
+        }
+      })
+
+      if (!contact || !contact.opportunities || contact.opportunities.length === 0) {
+        return NextResponse.json(
+          { error: 'Client non trouvé' },
+          { status: 404 }
+        )
+      }
+
+      const opportunity = contact.opportunities[0]
+      
+      // Map opportunity pipeline stage to project status
+      let status = 'nouveau'
+      if (opportunity.pipelineStage === 'prise_de_besoin') status = 'prise_de_besoin'
+      if (opportunity.pipelineStage === 'projet_accepte') status = 'acompte_recu'
+      if (opportunity.pipelineStage === 'acompte_recu') status = 'acompte_recu'
+      if (opportunity.pipelineStage === 'gagnee') status = 'projet_en_cours'
+      if (opportunity.pipelineStage === 'perdue') status = 'annule'
+
+      // Map opportunity type to project type
+      const typeMap: Record<string, string> = {
+        'villa': 'villa',
+        'appartement': 'appartement',
+        'magasin': 'magasin',
+        'bureau': 'bureau',
+        'riad': 'riad',
+        'studio': 'studio',
+        'renovation': 'autre',
+        'autre': 'autre'
+      }
+      const typeProjet = typeMap[opportunity.type] || 'autre'
+
+      // Map architect and commercial IDs to names
+      const architectId = opportunity.architecteAssigne || contact.architecteAssigne || ''
+      const architectName = architectId ? (userNameMap[architectId] || architectId) : ''
+      
+      const commercialId = contact.createdBy || ''
+      const commercialName = commercialId ? (userNameMap[commercialId] || commercialId) : ''
+
+      // Transform to client format
+      client = {
+        id: clientId,
+        nom: contact.nom,
+        nomProjet: opportunity.titre, // Store opportunity title
+        telephone: contact.telephone,
+        ville: contact.ville || '',
+        type_projet: typeProjet,
+        architecte_assigne: architectName, // Use mapped name instead of ID
+        statut_projet: status,
+        derniere_maj: opportunity.updatedAt,
+        lead_id: contact.leadId,
+        email: contact.email,
+        adresse: contact.adresse,
+        budget: opportunity.budget || 0,
+        notes: [
+          contact.notes || '',
+          opportunity.notes || '',
+          opportunity.description || ''
+        ]
+          .filter(Boolean)
+          .filter(note => {
+            // Remove placeholder/template text
+            const cleanNote = note.trim()
+            return cleanNote && 
+                   !cleanNote.match(/^===.*===\s*$/i) && 
+                   cleanNote !== 'confirmer' &&
+                   !cleanNote.match(/^===\s*Prise de besoin\s*===\s*confirmer$/i)
+          })
+          .join('\n\n') || '', // Combine contact notes, opportunity notes, and description
+        magasin: contact.magasin,
+        commercial_attribue: commercialName, // Use mapped name instead of ID
+        created_at: opportunity.createdAt,
+        updated_at: opportunity.updatedAt,
+        is_contact: true,
+        contact_id: contactId,
+        opportunity_id: opportunityId
+      }
+    } else {
+      // Legacy client - fetch from Supabase
+      const { data: legacyClient, error: clientError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', clientId)
+        .single()
+
+      if (clientError || !legacyClient) {
+        return NextResponse.json(
+          { error: 'Client non trouvé' },
+          { status: 404 }
+        )
+      }
+      client = legacyClient
+      
+      // Map architect and commercial IDs to names for legacy clients
+      if (client.architecte_assigne) {
+        const mappedArchitect = userNameMap[client.architecte_assigne]
+        if (mappedArchitect) {
+          client.architecte_assigne = mappedArchitect
+        }
+      }
+      
+      if (client.commercial_attribue) {
+        const mappedCommercial = userNameMap[client.commercial_attribue]
+        if (mappedCommercial) {
+          client.commercial_attribue = mappedCommercial
+        }
+      }
     }
 
-    // Fetch related data in parallel
-    const [
-      { data: historique },
-      { data: appointments },
-      { data: devis },
-      { data: documents },
-      { data: payments },
-      { data: currentStage }
-    ] = await Promise.all([
-      supabase.from('historique').select('*').eq('client_id', clientId).order('date', { ascending: false }),
-      supabase.from('appointments').select('*').eq('client_id', clientId).order('date_start', { ascending: false }),
-      supabase.from('devis').select('*').eq('client_id', clientId).order('date', { ascending: false }),
-      supabase.from('documents').select('*').eq('client_id', clientId).order('uploaded_at', { ascending: false }),
-      supabase.from('payments').select('*').eq('client_id', clientId).order('date', { ascending: false }),
-      // Fetch current stage from stage history (source of truth)
-      supabase.from('client_stage_history')
-        .select('stage_name')
-        .eq('client_id', clientId)
-        .is('ended_at', null)
-        .order('started_at', { ascending: false })
-        .limit(1)
-        .single()
-    ])
+    // Fetch related data in parallel (only for legacy clients)
+    let historique: any[] = []
+    let appointments: any[] = []
+    let devis: any[] = []
+    let documents: any[] = []
+    let payments: any[] = []
+    let currentStage: any = null
+
+    if (!isOpportunityClient) {
+      // Legacy client - fetch from Supabase
+      const [
+        { data: histData },
+        { data: apptData },
+        { data: devisData },
+        { data: docsData },
+        { data: paymentsData },
+        { data: stageData }
+      ] = await Promise.all([
+        supabase.from('historique').select('*').eq('client_id', clientId).order('date', { ascending: false }),
+        supabase.from('appointments').select('*').eq('client_id', clientId).order('date_start', { ascending: false }),
+        supabase.from('devis').select('*').eq('client_id', clientId).order('date', { ascending: false }),
+        supabase.from('documents').select('*').eq('client_id', clientId).order('uploaded_at', { ascending: false }),
+        supabase.from('payments').select('*').eq('client_id', clientId).order('date', { ascending: false }),
+        // Fetch current stage from stage history (source of truth)
+        supabase.from('client_stage_history')
+          .select('stage_name')
+          .eq('client_id', clientId)
+          .is('ended_at', null)
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .single()
+      ])
+      
+      historique = histData || []
+      appointments = apptData || []
+      devis = devisData || []
+      documents = docsData || []
+      payments = paymentsData || []
+      currentStage = stageData
+    } else {
+      // Opportunity-based client - fetch timeline from Prisma
+      if (contactId && opportunityId) {
+        try {
+          // Fetch timeline entries for this contact/opportunity
+          const timelineEntries = await prisma.timeline.findMany({
+            where: {
+              OR: [
+                { contactId: contactId },
+                { opportunityId: opportunityId }
+              ]
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 100
+          })
+
+          // Transform timeline to historique format and map user IDs to names
+          historique = timelineEntries.map(entry => {
+            let authorName = 'Système'
+            if (entry.author) {
+              // Map user ID to name
+              authorName = userNameMap[entry.author] || 
+                          userNameMap[entry.author.toLowerCase()] || 
+                          entry.author
+            }
+            
+            return {
+              id: entry.id,
+              date: entry.createdAt.toISOString(),
+              type: entry.eventType === 'note_added' ? 'note' : 
+                    entry.eventType === 'appointment_created' ? 'rdv' :
+                    entry.eventType === 'status_changed' ? 'statut' : 'note',
+              description: entry.title || entry.description || '',
+              auteur: authorName,
+              metadata: entry.metadata || {}
+            }
+          })
+
+          // Fetch appointments for this contact/opportunity
+          const oppAppointments = await prisma.appointment.findMany({
+            where: {
+              OR: [
+                { contactId: contactId },
+                { opportunityId: opportunityId }
+              ]
+            },
+            orderBy: { dateStart: 'desc' }
+          })
+
+          appointments = oppAppointments.map(apt => ({
+            id: apt.id,
+            title: apt.title,
+            date_start: apt.dateStart.toISOString(),
+            date_end: apt.dateEnd.toISOString(),
+            description: apt.description,
+            location: apt.location,
+            status: apt.status,
+            notes: apt.notes
+          }))
+        } catch (error) {
+          console.error('[GET /api/clients/[id]] Error fetching opportunity data:', error)
+        }
+      }
+      
+      devis = []
+      documents = []
+      payments = []
+      currentStage = null
+    }
 
     // Prepare lead data & notes (include legacy lead notes for complete history)
     let parsedLeadData: any = null
     let leadNotesFromLeadData: any[] = []
+    const leadId = isOpportunityClient ? contactId : client.lead_id
 
-    if (client.lead_data) {
+    if (!isOpportunityClient && client.lead_data) {
       try {
         parsedLeadData = typeof client.lead_data === 'string'
           ? JSON.parse(client.lead_data)
@@ -91,12 +301,12 @@ export async function GET(
     }
 
     let leadNotesFromTable: any[] = []
-    if (client.lead_id) {
+    if (leadId) {
       try {
         const { data: leadNotesData, error: leadNotesError } = await supabase
           .from('lead_notes')
           .select('*')
-          .eq('leadId', client.lead_id)
+          .eq('leadId', leadId)
           .order('createdAt', { ascending: false })
 
         if (leadNotesError) {
@@ -159,7 +369,7 @@ export async function GET(
           metadata: {
             source: 'lead',
             leadNoteId: note.id ?? null,
-            leadId: note.leadId ?? note.lead_id ?? client.lead_id ?? null
+            leadId: note.leadId ?? note.lead_id ?? leadId ?? null
           }
         }
       })
@@ -171,9 +381,22 @@ export async function GET(
         auteur: string
         metadata: Record<string, any>
       } => Boolean(entry))
+      .map(entry => {
+        // Map user ID to name if it looks like an ID
+        let authorName = entry.auteur || 'Système'
+        if (authorName && authorName.length > 20) {
+          authorName = userNameMap[authorName] || 
+                      userNameMap[authorName.toLowerCase()] || 
+                      entry.auteur
+        }
+        return {
+          ...entry,
+          auteur: authorName
+        }
+      })
 
     // Use stage from history as source of truth, fallback to client.statut_projet
-    const actualStatus = currentStage?.stage_name || client.statut_projet
+    const actualStatus = currentStage?.stage_name || client.statut_projet || (isOpportunityClient ? client.statut_projet : 'nouveau')
 
     console.log('[GET /api/clients/[id]] Status resolution:', {
       clientId,
@@ -182,20 +405,30 @@ export async function GET(
       using: actualStatus
     })
 
-    // Transform to frontend format
-    const supabaseHistorique = (historique || []).map(h => ({
-      id: h.id,
-      date: h.date,
-      type: h.type,
-      description: h.description,
-      auteur: h.auteur,
-      previousStatus: h.previous_status,
-      newStatus: h.new_status,
-      durationInHours: h.duration_in_hours,
-      timestampStart: h.timestamp_start,
-      timestampEnd: h.timestamp_end,
-      metadata: h.metadata
-    }))
+    // Transform to frontend format and map user IDs to names
+    const supabaseHistorique = (historique || []).map(h => {
+      let authorName = h.auteur || 'Système'
+      // Map user ID to name if it looks like an ID
+      if (authorName && authorName.length > 20) {
+        authorName = userNameMap[authorName] || 
+                    userNameMap[authorName.toLowerCase()] || 
+                    h.auteur
+      }
+      
+      return {
+        id: h.id,
+        date: h.date,
+        type: h.type,
+        description: h.description,
+        auteur: authorName,
+        previousStatus: h.previous_status,
+        newStatus: h.new_status,
+        durationInHours: h.duration_in_hours,
+        timestampStart: h.timestamp_start,
+        timestampEnd: h.timestamp_end,
+        metadata: h.metadata
+      }
+    })
 
     const combinedHistorique = [...supabaseHistorique, ...leadHistoriqueEntries]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -203,22 +436,47 @@ export async function GET(
     const transformedClient = {
       id: client.id,
       nom: client.nom,
+      nomProjet: client.nomProjet || '',
+      contactId: isOpportunityClient ? contactId : undefined,
+      opportunityId: isOpportunityClient ? opportunityId : undefined,
       telephone: client.telephone,
-      ville: client.ville,
-      typeProjet: client.type_projet,
-      architecteAssigne: client.architecte_assigne,
+      ville: client.ville || '',
+      typeProjet: client.type_projet || client.typeProjet || 'autre',
+      architecteAssigne: client.architecte_assigne || client.architecteAssigne || '',
       statutProjet: actualStatus,
-      derniereMaj: client.derniere_maj,
-      leadId: client.lead_id,
+      derniereMaj: client.derniere_maj || client.derniereMaj || client.updated_at || client.updatedAt,
+      leadId: client.lead_id || client.leadId || leadId || null,
       leadData: parsedLeadData,
       email: client.email,
       adresse: client.adresse,
-      budget: client.budget,
-      notes: client.notes,
+      budget: client.budget || 0,
+      notes: (() => {
+        const rawNotes = client.notes || ''
+        // Clean up placeholder text
+        if (rawNotes.match(/^===\s*Prise de besoin\s*===\s*confirmer$/i) ||
+            rawNotes.trim() === 'confirmer' ||
+            rawNotes.match(/^===.*===\s*$/i)) {
+          return ''
+        }
+        return rawNotes
+      })(),
       magasin: client.magasin,
-      commercialAttribue: client.commercial_attribue,
-      createdAt: client.created_at,
-      updatedAt: client.updated_at,
+      commercialAttribue: client.commercial_attribue || client.commercialAttribue || '',
+      createdAt: client.created_at || client.createdAt,
+      updatedAt: client.updated_at || client.updatedAt,
+      isContact: isOpportunityClient,
+      // Traceability metadata
+      metadata: isOpportunityClient ? {
+        contactId: contactId,
+        opportunityId: opportunityId,
+        source: 'opportunity',
+        createdBy: client.commercial_attribue || client.commercialAttribue || '',
+        createdAt: client.created_at || client.createdAt
+      } : {
+        source: 'legacy_client',
+        createdBy: client.commercial_attribue || client.commercialAttribue || '',
+        createdAt: client.created_at || client.createdAt
+      },
       historique: combinedHistorique,
       rendezVous: appointments?.map(a => ({
         id: a.id,

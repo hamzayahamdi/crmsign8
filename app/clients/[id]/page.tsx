@@ -48,7 +48,7 @@ export default function ClientDetailsPage() {
   const { toast } = useToast()
   const { user } = useAuth()
   const clientId = params.id as string
-  
+
   // Use Zustand store for real-time sync
   const { getClientById, updateClient: updateClientInStore, deleteClient: deleteClientFromStore, refreshClients } = useClientStore()
   const [client, setClient] = useState<Client | null>(null)
@@ -64,11 +64,11 @@ export default function ClientDetailsPage() {
         const response = await fetch(`/api/clients/${clientId}`, {
           credentials: 'include'
         })
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch client')
         }
-        
+
         const result = await response.json()
         setClient(result.data)
         setIsLoading(false)
@@ -77,7 +77,7 @@ export default function ClientDetailsPage() {
         setIsLoading(false)
       }
     }
-    
+
     fetchClientData()
   }, [clientId])
 
@@ -266,15 +266,17 @@ export default function ClientDetailsPage() {
 
   const handleUpdateClient = async (updatedClient: Client, skipApiCall = false) => {
     try {
-      // If skipApiCall is true, just update local state (for optimistic updates)
+      // Always perform an optimistic local update so UI reflects changes immediately
+      console.log('[Client Details] 🔄 Optimistic update - applying local changes')
+      setClient(updatedClient)
+      updateClientInStore(updatedClient.id, updatedClient)
+
+      // If skipApiCall is true, stop here (pure optimistic/local update)
       if (skipApiCall) {
-        console.log('[Client Details] 🔄 Optimistic update - updating local state only')
-        setClient(updatedClient)
-        updateClientInStore(updatedClient.id, updatedClient)
         return
       }
 
-      // 1. Update in database via API
+      // 1. Persist changes in database via API
       const response = await fetch(`/api/clients/${updatedClient.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -291,9 +293,9 @@ export default function ClientDetailsPage() {
       console.log('[Client Details] ✅ Client updated in database:', result.data)
       console.log('[Client Details] 📊 New statutProjet:', result.data?.statutProjet)
 
-      // 2. Update in Zustand store (will sync to all views)
+      // 2. Update in Zustand store with FRESH data from API (will sync to all views)
       updateClientInStore(updatedClient.id, result.data || updatedClient)
-      
+
       // 3. Update local state with FRESH data from API (includes updated statutProjet)
       setClient(result.data || updatedClient)
 
@@ -305,7 +307,7 @@ export default function ClientDetailsPage() {
         description: "Impossible de sauvegarder les modifications. Veuillez réessayer.",
         variant: "destructive"
       })
-      
+
       // Revert local changes on error
       refreshClients()
       const revertedClient = getClientById(clientId)
@@ -317,11 +319,12 @@ export default function ClientDetailsPage() {
 
   const handleDeleteClient = async () => {
     if (!client) return
-    
+
+    const clientName = client.nom
     const confirmDelete = window.confirm(
-      `Êtes-vous sûr de vouloir supprimer le client "${client.nom}" ?`
+      `Êtes-vous sûr de vouloir supprimer le client "${clientName}" ?`
     )
-    
+
     if (confirmDelete) {
       try {
         // 1. Delete from database via API
@@ -339,12 +342,12 @@ export default function ClientDetailsPage() {
 
         // 2. Delete from Zustand store (will sync to all views)
         deleteClientFromStore(client.id)
-        
+
         toast({
-          title: "Client supprimé",
-          description: `Le client "${client.nom}" a été supprimé avec succès`,
+          title: "✅ Client supprimé",
+          description: `Le client "${clientName}" a été supprimé avec succès`,
         })
-        
+
         // 3. Redirect to clients list
         router.push("/clients")
       } catch (error) {
@@ -419,12 +422,12 @@ export default function ClientDetailsPage() {
       const clientResponse = await fetch(`/api/clients/${client.id}`, {
         credentials: 'include'
       })
-      
+
       if (clientResponse.ok) {
         const clientResult = await clientResponse.json()
         setClient(clientResult.data)
       }
-      
+
       setIsRdvModalOpen(false)
 
       toast({
@@ -468,7 +471,7 @@ export default function ClientDetailsPage() {
       const clientResponse = await fetch(`/api/clients/${client?.id}`, {
         credentials: 'include'
       })
-      
+
       if (clientResponse.ok) {
         const clientResult = await clientResponse.json()
         setClient(clientResult.data)
@@ -536,52 +539,52 @@ export default function ClientDetailsPage() {
       <PageShell>
         <div className="w-full">
           <Header />
-          
+
           {/* Back Button */}
           <div className="px-8 pt-6">
             <Button
               variant="ghost"
               onClick={() => router.push("/clients")}
-                className="group inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] text-slate-300 transition-colors hover:bg-white/[0.08] hover:text-white/90 shadow-lg shadow-black/10"
+              className="group inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] text-slate-300 transition-colors hover:bg-white/[0.08] hover:text-white/90 shadow-lg shadow-black/10"
             >
-                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
               Retour aux clients
             </Button>
           </div>
 
           {/* Upcoming RDV Banner */}
           {client.rendezVous && client.rendezVous.length > 0 && (
-              <div className="px-8 pt-4">
-            <UpcomingRdvBanner appointments={client.rendezVous} />
-              </div>
+            <div className="px-8 pt-4">
+              <UpcomingRdvBanner appointments={client.rendezVous} />
+            </div>
           )}
 
           {/* Sticky Header */}
-            <div className="z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-2xl shadow-[0_12px_50px_rgba(15,23,42,0.35)]">
-            <ClientDetailsHeader 
+          <div className="z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-2xl shadow-[0_12px_50px_rgba(15,23,42,0.35)]">
+            <ClientDetailsHeader
               client={client}
               onUpdate={handleUpdateClient}
             />
           </div>
 
           {/* Main Content Area */}
-            <div className="relative w-full">
-              <div className="pointer-events-none fixed inset-0 z-0">
-                <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/10 via-transparent to-transparent" />
-                <div className="absolute top-28 right-12 h-64 w-64 rounded-full bg-sky-500/12 blur-[120px]" />
-                <div className="absolute bottom-[-25%] left-16 h-72 w-72 rounded-full bg-purple-600/12 blur-[140px]" />
-              </div>
+          <div className="relative w-full">
+            <div className="pointer-events-none fixed inset-0 z-0">
+              <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/10 via-transparent to-transparent" />
+              <div className="absolute top-28 right-12 h-64 w-64 rounded-full bg-sky-500/12 blur-[120px]" />
+              <div className="absolute bottom-[-25%] left-16 h-72 w-72 rounded-full bg-purple-600/12 blur-[140px]" />
+            </div>
 
-              <div className="relative z-10 px-8 py-6">
-                <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-6">
+            <div className="relative z-10 px-8 py-6">
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-6">
                 {/* Left Column - Main Content (70%) */}
-                  <div className="space-y-6 lg:col-span-2">
+                <div className="space-y-6 lg:col-span-2">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                   >
-                    <ClientOverviewCard 
+                    <ClientOverviewCard
                       client={client}
                       onUpdate={handleUpdateClient}
                     />
@@ -592,7 +595,7 @@ export default function ClientDetailsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                   >
-                    <ProjectInformationCard 
+                    <ProjectInformationCard
                       client={client}
                       onUpdate={handleUpdateClient}
                     />
@@ -603,7 +606,7 @@ export default function ClientDetailsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
                   >
-                    <FinancementDocumentsUnified 
+                    <FinancementDocumentsUnified
                       client={client}
                       onUpdate={handleUpdateClient}
                     />
@@ -614,7 +617,7 @@ export default function ClientDetailsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
                   >
-                    <ProjectRoadmapCard 
+                    <ProjectRoadmapCard
                       client={client}
                       onUpdate={handleUpdateClient}
                       onAddTask={() => setIsTaskModalOpen(true)}
@@ -627,7 +630,7 @@ export default function ClientDetailsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
                   >
-                    <NotesActivitiesSection 
+                    <NotesActivitiesSection
                       client={client}
                       onUpdate={handleUpdateClient}
                     />
@@ -641,7 +644,7 @@ export default function ClientDetailsPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
                   >
-                    <QuickActionsSidebar 
+                    <QuickActionsSidebar
                       client={client}
                       onUpdate={handleUpdateClient}
                       onDelete={handleDeleteClient}
@@ -653,7 +656,7 @@ export default function ClientDetailsPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 }}
                   >
-                    <EnhancedTimeline 
+                    <EnhancedTimeline
                       client={client}
                       onAddRdv={() => setIsRdvModalOpen(true)}
                       showFilters={true}

@@ -149,10 +149,15 @@ export function ArchitectSelectionDialog({
   }
 
   const handleConfirmConversion = () => {
-    if (selectedArchitect) {
-      setIsLoading(true)
-      onArchitectSelected(selectedArchitect.id)
-    }
+    setIsLoading(true)
+    // Pass empty string if no architect selected (optional)
+    onArchitectSelected(selectedArchitect?.id || '')
+  }
+
+  const handleConvertWithoutArchitect = () => {
+    // Show confirmation even without architect
+    setSelectedArchitect(null)
+    setShowConfirmation(true)
   }
 
   const handleBackToSelection = () => {
@@ -341,13 +346,24 @@ export function ArchitectSelectionDialog({
               </div>
 
               {/* Footer */}
-              {activeArchitects.length > 0 && (
-                <div className="p-4 border-t border-white/5 bg-white/5">
-                  <p className="text-xs text-gray-500 text-center">
-                    {activeArchitects.length} architecte{activeArchitects.length !== 1 ? 's' : ''} actif{activeArchitects.length !== 1 ? 's' : ''} disponible{activeArchitects.length !== 1 ? 's' : ''}
+              <div className="p-4 border-t border-white/5 bg-white/5">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500">
+                    {activeArchitects.length > 0 
+                      ? `${activeArchitects.length} architecte${activeArchitects.length !== 1 ? 's' : ''} actif${activeArchitects.length !== 1 ? 's' : ''} disponible${activeArchitects.length !== 1 ? 's' : ''}`
+                      : "Aucun architecte actif disponible"
+                    }
                   </p>
+                  <Button
+                    variant="ghost"
+                    onClick={handleConvertWithoutArchitect}
+                    disabled={isLoading}
+                    className="h-8 px-3 text-xs text-gray-400 hover:text-white hover:bg-white/10"
+                  >
+                    Convertir sans architecte
+                  </Button>
                 </div>
-              )}
+              </div>
             </motion.div>
           ) : (
             <motion.div
@@ -384,7 +400,7 @@ export function ArchitectSelectionDialog({
                   <p className="text-white font-semibold">{leadName}</p>
                 </div>
 
-                {selectedArchitect && (
+                {selectedArchitect ? (
                   <div className="p-4 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
@@ -407,6 +423,11 @@ export function ArchitectSelectionDialog({
                         </p>
                       </div>
                     </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                    <p className="text-gray-400 text-sm">Aucun architecte assigné</p>
+                    <p className="text-xs text-gray-500 mt-1">Vous pourrez assigner un architecte plus tard</p>
                   </div>
                 )}
               </div>
@@ -434,7 +455,7 @@ export function ArchitectSelectionDialog({
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4 mr-2" />
-                      Confirmer et convertir
+                      {selectedArchitect ? 'Confirmer et convertir' : 'Convertir sans architecte'}
                     </>
                   )}
                 </Button>

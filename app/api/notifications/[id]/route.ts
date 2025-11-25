@@ -24,7 +24,7 @@ function verifyToken(request: NextRequest) {
 // DELETE /api/notifications/[id] - Delete a notification
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = verifyToken(request);
@@ -32,7 +32,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const notificationId = params.id;
+    const { id: notificationId } = await params;
 
     // Delete notification
     await prisma.notification.delete({

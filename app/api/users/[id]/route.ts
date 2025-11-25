@@ -6,11 +6,12 @@ const ALLOWED_ROLES = new Set(["admin", "operator", "gestionnaire", "architect",
 // GET single user
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         email: true,
@@ -42,7 +43,7 @@ export async function GET(
 // PATCH update user
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Resolve id from params, with a safe fallback from URL parsing in case params is undefined
@@ -56,7 +57,8 @@ export async function PATCH(
       }
       return undefined
     })()
-    const userId = params?.id ?? idFromUrl
+    const { id: paramId } = await params
+    const userId = paramId ?? idFromUrl
 
     if (!userId) {
       return NextResponse.json(
@@ -122,7 +124,7 @@ export async function PATCH(
 // DELETE user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Resolve id robustly (similar to PATCH)
@@ -136,7 +138,8 @@ export async function DELETE(
       }
       return undefined
     })()
-    const userId = params?.id ?? idFromUrl
+    const { id: paramId } = await params
+    const userId = paramId ?? idFromUrl
 
     if (!userId) {
       return NextResponse.json(

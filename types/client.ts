@@ -25,7 +25,10 @@ export type ProjectType = "appartement" | "villa" | "magasin" | "bureau" | "riad
 
 export interface Client {
   id: string
+  contactId?: string // Original contact ID (for opportunity-based clients)
+  opportunityId?: string // Original opportunity ID (for opportunity-based clients)
   nom: string
+  nomProjet?: string // Project/Opportunity name (from opportunities table)
   telephone: string
   ville: string
   typeProjet: ProjectType
@@ -48,6 +51,7 @@ export interface Client {
   rendezVous?: Appointment[]
   payments?: Payment[]
   devis?: Devis[] // Multiple quotes support
+  isContact?: boolean // Flag to indicate if this is from contacts table
 }
 
 export interface Devis {

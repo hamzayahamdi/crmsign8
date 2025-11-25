@@ -1,11 +1,9 @@
 "use client"
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Building2, Edit, X, Loader2, CheckCircle2, Sparkles } from "lucide-react"
+import { motion } from "framer-motion"
+import { Building2, Edit, CheckCircle2, Sparkles } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { ArchitectSelectionDialog } from "./architect-selection-dialog-improved"
 import type { Lead } from "@/types/lead"
 
 interface LeadActionDialogProps {
@@ -13,10 +11,8 @@ interface LeadActionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onEdit: (lead: Lead) => void
-  onConvertToClient: (lead: Lead, architectId: string) => void
+  onConvertToClient?: (lead: Lead) => void
 }
-
-type DialogStep = "choose" | "selectArchitect"
 
 export function LeadActionDialog({
   lead,
@@ -25,22 +21,21 @@ export function LeadActionDialog({
   onEdit,
   onConvertToClient,
 }: LeadActionDialogProps) {
-  const [step, setStep] = useState<DialogStep>("choose")
-  const [selectedArchitectId, setSelectedArchitectId] = useState<string | null>(null)
-
-  // Reset state when dialog closes
+  // Simple open/close handler
   const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      setTimeout(() => {
-        setStep("choose")
-        setSelectedArchitectId(null)
-      }, 200) // Wait for animation to complete
-    }
     onOpenChange(newOpen)
   }
 
   const handleConvert = () => {
-    setStep("selectArchitect")
+    if (!lead) return
+    
+    // Close the action dialog
+    handleOpenChange(false)
+    
+    // Call the parent handler to show the convert modal
+    if (onConvertToClient) {
+      onConvertToClient(lead)
+    }
   }
 
   const handleEdit = () => {
@@ -50,18 +45,11 @@ export function LeadActionDialog({
     }
   }
 
-  const handleArchitectSelected = (architectId: string) => {
-    if (lead) {
-      onConvertToClient(lead, architectId)
-      handleOpenChange(false)
-    }
-  }
-
   if (!lead) return null
 
   return (
     <>
-      <Dialog open={open && step === "choose"} onOpenChange={handleOpenChange}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-[500px] bg-neutral-900/95 backdrop-blur-2xl border border-white/10 text-white shadow-2xl rounded-2xl overflow-hidden">
           {/* Gradient overlay for premium feel */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
@@ -86,7 +74,7 @@ export function LeadActionDialog({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            {/* Convert to Client Button */}
+            {/* Convert to Contact Button */}
             <Button
               onClick={handleConvert}
               className="w-full h-auto py-4 px-5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl transition-all duration-300 shadow-lg shadow-green-600/20 hover:shadow-green-500/30 hover:scale-[1.02] group"
@@ -96,8 +84,8 @@ export function LeadActionDialog({
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="font-semibold text-base">Convertir en client</p>
-                  <p className="text-xs text-white/70 mt-0.5">Créer un nouveau dossier client</p>
+                  <p className="font-semibold text-base">Convertir en Contact</p>
+                  <p className="text-xs text-white/70 mt-0.5">Assigner un architecte et créer le dossier</p>
                 </div>
                 <CheckCircle2 className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
@@ -129,19 +117,6 @@ export function LeadActionDialog({
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Architect Selection Dialog */}
-      <ArchitectSelectionDialog
-        open={step === "selectArchitect"}
-        onOpenChange={(open) => {
-          if (!open) {
-            setStep("choose")
-          }
-        }}
-        onBack={() => setStep("choose")}
-        onArchitectSelected={handleArchitectSelected}
-        leadName={lead.nom}
-      />
     </>
   )
 }
