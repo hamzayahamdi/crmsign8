@@ -35,6 +35,7 @@ interface User {
   name: string
   role: string
   magasin?: string
+  ville?: string
   createdAt: string
   updatedAt: string
 }
@@ -59,6 +60,7 @@ export default function UsersPage() {
     name: "",
     role: "architect",
     magasin: "",
+    ville: "",
   })
 
   const [editFormData, setEditFormData] = useState({
@@ -67,9 +69,11 @@ export default function UsersPage() {
     name: "",
     role: "architect",
     magasin: "",
+    ville: "",
   })
 
   const MAGASINS = ["Casa - Ain Diab", "Rabat", "Tanger", "Marrakech", "Bouskoura"]
+  const VILLES = ["Casablanca", "Rabat", "Tanger", "MARRAKECH", "Fes", "Agadir", "Autre"]
 
   // Fetch users
   const fetchUsers = async () => {
@@ -99,6 +103,7 @@ export default function UsersPage() {
       name: user.name,
       role: user.role as any,
       magasin: user.magasin || "",
+      ville: user.ville || "",
     })
     setShowEditDialog(true)
   }
@@ -116,7 +121,8 @@ export default function UsersPage() {
           email: editFormData.email,
           name: editFormData.name,
           role: editFormData.role,
-        magasin: editFormData.role === "magasiner" ? editFormData.magasin : undefined,
+          magasin: editFormData.role === "magasiner" ? editFormData.magasin : undefined,
+          ville: editFormData.ville || undefined,
           password: editFormData.password || undefined,
         }),
       })
@@ -125,6 +131,7 @@ export default function UsersPage() {
         toast.success("Utilisateur mis à jour")
         setShowEditDialog(false)
         setSelectedUser(null)
+        setEditFormData({ email: "", password: "", name: "", role: "architect", magasin: "", ville: "" })
         fetchUsers()
       } else {
         const data = await response.json()
@@ -158,7 +165,7 @@ export default function UsersPage() {
       if (response.ok) {
         toast.success("Utilisateur créé avec succès")
         setShowCreateDialog(false)
-        setFormData({ email: "", password: "", name: "", role: "architect", magasin: "" })
+        setFormData({ email: "", password: "", name: "", role: "architect", magasin: "", ville: "" })
         fetchUsers() // Refresh the list
       } else {
         const data = await response.json()
@@ -413,6 +420,11 @@ export default function UsersPage() {
                                 <Building2 className="w-3 h-3" /> 📍 {user.magasin}
                               </span>
                             )}
+                            {user.role === "architect" && user.ville && (
+                              <span className="mt-0.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                                📍 {user.ville}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -577,6 +589,31 @@ export default function UsersPage() {
                   </p>
                 </div>
               )}
+              {formData.role === "architect" && (
+                <div className="space-y-2">
+                  <Label htmlFor="ville" className="text-white flex items-center gap-2">
+                    📍 Ville
+                  </Label>
+                  <Select
+                    value={formData.ville}
+                    onValueChange={(value) => setFormData({ ...formData, ville: value })}
+                  >
+                    <SelectTrigger className="glass border-border/40">
+                      <SelectValue placeholder="Sélectionner une ville" />
+                    </SelectTrigger>
+                    <SelectContent className="glass border-border/40">
+                      {VILLES.map((ville) => (
+                        <SelectItem key={ville} value={ville}>
+                          📍 {ville}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    La ville de l'architecte sera affichée lors de l'assignation
+                  </p>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button
@@ -697,6 +734,31 @@ export default function UsersPage() {
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     Le magasiner ne pourra voir que les leads de ce magasin
+                  </p>
+                </div>
+              )}
+              {editFormData.role === "architect" && (
+                <div className="space-y-2">
+                  <Label htmlFor="edit-ville" className="text-white flex items-center gap-2">
+                    📍 Ville
+                  </Label>
+                  <Select
+                    value={editFormData.ville}
+                    onValueChange={(value) => setEditFormData({ ...editFormData, ville: value })}
+                  >
+                    <SelectTrigger className="glass border-border/40">
+                      <SelectValue placeholder="Sélectionner une ville" />
+                    </SelectTrigger>
+                    <SelectContent className="glass border-border/40">
+                      {VILLES.map((ville) => (
+                        <SelectItem key={ville} value={ville}>
+                          📍 {ville}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    La ville de l'architecte sera affichée lors de l'assignation
                   </p>
                 </div>
               )}

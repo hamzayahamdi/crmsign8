@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
         name: true,
         role: true,
         magasin: true,
+        ville: true,
         createdAt: true,
         updatedAt: true,
         // Don't return password
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
       role = 'architect'
     }
     const magasin: string | undefined = typeof body.magasin === 'string' ? body.magasin : undefined
+    const ville: string | undefined = typeof body.ville === 'string' ? body.ville : undefined
 
     // Validate input
     if (!email || !password || !name) {
@@ -83,6 +85,7 @@ export async function POST(request: NextRequest) {
         name,
         role,
         magasin: role === 'magasiner' ? magasin : undefined,
+        ville,
       },
       select: {
         id: true,
@@ -90,6 +93,7 @@ export async function POST(request: NextRequest) {
         name: true,
         role: true,
         magasin: true,
+        ville: true,
         createdAt: true,
         updatedAt: true,
       }

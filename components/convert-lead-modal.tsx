@@ -42,7 +42,7 @@ export function ConvertLeadModal({
   onSuccess,
 }: ConvertLeadModalProps) {
   const [step, setStep] = useState<'preview' | 'details' | 'converting' | 'success'>('preview')
-  const [selectedArchitect, setSelectedArchitect] = useState<string>('')
+  const [selectedArchitect, setSelectedArchitect] = useState<string>('none')
   const [architects, setArchitects] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
@@ -60,7 +60,7 @@ export function ConvertLeadModal({
         opportunityTitle: undefined,
       })
       setStep('preview')
-      setSelectedArchitect('')
+      setSelectedArchitect('none')
     }
   }, [isOpen, result])
 
@@ -87,7 +87,7 @@ export function ConvertLeadModal({
       
       const result = await ContactService.convertLead(
         lead.id,
-        selectedArchitect || undefined,
+        selectedArchitect && selectedArchitect !== 'none' ? selectedArchitect : undefined,
       )
 
       console.log('✅ [Convert Modal] Conversion successful:', result)
@@ -263,7 +263,7 @@ export function ConvertLeadModal({
                     <SelectValue placeholder="Choisir un architecte..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Aucun - Assigner plus tard</SelectItem>
+                    <SelectItem value="none">Aucun - Assigner plus tard</SelectItem>
                     {architects.map((arch) => (
                       <SelectItem key={arch.id} value={arch.id}>
                         {arch.name} {arch.ville ? `- ${arch.ville}` : ''}
@@ -313,7 +313,7 @@ export function ConvertLeadModal({
                       Converti
                     </span>
                   </div>
-                  {selectedArchitect && architects.find(a => a.id === selectedArchitect) && (
+                  {selectedArchitect && selectedArchitect !== 'none' && architects.find(a => a.id === selectedArchitect) && (
                     <div className="flex justify-between">
                       <span className="text-slate-600">Architecte:</span>
                       <span className="font-medium text-slate-900">

@@ -18,6 +18,7 @@ export async function GET(
         name: true,
         role: true,
         magasin: true,
+        ville: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -85,6 +86,12 @@ export async function PATCH(
     if (updateData.role && updateData.role !== 'magasiner' && typeof body.magasin === 'undefined') {
       updateData.magasin = undefined
     }
+    // Handle ville field
+    if (typeof body.ville === 'string') {
+      updateData.ville = body.ville
+    } else if (body.ville === null) {
+      updateData.ville = null
+    }
     if (password) {
       updateData.password = await bcrypt.hash(password, 10)
     }
@@ -106,6 +113,7 @@ export async function PATCH(
         name: true,
         role: true,
         magasin: true,
+        ville: true,
         createdAt: true,
         updatedAt: true,
       }

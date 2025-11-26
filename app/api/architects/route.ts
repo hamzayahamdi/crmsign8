@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         name: true,
         role: true,
         magasin: true,
+        ville: true,
         createdAt: true,
         updatedAt: true
       }
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
         prenom: architect.name.split(' ')[0],
         email: architect.email,
         telephone: '', // Can be extended in User model
-        ville: architect.magasin || 'Casablanca',
+        ville: architect.ville || 'Casablanca',
         specialite: 'residentiel', // Default, can be extended in User model
         statut: 'actif', // Default, can be extended in User model
         dateEmbauche: architect.createdAt,

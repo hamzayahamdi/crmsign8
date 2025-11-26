@@ -12,7 +12,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -27,8 +27,11 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
+    // Await params in Next.js 15
+    const { id } = await params;
+
     // Derive contactId from params or, as a fallback, from the URL path
-    let contactId: string | undefined = typeof params?.id === 'string' ? params.id : undefined;
+    let contactId: string | undefined = id;
 
     if (!contactId) {
       try {
@@ -267,7 +270,7 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -278,12 +281,15 @@ export async function PATCH(
     const token = authHeader.slice(7);
     const decoded = verify(token, JWT_SECRET) as any;
 
+    // Await params in Next.js 15
+    const { id } = await params;
+
     const body = await request.json();
     const { nom, telephone, email, ville, adresse, architecteAssigne, tag, notes } = body;
 
     // Get current contact to compare architect assignment
     const currentContact = await prisma.contact.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!currentContact) {
@@ -301,7 +307,7 @@ export async function PATCH(
     if (notes !== undefined) updateData.notes = notes;
 
     const contact = await prisma.contact.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         opportunities: true,
@@ -378,7 +384,7 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -394,8 +400,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
 
+    // Await params in Next.js 15
+    const { id } = await params;
+
     await prisma.contact.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

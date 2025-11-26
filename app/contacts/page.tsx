@@ -13,10 +13,18 @@ import {
   UserCheck,
   MapPin,
   Home,
+  UserCircle,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Sidebar } from '@/components/sidebar'
 import { Header } from '@/components/header'
 import { AuthGuard } from '@/components/auth-guard'
@@ -43,12 +51,15 @@ export default function ContactsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   
   // Filter states
-  const [statusFilter, setStatusFilter] = useState<string>('') // '' = Tous, 'prospect' = Contact, 'client' = Client
-  const [selectedArchitect, setSelectedArchitect] = useState<string>('')
-  const [hasOpportunitiesFilter, setHasOpportunitiesFilter] = useState<'all' | 'has' | 'no'>('all')
-  const [cityFilter, setCityFilter] = useState<string>('')
-  const [projectTypeFilter, setProjectTypeFilter] = useState<string>('')
-  const [pipelineFilter, setPipelineFilter] = useState<string>('') // Admin only
+  const [statusFilter, setStatusFilter] = useState<string>('all') // 'all', 'prospect', 'client'
+  const [selectedArchitect, setSelectedArchitect] = useState<string>('all')
+  const [hasOpportunitiesFilter, setHasOpportunitiesFilter] = useState<string>('all')
+  const [cityFilter, setCityFilter] = useState<string>('all')
+  const [projectTypeFilter, setProjectTypeFilter] = useState<string>('all')
+  const [pipelineFilter, setPipelineFilter] = useState<string>('all') // Admin only
+  
+  // Architect data from API
+  const [allArchitects, setAllArchitects] = useState<Array<{id: string, name: string}>>([])
   
   // Pagination
   const [page, setPage] = useState(1)
@@ -57,6 +68,27 @@ export default function ContactsPage() {
   const ITEMS_PER_PAGE = 20
   
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
+
+  // Fetch architects from API
+  useEffect(() => {
+    const fetchArchitects = async () => {
+      try {
+        const response = await fetch('/api/architects')
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success && result.data) {
+            setAllArchitects(result.data.map((arch: any) => ({
+              id: arch.id,
+              name: `${arch.prenom} ${arch.nom}`.trim() || arch.email
+            })))
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching architects:', error)
+      }
+    }
+    fetchArchitects()
+  }, [])
 
   useEffect(() => {
     setPage(1) // Reset to page 1 when filters change
@@ -70,14 +102,18 @@ export default function ContactsPage() {
       
       const result = await ContactService.getContacts({
         search: searchQuery,
-        tag: statusFilter || undefined,
-        architectId: selectedArchitect || undefined,
+        architectId: selectedArchitect !== 'all' ? selectedArchitect : undefined,
         limit: ITEMS_PER_PAGE,
         offset,
       })
 
       // Apply client-side filters
       let filtered = result.data
+      
+      // Filter by status (workflow stage)
+      if (statusFilter !== 'all') {
+        filtered = filtered.filter(c => c.status === statusFilter)
+      }
       
       // Filter by opportunities
       if (hasOpportunitiesFilter !== 'all') {
@@ -88,23 +124,23 @@ export default function ContactsPage() {
       }
       
       // Filter by city
-      if (cityFilter) {
+      if (cityFilter !== 'all') {
         filtered = filtered.filter(c => 
           c.ville?.toLowerCase() === cityFilter.toLowerCase()
         )
       }
       
       // Filter by project type
-      if (projectTypeFilter) {
+      if (projectTypeFilter !== 'all') {
         filtered = filtered.filter(c => {
           const opportunities = (c as any).opportunities || []
           return opportunities.some((opp: any) => opp.type === projectTypeFilter)
         })
       }
       
-      // Filter by pipeline (Admin only)
-      if (isAdmin && pipelineFilter) {
-        filtered = filtered.filter(c => c.status === pipelineFilter)
+      // Filter by tag (Admin only)
+      if (isAdmin && pipelineFilter !== 'all') {
+        filtered = filtered.filter(c => c.tag === pipelineFilter)
       }
 
       setContacts(filtered)
@@ -168,7 +204,7 @@ export default function ContactsPage() {
 
   const projectTypes: OpportunityType[] = ['villa', 'appartement', 'magasin', 'bureau', 'riad', 'studio', 'renovation', 'autre']
 
-  const hasActiveFilters = statusFilter || selectedArchitect || hasOpportunitiesFilter !== 'all' || cityFilter || projectTypeFilter || pipelineFilter
+  const hasActiveFilters = statusFilter !== 'all' || selectedArchitect !== 'all' || hasOpportunitiesFilter !== 'all' || cityFilter !== 'all' || projectTypeFilter !== 'all' || pipelineFilter !== 'all'
 
   return (
     <AuthGuard>
@@ -294,12 +330,12 @@ export default function ContactsPage() {
                     <span className="font-medium text-white">Filtres</span>
                     {hasActiveFilters && (
                       <span className="bg-primary/20 text-primary px-2 py-1 rounded-full text-xs font-medium">
-                        {(statusFilter ? 1 : 0) + 
-                         (selectedArchitect ? 1 : 0) + 
+                        {(statusFilter !== 'all' ? 1 : 0) + 
+                         (selectedArchitect !== 'all' ? 1 : 0) + 
                          (hasOpportunitiesFilter !== 'all' ? 1 : 0) + 
-                         (cityFilter ? 1 : 0) + 
-                         (projectTypeFilter ? 1 : 0) + 
-                         (pipelineFilter ? 1 : 0)} actif{((statusFilter ? 1 : 0) + (selectedArchitect ? 1 : 0) + (hasOpportunitiesFilter !== 'all' ? 1 : 0) + (cityFilter ? 1 : 0) + (projectTypeFilter ? 1 : 0) + (pipelineFilter ? 1 : 0)) > 1 ? 's' : ''}
+                         (cityFilter !== 'all' ? 1 : 0) + 
+                         (projectTypeFilter !== 'all' ? 1 : 0) + 
+                         (pipelineFilter !== 'all' ? 1 : 0)} actif{((statusFilter !== 'all' ? 1 : 0) + (selectedArchitect !== 'all' ? 1 : 0) + (hasOpportunitiesFilter !== 'all' ? 1 : 0) + (cityFilter !== 'all' ? 1 : 0) + (projectTypeFilter !== 'all' ? 1 : 0) + (pipelineFilter !== 'all' ? 1 : 0)) > 1 ? 's' : ''}
                       </span>
                     )}
                     <ChevronDown
@@ -314,12 +350,12 @@ export default function ContactsPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        setStatusFilter('')
-                        setSelectedArchitect('')
+                        setStatusFilter('all')
+                        setSelectedArchitect('all')
                         setHasOpportunitiesFilter('all')
-                        setCityFilter('')
-                        setProjectTypeFilter('')
-                        setPipelineFilter('')
+                        setCityFilter('all')
+                        setProjectTypeFilter('all')
+                        setPipelineFilter('all')
                       }}
                       className="text-xs text-muted-foreground hover:text-white flex items-center gap-1.5 transition-colors px-2 py-1 rounded hover:bg-slate-700/50"
                     >
@@ -330,238 +366,131 @@ export default function ContactsPage() {
                 </div>
 
                 {isFiltersOpen && (
-                  <div className="border-t border-slate-600/30 px-4 py-4 bg-slate-900/40 space-y-4">
-                    {/* Status Filter */}
-                    <div>
-                      <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 block">Statut</label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { label: 'Tous', value: '' },
-                          { label: 'Prospect', value: 'prospect' },
-                          { label: 'Client', value: 'client' },
-                        ].map((filter) => (
-                          <button
-                            key={filter.value}
-                            onClick={() => setStatusFilter(filter.value)}
-                            className={cn(
-                              "px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                              statusFilter === filter.value
-                                ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
-                                : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                            )}
-                          >
-                            {filter.label}
-                          </button>
-                        ))}
+                  <div className="border-t border-slate-600/30 px-4 py-4 bg-slate-900/40">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {/* Status Filter (Workflow Stage) */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Statut</label>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="h-10 w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-slate-600">
+                            <SelectItem value="all" className="text-white">Tous</SelectItem>
+                            <SelectItem value="qualifie" className="text-white">Qualifié</SelectItem>
+                            <SelectItem value="prise_de_besoin" className="text-white">Prise de besoin</SelectItem>
+                            <SelectItem value="acompte_recu" className="text-white">Acompte reçu</SelectItem>
+                            <SelectItem value="perdu" className="text-white">Perdu</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </div>
 
-                    {/* City Filter */}
-                    {cities.length > 0 && (
-                      <div>
-                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+                      {/* City Filter */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                           <MapPin className="w-3.5 h-3.5" />
                           Ville
                         </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-[100px] overflow-y-auto">
-                          <button
-                            onClick={() => setCityFilter('')}
-                            className={cn(
-                              "px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                              cityFilter === ''
-                                ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
-                                : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                            )}
-                          >
-                            Toutes
-                          </button>
-                          {cities.map((city) => (
-                            <button
-                              key={city}
-                              onClick={() => setCityFilter(city)}
-                              className={cn(
-                                "px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 truncate",
-                                cityFilter === city
-                                  ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
-                                  : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                              )}
-                              title={city}
-                            >
-                              {city}
-                            </button>
-                          ))}
-                        </div>
+                        <Select value={cityFilter} onValueChange={setCityFilter}>
+                          <SelectTrigger className="h-10 w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-slate-600 max-h-72">
+                            <SelectItem value="all" className="text-white">Toutes les villes</SelectItem>
+                            {cities.map((city) => (
+                              <SelectItem key={city} value={city} className="text-white">
+                                {city}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
 
-                    {/* Type de Projet Filter */}
-                    <div>
-                      <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
-                        <Home className="w-3.5 h-3.5" />
-                        Type de projet
-                      </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <button
-                          onClick={() => setProjectTypeFilter('')}
-                          className={cn(
-                            "px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                            projectTypeFilter === ''
-                              ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
-                              : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                          )}
-                        >
-                          Tous
-                        </button>
-                        {projectTypes.map((type) => (
-                          <button
-                            key={type}
-                            onClick={() => setProjectTypeFilter(type)}
-                            className={cn(
-                              "px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 capitalize",
-                              projectTypeFilter === type
-                                ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
-                                : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                            )}
-                          >
-                            {type === 'villa' ? 'Villa' :
-                             type === 'appartement' ? 'Appartement' :
-                             type === 'magasin' ? 'Magasin' :
-                             type === 'bureau' ? 'Bureau' :
-                             type === 'riad' ? 'Riad' :
-                             type === 'studio' ? 'Studio' :
-                             type === 'renovation' ? 'Rénovation' :
-                             'Autre'}
-                          </button>
-                        ))}
+                      {/* Type de Projet Filter */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                          <Home className="w-3.5 h-3.5" />
+                          Type de projet
+                        </label>
+                        <Select value={projectTypeFilter} onValueChange={setProjectTypeFilter}>
+                          <SelectTrigger className="h-10 w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-slate-600">
+                            <SelectItem value="all" className="text-white">Tous les types</SelectItem>
+                            <SelectItem value="villa" className="text-white">Villa</SelectItem>
+                            <SelectItem value="appartement" className="text-white">Appartement</SelectItem>
+                            <SelectItem value="magasin" className="text-white">Magasin</SelectItem>
+                            <SelectItem value="bureau" className="text-white">Bureau</SelectItem>
+                            <SelectItem value="riad" className="text-white">Riad</SelectItem>
+                            <SelectItem value="studio" className="text-white">Studio</SelectItem>
+                            <SelectItem value="renovation" className="text-white">Rénovation</SelectItem>
+                            <SelectItem value="autre" className="text-white">Autre</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
+
+                      {/* Opportunities Filter */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                          <Briefcase className="w-3.5 h-3.5" />
+                          Opportunités
+                        </label>
+                        <Select value={hasOpportunitiesFilter} onValueChange={setHasOpportunitiesFilter}>
+                          <SelectTrigger className="h-10 w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-slate-600">
+                            <SelectItem value="all" className="text-white">Toutes</SelectItem>
+                            <SelectItem value="has" className="text-white">1+ Opportunité</SelectItem>
+                            <SelectItem value="no" className="text-white">Aucune</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Architect Filter - Show for all roles */}
+                      {allArchitects.length > 0 && (
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                            <UserCircle className="w-3.5 h-3.5" />
+                            Architecte assigné
+                          </label>
+                          <Select value={selectedArchitect} onValueChange={setSelectedArchitect}>
+                            <SelectTrigger className="h-10 w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-800 border-slate-600 max-h-72">
+                              <SelectItem value="all" className="text-white">Tous</SelectItem>
+                              {allArchitects.map((architect) => (
+                                <SelectItem key={architect.id} value={architect.name} className="text-white">
+                                  {architect.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      {/* Tag Filter - Admin Only */}
+                      {isAdmin && (
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Tag</label>
+                          <Select value={pipelineFilter} onValueChange={setPipelineFilter}>
+                            <SelectTrigger className="h-10 w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-800 border-slate-600">
+                              <SelectItem value="all" className="text-white">Tous</SelectItem>
+                              <SelectItem value="prospect" className="text-white">Prospect</SelectItem>
+                              <SelectItem value="vip" className="text-white">VIP</SelectItem>
+                              <SelectItem value="converted" className="text-white">Converti</SelectItem>
+                              <SelectItem value="client" className="text-white">Client</SelectItem>
+                              <SelectItem value="archived" className="text-white">Archivé</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </div>
-
-                    {/* Pipeline Filter - Admin Only */}
-                    {isAdmin && (
-                      <div>
-                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 block">Pipeline Stage</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {[
-                            { label: 'Tous', value: '' },
-                            { label: 'Qualifié', value: 'qualifie' },
-                            { label: 'Prise de besoin', value: 'prise_de_besoin' },
-                            { label: 'Acompte reçu', value: 'acompte_recu' },
-                            { label: 'Perdu', value: 'perdu' },
-                          ].map((filter) => (
-                            <button
-                              key={filter.value}
-                              onClick={() => setPipelineFilter(filter.value)}
-                              className={cn(
-                                "px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                                pipelineFilter === filter.value
-                                  ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
-                                  : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                              )}
-                            >
-                              {filter.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Opportunities Filter */}
-                    <div>
-                      <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
-                        <Briefcase className="w-3.5 h-3.5" />
-                        Opportunités
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { label: 'Toutes', value: 'all' },
-                          { label: '1+ Opportunité', value: 'has' },
-                          { label: 'Aucune', value: 'no' },
-                        ].map((filter) => (
-                          <button
-                            key={filter.value}
-                            onClick={() => setHasOpportunitiesFilter(filter.value as any)}
-                            className={cn(
-                              "px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                              hasOpportunitiesFilter === filter.value
-                                ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
-                                : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                            )}
-                          >
-                            {filter.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Architect Filter - Hidden for Architects */}
-                    {!isAdmin && architects.length > 0 && (
-                      <div>
-                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 block">Architecte assigné</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[120px] overflow-y-auto">
-                          <button
-                            onClick={() => setSelectedArchitect('')}
-                            className={cn(
-                              "px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                              selectedArchitect === ''
-                                ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
-                                : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                            )}
-                          >
-                            Tous
-                          </button>
-                          {architects.map((architect) => (
-                            <button
-                              key={architect}
-                              onClick={() => setSelectedArchitect(architect)}
-                              className={cn(
-                                "px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 truncate",
-                                selectedArchitect === architect
-                                  ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
-                                  : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                              )}
-                              title={architect}
-                            >
-                              {architect}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Show architect filter for Admin */}
-                    {isAdmin && architects.length > 0 && (
-                      <div>
-                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 block">Architecte assigné</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[120px] overflow-y-auto">
-                          <button
-                            onClick={() => setSelectedArchitect('')}
-                            className={cn(
-                              "px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                              selectedArchitect === ''
-                                ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
-                                : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                            )}
-                          >
-                            Tous
-                          </button>
-                          {architects.map((architect) => (
-                            <button
-                              key={architect}
-                              onClick={() => setSelectedArchitect(architect)}
-                              className={cn(
-                                "px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 truncate",
-                                selectedArchitect === architect
-                                  ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
-                                  : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                              )}
-                              title={architect}
-                            >
-                              {architect}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -614,3 +543,4 @@ export default function ContactsPage() {
     </AuthGuard>
   )
 }
+

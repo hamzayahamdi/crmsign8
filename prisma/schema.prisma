@@ -62,8 +62,9 @@ model User {
   password  String
   name      String
   role      String   @default("user")
-   phone     String?  // Phone number for SMS notifications
+  phone     String?  // Phone number for SMS notifications
   magasin   String?
+  ville     String?  // City for architect users
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
