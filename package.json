@@ -38,6 +38,7 @@
     "sync:tasks-calendar": "ts-node scripts/sync-existing-tasks.ts",
     "test:task-creation": "node scripts/test-task-creation.js",
     "verify:calendar-sync": "node scripts/verify-calendar-sync.js",
+    "update:unassigned-leads": "node scripts/update-unassigned-leads.js",
     "test:sms": "tsx scripts/test-sms.ts",
     "test:notification-sms": "tsx scripts/test-notification-with-sms.ts"
   },

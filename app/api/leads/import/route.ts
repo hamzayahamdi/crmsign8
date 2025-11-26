@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
           statut: mappedStatus as any,
           statutDetaille: note || `Lead importé depuis ${campaignName}`,
           message: note || '',
-          assignePar: assigneA || 'Non assigné',
+          assignePar: assigneA || 'Mohamed', // Default to Mohamed (gestionnaire de projet)
           source: 'tiktok' as any,
           priorite: (mappedStatus === 'qualifie' ? 'haute' : 'moyenne') as any,
           campaignName: campaignName || 'Nouvelle Campagne',

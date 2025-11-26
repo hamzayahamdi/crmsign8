@@ -56,14 +56,14 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
     accepte: {
       label: "Accepté",
       color: "text-emerald-400",
-      bgColor: "bg-emerald-500/10",
-      borderColor: "border-emerald-500/30"
+      bgColor: "bg-emerald-500/20",
+      borderColor: "border-emerald-500/40"
     },
     refuse: {
       label: "Refusé",
       color: "text-red-400",
-      bgColor: "bg-red-500/10",
-      borderColor: "border-red-500/30"
+      bgColor: "bg-red-500/20",
+      borderColor: "border-red-500/40"
     },
     premier_depot: {
       label: "1er Dépôt",
@@ -72,10 +72,10 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
       borderColor: "border-cyan-500/30"
     },
     projet_en_cours: {
-      label: "Projet en cours",
-      color: "text-indigo-400",
-      bgColor: "bg-indigo-500/10",
-      borderColor: "border-indigo-500/30"
+      label: "En cours",
+      color: "text-orange-300",
+      bgColor: "bg-orange-500/25",
+      borderColor: "border-orange-500/50"
     },
     facture_reglee: {
       label: "Facture réglée",
@@ -116,9 +116,9 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
     },
     chantier: {
       label: "Projet en cours",
-      color: "text-indigo-400",
-      bgColor: "bg-indigo-500/10",
-      borderColor: "border-indigo-500/30"
+      color: "text-orange-300",
+      bgColor: "bg-orange-500/25",
+      borderColor: "border-orange-500/50"
     },
     en_chantier: {
       label: "En chantier",
@@ -141,14 +141,20 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
     annule: {
       label: "Annulé",
       color: "text-red-400",
-      bgColor: "bg-red-500/10",
-      borderColor: "border-red-500/30"
+      bgColor: "bg-red-500/20",
+      borderColor: "border-red-500/40"
     },
     suspendu: {
       label: "Suspendu",
       color: "text-slate-400",
       bgColor: "bg-slate-500/10",
       borderColor: "border-slate-500/30"
+    },
+    perdu: {
+      label: "Perdu",
+      color: "text-red-300",
+      bgColor: "bg-red-900/40",
+      borderColor: "border-red-600/60"
     },
   }
 

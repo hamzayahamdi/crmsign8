@@ -34,11 +34,16 @@ export async function GET(request: NextRequest) {
     
     // Build where clause based on role
     const where: any = {}
-    if (user?.role === 'architect') {
-      // Filter by assigned name (case-insensitive). Also try a fallback on first/last name tokens.
-      const normalizedName = (user.name || '').trim()
+    const userRole = (user?.role || '').toLowerCase()
+    
+    // Admin, Operator, and Gestionnaire can see ALL leads (no filter applied)
+    if (userRole === 'admin' || userRole === 'operator' || userRole === 'gestionnaire') {
+      // No filter - they see everything including unassigned leads
+      console.log(`[API] ${userRole} user ${user?.name} - showing ALL leads`)
+    } else if (userRole === 'architect') {
+      // Architects only see leads assigned to them
+      const normalizedName = (user?.name || '').trim()
       const tokens = normalizedName.split(/\s+/)
-      // Prefer exact equals (insensitive); also allow contains on the full name as a safe fallback
       where.OR = [
         { assignePar: { equals: normalizedName, mode: 'insensitive' } },
         { assignePar: { contains: normalizedName, mode: 'insensitive' } },
@@ -49,15 +54,15 @@ export async function GET(request: NextRequest) {
             ]
           : []),
       ]
-    } else if (user?.role === 'commercial') {
-      // Commercial can see their own leads; match by creator name or commercialMagasin for robustness
+    } else if (userRole === 'commercial') {
+      // Commercial can see their own leads
       where.OR = [
-        { createdBy: user.name },
-        { commercialMagasin: user.name }
+        { createdBy: user?.name },
+        { commercialMagasin: user?.name }
       ]
-    } else if (user?.role === 'magasiner') {
+    } else if (userRole === 'magasiner') {
       // Magasiner can only see leads from their assigned magasin
-      if (user.magasin) {
+      if (user?.magasin) {
         where.magasin = user.magasin
       }
     }
@@ -137,7 +142,7 @@ export async function POST(request: NextRequest) {
     
     // Get user info from token for createdBy
     let createdBy = user.name
-    let assignePar = body.assignePar || 'Non assigné'
+    let assignePar = body.assignePar || 'Mohamed' // Default to Mohamed (gestionnaire de projet)
     let magasin = body.magasin || user.magasin
     let commercialMagasin = body.commercialMagasin || (user.role === 'commercial' ? user.name : undefined)
     
@@ -158,24 +163,30 @@ export async function POST(request: NextRequest) {
       month = `${monthNames[now.getMonth()]} ${now.getFullYear()}`
       uploadedAt = now
     }
-    // If an assignment was provided, try to canonicalize it to an exact architect user name
+    // If an assignment was provided, try to canonicalize it to an exact gestionnaire/architect user name
     if (assignePar && assignePar !== 'Non assigné') {
       const raw = (assignePar || '').trim()
       const norm = (s: string) => s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
       const tokens = (s: string) => norm(s).split(/\s+/).filter(Boolean)
-      const allArchitects = await prisma.user.findMany({
-        where: { role: { equals: 'architect', mode: 'insensitive' } },
+      // Look for gestionnaires and architects
+      const allAssignees = await prisma.user.findMany({
+        where: { 
+          OR: [
+            { role: { equals: 'gestionnaire', mode: 'insensitive' } },
+            { role: { equals: 'architect', mode: 'insensitive' } }
+          ]
+        },
         select: { name: true }
       })
       const nraw = norm(raw)
       let best: string | null = null
-      for (const u of allArchitects) {
+      for (const u of allAssignees) {
         const uname = u.name || ''
         const nuser = norm(uname)
         if (nraw === nuser) { best = uname; break }
       }
       if (!best) {
-        for (const u of allArchitects) {
+        for (const u of allAssignees) {
           const uname = u.name || ''
           const nuser = norm(uname)
           if (nraw && nuser.includes(nraw)) { best = uname; break }
@@ -183,7 +194,7 @@ export async function POST(request: NextRequest) {
       }
       if (!best) {
         const tt = tokens(raw)
-        for (const u of allArchitects) {
+        for (const u of allAssignees) {
           const uname = u.name || ''
           const nuser = norm(uname)
           if (tt.length >= 1 && tt.some(t => nuser.includes(t))) { best = uname; break }

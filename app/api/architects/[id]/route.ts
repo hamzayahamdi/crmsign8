@@ -75,7 +75,17 @@ function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_
 
 /**
  * GET /api/architects/[id] - Fetch single architect with all their dossiers
- * Now includes Clients, Contacts, and Opportunities
+ * 
+ * DOSSIER COUNTING LOGIC (MUST MATCH /api/architects):
+ * - A "dossier" is a project/case assigned to an architect
+ * - Sources of dossiers:
+ *   1. Legacy Clients (Client model) - each client = 1 dossier
+ *   2. Contact Opportunities (Contact model with Opportunity relations) - each opportunity = 1 dossier
+ *   3. Direct Opportunities (Opportunity model) - each opportunity = 1 dossier
+ * 
+ * IMPORTANT: A single Contact can have MULTIPLE Opportunities (projects).
+ * Therefore, we count opportunities within contacts, NOT the contact itself.
+ * Use flatMap to extract opportunities from contacts for accurate counting.
  */
 export async function GET(
   request: NextRequest,
@@ -132,7 +142,8 @@ export async function GET(
               type: true,
               statut: true,
               pipelineStage: true,
-              budget: true
+              budget: true,
+              updatedAt: true
             }
           }
         },
@@ -178,15 +189,23 @@ export async function GET(
     // Combine all dossiers for statistics
     const allDossiers = [
       ...architectClients.map(c => ({ type: 'client' as const, statut: c.statutProjet })),
-      ...architectContacts.map(c => ({ 
-        type: 'contact' as const, 
-        statut: c.status === 'perdu' ? 'perdu' : c.tag === 'client' ? 'en_cours' : 'en_attente' 
-      })),
+      ...architectContacts.flatMap(c => 
+        c.opportunities.map(o => ({
+          type: 'contact_opportunity' as const,
+          statut: o.pipelineStage === 'perdue' ? 'perdu' :
+                 o.pipelineStage === 'gagnee' ? 'termine' :
+                 o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                 o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                 'projet_en_cours'
+        }))
+      ),
       ...architectOpportunities.map(o => ({ 
         type: 'opportunity' as const, 
         statut: o.statut === 'won' ? 'termine' : o.statut === 'lost' ? 'perdu' : 
                o.pipelineStage === 'perdue' ? 'perdu' : 
-               o.pipelineStage === 'gagnee' ? 'termine' : 'en_cours'
+               o.pipelineStage === 'gagnee' ? 'termine' : 
+               o.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
+               'projet_en_cours'
       }))
     ]
 
@@ -225,7 +244,7 @@ export async function GET(
       isDisponible,
       // Breakdown by source
       clientsCount: architectClients.length,
-      contactsCount: architectContacts.length,
+      contactsCount: architectContacts.reduce((sum, c) => sum + c.opportunities.length, 0),
       opportunitiesCount: architectOpportunities.length
     }
 
@@ -255,33 +274,40 @@ export async function GET(
         contactId: undefined,
         opportunityId: undefined
       })),
-      // Contacts (as clients for display)
-      ...architectContacts.map(contact => ({
-        id: contact.id,
-        nom: contact.nom,
-        telephone: contact.telephone,
-        ville: contact.ville || '',
-        typeProjet: 'autre' as const,
-        architecteAssigne: contact.architecteAssigne || '',
-        statutProjet: contact.status === 'perdu' ? 'perdu' : 
-                     contact.tag === 'client' ? 'en_cours' : 'qualifie',
-        derniereMaj: contact.updatedAt.toISOString(),
-        leadId: contact.leadId || undefined,
-        email: contact.email || undefined,
-        adresse: contact.adresse || undefined,
-        budget: 0,
-        notes: contact.notes || undefined,
-        magasin: contact.magasin || undefined,
-        commercialAttribue: undefined,
-        createdAt: contact.createdAt.toISOString(),
-        updatedAt: contact.updatedAt.toISOString(),
-        isContact: true,
-        contactId: contact.id,
-        opportunityId: undefined
-      })),
+      // Contacts with opportunities (transform to opportunity-based clients)
+      ...architectContacts.flatMap(contact => 
+        contact.opportunities.map(opportunity => ({
+          id: `${contact.id}-${opportunity.id}`, // Composite ID format
+          nom: contact.nom,
+          telephone: contact.telephone,
+          ville: contact.ville || '',
+          typeProjet: opportunity.type as any,
+          architecteAssigne: contact.architecteAssigne || '',
+          statutProjet: opportunity.pipelineStage === 'perdue' ? 'perdu' :
+                       opportunity.pipelineStage === 'gagnee' ? 'termine' :
+                       opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                       opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                       opportunity.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
+                       'projet_en_cours',
+          derniereMaj: opportunity.updatedAt ? opportunity.updatedAt.toISOString() : contact.updatedAt.toISOString(),
+          leadId: contact.leadId || undefined,
+          email: contact.email || undefined,
+          adresse: contact.adresse || undefined,
+          budget: opportunity.budget ? Number(opportunity.budget) : 0,
+          notes: contact.notes || undefined,
+          magasin: contact.magasin || undefined,
+          commercialAttribue: undefined,
+          createdAt: contact.createdAt.toISOString(),
+          updatedAt: contact.updatedAt.toISOString(),
+          isContact: true,
+          contactId: contact.id,
+          opportunityId: opportunity.id,
+          nomProjet: opportunity.titre
+        }))
+      ),
       // Opportunities (as clients for display)
       ...architectOpportunities.map(opportunity => ({
-        id: opportunity.id,
+        id: `${opportunity.contactId}-${opportunity.id}`, // Composite ID format for opportunity-based clients
         nom: opportunity.contact.nom,
         telephone: opportunity.contact.telephone,
         ville: opportunity.contact.ville || '',
@@ -293,7 +319,7 @@ export async function GET(
                      opportunity.pipelineStage === 'gagnee' ? 'termine' :
                      opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
                      opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                     'en_cours',
+                     'projet_en_cours',
         derniereMaj: opportunity.updatedAt.toISOString(),
         leadId: undefined,
         email: opportunity.contact.email || undefined,
@@ -304,14 +330,15 @@ export async function GET(
         commercialAttribue: undefined,
         createdAt: opportunity.createdAt.toISOString(),
         updatedAt: opportunity.updatedAt.toISOString(),
-        isContact: false,
+        isContact: true, // Mark as contact-based to distinguish from legacy clients
         contactId: opportunity.contactId,
         opportunityId: opportunity.id,
         nomProjet: opportunity.titre
       }))
     ].sort((a, b) => new Date(b.derniereMaj).getTime() - new Date(a.derniereMaj).getTime())
 
-    console.log(`[GET /api/architects/${id}] ✅ Fetched architect with ${transformedClients.length} total dossiers (${architectClients.length} clients, ${architectContacts.length} contacts, ${architectOpportunities.length} opportunities)`)
+    const contactOpportunitiesCount = architectContacts.reduce((sum, c) => sum + c.opportunities.length, 0)
+    console.log(`[GET /api/architects/${id}] ✅ Fetched architect with ${transformedClients.length} total dossiers (${architectClients.length} legacy clients, ${contactOpportunitiesCount} contact opportunities, ${architectOpportunities.length} direct opportunities)`)
 
     return NextResponse.json({
       success: true,

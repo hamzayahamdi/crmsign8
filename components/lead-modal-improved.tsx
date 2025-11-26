@@ -111,7 +111,7 @@ export function LeadModalImproved({
   currentUserRole = "admin",
   currentUserName = "Admin"
 }: LeadModalImprovedProps) {
-  const [commercials, setCommercials] = useState<string[]>(["Radia"])
+  const [commercials, setCommercials] = useState<string[]>(["Mohamed"])
   const [villes, setVilles] = useState<string[]>(defaultVilles)
   const [typesBien, setTypesBien] = useState<string[]>(defaultTypesBien)
   const [newNote, setNewNote] = useState("")
@@ -126,7 +126,7 @@ export function LeadModalImproved({
     statut: lead?.statut || ("nouveau" as LeadStatus),
     statutDetaille: lead?.statutDetaille || "",
     message: lead?.message || "",
-    assignePar: lead?.assignePar || "Radia",
+    assignePar: lead?.assignePar || "Mohamed",
     source: lead?.source || ("site_web" as LeadSource),
     priorite: lead?.priorite || ("moyenne" as LeadPriority),
     magasin: lead?.magasin || "",
@@ -136,32 +136,48 @@ export function LeadModalImproved({
 
   const [formData, setFormData] = useState(initialForm)
 
-  // Load commercials from Users API
+  // Load gestionnaires and architects from Users API
   useEffect(() => {
-    const loadCommercials = async () => {
+    const loadAssignees = async () => {
       try {
         const res = await fetch('/api/users')
         if (res.ok) {
           const users = (await res.json()) as any[]
           const list: string[] = Array.from(new Set(
             users
-              .filter((u: any) => ['admin', 'commercial'].includes((u.role || '').toLowerCase()))
+              .filter((u: any) => {
+                const role = (u.role || '').toLowerCase()
+                return role === 'gestionnaire' || role === 'admin' || role === 'commercial' || role === 'architect'
+              })
               .map((u: any) => (u.name || '').trim())
               .filter((n: string) => n)
           ))
-          setCommercials(list.length ? list : ['Radia'])
-          if (!formData.assignePar && list.length > 0) {
-            setFormData((prev) => ({ ...prev, assignePar: list[0] }))
+          
+          // Find Mohamed as the default gestionnaire de projet
+          const mohamedUser = users.find((u: any) => 
+            (u.name || '').toLowerCase().includes('mohamed') && 
+            (u.role || '').toLowerCase() === 'gestionnaire'
+          )
+          
+          const defaultAssignee = mohamedUser?.name || list[0] || 'Mohamed'
+          setCommercials(list.length ? list : ['Mohamed'])
+          
+          if (!lead) {
+            setFormData((prev) => ({ ...prev, assignePar: defaultAssignee }))
           }
         }
       } catch (error) {
-        console.error('Error loading commercials:', error)
+        console.error('Error loading assignees:', error)
       }
     }
-    loadCommercials()
-  }, [])
+    loadAssignees()
+  }, [lead])
 
   const resetForm = () => {
+    const defaultAssignee = commercials.find((name: string) => 
+      name.toLowerCase().includes('mohamed')
+    ) || commercials[0] || 'Mohamed'
+    
     setFormData({
       nom: "",
       telephone: "",
@@ -170,7 +186,7 @@ export function LeadModalImproved({
       statut: "nouveau" as LeadStatus,
       statutDetaille: "",
       message: "",
-      assignePar: "Radia",
+      assignePar: defaultAssignee,
       source: "site_web" as LeadSource,
       priorite: "moyenne" as LeadPriority,
       magasin: "",

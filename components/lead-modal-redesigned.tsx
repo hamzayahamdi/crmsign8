@@ -116,7 +116,7 @@ export function LeadModalRedesigned({
   currentUserMagasin,
 }: LeadModalRedesignedProps) {
   const { user: authUser } = useAuth()
-  const [architects, setArchitects] = useState<string[]>(["Radia"])
+  const [architects, setArchitects] = useState<string[]>(["Mohamed"])
   const [commercials, setCommercials] = useState<string[]>(["Radia"])
   const [villes, setVilles] = useState<string[]>(defaultVilles)
   const [typesBien, setTypesBien] = useState<string[]>(defaultTypesBien)
@@ -133,7 +133,7 @@ export function LeadModalRedesigned({
     statut: lead?.statut || ("nouveau" as LeadStatus),
     statutDetaille: lead?.statutDetaille || "",
     message: lead?.message || "",
-    assignePar: lead?.assignePar || "Radia",
+    assignePar: lead?.assignePar || "Mohamed",
     source: lead?.source || ("site_web" as LeadSource),
     priorite: lead?.priorite || ("moyenne" as LeadPriority),
     magasin: lead?.magasin || "",
@@ -150,15 +150,47 @@ export function LeadModalRedesigned({
         if (res.ok) {
           const users = (await res.json()) as Array<{ role?: string; name?: string }>
           
-          const architectList = Array.from(
+          // Filter for gestionnaires (project managers) and architects
+          let architectList = Array.from(
             new Set(
             users
-                .filter((u) => ["admin", "architect"].includes((u.role || "").toLowerCase()))
+                .filter((u) => {
+                  const role = (u.role || "").toLowerCase()
+                  return role === "gestionnaire" || role === "admin" || role === "architect"
+                })
                 .map((u) => (u.name || "").trim())
                 .filter(Boolean),
             ),
           )
-          setArchitects(architectList.length ? architectList : ["Radia"])
+          
+          // Find Mohamed as the default gestionnaire de projet
+          const mohamedUser = users.find((u) => 
+            (u.name || '').toLowerCase().includes('mohamed') && 
+            (u.role || '').toLowerCase() === 'gestionnaire'
+          )
+          
+          // Sort list to put Mohamed first
+          if (mohamedUser?.name) {
+            architectList = architectList.filter(name => name !== mohamedUser.name)
+            architectList.unshift(mohamedUser.name) // Put Mohamed at the beginning
+          }
+          
+          // If no users found, default to Mohamed
+          if (architectList.length === 0) {
+            architectList = ["Mohamed"]
+          }
+          
+          setArchitects(architectList)
+          
+          // Always use Mohamed as default (or first in list if Mohamed not found)
+          const defaultAssignee = mohamedUser?.name || (architectList.find(name => 
+            name.toLowerCase().includes('mohamed')
+          )) || architectList[0] || 'Mohamed'
+          
+          // Set Mohamed as default for new leads
+          if (!lead) {
+            setFormData((prev) => ({ ...prev, assignePar: defaultAssignee }))
+          }
 
           const commercialList = Array.from(
             new Set(
@@ -172,15 +204,25 @@ export function LeadModalRedesigned({
         }
       } catch (error) {
         console.error("Error loading users:", error)
+        // On error, ensure Mohamed is still the default
+        setArchitects(["Mohamed"])
+        if (!lead) {
+          setFormData((prev) => ({ ...prev, assignePar: "Mohamed" }))
+        }
       }
     }
 
     loadUsers()
-  }, [])
+  }, [lead])
 
   
 
   const resetForm = () => {
+    // Find Mohamed or use first available gestionnaire as default
+    const defaultAssignee = architects.find((name: string) => 
+      name.toLowerCase().includes('mohamed')
+    ) || architects[0] || 'Mohamed'
+    
     setFormData({
       nom: "",
       telephone: "",
@@ -190,7 +232,7 @@ export function LeadModalRedesigned({
       statut: "nouveau" as LeadStatus,
       statutDetaille: "",
       message: "",
-      assignePar: "Radia",
+      assignePar: defaultAssignee,
       source: "site_web" as LeadSource,
       priorite: "moyenne" as LeadPriority,
       magasin: "",
@@ -204,6 +246,11 @@ export function LeadModalRedesigned({
     if (open) {
       if (lead) {
         console.log('[LeadModal] Loading lead data into form:', lead)
+        // Find Mohamed in the list for fallback
+        const defaultAssignee = architects.find((name: string) => 
+          name.toLowerCase().includes('mohamed')
+        ) || architects[0] || 'Mohamed'
+        
         // Load lead data into form with all fields
         setFormData({
           nom: lead.nom || "",
@@ -214,7 +261,7 @@ export function LeadModalRedesigned({
           statut: lead.statut || ("nouveau" as LeadStatus),
           statutDetaille: lead.statutDetaille || "",
           message: lead.message || "",
-          assignePar: lead.assignePar || architects[0] || "Radia",
+          assignePar: lead.assignePar || defaultAssignee,
           source: lead.source || ("site_web" as LeadSource),
           priorite: lead.priorite || ("moyenne" as LeadPriority),
           magasin: lead.magasin || (currentUserRole === "commercial" ? currentUserMagasin || "" : ""),
@@ -226,8 +273,13 @@ export function LeadModalRedesigned({
         // Reset form for new lead
         console.log('[LeadModal] Resetting form for new lead')
         resetForm()
-        // Set default assignee when creating
-        setFormData((prev) => ({ ...prev, assignePar: architects[0] || "Radia" }))
+        // ALWAYS set Mohamed as default when creating a new lead
+        // If Mohamed exists in the architects list, use that exact name; otherwise use "Mohamed"
+        const mohamedInList = architects.find((name: string) => 
+          name.toLowerCase().includes('mohamed')
+        )
+        const defaultAssignee = mohamedInList || 'Mohamed'
+        setFormData((prev) => ({ ...prev, assignePar: defaultAssignee }))
       }
     }
   }, [lead, open, currentUserRole, currentUserMagasin, currentUserName, architects])

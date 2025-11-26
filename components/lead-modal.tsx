@@ -117,7 +117,7 @@ export function LeadModal({
   const [commercials, setCommercials] = useState<string[]>(["Radia"])
   const [villes, setVilles] = useState<string[]>(defaultVilles)
   const [typesBien, setTypesBien] = useState<string[]>(defaultTypesBien)
-  const [architects, setArchitects] = useState<string[]>(['TAZI'])
+  const [architects, setArchitects] = useState<string[]>(['Mohamed'])
   const [newNote, setNewNote] = useState("")
   const [showConvertDialog, setShowConvertDialog] = useState(false)
   const [showNotInterestedDialog, setShowNotInterestedDialog] = useState(false)
@@ -129,7 +129,7 @@ export function LeadModal({
     statut: lead?.statut || ("nouveau" as LeadStatus),
     statutDetaille: lead?.statutDetaille || "",
     message: lead?.message || "",
-    assignePar: lead?.assignePar || "Radia",
+    assignePar: lead?.assignePar || "Mohamed",
     source: lead?.source || ("site_web" as LeadSource),
     priorite: lead?.priorite || ("moyenne" as LeadPriority),
     magasin: lead?.magasin || "",
@@ -139,33 +139,52 @@ export function LeadModal({
 
   const [formData, setFormData] = useState(initialForm)
 
-  // Load architects from Users API
+  // Load project managers (gestionnaires) and architects from Users API
   useEffect(() => {
-    const loadArchitects = async () => {
+    const loadAssignees = async () => {
       try {
         const res = await fetch('/api/users')
         if (res.ok) {
           const users = (await res.json()) as any[]
+          // Filter users with role 'gestionnaire' (gestionnaire de projet) or 'architect'
           const list: string[] = Array.from(new Set(
             users
-              .filter((u: any) => (u.role || '').toLowerCase() === 'architect')
+              .filter((u: any) => {
+                const role = (u.role || '').toLowerCase()
+                return role === 'gestionnaire' || role === 'architect'
+              })
               .map((u: any) => (u.name || '').trim())
               .filter((n: string) => n)
           ))
-          setArchitects(list.length ? list : ['TAZI'])
-          // If no assignee chosen yet, default it
-          setFormData((prev) => ({ ...prev, assignePar: prev.assignePar || (list[0] || 'TAZI') }))
+          
+          // Find Mohamed as the default gestionnaire de projet
+          const mohamedUser = users.find((u: any) => 
+            (u.name || '').toLowerCase().includes('mohamed') && 
+            (u.role || '').toLowerCase() === 'gestionnaire'
+          )
+          
+          const defaultAssignee = mohamedUser?.name || list[0] || 'Mohamed'
+          setArchitects(list.length ? list : ['Mohamed'])
+          
+          // Set Mohamed as default for new leads
+          if (!lead) {
+            setFormData((prev) => ({ ...prev, assignePar: defaultAssignee }))
+          }
         } else {
-          setArchitects(['TAZI'])
-          setFormData((prev) => ({ ...prev, assignePar: prev.assignePar || 'TAZI' }))
+          setArchitects(['Mohamed'])
+          if (!lead) {
+            setFormData((prev) => ({ ...prev, assignePar: 'Mohamed' }))
+          }
         }
       } catch {
-        setArchitects(['TAZI'])
-        setFormData((prev) => ({ ...prev, assignePar: prev.assignePar || 'TAZI' }))
+        setArchitects(['Mohamed'])
+        if (!lead) {
+          setFormData((prev) => ({ ...prev, assignePar: 'Mohamed' }))
+        }
       }
     }
-    loadArchitects()
-  }, [])
+    loadAssignees()
+  }, [lead])
 
   const resetForm = () => setFormData({
     nom: "",
@@ -175,7 +194,7 @@ export function LeadModal({
     statut: "nouveau" as LeadStatus,
     statutDetaille: "",
     message: "",
-    assignePar: "TAZI",
+    assignePar: "Mohamed",
     source: "site_web" as LeadSource,
     priorite: "moyenne" as LeadPriority,
     magasin: "",
@@ -194,7 +213,7 @@ export function LeadModal({
         statut: lead.statut,
         statutDetaille: lead.statutDetaille || "",
         message: lead.message || "",
-        assignePar: lead.assignePar || prev.assignePar || (architects[0] || 'TAZI'),
+        assignePar: lead.assignePar || prev.assignePar || (architects[0] || 'Mohamed'),
         source: lead.source,
         priorite: lead.priorite,
         magasin: lead.magasin || "",
@@ -204,12 +223,15 @@ export function LeadModal({
     }
   }, [lead, architects, open])
 
-  // When opening for a new lead (no lead provided), clear the form
+  // When opening for a new lead (no lead provided), ensure Mohamed is default
   useEffect(() => {
     if (open && !lead) {
       resetForm()
-      // ensure default assignee is available when creating
-      setFormData((prev) => ({ ...prev, assignePar: architects[0] || 'TAZI' }))
+      // ensure Mohamed or first available gestionnaire is the default assignee
+      const defaultAssignee = architects.find((name: string) => 
+        name.toLowerCase().includes('mohamed')
+      ) || architects[0] || 'Mohamed'
+      setFormData((prev) => ({ ...prev, assignePar: defaultAssignee }))
     }
   }, [open, lead, architects])
 
@@ -347,19 +369,19 @@ export function LeadModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="assignePar" className="text-foreground">
-                Assigné par
+                Assigné à
               </Label>
               <Select
                 value={formData.assignePar}
                 onValueChange={(value) => setFormData({ ...formData, assignePar: value })}
               >
                 <SelectTrigger className="border-border/60 focus:border-primary/60">
-                  <SelectValue />
+                  <SelectValue placeholder="Sélectionner..." />
                 </SelectTrigger>
                 <SelectContent className="border-border/60">
                   {architects.map((name: string) => (
                     <SelectItem key={name} value={name}>
-                      {name.toUpperCase()}
+                      {name}
                     </SelectItem>
                   ))}
                 </SelectContent>

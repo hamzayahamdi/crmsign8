@@ -77,7 +77,17 @@ function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_
 
 /**
  * GET /api/architects - Fetch all architect users with their dossier statistics
- * Now includes Clients, Contacts, and Opportunities
+ * 
+ * DOSSIER COUNTING LOGIC (MUST MATCH /api/architects/[id]):
+ * - A "dossier" is a project/case assigned to an architect
+ * - Sources of dossiers:
+ *   1. Legacy Clients (Client model) - each client = 1 dossier
+ *   2. Contact Opportunities (Contact model with Opportunity relations) - each opportunity = 1 dossier
+ *   3. Direct Opportunities (Opportunity model) - each opportunity = 1 dossier
+ * 
+ * IMPORTANT: A single Contact can have MULTIPLE Opportunities (projects).
+ * Therefore, we count opportunities within contacts, NOT the contact itself.
+ * Use flatMap to extract opportunities from contacts for accurate counting.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -111,7 +121,7 @@ export async function GET(request: NextRequest) {
           statutProjet: true
         }
       }),
-      // Contacts with architect assignment
+      // Contacts with architect assignment (with their opportunities)
       prisma.contact.findMany({
         where: {
           architecteAssigne: { not: null }
@@ -120,7 +130,14 @@ export async function GET(request: NextRequest) {
           id: true,
           architecteAssigne: true,
           status: true,
-          tag: true
+          tag: true,
+          opportunities: {
+            select: {
+              id: true,
+              statut: true,
+              pipelineStage: true
+            }
+          }
         }
       }),
       // Opportunities with architect assignment
@@ -154,18 +171,29 @@ export async function GET(request: NextRequest) {
         isAssignedToArchitect(opportunity.architecteAssigne, architect.id, architectName)
       )
 
-      // Combine all dossiers
+      // Combine all dossiers - IMPORTANT: Count opportunities within contacts, not contacts themselves
+      // A contact can have multiple opportunities (projects), so each opportunity is a dossier
       const allDossiers = [
         ...architectClients.map(c => ({ type: 'client' as const, statut: c.statutProjet })),
-        ...architectContacts.map(c => ({ 
-          type: 'contact' as const, 
-          statut: c.status === 'perdu' ? 'perdu' : c.tag === 'client' ? 'en_cours' : 'en_attente' 
-        })),
+        // Extract all opportunities from contacts - each opportunity is a separate dossier
+        ...architectContacts.flatMap(c => 
+          c.opportunities.map(o => ({
+            type: 'contact_opportunity' as const,
+            statut: o.pipelineStage === 'perdue' ? 'perdu' :
+                   o.pipelineStage === 'gagnee' ? 'termine' :
+                   o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                   o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                   o.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
+                   'projet_en_cours'
+          }))
+        ),
         ...architectOpportunities.map(o => ({ 
           type: 'opportunity' as const, 
           statut: o.statut === 'won' ? 'termine' : o.statut === 'lost' ? 'perdu' : 
                  o.pipelineStage === 'perdue' ? 'perdu' : 
-                 o.pipelineStage === 'gagnee' ? 'termine' : 'en_cours'
+                 o.pipelineStage === 'gagnee' ? 'termine' : 
+                 o.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
+                 'projet_en_cours'
         }))
       ]
 
@@ -207,7 +235,7 @@ export async function GET(request: NextRequest) {
         isDisponible, // New field to indicate availability
         // Breakdown by source
         clientsCount: architectClients.length,
-        contactsCount: architectContacts.length,
+        contactsCount: architectContacts.reduce((sum, c) => sum + c.opportunities.length, 0), // Count opportunities within contacts
         opportunitiesCount: architectOpportunities.length
       }
     })

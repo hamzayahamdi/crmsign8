@@ -122,7 +122,7 @@ export function CommercialAddLeadModal({
         statut: "nouveau",
         statutDetaille: "Nouveau lead",
         message: formData.message.trim() || undefined,
-        assignePar: "Non assigné",
+        assignePar: "Mohamed",
         source: "magasin",
         priorite: "moyenne",
         magasin: formData.magasin,

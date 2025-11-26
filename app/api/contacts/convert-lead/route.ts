@@ -59,12 +59,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    // 4.5 If architectId provided, look up architect name
+    // 4.5 Determine architect assignment
     let architecteName: string | undefined = undefined;
+    let finalArchitectId: string | undefined = architectId;
+    
     if (architectId) {
+      // If architectId is explicitly provided, use it
       const architect = await prisma.user.findUnique({ where: { id: architectId } });
       if (architect) {
         architecteName = architect.name;
+      }
+    } else if (lead.assignePar && lead.assignePar !== "Non assigné") {
+      // If no architectId provided, automatically assign to the lead's assignee (gestionnaire de projet)
+      architecteName = lead.assignePar;
+      
+      // Find the user ID for notification purposes
+      const assignedUser = await prisma.user.findFirst({
+        where: {
+          name: {
+            equals: lead.assignePar,
+            mode: 'insensitive'
+          }
+        }
+      });
+      
+      if (assignedUser) {
+        finalArchitectId = assignedUser.id;
       }
     }
 
@@ -115,15 +135,16 @@ export async function POST(request: NextRequest) {
     });
     timelineEntries.push(conversionEvent);
 
-    if (architectId) {
+    if (finalArchitectId && architecteName) {
       const architectEvent = await prisma.timeline.create({
         data: {
           contactId: contact.id,
           eventType: 'architect_assigned',
-          title: 'Architecte assigné',
-          description: `Architecte assigné au contact`,
+          title: 'Gestionnaire assigné',
+          description: `${architecteName} a été assigné au contact`,
           metadata: {
-            architectId,
+            architectId: finalArchitectId,
+            architectName: architecteName,
           },
           author: userId,
         },
@@ -141,16 +162,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 10. Create notification for the assigned architect
-    if (architectId) {
-      // Send notification to the architect who was assigned
+    // 10. Create notification for the assigned gestionnaire/architect
+    if (finalArchitectId && architecteName) {
+      // Send notification to the person who was assigned the lead
       await prisma.notification.create({
         data: {
-          userId: architectId,
+          userId: finalArchitectId,
           type: 'client_assigned',
           priority: 'high',
           title: 'Nouveau Contact Assigné',
-          message: `Le contact "${contact.nom}" vous a été assigné. Téléphone: ${contact.telephone}`,
+          message: `Le contact "${contact.nom}" vous a été assigné depuis le lead. Téléphone: ${contact.telephone}`,
           linkedType: 'contact',
           linkedId: contact.id,
           linkedName: contact.nom,
@@ -159,6 +180,7 @@ export async function POST(request: NextRequest) {
             contactVille: contact.ville,
             convertedFrom: 'lead',
             leadId: lead.id,
+            previousAssignee: lead.assignePar,
           },
           createdBy: userId,
         },
