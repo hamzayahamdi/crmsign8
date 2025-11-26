@@ -7,7 +7,7 @@ import { Signature8Logo } from "@/components/signature8-logo"
 import { useAuth } from "@/contexts/auth-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { useMemo, useEffect, useState, useCallback, useTransition } from "react"
+import { useMemo, useEffect, useState, useCallback } from "react"
 import { motion, LayoutGroup } from "framer-motion"
 import { TasksService } from "@/lib/tasks-service"
 import { toast } from "sonner"
@@ -40,23 +40,39 @@ export function Sidebar() {
   const router = useRouter()
   const pathname = usePathname()
   const { user, logout } = useAuth()
-  const [isPending, startTransition] = useTransition()
+  const [isNavigating, setIsNavigating] = useState(false)
 
   // Tasks badge state
   const [myPendingTasks, setMyPendingTasks] = useState<number>(0)
   const [myNewTasks, setMyNewTasks] = useState<number>(0)
   const [adminUpdatesCount, setAdminUpdatesCount] = useState<number>(0)
 
-  // Optimized navigation with prefetch and transition
+  // Optimized navigation with immediate redirect
   const handleNavigation = useCallback((href: string) => {
-    // Prefetch the route
+    // Don't navigate if already on this page
+    if (href === pathname) {
+      return
+    }
+
+    // Set navigating state briefly for visual feedback
+    setIsNavigating(true)
+    
+    // Prefetch the route immediately
     router.prefetch(href)
     
-    // Use startTransition for non-blocking updates
-    startTransition(() => {
-      router.push(href)
-    })
-  }, [router])
+    // Immediate navigation - no transition delay
+    router.push(href)
+    
+    // Reset navigating state after a short delay
+    setTimeout(() => setIsNavigating(false), 100)
+  }, [router, pathname])
+
+  // Prefetch routes on hover for faster navigation
+  const handleMouseEnter = useCallback((href: string) => {
+    if (href !== pathname) {
+      router.prefetch(href)
+    }
+  }, [router, pathname])
 
   // Load tasks count for the signed-in user and compute new tasks since last seen
   useEffect(() => {
@@ -179,15 +195,24 @@ export function Sidebar() {
           return (
             <motion.button
               key={item.name}
-              onClick={() => handleNavigation(item.href)}
-              disabled={isPending}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                // Immediate navigation without delay
+                if (item.href !== pathname) {
+                  handleNavigation(item.href)
+                }
+              }}
+              onMouseEnter={() => handleMouseEnter(item.href)}
+              disabled={isNavigating && pathname !== item.href}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05, duration: 0.4, ease: "easeOut" }}
               whileHover={{ x: 4 }}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.95 }}
               className="w-full text-left block"
-              style={{ cursor: isPending ? 'progress' : 'pointer' }}
+              style={{ cursor: (isNavigating && pathname !== item.href) ? 'wait' : 'pointer' }}
+              type="button"
             >
               <motion.div
                 layout
@@ -196,7 +221,7 @@ export function Sidebar() {
                   isActive
                     ? "text-sky-50"
                     : "text-muted-foreground hover:text-foreground",
-                  isPending && "opacity-60 pointer-events-none"
+                  isNavigating && "opacity-60"
                 )}
                 transition={{ type: "spring", stiffness: 350, damping: 35, mass: 0.9 }}
               >
