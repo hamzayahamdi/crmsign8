@@ -1162,7 +1162,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 text-white border-slate-600">
                           <SelectItem value="all">Tous les statuts</SelectItem>
-                          {columns.map((c) => (
+                          {columns.filter(c => c.status && c.status.trim()).map((c) => (
                             <SelectItem key={c.status} value={c.status}>
                               {c.label}
                             </SelectItem>
@@ -1186,7 +1186,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 text-white border-slate-600 max-h-72">
                           <SelectItem value="all">Toutes les villes</SelectItem>
-                          {[...new Set(leads.map((l) => l.ville))].map((c) => (
+                          {[...new Set(leads.map((l) => l.ville).filter(v => v && v.trim()))].map((c) => (
                             <SelectItem key={c} value={c}>
                               {c}
                             </SelectItem>
@@ -1210,7 +1210,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 text-white border-slate-600">
                           <SelectItem value="all">Tous les types</SelectItem>
-                          {[...new Set(leads.map((l) => l.typeBien))].map((t) => (
+                          {[...new Set(leads.map((l) => l.typeBien).filter(t => t && t.trim()))].map((t) => (
                             <SelectItem key={t} value={t}>
                               {t}
                             </SelectItem>
@@ -1234,7 +1234,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 text-white border-slate-600 max-h-72">
                           <SelectItem value="all">Tous les assignés</SelectItem>
-                          {architectAssignees.map((name) => (
+                          {architectAssignees.filter(name => name && name.trim()).map((name) => (
                             <SelectItem key={name} value={name}>
                               {name.toUpperCase()}
                             </SelectItem>
@@ -1307,8 +1307,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                           </SelectTrigger>
                           <SelectContent className="bg-slate-800 text-white border-slate-600 max-h-72">
                             <SelectItem value="all">Toutes les campagnes</SelectItem>
-                            {[...new Set(leads.filter(l => l.campaignName).map(l => l.campaignName))].map((campaign) => (
-                              <SelectItem key={campaign} value={campaign!}>
+                            {[...new Set(leads.filter(l => l.campaignName && l.campaignName.trim()).map(l => l.campaignName))].filter(c => c && c.trim()).map((campaign) => (
+                              <SelectItem key={campaign!} value={campaign!}>
                                 {campaign}
                               </SelectItem>
                             ))}

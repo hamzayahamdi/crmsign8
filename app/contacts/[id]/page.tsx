@@ -17,7 +17,17 @@ import {
   MoreVertical,
   Briefcase,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Save,
+  X,
+  Clock,
+  Building2,
+  Copy,
+  Check,
+  ExternalLink,
+  History,
+  Activity,
+  Trash2
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -67,6 +77,11 @@ export default function ContactPage() {
   const [isCreateOpportunityModalOpen, setIsCreateOpportunityModalOpen] = useState(false)
   const [isPriseDeBesoinModalOpen, setIsPriseDeBesoinModalOpen] = useState(false)
   const [isAcompteRecuModalOpen, setIsAcompteRecuModalOpen] = useState(false)
+
+  // Notes editing state
+  const [isEditingNotes, setIsEditingNotes] = useState(false)
+  const [notesValue, setNotesValue] = useState('')
+  const [isSavingNotes, setIsSavingNotes] = useState(false)
 
   useEffect(() => {
     if (contactId && isAuthenticated) {
@@ -551,6 +566,8 @@ export default function ContactPage() {
                     contact={contact}
                     architectName={resolvedArchitectName}
                     architectNameMap={architectNameMap}
+                    userNameMap={architectNameMap}
+                    onUpdate={loadContact}
                   />
                 )}
                 {activeTab === 'opportunities' && (
@@ -610,14 +627,79 @@ export default function ContactPage() {
 
 // ============ TAB COMPONENTS ============
 
-function OverviewTab({ contact, architectName, architectNameMap }: { contact: ContactWithDetails; architectName: string | null; architectNameMap: Record<string, string> }) {
-  // Debug logging
-  console.log('[OverviewTab] Contact details:', {
-    tag: contact.tag,
-    convertedBy: contact.convertedBy,
-    createdBy: contact.createdBy,
-    leadId: contact.leadId,
-  })
+interface ContactNote {
+  id: string
+  content: string
+  createdAt: string
+  createdBy: string
+  type?: string
+}
+
+function OverviewTab({ contact, architectName, architectNameMap, userNameMap, onUpdate }: { contact: ContactWithDetails; architectName: string | null; architectNameMap: Record<string, string>; userNameMap: Record<string, string>; onUpdate: () => void }) {
+  const [notes, setNotes] = useState<ContactNote[]>([])
+  const [isAddingNote, setIsAddingNote] = useState(false)
+  const [newNoteContent, setNewNoteContent] = useState('')
+  const [isSavingNote, setIsSavingNote] = useState(false)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+  
+  // Notes editing state
+  const [isEditingNotes, setIsEditingNotes] = useState(false)
+  const [notesValue, setNotesValue] = useState('')
+  const [isSavingNotes, setIsSavingNotes] = useState(false)
+  
+  // Display notes from contact
+  const displayNotes = typeof contact.notes === 'string' ? contact.notes : ''
+
+  // Helper function to convert date to ISO string (handles both Date objects and strings)
+  const toISOString = (date: Date | string): string => {
+    if (typeof date === 'string') {
+      return date
+    }
+    return date.toISOString()
+  }
+
+  // Sync notesValue with contact notes when contact changes
+  useEffect(() => {
+    if (!isEditingNotes) {
+      setNotesValue(displayNotes)
+    }
+  }, [contact.notes, isEditingNotes, displayNotes])
+
+  // Parse notes from contact
+  useEffect(() => {
+    if (contact.notes) {
+      try {
+        if (typeof contact.notes === 'string') {
+          const parsed = JSON.parse(contact.notes)
+          if (Array.isArray(parsed)) {
+            setNotes(parsed)
+          } else if (parsed.trim()) {
+            // Legacy single note format - convert to array
+            setNotes([{
+              id: `legacy-${Date.now()}`,
+              content: parsed,
+              createdAt: toISOString(contact.createdAt),
+              createdBy: contact.createdBy,
+              type: 'note'
+            }])
+          }
+        } else if (Array.isArray(contact.notes)) {
+          setNotes(contact.notes)
+        }
+      } catch (e) {
+        // If it's a plain string, convert to array
+        if (typeof contact.notes === 'string' && contact.notes.trim()) {
+          setNotes([{
+            id: `legacy-${Date.now()}`,
+            content: contact.notes,
+            createdAt: toISOString(contact.createdAt),
+            createdBy: contact.createdBy,
+            type: 'note'
+          }])
+        }
+      }
+    }
+  }, [contact.notes, contact.createdAt, contact.createdBy])
 
   // Check if this contact was converted from a lead
   const isConverted = contact.tag === 'converted' || contact.leadId
@@ -627,7 +709,6 @@ function OverviewTab({ contact, architectName, architectNameMap }: { contact: Co
     if (contact.convertedBy) {
       return architectNameMap[contact.convertedBy] || contact.convertedBy
     }
-    // Fallback: try to get from createdBy if this is a converted contact
     if (isConverted && contact.createdBy) {
       return architectNameMap[contact.createdBy] || contact.createdBy
     }
@@ -636,86 +717,458 @@ function OverviewTab({ contact, architectName, architectNameMap }: { contact: Co
 
   const converterName = getConverterName()
 
+  const handleAddNote = async () => {
+    if (!newNoteContent.trim()) return
+
+    try {
+      setIsSavingNote(true)
+      const token = localStorage.getItem('token')
+      
+      const response = await fetch(`/api/contacts/${contact.id}/notes`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: newNoteContent }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to add note')
+      }
+
+      await onUpdate()
+      setNewNoteContent('')
+      setIsAddingNote(false)
+      toast.success('Note ajoutée avec succès')
+    } catch (error) {
+      console.error('Error adding note:', error)
+      toast.error('Erreur lors de l\'ajout de la note')
+    } finally {
+      setIsSavingNote(false)
+    }
+  }
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette note ?')) return
+
+    try {
+      const token = localStorage.getItem('token')
+      
+      const response = await fetch(`/api/contacts/${contact.id}/notes?noteId=${noteId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete note')
+      }
+
+      await onUpdate()
+      toast.success('Note supprimée avec succès')
+    } catch (error) {
+      console.error('Error deleting note:', error)
+      toast.error('Erreur lors de la suppression de la note')
+    }
+  }
+
+  const handleCopy = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedField(field)
+      toast.success('Copié dans le presse-papier')
+      setTimeout(() => setCopiedField(null), 2000)
+    } catch (error) {
+      toast.error('Erreur lors de la copie')
+    }
+  }
+
+  const formatDate = (date: Date | string) => {
+    return new Date(date).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+  }
+
+  const formatDateTime = (date: Date | string) => {
+    return new Date(date).toLocaleString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  // Count won opportunities
+  const wonOpportunitiesCount = contact.opportunities?.filter(o => 
+    o.statut === 'won' || o.pipelineStage === 'acompte_recu' || o.pipelineStage === 'gagnee'
+  ).length || 0
+
+  // Handle saving notes
+  const handleSaveNotes = async () => {
+    try {
+      setIsSavingNotes(true)
+      const token = localStorage.getItem('token')
+      
+      const response = await fetch(`/api/contacts/${contact.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notes: notesValue }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save notes')
+      }
+
+      setIsEditingNotes(false)
+      await onUpdate()
+      toast.success('Notes enregistrées avec succès')
+    } catch (error) {
+      console.error('Error saving notes:', error)
+      toast.error('Erreur lors de l\'enregistrement des notes')
+    } finally {
+      setIsSavingNotes(false)
+    }
+  }
+
+  const formatNoteDate = (date: Date | string) => {
+    const noteDate = new Date(date)
+    const now = new Date()
+    const diffMs = now.getTime() - noteDate.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) {
+      return 'Aujourd\'hui'
+    } else if (diffDays === 1) {
+      return 'Hier'
+    } else if (diffDays < 7) {
+      return `Il y a ${diffDays} jours`
+    } else {
+      return noteDate.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'short',
+        year: noteDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      })
+    }
+  }
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-12 gap-6">
-      {/* Left Column - Contact Details */}
-      <div className="lg:col-span-2 xl:col-span-8 space-y-4">
-        <div className="glass rounded-2xl border border-slate-600/40 p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Informations</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-slate-400 mb-1">Nom</p>
-              <p className="font-medium text-white">{contact.nom}</p>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+      {/* Left Column - Main Content */}
+      <div className="lg:col-span-2 space-y-6">
+        {/* Contact Information - Enhanced */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass rounded-2xl border border-slate-600/40 p-6 shadow-lg shadow-slate-900/20"
+        >
+          <h2 className="text-xl font-bold text-white mb-5 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 flex items-center justify-center border border-blue-500/30">
+              <User className="w-5 h-5 text-blue-400" />
             </div>
-            <div>
-              <p className="text-xs text-slate-400 mb-1">Téléphone</p>
-              <p className="font-medium text-white">{contact.telephone}</p>
+            Informations
+          </h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="group relative p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-blue-500/30 transition-all">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-blue-400" />
+                  Nom
+                </p>
+                <button
+                  onClick={() => handleCopy(contact.nom, 'nom')}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-slate-700/50"
+                  title="Copier"
+                >
+                  {copiedField === 'nom' ? (
+                    <Check className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <Copy className="w-4 h-4 text-slate-400" />
+                  )}
+                </button>
+              </div>
+              <p className="text-base font-semibold text-white">{contact.nom}</p>
             </div>
+
+            <div className="group relative p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-green-500/30 transition-all">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-green-400" />
+                Téléphone
+              </p>
+              <a 
+                href={`tel:${contact.telephone}`}
+                className="text-base font-semibold text-green-400 hover:text-green-300 transition-colors flex items-center gap-2 group/link"
+              >
+                {contact.telephone}
+                <ExternalLink className="w-4 h-4 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+              </a>
+            </div>
+
             {contact.email && (
-              <div>
-                <p className="text-xs text-slate-400 mb-1">Email</p>
-                <p className="font-medium text-white">{contact.email}</p>
+              <div className="group relative p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-purple-500/30 transition-all">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-purple-400" />
+                  Email
+                </p>
+                <a 
+                  href={`mailto:${contact.email}`}
+                  className="text-base font-semibold text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-2 break-all group/link"
+                >
+                  {contact.email}
+                  <ExternalLink className="w-4 h-4 flex-shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                </a>
               </div>
             )}
+
             {contact.ville && (
-              <div>
-                <p className="text-xs text-slate-400 mb-1">Ville</p>
-                <p className="font-medium text-white">{contact.ville}</p>
-              </div>
-            )}
-            {contact.adresse && (
-              <div className="col-span-2">
-                <p className="text-xs text-slate-400 mb-1">Adresse</p>
-                <p className="font-medium text-white">{contact.adresse}</p>
-              </div>
-            )}
-            {contact.notes && (
-              <div className="col-span-2">
-                <p className="text-xs text-slate-400 mb-1">Notes</p>
-                <p className="font-medium text-white whitespace-pre-wrap">{contact.notes}</p>
+              <div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                  Ville
+                </p>
+                <p className="text-base font-semibold text-white">{contact.ville}</p>
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
+
+        {/* Notes & Observations - Multiple Notes System */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="glass rounded-2xl border border-slate-600/40 p-6 shadow-lg shadow-slate-900/20"
+        >
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-bold text-white flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 flex items-center justify-center border border-amber-500/30">
+                <MessageSquare className="w-5 h-5 text-amber-400" />
+              </div>
+              Notes & Observations
+              {notes.length > 0 && (
+                <span className="px-2.5 py-1 rounded-full text-sm font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  {notes.length}
+                </span>
+              )}
+            </h2>
+            {!isAddingNote && (
+              <Button
+                onClick={() => setIsAddingNote(true)}
+                size="sm"
+                className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white h-9 px-4 shadow-lg shadow-amber-500/20"
+              >
+                <Plus className="w-4 h-4 mr-1.5" />
+                Ajouter
+              </Button>
+            )}
+          </div>
+
+          {/* Add Note Form */}
+          {isAddingNote && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-5 p-5 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-2 border-amber-500/30 shadow-lg shadow-amber-500/10"
+            >
+              <textarea
+                value={newNoteContent}
+                onChange={(e) => setNewNoteContent(e.target.value)}
+                placeholder="Écrivez votre note ici..."
+                rows={4}
+                className="w-full px-3 py-2 rounded-lg bg-slate-900/50 border border-slate-600/50 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all resize-none text-sm mb-3"
+                autoFocus
+              />
+              <div className="flex items-center gap-2 justify-end">
+                <Button
+                  onClick={() => {
+                    setIsAddingNote(false)
+                    setNewNoteContent('')
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="text-slate-400 hover:text-white h-8"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={handleAddNote}
+                  disabled={isSavingNote || !newNoteContent.trim()}
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-white h-8"
+                >
+                  {isSavingNote ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                      Ajout...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5 mr-1.5" />
+                      Enregistrer
+                    </>
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Notes List */}
+          {notes.length > 0 ? (
+            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+              {notes.map((note, index) => (
+                <motion.div
+                  key={note.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="group relative p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 transition-all backdrop-blur-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap mb-3">
+                        {note.content}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-500/10 border border-blue-500/20">
+                          <User className="w-3 h-3 text-blue-400" />
+                          <span className="font-medium text-blue-300">
+                            {userNameMap[note.createdBy] || note.createdBy}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-700/50 border border-slate-600/50">
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          <span className="text-slate-400">{formatNoteDate(note.createdAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteNote(note.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-red-500/20 text-red-400 hover:text-red-300"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-10 text-center rounded-xl bg-gradient-to-br from-slate-800/30 to-slate-900/20 border-2 border-dashed border-slate-700/50">
+              <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="w-8 h-8 text-amber-500/50" />
+              </div>
+              <p className="text-base font-semibold text-slate-300 mb-1">Aucune note pour le moment</p>
+              <p className="text-sm text-slate-500">Cliquez sur "Ajouter" pour créer une note</p>
+            </div>
+          )}
+        </motion.div>
       </div>
 
       {/* Right Column - Summary */}
-      <div className="lg:col-span-1 xl:col-span-4 space-y-4">
-        <div className="glass rounded-2xl border border-slate-600/40 p-6">
-          <h3 className="font-semibold text-white mb-4">Résumé</h3>
-          <div className="space-y-3">
-            <div>
-              <p className="text-xs text-slate-400">Tag</p>
-              <p className="text-sm font-medium text-slate-300 capitalize">{contact.tag}</p>
+      <div className="lg:col-span-1 space-y-6">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="glass rounded-2xl border border-slate-600/40 p-6 shadow-lg shadow-slate-900/20"
+        >
+          <h3 className="font-bold text-white mb-5 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 flex items-center justify-center border border-purple-500/30">
+              <Sparkles className="w-5 h-5 text-purple-400" />
+            </div>
+            Résumé
+          </h3>
+          <div className="space-y-4">
+            <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <div className={`w-2 h-2 rounded-full ${
+                  contact.tag === 'client' ? 'bg-green-400 animate-pulse' :
+                  contact.status === 'perdu' ? 'bg-red-400' :
+                  'bg-blue-400'
+                }`} />
+                Statut
+              </p>
+              <p className="text-sm font-bold text-white capitalize">
+                {contact.tag === 'client' ? 'Client' : contact.status || 'Contact'}
+              </p>
             </div>
             
-            {/* Show "Converted by" for converted contacts */}
-            {isConverted && (
-              <div>
-                <p className="text-xs text-slate-400">Converti par</p>
-                <div className="flex items-center gap-1.5 mt-1">
+            {isConverted && converterName && (
+              <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-                  <p className="text-sm font-medium text-slate-300">
-                    {converterName || 'Utilisateur'}
-                  </p>
-                </div>
+                  Converti par
+                </p>
+                <p className="text-sm font-semibold text-yellow-300">{converterName}</p>
               </div>
             )}
             
             {architectName && (
-              <div>
-                <p className="text-xs text-slate-400">Architecte</p>
-                <p className="text-sm font-medium text-slate-300">{architectName}</p>
+              <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-purple-400" />
+                  Architecte
+                </p>
+                <p className="text-sm font-semibold text-purple-300">{architectName}</p>
               </div>
             )}
-            <div>
-              <p className="text-xs text-slate-400">Date création</p>
-              <p className="text-sm font-medium text-slate-300">
-                {new Date(contact.createdAt).toLocaleDateString('fr-FR')}
+            
+            <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-blue-400" />
+                Créé le
               </p>
+              <p className="text-sm font-semibold text-blue-300">{formatDate(contact.createdAt)}</p>
             </div>
           </div>
-        </div>
+        </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+          className="glass rounded-2xl border border-slate-600/40 p-6 shadow-lg shadow-slate-900/20"
+        >
+          <h3 className="font-bold text-white mb-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/10 flex items-center justify-center border border-orange-500/30">
+              <Activity className="w-5 h-5 text-orange-400" />
+            </div>
+            Actions
+          </h3>
+          <div className="space-y-2.5">
+            {contact.telephone && (
+              <a
+                href={`tel:${contact.telephone}`}
+                className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-r from-blue-500/10 to-blue-600/5 border border-blue-500/30 hover:from-blue-500/20 hover:to-blue-600/10 hover:border-blue-400/50 hover:shadow-lg hover:shadow-blue-500/20 transition-all group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
+                  <Phone className="w-5 h-5 text-blue-400" />
+                </div>
+                <span className="text-sm font-semibold text-white">Appeler</span>
+              </a>
+            )}
+            {contact.email && (
+              <a
+                href={`mailto:${contact.email}`}
+                className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-r from-purple-500/10 to-purple-600/5 border border-purple-500/30 hover:from-purple-500/20 hover:to-purple-600/10 hover:border-purple-400/50 hover:shadow-lg hover:shadow-purple-500/20 transition-all group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
+                  <Mail className="w-5 h-5 text-purple-400" />
+                </div>
+                <span className="text-sm font-semibold text-white">Envoyer un Email</span>
+              </a>
+            )}
+          </div>
+        </motion.div>
       </div>
     </div>
   )

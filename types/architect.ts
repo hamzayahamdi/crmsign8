@@ -16,11 +16,16 @@ export interface Architect {
   createdAt: string
   updatedAt: string
   
-  // Statistics (computed from clients)
+  // Statistics (computed from clients, contacts, and opportunities)
   totalDossiers?: number
   dossiersEnCours?: number
   dossiersTermines?: number
   dossiersEnAttente?: number
+  isDisponible?: boolean // Available if less than 10 active dossiers
+  // Breakdown by source
+  clientsCount?: number
+  contactsCount?: number
+  opportunitiesCount?: number
 }
 
 export interface ArchitectPerformance {

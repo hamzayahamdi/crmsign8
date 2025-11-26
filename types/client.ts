@@ -21,6 +21,7 @@ export type ProjectStatus =
   | "termine"
   | "annule"
   | "suspendu"
+  | "perdu"              // Lost project/opportunity
 export type ProjectType = "appartement" | "villa" | "magasin" | "bureau" | "riad" | "studio" | "autre"
 
 export interface Client {

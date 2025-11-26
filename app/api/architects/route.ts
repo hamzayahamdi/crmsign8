@@ -5,7 +5,79 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * GET /api/architects - Fetch all architect users with their client statistics
+ * Helper function to check if a dossier is assigned to an architect
+ * Supports both ID matching and name matching (exact and case-insensitive)
+ * Handles various formats: "John Doe", "john doe", "John", etc.
+ */
+function isAssignedToArchitect(
+  assignedValue: string | null | undefined,
+  architectId: string,
+  architectName: string
+): boolean {
+  if (!assignedValue) return false
+  
+  const assigned = assignedValue.trim()
+  if (!assigned) return false
+  
+  const architectNameLower = architectName.toLowerCase()
+  const assignedLower = assigned.toLowerCase()
+  
+  // Match by ID (exact match)
+  if (assigned === architectId) return true
+  
+  // Match by exact name (case-insensitive)
+  if (assignedLower === architectNameLower) return true
+  
+  // Match by name parts - bidirectional matching
+  const nameParts = architectNameLower.split(/\s+/).filter(p => p.length > 0)
+  const assignedParts = assignedLower.split(/\s+/).filter(p => p.length > 0)
+  
+  // If architect name parts are all present in assigned value, it's a match
+  // e.g., "John Doe" matches "John Doe Smith" or "John"
+  if (nameParts.length > 0 && nameParts.every(part => assignedLower.includes(part))) {
+    return true
+  }
+  
+  // If assigned value parts are all present in architect name, it's a match
+  // e.g., "John" matches "John Doe"
+  if (assignedParts.length > 0 && assignedParts.every(part => architectNameLower.includes(part))) {
+    return true
+  }
+  
+  return false
+}
+
+/**
+ * Helper function to determine dossier status category
+ */
+function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_attente' {
+  // Terminés - completed projects
+  if (
+    statut === 'termine' ||
+    statut === 'livraison_termine' ||
+    statut === 'livraison'
+  ) {
+    return 'termine'
+  }
+  
+  // En attente - new or qualified projects waiting to start
+  if (
+    statut === 'nouveau' ||
+    statut === 'qualifie' ||
+    statut === 'prise_de_besoin'
+  ) {
+    return 'en_attente'
+  }
+  
+  // En cours - all active projects (default)
+  // Includes: acompte_recu, conception, devis_negociation, accepte, premier_depot, 
+  // projet_en_cours, chantier, facture_reglee, en_conception, en_validation, en_chantier
+  return 'en_cours'
+}
+
+/**
+ * GET /api/architects - Fetch all architect users with their dossier statistics
+ * Now includes Clients, Contacts, and Opportunities
  */
 export async function GET(request: NextRequest) {
   try {
@@ -29,47 +101,91 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Fetch all clients to calculate statistics
-    const clients = await prisma.client.findMany({
-      select: {
-        id: true,
-        architecteAssigne: true,
-        statutProjet: true
-      }
-    })
+    // Fetch all dossiers from different sources
+    const [clients, contacts, opportunities] = await Promise.all([
+      // Clients (legacy Client model)
+      prisma.client.findMany({
+        select: {
+          id: true,
+          architecteAssigne: true,
+          statutProjet: true
+        }
+      }),
+      // Contacts with architect assignment
+      prisma.contact.findMany({
+        where: {
+          architecteAssigne: { not: null }
+        },
+        select: {
+          id: true,
+          architecteAssigne: true,
+          status: true,
+          tag: true
+        }
+      }),
+      // Opportunities with architect assignment
+      prisma.opportunity.findMany({
+        where: {
+          architecteAssigne: { not: null }
+        },
+        select: {
+          id: true,
+          architecteAssigne: true,
+          statut: true,
+          pipelineStage: true
+        }
+      })
+    ])
 
     // Calculate statistics for each architect
     const architectsWithStats = architects.map(architect => {
-      const architectName = architect.name.toLowerCase()
+      const architectName = architect.name
       
-      // Find all clients assigned to this architect
-      const architectClients = clients.filter(client => {
-        const assigned = (client.architecteAssigne || '').toLowerCase()
-        return assigned.includes(architectName) || assigned === architectName
-      })
-
-      const totalDossiers = architectClients.length
+      // Find all dossiers assigned to this architect
+      const architectClients = clients.filter(client => 
+        isAssignedToArchitect(client.architecteAssigne, architect.id, architectName)
+      )
       
-      // Calculate dossiers en cours (excluding terminated, cancelled, refused)
-      const dossiersEnCours = architectClients.filter(c => 
-        c.statutProjet !== "termine" && 
-        c.statutProjet !== "livraison" && 
-        c.statutProjet !== "livraison_termine" &&
-        c.statutProjet !== "annule" &&
-        c.statutProjet !== "refuse"
+      const architectContacts = contacts.filter(contact => 
+        isAssignedToArchitect(contact.architecteAssigne, architect.id, architectName)
+      )
+      
+      const architectOpportunities = opportunities.filter(opportunity => 
+        isAssignedToArchitect(opportunity.architecteAssigne, architect.id, architectName)
+      )
+
+      // Combine all dossiers
+      const allDossiers = [
+        ...architectClients.map(c => ({ type: 'client' as const, statut: c.statutProjet })),
+        ...architectContacts.map(c => ({ 
+          type: 'contact' as const, 
+          statut: c.status === 'perdu' ? 'perdu' : c.tag === 'client' ? 'en_cours' : 'en_attente' 
+        })),
+        ...architectOpportunities.map(o => ({ 
+          type: 'opportunity' as const, 
+          statut: o.statut === 'won' ? 'termine' : o.statut === 'lost' ? 'perdu' : 
+                 o.pipelineStage === 'perdue' ? 'perdu' : 
+                 o.pipelineStage === 'gagnee' ? 'termine' : 'en_cours'
+        }))
+      ]
+
+      const totalDossiers = allDossiers.length
+      
+      // Categorize dossiers by status
+      const dossiersEnCours = allDossiers.filter(d => 
+        getDossierStatusCategory(d.statut) === 'en_cours'
       ).length
 
-      // Calculate dossiers terminés
-      const dossiersTermines = architectClients.filter(c => 
-        c.statutProjet === "termine" || 
-        c.statutProjet === "livraison_termine"
+      const dossiersTermines = allDossiers.filter(d => 
+        getDossierStatusCategory(d.statut) === 'termine'
       ).length
 
-      // Calculate dossiers en attente
-      const dossiersEnAttente = architectClients.filter(c => 
-        c.statutProjet === "nouveau" || 
-        c.statutProjet === "qualifie"
+      const dossiersEnAttente = allDossiers.filter(d => 
+        getDossierStatusCategory(d.statut) === 'en_attente'
       ).length
+
+      // Calculate disponible status: available if less than 10 active dossiers
+      const isDisponible = dossiersEnCours < 10
 
       return {
         id: architect.id,
@@ -77,9 +193,9 @@ export async function GET(request: NextRequest) {
         prenom: architect.name.split(' ')[0],
         email: architect.email,
         telephone: '', // Can be extended in User model
-        ville: architect.ville || 'Casablanca',
+        ville: architect.ville || architect.magasin || 'Casablanca',
         specialite: 'residentiel', // Default, can be extended in User model
-        statut: 'actif', // Default, can be extended in User model
+        statut: isDisponible ? 'actif' : 'actif', // Can be extended to show disponible status
         dateEmbauche: architect.createdAt,
         createdAt: architect.createdAt,
         updatedAt: architect.updatedAt,
@@ -87,11 +203,16 @@ export async function GET(request: NextRequest) {
         totalDossiers,
         dossiersEnCours,
         dossiersTermines,
-        dossiersEnAttente
+        dossiersEnAttente,
+        isDisponible, // New field to indicate availability
+        // Breakdown by source
+        clientsCount: architectClients.length,
+        contactsCount: architectContacts.length,
+        opportunitiesCount: architectOpportunities.length
       }
     })
 
-    console.log(`[GET /api/architects] ✅ Fetched ${architectsWithStats.length} architects with statistics`)
+    console.log(`[GET /api/architects] ✅ Fetched ${architectsWithStats.length} architects with comprehensive statistics`)
 
     return NextResponse.json({
       success: true,

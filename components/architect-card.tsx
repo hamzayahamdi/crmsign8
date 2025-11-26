@@ -66,7 +66,7 @@ export function ArchitectCard({ architect, onViewDetails, index = 0 }: Architect
           <h3 className="text-lg font-bold text-white mb-1 truncate group-hover:text-primary transition-colors">
             {architect.prenom} {architect.nom}
           </h3>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className={cn(
               "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border",
               status.color
@@ -80,6 +80,16 @@ export function ArchitectCard({ architect, onViewDetails, index = 0 }: Architect
               </span>
               {status.label}
             </span>
+            {architect.isDisponible !== undefined && (
+              <span className={cn(
+                "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border",
+                architect.isDisponible 
+                  ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                  : "bg-orange-500/20 text-orange-400 border-orange-500/30"
+              )}>
+                {architect.isDisponible ? "Disponible" : "Occupé"}
+              </span>
+            )}
           </div>
         </div>
       </div>
