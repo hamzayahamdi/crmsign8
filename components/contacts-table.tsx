@@ -38,12 +38,12 @@ interface ContactsTableProps {
  * Clean, minimal, role-based, focused on opportunities and workflow
  * Role-based visibility: Admin sees all, Architect sees limited info
  */
-export function ContactsTable({ 
-  contacts, 
-  onRowClick, 
-  onEditContact, 
-  onDeleteContact, 
-  isLoading = false 
+export function ContactsTable({
+  contacts,
+  onRowClick,
+  onEditContact,
+  onDeleteContact,
+  isLoading = false
 }: ContactsTableProps) {
   const { user } = useAuth()
   const isAdmin = user?.role?.toLowerCase() === 'admin'
@@ -67,13 +67,13 @@ export function ContactsTable({
   // Get most common project type from opportunities
   const getProjectType = (opportunities: Opportunity[] = []) => {
     if (opportunities.length === 0) return null
-    
+
     // Count types
     const typeCounts: Record<string, number> = {}
     opportunities.forEach(opp => {
       typeCounts[opp.type] = (typeCounts[opp.type] || 0) + 1
     })
-    
+
     // Get most common
     const mostCommon = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]
     return mostCommon ? mostCommon[0] : null
@@ -230,16 +230,16 @@ export function ContactsTable({
           <tbody className="divide-y divide-slate-600/10">
             {contacts.map((contact, index) => {
               const opportunities = contact.opportunities || []
-              
+
               // Helper: Check if opportunity is won (by statut or pipeline stage)
               // Acompte Reçu (acompte_recu) means the opportunity is won (deposit received)
-              const isWon = (o: Opportunity) => 
+              const isWon = (o: Opportunity) =>
                 o.statut === 'won' || o.pipelineStage === 'acompte_recu' || o.pipelineStage === 'gagnee'
-              
+
               // Helper: Check if opportunity is open (statut is open AND not won)
-              const isOpen = (o: Opportunity) => 
+              const isOpen = (o: Opportunity) =>
                 o.statut === 'open' && !isWon(o)
-              
+
               const opportunityCounts = {
                 open: opportunities.filter(isOpen).length,
                 won: opportunities.filter(isWon).length,
