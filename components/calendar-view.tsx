@@ -4,14 +4,15 @@ import { useState, useMemo } from 'react';
 import { CalendarEventWithDetails } from '@/types/calendar';
 import { EVENT_TYPE_CONFIG } from '@/types/calendar';
 import { EventBadge } from '@/components/event-badge';
-import { 
-  format, 
-  startOfMonth, 
-  endOfMonth, 
-  startOfWeek, 
-  endOfWeek, 
-  addDays, 
-  isSameMonth, 
+import { CalendarEventChip } from '@/components/calendar-event-chip';
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  addDays,
+  isSameMonth,
   isSameDay,
   isToday,
   addMonths,
@@ -34,15 +35,15 @@ interface CalendarViewProps {
   onEventClick: (event: CalendarEventWithDetails) => void;
 }
 
-export function CalendarView({ 
-  events, 
-  viewMode, 
-  currentDate, 
+export function CalendarView({
+  events,
+  viewMode,
+  currentDate,
   onDateChange,
   onDateClick,
-  onEventClick 
+  onEventClick
 }: CalendarViewProps) {
-  
+
   const handlePrevious = () => {
     if (viewMode === 'month') {
       onDateChange(subMonths(currentDate, 1));
@@ -102,24 +103,24 @@ export function CalendarView({
 
       {/* Calendar Grid */}
       {viewMode === 'month' && (
-        <MonthView 
-          events={events} 
-          currentDate={currentDate} 
+        <MonthView
+          events={events}
+          currentDate={currentDate}
           onDateClick={onDateClick}
           onEventClick={onEventClick}
         />
       )}
       {viewMode === 'week' && (
-        <WeekView 
-          events={events} 
-          currentDate={currentDate} 
+        <WeekView
+          events={events}
+          currentDate={currentDate}
           onDateClick={onDateClick}
           onEventClick={onEventClick}
         />
       )}
       {viewMode === 'day' && (
-        <DayView 
-          events={events} 
+        <DayView
+          events={events}
           currentDate={currentDate}
           onEventClick={onEventClick}
         />
@@ -129,13 +130,13 @@ export function CalendarView({
 }
 
 // Month View Component
-function MonthView({ 
-  events, 
-  currentDate, 
+function MonthView({
+  events,
+  currentDate,
   onDateClick,
-  onEventClick 
-}: { 
-  events: CalendarEventWithDetails[]; 
+  onEventClick
+}: {
+  events: CalendarEventWithDetails[];
   currentDate: Date;
   onDateClick: (date: Date) => void;
   onEventClick: (event: CalendarEventWithDetails) => void;
@@ -160,20 +161,10 @@ function MonthView({
       const eventEnd = endOfDay(new Date(event.endDate));
       const dayStart = startOfDay(date);
       const dayEnd = endOfDay(date);
-      
-      return isWithinInterval(dayStart, { start: eventStart, end: eventEnd }) ||
-             isWithinInterval(dayEnd, { start: eventStart, end: eventEnd });
-    });
-  };
 
-  const getEventIcon = (eventType: string) => {
-    const iconMap: Record<string, React.ReactNode> = {
-      rendez_vous: <Clock className="w-3 h-3" />,
-      suivi_projet: <CheckSquare className="w-3 h-3" />,
-      appel_reunion: <Phone className="w-3 h-3" />,
-      urgent: <AlertCircle className="w-3 h-3" />
-    };
-    return iconMap[eventType] || null;
+      return isWithinInterval(dayStart, { start: eventStart, end: eventEnd }) ||
+        isWithinInterval(dayEnd, { start: eventStart, end: eventEnd });
+    });
   };
 
   return (
@@ -216,66 +207,24 @@ function MonthView({
               <div className="flex flex-col h-full">
                 <div className={`
                   text-sm font-bold mb-2 w-8 h-8 flex items-center justify-center rounded-lg
-                  ${isTodayDate 
-                    ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg' 
+                  ${isTodayDate
+                    ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg'
                     : 'text-foreground/70 hover:bg-muted/50'
                   }
                   transition-colors
                 `}>
                   {format(day, 'd')}
                 </div>
-                
+
                 <div className="space-y-1.5 flex-1 overflow-hidden">
-                  {dayEvents.slice(0, 3).map((event, eventIdx) => {
-                    const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
-                    const isTeamEvent = event.participants && event.participants.length > 0;
-                    const totalParticipants = isTeamEvent ? event.participants.length + 1 : 1;
-                    const isTask = event.eventType === 'suivi_projet';
-                    const isRDV = event.eventType === 'rendez_vous';
-                    
-                    return (
-                      <motion.div
-                        key={event.id}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: eventIdx * 0.05 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEventClick(event);
-                        }}
-                        className={`
-                          text-xs p-2 rounded-lg border-l-[3px] ${eventConfig.borderColor}
-                          ${eventConfig.chipBg}
-                          backdrop-blur-sm hover:shadow-lg hover:scale-102 transition-all duration-200
-                          cursor-pointer ring-1 ring-border/30
-                          ${isTeamEvent ? 'ring-2 ring-primary/40' : ''}
-                          ${isTask ? 'border-l-[4px]' : ''}
-                        `}
-                      >
-                        <div className="flex items-start justify-between gap-1 mb-1">
-                          <div className="flex items-start gap-1.5 flex-1 min-w-0">
-                            <div className={`
-                              w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5
-                              ${eventConfig.color} text-white
-                            `}>
-                              {getEventIcon(event.eventType)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className={`truncate font-semibold ${eventConfig.chipText}`}>
-                                {event.title.replace('[TÂCHE] ', '')}
-                              </p>
-                            </div>
-                          </div>
-                          {isTeamEvent && (
-                            <div className="flex items-center gap-0.5 shrink-0 bg-primary/15 rounded-full px-1.5 py-0.5">
-                              <Users className="h-2.5 w-2.5 text-primary" />
-                              <span className="text-[9px] font-bold text-primary">{totalParticipants}</span>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    );
-                  })}
+                  {dayEvents.slice(0, 3).map((event, eventIdx) => (
+                    <div key={event.id} onClick={(e) => {
+                      e.stopPropagation();
+                      onEventClick(event);
+                    }}>
+                      <CalendarEventChip event={event} />
+                    </div>
+                  ))}
                   {dayEvents.length > 3 && (
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -296,13 +245,13 @@ function MonthView({
 }
 
 // Week View Component
-function WeekView({ 
-  events, 
+function WeekView({
+  events,
   currentDate,
   onDateClick,
-  onEventClick 
-}: { 
-  events: CalendarEventWithDetails[]; 
+  onEventClick
+}: {
+  events: CalendarEventWithDetails[];
   currentDate: Date;
   onDateClick: (date: Date) => void;
   onEventClick: (event: CalendarEventWithDetails) => void;
@@ -316,20 +265,10 @@ function WeekView({
       const eventEnd = endOfDay(new Date(event.endDate));
       const dayStart = startOfDay(date);
       const dayEnd = endOfDay(date);
-      
-      return isWithinInterval(dayStart, { start: eventStart, end: eventEnd }) ||
-             isWithinInterval(dayEnd, { start: eventStart, end: eventEnd });
-    });
-  };
 
-  const getEventIcon = (eventType: string) => {
-    const iconMap: Record<string, React.ReactNode> = {
-      rendez_vous: <Clock className="w-3 h-3" />,
-      suivi_projet: <CheckSquare className="w-3 h-3" />,
-      appel_reunion: <Phone className="w-3 h-3" />,
-      urgent: <AlertCircle className="w-3 h-3" />
-    };
-    return iconMap[eventType] || null;
+      return isWithinInterval(dayStart, { start: eventStart, end: eventEnd }) ||
+        isWithinInterval(dayEnd, { start: eventStart, end: eventEnd });
+    });
   };
 
   return (
@@ -337,7 +276,6 @@ function WeekView({
       {weekDays.map((day, dayIdx) => {
         const dayEvents = getEventsForDay(day);
         const isTodayDate = isToday(day);
-        const hasEvents = dayEvents.length > 0;
 
         return (
           <motion.div
@@ -349,8 +287,8 @@ function WeekView({
             className={`
               flex flex-col bg-card rounded-xl border-2 p-3 cursor-pointer
               transition-all duration-200
-              ${isTodayDate 
-                ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg' 
+              ${isTodayDate
+                ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg'
                 : 'border-border/40 hover:border-primary/30 hover:shadow-md'
               }
             `}
@@ -365,8 +303,8 @@ function WeekView({
               <div className={`
                 text-3xl font-bold inline-flex items-center justify-center w-12 h-12 rounded-xl
                 transition-all
-                ${isTodayDate 
-                  ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg' 
+                ${isTodayDate
+                  ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg'
                   : 'text-foreground hover:bg-muted/50'
                 }
               `}>
@@ -380,56 +318,14 @@ function WeekView({
                   Aucun événement
                 </div>
               ) : (
-                dayEvents.map((event, eventIdx) => {
-                  const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
-                  const isTeamEvent = event.participants && event.participants.length > 0;
-                  const totalParticipants = isTeamEvent ? event.participants.length + 1 : 1;
-                  
-                  return (
-                    <motion.div
-                      key={event.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: eventIdx * 0.05 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEventClick(event);
-                      }}
-                      className={`
-                        p-2.5 rounded-lg border-l-[4px] ${eventConfig.borderColor}
-                        ${eventConfig.chipBg}
-                        backdrop-blur-sm hover:shadow-lg hover:scale-105 transition-all duration-200
-                        cursor-pointer ring-1 ring-border/30
-                        ${isTeamEvent ? 'ring-2 ring-primary/40' : ''}
-                      `}
-                    >
-                      <div className="flex items-start justify-between gap-1 mb-1">
-                        <div className="flex items-start gap-1.5 flex-1 min-w-0">
-                          <div className={`
-                            w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5
-                            ${eventConfig.color} text-white
-                          `}>
-                            {getEventIcon(event.eventType)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs font-semibold line-clamp-1 ${eventConfig.chipText}`}>
-                              {event.title.replace('[TÂCHE] ', '')}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {format(new Date(event.startDate), 'HH:mm')}
-                            </p>
-                          </div>
-                        </div>
-                        {isTeamEvent && (
-                          <div className="flex items-center gap-0.5 shrink-0 bg-primary/15 rounded-full px-1 py-0.5">
-                            <Users className="h-2.5 w-2.5 text-primary" />
-                            <span className="text-[9px] font-bold text-primary">{totalParticipants}</span>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                })
+                dayEvents.map((event, eventIdx) => (
+                  <div key={event.id} onClick={(e) => {
+                    e.stopPropagation();
+                    onEventClick(event);
+                  }}>
+                    <CalendarEventChip event={event} />
+                  </div>
+                ))
               )}
             </div>
           </motion.div>
@@ -440,29 +336,27 @@ function WeekView({
 }
 
 // Day View Component
-function DayView({ 
-  events, 
+function DayView({
+  events,
   currentDate,
-  onEventClick 
-}: { 
-  events: CalendarEventWithDetails[]; 
+  onEventClick
+}: {
+  events: CalendarEventWithDetails[];
   currentDate: Date;
   onEventClick: (event: CalendarEventWithDetails) => void;
 }) {
-  const dayEvents = events.filter(event => 
+  const dayEvents = events.filter(event =>
     isSameDay(new Date(event.startDate), currentDate)
-  ).sort((a, b) => 
+  ).sort((a, b) =>
     new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
   );
 
-  const hours = Array.from({ length: 24 }, (_, i) => i);
-
   const getEventIcon = (eventType: string) => {
     const iconMap: Record<string, React.ReactNode> = {
-      rendez_vous: <Clock className="w-4 h-4" />,
-      suivi_projet: <CheckSquare className="w-4 h-4" />,
-      appel_reunion: <Phone className="w-4 h-4" />,
-      urgent: <AlertCircle className="w-4 h-4" />
+      rendez_vous: <Clock className="w-5 h-5" />,
+      suivi_projet: <CheckSquare className="w-5 h-5" />,
+      appel_reunion: <Phone className="w-5 h-5" />,
+      urgent: <AlertCircle className="w-5 h-5" />
     };
     return iconMap[eventType] || null;
   };
@@ -470,11 +364,11 @@ function DayView({
   return (
     <div className="flex-1 bg-card rounded-xl border border-border/40 overflow-hidden flex flex-col">
       {/* Day header */}
-      <div className="p-4 border-b border-border/40 bg-gradient-to-r from-muted/20 to-muted/10">
-        <h2 className="text-2xl font-bold text-foreground mb-1">
+      <div className="p-6 border-b border-border/40 bg-gradient-to-r from-muted/20 to-muted/10">
+        <h2 className="text-3xl font-bold text-foreground mb-1">
           {format(currentDate, 'EEEE', { locale: fr })}
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-lg text-muted-foreground">
           {format(currentDate, 'd MMMM yyyy', { locale: fr })}
         </p>
       </div>
@@ -484,22 +378,25 @@ function DayView({
         {dayEvents.length === 0 ? (
           <div className="flex items-center justify-center h-full text-muted-foreground p-8">
             <div className="text-center">
-              <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="text-lg font-medium">Aucun événement pour cette journée</p>
-              <p className="text-sm mt-1">Votre agenda est libre!</p>
+              <Calendar className="w-16 h-16 mx-auto mb-4 opacity-30" />
+              <p className="text-xl font-medium">Aucun événement pour cette journée</p>
+              <p className="text-base mt-2">Votre agenda est libre!</p>
             </div>
           </div>
         ) : (
-          <div className="p-4 space-y-3">
+          <div className="p-6 space-y-4">
             {dayEvents.map((event, idx) => {
               const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
               const startDate = new Date(event.startDate);
               const endDate = new Date(event.endDate);
-              const isTeamEvent = event.participants && event.participants.length > 0;
-              const totalParticipants = isTeamEvent ? event.participants.length + 1 : 1;
-              const isTask = event.eventType === 'suivi_projet';
-              const isRDV = event.eventType === 'rendez_vous';
-              
+              // Only show participants for RDV types, NOT for tasks
+              const isTaskType = eventConfig.category === 'TASKS' ||
+                event.eventType === 'tache' ||
+                event.eventType === 'suivi_projet';
+              const hasParticipants = event.participants && event.participants.length > 0;
+              const showParticipants = !isTaskType && hasParticipants;
+              const totalParticipants = hasParticipants ? event.participants.length + 1 : 1;
+
               return (
                 <motion.div
                   key={event.id}
@@ -508,79 +405,79 @@ function DayView({
                   transition={{ delay: idx * 0.1 }}
                   onClick={() => onEventClick(event)}
                   className={`
-                    p-4 rounded-xl border-l-[5px] ${eventConfig.borderColor}
+                    p-6 rounded-xl border-l-[6px] ${eventConfig.borderColor}
                     ${eventConfig.bgLight}
                     backdrop-blur-sm cursor-pointer hover:shadow-xl transition-all duration-200
-                    ${isTeamEvent ? 'ring-2 ring-primary/40 shadow-md' : 'shadow-sm hover:shadow-lg'}
+                    ${showParticipants ? 'ring-2 ring-primary/30 shadow-md border border-primary/20' : 'shadow-sm hover:shadow-lg'}
                     group
                   `}
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2.5 mb-1">
+                      <div className="flex items-center gap-3 mb-2">
                         <div className={`
-                          w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                          ${eventConfig.color} text-white
+                          w-10 h-10 rounded-xl flex items-center justify-center shrink-0
+                          ${eventConfig.color} text-white shadow-sm
                         `}>
                           {getEventIcon(event.eventType)}
                         </div>
-                        <h3 className={`font-bold text-lg ${eventConfig.chipText} group-hover:translate-x-0.5 transition-transform`}>
+                        <h3 className={`font-bold text-xl ${eventConfig.chipText} group-hover:translate-x-1 transition-transform`}>
                           {event.title.replace('[TÂCHE] ', '')}
                         </h3>
                       </div>
                       <div className="flex items-center gap-2 mt-2">
-                        <EventBadge event={event} size="md" showIcon={true} />
+                        <EventBadge event={event} size="lg" showIcon={true} />
                       </div>
                     </div>
                   </div>
 
                   {/* Time info */}
-                  <div className="flex items-center gap-4 mb-3 px-10">
-                    <div className="flex items-center gap-1 text-sm font-semibold text-muted-foreground">
-                      <Clock className="w-4 h-4" />
+                  <div className="flex items-center gap-4 mb-4 px-12">
+                    <div className="flex items-center gap-2 text-base font-semibold text-muted-foreground">
+                      <Clock className="w-5 h-5" />
                       {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
                     </div>
                   </div>
 
                   {/* Description */}
                   {event.description && (
-                    <div className="mb-3 px-10 text-sm text-foreground/80">
+                    <div className="mb-4 px-12 text-base text-foreground/80">
                       {event.description}
                     </div>
                   )}
 
                   {/* Location */}
                   {event.location && (
-                    <div className="mb-3 px-10 flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="mb-4 px-12 flex items-center gap-2 text-base text-muted-foreground">
                       <span>📍</span>
                       {event.location}
                     </div>
                   )}
 
-                  {/* Team info */}
-                  {isTeamEvent && (
-                    <div className="mt-3 px-10 pt-3 border-t border-border/20">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Users className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-semibold text-primary">{totalParticipants} participants</span>
+                  {/* Team info - Only for RDV with participants */}
+                  {showParticipants && (
+                    <div className="mt-4 px-12 pt-4 border-t border-border/20">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Users className="w-5 h-5 text-primary" />
+                        <span className="text-sm font-semibold text-primary">{totalParticipants} participant{totalParticipants > 1 ? 's' : ''}</span>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-xs font-bold ring-2 ring-background shadow-md" title={event.assignedToName}>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-sm font-bold ring-2 ring-background shadow-lg" title={event.assignedToName}>
                           {event.assignedToName?.charAt(0).toUpperCase() || 'A'}
                         </div>
-                        {event.participantDetails?.slice(0, 3).map((participant, pidx) => (
-                          <div 
+                        {event.participantDetails?.slice(0, 4).map((participant, pidx) => (
+                          <div
                             key={participant.id}
-                            className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold ring-2 ring-background shadow-md"
+                            className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold ring-2 ring-background shadow-lg"
                             title={participant.name}
                             style={{ zIndex: 9 - pidx }}
                           >
                             {participant.name.charAt(0).toUpperCase()}
                           </div>
                         ))}
-                        {event.participants && event.participants.length > 3 && (
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white text-xs font-bold ring-2 ring-background shadow-md text-center">
-                            +{event.participants.length - 3}
+                        {event.participants && event.participants.length > 4 && (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white text-sm font-bold ring-2 ring-background shadow-lg text-center">
+                            +{event.participants.length - 4}
                           </div>
                         )}
                       </div>

@@ -217,8 +217,30 @@ function CalendrierContent() {
     setShowAddModal(true);
   };
 
-  const handleEventClick = (event: CalendarEventWithDetails) => {
-    setSelectedEvent(event);
+  const handleEventClick = async (event: CalendarEventWithDetails) => {
+    console.log('[Calendar] Event clicked:', event);
+    
+    // Refetch the event to ensure we have all details including participant names
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const response = await fetch(`/api/calendar?id=${event.id}`, {
+        credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      
+      if (response.ok) {
+        const enrichedEvent = await response.json();
+        console.log('[Calendar] Enriched event data:', enrichedEvent);
+        setSelectedEvent(enrichedEvent);
+      } else {
+        console.warn('[Calendar] Failed to fetch enriched event, using original');
+        setSelectedEvent(event);
+      }
+    } catch (error) {
+      console.error('[Calendar] Error fetching event details:', error);
+      setSelectedEvent(event);
+    }
+    
     setShowEventDetail(true);
   };
 

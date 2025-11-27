@@ -53,8 +53,15 @@ export function CalendarEventChip({
   const config = EVENT_TYPE_CONFIG[event.eventType];
   const IconComponent = IconMap[config.icon] || Clock;
 
-  // Determine if we should show participants (Not for tasks)
-  const showParticipants = config.category !== 'TASKS' && event.eventType !== 'tache' && event.eventType !== 'suivi_projet';
+  // Determine if we should show participants (ONLY for RDV types, NOT for tasks)
+  const isTaskType = config.category === 'TASKS' ||
+    event.eventType === 'tache' ||
+    event.eventType === 'suivi_projet';
+  const showParticipants = !isTaskType;
+
+  // Check if event has multiple participants
+  const hasParticipants = event.participantDetails && event.participantDetails.length > 0;
+  const totalParticipants = hasParticipants ? event.participantDetails.length + 1 : 1; // +1 for assigned user
 
   const getStartTime = () => {
     try {
@@ -74,7 +81,7 @@ export function CalendarEventChip({
     }
   };
 
-  const truncateTitle = (title: string, maxLength = 24) => {
+  const truncateTitle = (title: string, maxLength = 30) => {
     // Remove [TÂCHE] prefix if present for cleaner display
     const cleanTitle = title.replace(/^\[TÂCHE\]\s*/, '');
     if (cleanTitle.length > maxLength) {
@@ -83,8 +90,8 @@ export function CalendarEventChip({
     return cleanTitle;
   };
 
-  const participantAvatars = (event.participantDetails || []).slice(0, 3);
-  const extraParticipants = Math.max(0, (event.participantDetails || []).length - 3);
+  const participantAvatars = (event.participantDetails || []).slice(0, 2);
+  const extraParticipants = Math.max(0, (event.participantDetails || []).length - 2);
 
   const getInitials = (name: string) => {
     return name
@@ -105,73 +112,74 @@ export function CalendarEventChip({
       onMouseLeave={() => onHover?.(null)}
       onClick={() => onClick?.(event)}
       className={`
-        group relative mb-1.5 cursor-pointer rounded-md px-2 py-1.5 transition-all
+        group relative cursor-pointer rounded-lg px-3 py-2 transition-all duration-200
         ${config.chipBg}
-        border-l-[3px] ${config.borderColor}
-        hover:shadow-md hover:brightness-95 active:scale-[0.98]
-        ${isPreview ? 'ring-1 ring-offset-1' : ''}
+        border-l-[4px] ${config.borderColor}
+        hover:shadow-lg hover:shadow-${config.borderColor.split('-')[1]}-500/20 hover:scale-[1.02] active:scale-[0.98]
+        ${isPreview ? 'ring-2 ring-primary/30 ring-offset-1' : ''}
         ${isCompleted ? 'opacity-60 line-through grayscale' : ''}
-        ${isOverdue ? 'ring-1 ring-red-400' : ''}
+        ${isOverdue ? 'ring-2 ring-red-400' : ''}
+        ${hasParticipants && showParticipants ? 'border border-primary/20' : 'border border-transparent'}
       `}
     >
-      <div className="flex items-start gap-2 min-w-0">
-        {/* Icon */}
-        <div className={`flex-shrink-0 mt-0.5 ${config.chipText}`}>
-          <IconComponent className="h-3.5 w-3.5" strokeWidth={2.5} />
+      <div className="flex items-center gap-2.5 min-w-0">
+        {/* Icon with improved styling */}
+        <div className={`flex-shrink-0 ${config.chipText}`}>
+          <div className={`p-1 rounded-md ${config.color} bg-opacity-15`}>
+            <IconComponent className="h-3.5 w-3.5" strokeWidth={2.5} />
+          </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0 overflow-hidden">
-          <div className={`text-xs font-semibold truncate ${config.chipText} leading-tight`}>
+          <div className={`text-xs font-bold truncate ${config.chipText} leading-tight`}>
             {truncateTitle(event.title)}
           </div>
-          <div className={`text-[10px] font-medium mt-0.5 opacity-80 ${config.chipText}`}>
-            {getStartTime()}
-          </div>
+          {getStartTime() && (
+            <div className={`text-[10px] font-medium mt-0.5 opacity-80 ${config.chipText} flex items-center gap-1`}>
+              <Clock className="h-3 w-3 inline" />
+              {getStartTime()}
+            </div>
+          )}
         </div>
+
+        {/* Participant Badge - Only for RDV with participants */}
+        {showParticipants && hasParticipants && (
+          <div className="flex-shrink-0">
+            <div className="flex items-center gap-1 bg-primary/10 rounded-full px-2 py-0.5 border border-primary/20">
+              <div className="flex -space-x-1.5">
+                {participantAvatars.map((participant, idx) => (
+                  <div
+                    key={participant.id}
+                    className="h-5 w-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white border border-white dark:border-gray-800 shadow-sm"
+                    style={{ zIndex: participantAvatars.length - idx }}
+                    title={participant.name}
+                  >
+                    <span className="text-[8px] font-bold">
+                      {getInitials(participant.name)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <span className="text-[10px] font-bold text-primary ml-1">
+                {totalParticipants}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Status Indicators */}
-        <div className="flex-shrink-0 flex gap-1">
-          {isCompleted && (
-            <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-400" />
-          )}
-          {isOverdue && (
-            <AlertTriangle className="h-3 w-3 text-red-600 dark:text-red-400" />
-          )}
-        </div>
-      </div>
-
-      {/* Participant Avatars - Only for non-tasks */}
-      {showParticipants && participantAvatars.length > 0 && (
-        <TooltipProvider>
-          <div className="flex items-center gap-1 mt-1.5 pl-0.5">
-            <div className="flex -space-x-1.5">
-              {participantAvatars.map((participant) => (
-                <Tooltip key={participant.id}>
-                  <TooltipTrigger asChild>
-                    <Avatar className="h-4 w-4 border border-white dark:border-gray-800 ring-1 ring-black/5">
-                      <AvatarImage
-                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.email}`}
-                      />
-                      <AvatarFallback className="text-[8px] bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                        {getInitials(participant.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">
-                    {participant.name}
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-            </div>
-            {extraParticipants > 0 && (
-              <span className="text-[9px] font-medium text-gray-500 dark:text-gray-400 ml-1">
-                +{extraParticipants}
-              </span>
+        {(isCompleted || isOverdue) && (
+          <div className="flex-shrink-0 flex gap-1">
+            {isCompleted && (
+              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+            )}
+            {isOverdue && (
+              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 animate-pulse" />
             )}
           </div>
-        </TooltipProvider>
-      )}
+        )}
+      </div>
     </motion.div>
   );
 }
