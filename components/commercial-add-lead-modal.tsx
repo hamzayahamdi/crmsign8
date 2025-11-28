@@ -22,7 +22,7 @@ interface CommercialAddLeadModalProps {
 }
 
 const MOROCCAN_CITIES = [
-  "Casablanca", "Rabat", "Marrakech", "Fès", "Tanger", "Agadir", "Meknès", 
+  "Casablanca", "Rabat", "Marrakech", "Fès", "Tanger", "Agadir", "Meknès",
   "Oujda", "Kenitra", "Tétouan", "Safi", "Temara", "Mohammedia", "Khouribga",
   "El Jadida", "Béni Mellal", "Nador", "Taza", "Settat", "Ksar El Kebir",
   "Larache", "Khemisset", "Guelmim", "Berrechid", "Berkane", "Taourirt",
@@ -82,14 +82,14 @@ export function CommercialAddLeadModal({
           const names = (Array.isArray(data) ? data : []).map((u: any) => (u?.name || '').trim()).filter((n: string) => n)
           setUsers(names)
         }
-      } catch {}
+      } catch { }
     }
     loadUsers()
   }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Validation
     if (!formData.nom.trim()) {
       toast.error("Veuillez saisir le nom complet")
@@ -207,9 +207,9 @@ export function CommercialAddLeadModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto glass border-border/40">
+      <DialogContent className="w-[95vw] sm:w-full sm:max-w-[600px] max-h-[90vh] overflow-y-auto glass border-border/40">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 bg-clip-text text-transparent flex items-center gap-2">
+          <DialogTitle className="text-lg md:text-2xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 bg-clip-text text-transparent flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
               <UserPlus className="h-5 w-5 text-white" />
             </div>
@@ -217,10 +217,10 @@ export function CommercialAddLeadModal({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-3 md:space-y-5 mt-3 md:mt-4">
           {/* Nom complet */}
           <div className="space-y-2">
-            <Label htmlFor="nom" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <Label htmlFor="nom" className="text-xs md:text-sm font-medium text-gray-700 flex items-center gap-2">
               <User className="h-4 w-4 text-blue-600" />
               Nom complet <span className="text-red-500">*</span>
             </Label>
@@ -229,7 +229,7 @@ export function CommercialAddLeadModal({
               value={formData.nom}
               onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
               placeholder="Ex: Ahmed Benali"
-              className="h-11"
+              className="h-10 md:h-11 text-sm md:text-base"
               required
             />
           </div>
@@ -246,7 +246,7 @@ export function CommercialAddLeadModal({
               value={formData.telephone}
               onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
               placeholder="Ex: 0612345678"
-              className="h-11"
+              className="h-10 md:h-11 text-sm md:text-base"
               required
             />
           </div>
@@ -258,7 +258,7 @@ export function CommercialAddLeadModal({
               Ville <span className="text-red-500">*</span>
             </Label>
             <Select value={formData.ville} onValueChange={(value) => setFormData({ ...formData, ville: value })}>
-              <SelectTrigger className="h-11">
+              <SelectTrigger className="h-10 md:h-11 text-sm md:text-base">
                 <SelectValue placeholder="Sélectionner une ville" />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
@@ -395,14 +395,14 @@ export function CommercialAddLeadModal({
               variant="outline"
               onClick={handleCancel}
               disabled={loading}
-              className="flex-1 h-12 border-border/40 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 font-semibold transition-all duration-200"
+              className="flex-1 h-10 md:h-12 border-border/40 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 font-semibold transition-all duration-200 text-sm md:text-base"
             >
               ❌ Annuler
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 font-semibold transition-all duration-200"
+              className="flex-1 h-10 md:h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 font-semibold transition-all duration-200 text-sm md:text-base"
             >
               {loading ? "Enregistrement..." : "✅ Enregistrer le Lead"}
             </Button>

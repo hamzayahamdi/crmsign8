@@ -101,11 +101,11 @@ const calculatePriority = (source: LeadSource): LeadPriority => {
   }
 }
 
-export function LeadModal({ 
-  open, 
-  onOpenChange, 
-  lead, 
-  onSave, 
+export function LeadModal({
+  open,
+  onOpenChange,
+  lead,
+  onSave,
   onDelete,
   onConvertToClient,
   onMarkAsNotInterested,
@@ -118,7 +118,7 @@ export function LeadModal({
   const [newNote, setNewNote] = useState("")
   const [showConvertDialog, setShowConvertDialog] = useState(false)
   const [showNotInterestedDialog, setShowNotInterestedDialog] = useState(false)
-  
+
   const initialForm = {
     nom: lead?.nom || "",
     telephone: lead?.telephone || "",
@@ -153,16 +153,16 @@ export function LeadModal({
               .map((u: any) => (u.name || '').trim())
               .filter((n: string) => n)
           ))
-          
+
           // Find Mohamed as the default gestionnaire de projet
-          const mohamedUser = users.find((u: any) => 
-            (u.name || '').toLowerCase().includes('mohamed') && 
+          const mohamedUser = users.find((u: any) =>
+            (u.name || '').toLowerCase().includes('mohamed') &&
             (u.role || '').toLowerCase() === 'gestionnaire'
           )
-          
+
           const defaultAssignee = mohamedUser?.name || list[0] || 'Mohamed'
           setCommercials(list.length ? list : ['Mohamed'])
-          
+
           if (!lead) {
             setFormData((prev) => ({ ...prev, assignePar: defaultAssignee }))
           }
@@ -175,10 +175,10 @@ export function LeadModal({
   }, [lead])
 
   const resetForm = () => {
-    const defaultAssignee = commercials.find((name: string) => 
+    const defaultAssignee = commercials.find((name: string) =>
       name.toLowerCase().includes('mohamed')
     ) || commercials[0] || 'Mohamed'
-    
+
     setFormData({
       nom: "",
       telephone: "",
@@ -240,7 +240,7 @@ export function LeadModal({
 
   const handleAddNote = () => {
     if (!newNote.trim()) return
-    
+
     const note: LeadNote = {
       id: Date.now().toString(),
       leadId: lead?.id || "",
@@ -248,13 +248,13 @@ export function LeadModal({
       author: currentUserName,
       createdAt: new Date().toISOString(),
     }
-    
+
     setFormData(prev => ({
       ...prev,
       notes: [...(prev.notes || []), note]
     }))
     setNewNote("")
-    
+
     toast({
       title: "Note ajoutée",
       description: "La note a été ajoutée avec succès",
@@ -282,7 +282,7 @@ export function LeadModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[840px] max-h-[92vh] overflow-y-auto glass backdrop-blur-xl bg-slate-900/90 border border-white/10 ring-1 ring-white/10">
+      <DialogContent className="w-[95vw] sm:w-full sm:max-w-[840px] max-h-[92vh] overflow-y-auto glass backdrop-blur-xl bg-slate-900/90 border border-white/10 ring-1 ring-white/10">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
             {lead ? "✏️ Modifier le lead" : "➕ Nouveau lead"}
@@ -303,7 +303,7 @@ export function LeadModal({
             <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
               📋 Informations principales
             </h3>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="nom" className="text-slate-300">
@@ -369,7 +369,7 @@ export function LeadModal({
             <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
               🧭 Source du lead
             </h3>
-            
+
             <div className="space-y-2">
               <Label htmlFor="source" className="text-slate-300">
                 Source du lead *
@@ -379,9 +379,9 @@ export function LeadModal({
                 onValueChange={(value) => {
                   const newSource = value as LeadSource
                   const calculatedPriority = calculatePriority(newSource)
-                  setFormData({ 
-                    ...formData, 
-                    source: newSource, 
+                  setFormData({
+                    ...formData,
+                    source: newSource,
                     priorite: calculatedPriority,
                     magasin: newSource !== 'magasin' ? '' : formData.magasin,
                     commercialMagasin: newSource !== 'magasin' ? '' : formData.commercialMagasin,
@@ -479,12 +479,12 @@ export function LeadModal({
               <div className={cn(
                 "px-4 py-2 rounded-lg border text-sm font-medium inline-block",
                 formData.priorite === 'haute' ? 'bg-green-500/20 text-green-400 border-green-500/40' :
-                formData.priorite === 'moyenne' ? 'bg-orange-500/20 text-orange-400 border-orange-500/40' :
-                'bg-gray-500/20 text-gray-400 border-gray-500/40'
+                  formData.priorite === 'moyenne' ? 'bg-orange-500/20 text-orange-400 border-orange-500/40' :
+                    'bg-gray-500/20 text-gray-400 border-gray-500/40'
               )}>
                 {formData.priorite === 'haute' ? '🔥 Priorité Haute' :
-                 formData.priorite === 'moyenne' ? '⚡ Priorité Moyenne' :
-                 '📋 Priorité Basse'}
+                  formData.priorite === 'moyenne' ? '⚡ Priorité Moyenne' :
+                    '📋 Priorité Basse'}
               </div>
             </div>
           </div>
@@ -494,7 +494,7 @@ export function LeadModal({
             <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
               📊 Statut et suivi
             </h3>
-            
+
             <div className="space-y-2">
               <Label htmlFor="statut" className="text-slate-300">
                 État du lead
@@ -549,7 +549,7 @@ export function LeadModal({
               <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
                 📝 Historique et notes
               </h3>
-              
+
               {/* Timeline des notes */}
               <div className="space-y-3 max-h-60 overflow-y-auto">
                 {formData.notes && formData.notes.length > 0 ? (
@@ -663,7 +663,7 @@ export function LeadModal({
                     </AlertDialogHeader>
                     <AlertDialogFooterRoot>
                       <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction 
+                      <AlertDialogAction
                         className="bg-red-600 hover:bg-red-700 text-white"
                         onClick={handleMarkAsNotInterested}
                       >
@@ -695,7 +695,7 @@ export function LeadModal({
                     </AlertDialogHeader>
                     <AlertDialogFooterRoot>
                       <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction 
+                      <AlertDialogAction
                         className="bg-green-600 hover:bg-green-700 text-white"
                         onClick={handleConvertToClient}
                       >
@@ -707,16 +707,16 @@ export function LeadModal({
               )}
 
               {/* Enregistrer */}
-              <Button 
-                type="button" 
-                variant="ghost" 
+              <Button
+                type="button"
+                variant="ghost"
                 onClick={() => onOpenChange(false)}
                 className="text-slate-400 hover:text-white"
               >
                 Annuler
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Save className="w-4 h-4 mr-2" />

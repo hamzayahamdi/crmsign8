@@ -76,94 +76,94 @@ export default function SettingsPage() {
       <RoleGuard allowedRoles={['Admin']}>
         <div className="flex min-h-screen">
           <Sidebar />
-        <main className="flex-1 flex flex-col">
-          {/* Header */}
-          <div className="glass border-b border-border/40 p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-premium flex items-center justify-center glow">
-                <SettingsIcon className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-white">Paramètres</h1>
-                <p className="text-muted-foreground">Gérer les préférences de votre CRM</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Settings Content */}
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="max-w-4xl mx-auto space-y-6">
-          {/* Settings Sections */}
-          {settingsSections.map((section, index) => (
-            <motion.div
-              key={section.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="glass rounded-xl p-6 border border-border/40"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <section.icon className="w-5 h-5 text-primary" />
+          <main className="flex-1 flex flex-col">
+            {/* Header */}
+            <div className="glass border-b border-border/40 p-4 md:p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br from-primary to-premium flex items-center justify-center glow shrink-0">
+                  <SettingsIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-white">{section.title}</h2>
-                  <p className="text-sm text-muted-foreground">{section.description}</p>
+                  <h1 className="text-xl md:text-3xl font-bold text-white">Paramètres</h1>
+                  <p className="text-xs md:text-sm text-muted-foreground">Gérer les préférences de votre CRM</p>
                 </div>
               </div>
-              <div className="space-y-3">
-                {section.items.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between py-2">
-                    <span className="text-foreground">{item.label}</span>
-                    <span className="text-muted-foreground">{item.value}</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          ))}
-
-              {/* Data Management */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="glass rounded-xl p-6 border border-border/40"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <Database className="w-5 h-5 text-primary" />
-                  <div>
-                    <h2 className="text-xl font-semibold text-white">Gestion des données</h2>
-                    <p className="text-sm text-muted-foreground">Exporter, importer ou supprimer vos données</p>
-                  </div>
-                </div>
-                <div className="space-y-3">
-              <Button
-                onClick={handleExportData}
-                className="w-full justify-start gap-2 bg-transparent"
-                variant="outline"
-              >
-                <Download className="w-4 h-4" />
-                Exporter les données
-              </Button>
-              <Button
-                onClick={handleImportData}
-                className="w-full justify-start gap-2 bg-transparent"
-                variant="outline"
-              >
-                <Upload className="w-4 h-4" />
-                Importer les données
-              </Button>
-              <Button
-                onClick={handleClearData}
-                className="w-full justify-start gap-2"
-                variant={showConfirm ? "destructive" : "outline"}
-              >
-                <Trash2 className="w-4 h-4" />
-                {showConfirm ? "Cliquer à nouveau pour confirmer" : "Supprimer toutes les données"}
-              </Button>
-                </div>
-              </motion.div>
             </div>
-          </div>
-        </main>
+
+            {/* Settings Content */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6">
+              <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
+                {/* Settings Sections */}
+                {settingsSections.map((section, index) => (
+                  <motion.div
+                    key={section.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="glass rounded-lg md:rounded-xl p-4 md:p-6 border border-border/40"
+                  >
+                    <div className="flex items-center gap-3 mb-3 md:mb-4">
+                      <section.icon className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                      <div>
+                        <h2 className="text-lg md:text-xl font-semibold text-white">{section.title}</h2>
+                        <p className="text-xs md:text-sm text-muted-foreground">{section.description}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2 md:space-y-3">
+                      {section.items.map((item) => (
+                        <div key={item.label} className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-1 sm:gap-0">
+                          <span className="text-sm md:text-base text-foreground font-medium sm:font-normal">{item.label}</span>
+                          <span className="text-sm md:text-base text-muted-foreground">{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                ))}
+
+                {/* Data Management */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="glass rounded-lg md:rounded-xl p-4 md:p-6 border border-border/40"
+                >
+                  <div className="flex items-center gap-3 mb-3 md:mb-4">
+                    <Database className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                    <div>
+                      <h2 className="text-lg md:text-xl font-semibold text-white">Gestion des données</h2>
+                      <p className="text-xs md:text-sm text-muted-foreground">Exporter, importer ou supprimer vos données</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <Button
+                      onClick={handleExportData}
+                      className="w-full justify-start gap-2 bg-transparent h-10 md:h-11 text-sm md:text-base"
+                      variant="outline"
+                    >
+                      <Download className="w-4 h-4" />
+                      Exporter les données
+                    </Button>
+                    <Button
+                      onClick={handleImportData}
+                      className="w-full justify-start gap-2 bg-transparent h-10 md:h-11 text-sm md:text-base"
+                      variant="outline"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Importer les données
+                    </Button>
+                    <Button
+                      onClick={handleClearData}
+                      className="w-full justify-start gap-2 h-10 md:h-11 text-sm md:text-base"
+                      variant={showConfirm ? "destructive" : "outline"}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      {showConfirm ? "Cliquer à nouveau pour confirmer" : "Supprimer toutes les données"}
+                    </Button>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </main>
         </div>
       </RoleGuard>
     </AuthGuard>

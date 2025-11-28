@@ -111,7 +111,7 @@ export function NotificationPermissionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden">
+      <DialogContent className="w-[95vw] sm:w-full sm:max-w-[500px] p-0 overflow-hidden">
         <AnimatePresence mode="wait">
           {step === 'intro' ? (
             <motion.div

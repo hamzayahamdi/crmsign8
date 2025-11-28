@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Users, LogOut, Settings, CalendarDays, Compass, Calendar, Briefcase, Bell } from "lucide-react"
+import { Home, Users, LogOut, Settings, CalendarDays, Compass, Calendar, Briefcase, Bell, Menu, X } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Signature8Logo } from "@/components/signature8-logo"
@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { useMemo, useEffect, useState, useCallback } from "react"
-import { motion, LayoutGroup } from "framer-motion"
+import { motion, LayoutGroup, AnimatePresence } from "framer-motion"
 import { TasksService } from "@/lib/tasks-service"
 import { toast } from "sonner"
 import { getVisibleSidebarItems, getRoleLabel } from "@/lib/permissions"
@@ -37,6 +37,7 @@ const iconMap: Record<string, any> = {
 }
 
 export function Sidebar() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const { user, logout } = useAuth()
@@ -47,6 +48,23 @@ export function Sidebar() {
   const [myNewTasks, setMyNewTasks] = useState<number>(0)
   const [adminUpdatesCount, setAdminUpdatesCount] = useState<number>(0)
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false)
+  }, [pathname])
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isMobileMenuOpen])
+
   // Optimized navigation with immediate redirect
   const handleNavigation = useCallback((href: string) => {
     // Don't navigate if already on this page
@@ -56,13 +74,13 @@ export function Sidebar() {
 
     // Set navigating state briefly for visual feedback
     setIsNavigating(true)
-    
+
     // Prefetch the route immediately
     router.prefetch(href)
-    
+
     // Immediate navigation - no transition delay
     router.push(href)
-    
+
     // Reset navigating state after a short delay
     setTimeout(() => setIsNavigating(false), 100)
   }, [router, pathname])
@@ -143,194 +161,193 @@ export function Sidebar() {
     await logout()
   }
 
-  return (
+  const SidebarContent = () => (
     <>
-    <aside className="w-72 glass border-r border-border/40 flex flex-col h-screen fixed top-0 left-0 z-30 backdrop-blur-2xl bg-slate-950/95">
       {/* Logo */}
-      <div className="p-6 border-b border-border/40 shrink-0">
+      <div className="p-4 md:p-6 border-b border-border/40 shrink-0">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="flex items-center gap-3"
+          className="flex items-center gap-2 md:gap-3"
         >
-          <Signature8Logo size={48} />
+          <Signature8Logo size={40} className="md:w-12 md:h-12" />
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Signature8</h1>
-            <p className="text-xs text-muted-foreground font-medium">CRM Tailor-Made</p>
+            <h1 className="text-lg md:text-xl font-bold text-white tracking-tight">Signature8</h1>
+            <p className="text-[10px] md:text-xs text-muted-foreground font-medium">CRM Tailor-Made</p>
           </div>
         </motion.div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sky-500/30 scrollbar-track-transparent">
+      <nav className="flex-1 p-3 md:p-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sky-500/30 scrollbar-track-transparent">
         <LayoutGroup id="sidebar-nav">
-        {useMemo(() => {
-          const role = user?.role
-          
-          // Special case for commercial - they have their own dashboard
-          if (role?.toLowerCase() === 'commercial') {
-            return [
-              { name: "Mes Leads", href: "/commercial", icon: Home },
-            ]
-          }
-          
-          // Use the permissions system for all other roles
-          const visibleItems = getVisibleSidebarItems(role)
-          
-          return visibleItems.map(item => {
-            // Customize label for architects
-            let displayLabel = item.label
-            if (role?.toLowerCase() === 'architect' && item.id === 'contacts') {
-              displayLabel = "Mes Contacts Assignés"
+          {useMemo(() => {
+            const role = user?.role
+
+            // Special case for commercial - they have their own dashboard
+            if (role?.toLowerCase() === 'commercial') {
+              return [
+                { name: "Mes Leads", href: "/commercial", icon: Home },
+              ]
             }
-            
-            return {
-              name: displayLabel,
-              href: item.href,
-              icon: iconMap[item.icon] || Home
-            }
-          })
-        }, [user?.role]).map((item, index) => {
-          const isActive = pathname === item.href || (item.href === "/architectes" && pathname.startsWith("/architectes/"))
-          return (
-            <motion.button
-              key={item.name}
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                // Immediate navigation without delay
-                if (item.href !== pathname) {
-                  handleNavigation(item.href)
-                }
-              }}
-              onMouseEnter={() => handleMouseEnter(item.href)}
-              disabled={isNavigating && pathname !== item.href}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05, duration: 0.4, ease: "easeOut" }}
-              whileHover={{ x: 4 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-full text-left block"
-              style={{ cursor: (isNavigating && pathname !== item.href) ? 'wait' : 'pointer' }}
-              type="button"
-            >
-              <motion.div
-                layout
-                className={cn(
-                  "relative flex items-center gap-3 px-4 py-3.5 rounded-2xl group overflow-hidden transition-all duration-150",
-                  isActive
-                    ? "text-sky-50"
-                    : "text-muted-foreground hover:text-foreground",
-                  isNavigating && "opacity-60"
-                )}
-                transition={{ type: "spring", stiffness: 350, damping: 35, mass: 0.9 }}
+
+            // Use the permissions system for all other roles
+            const visibleItems = getVisibleSidebarItems(role)
+
+            return visibleItems.map(item => {
+              // Customize label for architects
+              let displayLabel = item.label
+              if (role?.toLowerCase() === 'architect' && item.id === 'contacts') {
+                displayLabel = "Mes Contacts Assignés"
+              }
+
+              return {
+                name: displayLabel,
+                href: item.href,
+                icon: iconMap[item.icon] || Home
+              }
+            })
+          }, [user?.role]).map((item, index) => {
+            const isActive = pathname === item.href || (item.href === "/architectes" && pathname.startsWith("/architectes/"))
+            return (
+              <motion.button
+                key={item.name}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  // Immediate navigation without delay
+                  if (item.href !== pathname) {
+                    handleNavigation(item.href)
+                  }
+                }}
+                onMouseEnter={() => handleMouseEnter(item.href)}
+                disabled={isNavigating && pathname !== item.href}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05, duration: 0.4, ease: "easeOut" }}
+                whileHover={{ x: 4 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-full text-left block"
+                style={{ cursor: (isNavigating && pathname !== item.href) ? 'wait' : 'pointer' }}
+                type="button"
               >
-                {isActive && (
-                  <>
-                    {/* Background glow effect */}
-                    <motion.div
-                      layoutId="sidebar-active-pill"
-                      className="absolute inset-0 rounded-2xl"
-                      style={{
-                        background: "linear-gradient(135deg, rgba(56,189,248,0.85) 0%, rgba(59,130,246,0.95) 100%)",
-                        boxShadow: "0 0 32px rgba(56,189,248,0.7), 0 0 64px rgba(59,130,246,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
-                      }}
-                      transition={{ type: "spring", stiffness: 330, damping: 32, mass: 1 }}
-                    />
-                    
-                    {/* Animated outer glow */}
-                    <motion.div
-                      layoutId="sidebar-active-glow-outer"
-                      className="pointer-events-none absolute -inset-2 rounded-3xl blur-xl"
-                      style={{
-                        background: "radial-gradient(circle, rgba(56,189,248,0.6) 0%, rgba(59,130,246,0.3) 50%, transparent 100%)",
-                      }}
-                      animate={{ opacity: [0.5, 0.8, 0.5], scale: [0.95, 1.05, 0.95] }}
-                      transition={{ duration: 3, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-                    />
-                    
-                    {/* Inner shimmer glow */}
-                    <motion.div
-                      layoutId="sidebar-active-glow-inner"
-                      className="pointer-events-none absolute inset-0 rounded-2xl"
-                      style={{
-                        background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)",
-                      }}
-                      animate={{ x: [-100, 100] }}
-                      transition={{ duration: 3, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-                    />
-                  </>
-                )}
-                
-                {/* Icon with enhanced glow */}
                 <motion.div
-                  className="relative z-10"
-                  animate={isActive ? { scale: [1, 1.15, 1] } : {}}
-                  transition={{ duration: 0.6, repeat: Infinity, repeatType: "mirror" }}
+                  layout
+                  className={cn(
+                    "relative flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3.5 rounded-xl md:rounded-2xl group overflow-hidden transition-all duration-150",
+                    isActive
+                      ? "text-sky-50"
+                      : "text-muted-foreground hover:text-foreground",
+                    isNavigating && "opacity-60"
+                  )}
+                  transition={{ type: "spring", stiffness: 350, damping: 35, mass: 0.9 }}
                 >
-                  <item.icon
-                    className={cn(
-                      "w-5 h-5 transition-all duration-300",
-                      isActive
-                        ? "drop-shadow-[0_0_20px_rgba(56,189,248,0.95)] drop-shadow-[0_0_40px_rgba(59,130,246,0.5)]"
-                        : "group-hover:scale-110 group-hover:drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]",
-                    )}
-                  />
+                  {isActive && (
+                    <>
+                      {/* Background glow effect */}
+                      <motion.div
+                        layoutId="sidebar-active-pill"
+                        className="absolute inset-0 rounded-xl md:rounded-2xl"
+                        style={{
+                          background: "linear-gradient(135deg, rgba(56,189,248,0.85) 0%, rgba(59,130,246,0.95) 100%)",
+                          boxShadow: "0 0 32px rgba(56,189,248,0.7), 0 0 64px rgba(59,130,246,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
+                        }}
+                        transition={{ type: "spring", stiffness: 330, damping: 32, mass: 1 }}
+                      />
+
+                      {/* Animated outer glow */}
+                      <motion.div
+                        layoutId="sidebar-active-glow-outer"
+                        className="pointer-events-none absolute -inset-2 rounded-3xl blur-xl"
+                        style={{
+                          background: "radial-gradient(circle, rgba(56,189,248,0.6) 0%, rgba(59,130,246,0.3) 50%, transparent 100%)",
+                        }}
+                        animate={{ opacity: [0.5, 0.8, 0.5], scale: [0.95, 1.05, 0.95] }}
+                        transition={{ duration: 3, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+                      />
+
+                      {/* Inner shimmer glow */}
+                      <motion.div
+                        layoutId="sidebar-active-glow-inner"
+                        className="pointer-events-none absolute inset-0 rounded-xl md:rounded-2xl"
+                        style={{
+                          background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)",
+                        }}
+                        animate={{ x: [-100, 100] }}
+                        transition={{ duration: 3, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+                      />
+                    </>
+                  )}
+
+                  {/* Icon with enhanced glow */}
+                  <motion.div
+                    className="relative z-10"
+                    animate={isActive ? { scale: [1, 1.15, 1] } : {}}
+                    transition={{ duration: 0.6, repeat: Infinity, repeatType: "mirror" }}
+                  >
+                    <item.icon
+                      className={cn(
+                        "w-4 h-4 md:w-5 md:h-5 transition-all duration-300",
+                        isActive
+                          ? "drop-shadow-[0_0_20px_rgba(56,189,248,0.95)] drop-shadow-[0_0_40px_rgba(59,130,246,0.5)]"
+                          : "group-hover:scale-110 group-hover:drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]",
+                      )}
+                    />
+                  </motion.div>
+
+                  {/* Text label */}
+                  <span className="relative z-10 flex-1 truncate text-xs md:text-sm font-semibold">{item.name}</span>
+
+                  {/* Task badges */}
+                  {item.href === "/tasks" && (
+                    <span className="ml-auto inline-flex items-center gap-1.5 md:gap-2 relative z-10">
+                      {/* New Tasks - Red Pulse Dot */}
+                      {myNewTasks > 0 && (
+                        <motion.span
+                          className="relative inline-flex h-2.5 w-2.5 md:h-3 md:w-3"
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 md:h-3 md:w-3 bg-red-500 shadow-lg shadow-red-500/70"></span>
+                        </motion.span>
+                      )}
+                      {/* Pending Tasks - Badge */}
+                      {myPendingTasks > 0 && (
+                        <motion.span
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                          className={cn(
+                            "min-w-[1.5rem] md:min-w-[1.75rem] h-5 md:h-7 px-1.5 md:px-2.5 inline-flex items-center justify-center rounded-full text-[10px] md:text-xs font-bold shadow-lg transition-all duration-200",
+                            isActive
+                              ? "bg-white text-primary shadow-white/30 font-extrabold"
+                              : "bg-gradient-to-r from-primary to-blue-500 text-white shadow-primary/50 animate-pulse",
+                          )}>
+                          {myPendingTasks}
+                        </motion.span>
+                      )}
+                      {/* Admin Updates - Toaster Style Badge */}
+                      {((user?.role || '').toLowerCase() === 'admin' || (user?.role || '').toLowerCase() === 'operator') && adminUpdatesCount > 0 && (
+                        <motion.span
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                          className={cn(
+                            "min-w-[1.5rem] md:min-w-[1.75rem] h-5 md:h-7 px-1.5 md:px-2.5 inline-flex items-center justify-center rounded-full text-[10px] md:text-xs font-bold shadow-lg border-2 transition-all duration-200",
+                            isActive
+                              ? "bg-orange-500 border-orange-300 text-white shadow-orange-500/40 font-extrabold"
+                              : "bg-gradient-to-r from-orange-400 to-amber-500 border-orange-300 text-white shadow-orange-500/50 animate-pulse",
+                          )}>
+                          {adminUpdatesCount}
+                        </motion.span>
+                      )}
+                    </span>
+                  )}
                 </motion.div>
-
-                {/* Text label */}
-                <span className="relative z-10 flex-1 truncate text-sm font-semibold">{item.name}</span>
-
-                {/* Task badges */}
-                {item.href === "/tasks" && (
-                  <span className="ml-auto inline-flex items-center gap-2 relative z-10">
-                    {/* New Tasks - Red Pulse Dot */}
-                    {myNewTasks > 0 && (
-                      <motion.span
-                        className="relative inline-flex h-3 w-3"
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-lg shadow-red-500/70"></span>
-                      </motion.span>
-                    )}
-                    {/* Pending Tasks - Badge */}
-                    {myPendingTasks > 0 && (
-                      <motion.span
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                        className={cn(
-                          "min-w-[1.75rem] h-7 px-2.5 inline-flex items-center justify-center rounded-full text-xs font-bold shadow-lg transition-all duration-200",
-                          isActive
-                            ? "bg-white text-primary shadow-white/30 font-extrabold"
-                            : "bg-gradient-to-r from-primary to-blue-500 text-white shadow-primary/50 animate-pulse",
-                        )}>
-                        {myPendingTasks}
-                      </motion.span>
-                    )}
-                    {/* Admin Updates - Toaster Style Badge */}
-                    {((user?.role || '').toLowerCase() === 'admin' || (user?.role || '').toLowerCase() === 'operator') && adminUpdatesCount > 0 && (
-                      <motion.span
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                        className={cn(
-                          "min-w-[1.75rem] h-7 px-2.5 inline-flex items-center justify-center rounded-full text-xs font-bold shadow-lg border-2 transition-all duration-200",
-                          isActive
-                            ? "bg-orange-500 border-orange-300 text-white shadow-orange-500/40 font-extrabold"
-                            : "bg-gradient-to-r from-orange-400 to-amber-500 border-orange-300 text-white shadow-orange-500/50 animate-pulse",
-                        )}>
-                        {adminUpdatesCount}
-                      </motion.span>
-                    )}
-                  </span>
-                )}
-              </motion.div>
-            </motion.button>
-          )
-        })}
+              </motion.button>
+            )
+          })}
         </LayoutGroup>
       </nav>
 
@@ -341,23 +358,23 @@ export function Sidebar() {
           transition={{ delay: 0.3, duration: 0.5 }}
           className="shrink-0 border-t border-border/40 bg-background/50 backdrop-blur-sm"
         >
-          <div className="p-4 space-y-3">
-            <div className="glass rounded-2xl p-3 space-y-1.5 border border-border/40 hover:border-border/60 transition-all duration-300">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10 border-2 border-sky-400/50 ring-2 ring-sky-400/20">
-                  <AvatarFallback className="bg-gradient-to-br from-sky-500 via-sky-400 to-sky-600 text-white font-bold text-sm">
+          <div className="p-3 md:p-4 space-y-2 md:space-y-3">
+            <div className="glass rounded-xl md:rounded-2xl p-2 md:p-3 space-y-1.5 border border-border/40 hover:border-border/60 transition-all duration-300">
+              <div className="flex items-center gap-2 md:gap-3">
+                <Avatar className="h-8 w-8 md:h-10 md:w-10 border-2 border-sky-400/50 ring-2 ring-sky-400/20">
+                  <AvatarFallback className="bg-gradient-to-br from-sky-500 via-sky-400 to-sky-600 text-white font-bold text-xs md:text-sm">
                     {getInitials(user.name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">
+                  <p className="text-xs md:text-sm font-semibold text-foreground truncate">
                     {user.name}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-[10px] md:text-xs text-muted-foreground truncate">
                     {user.email}
                   </p>
                   {user.role && (
-                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30">
+                    <span className="inline-flex items-center gap-1 mt-0.5 md:mt-1 text-[9px] md:text-[10px] font-medium px-1.5 md:px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30">
                       {getRoleLabel(user.role)}
                     </span>
                   )}
@@ -373,17 +390,17 @@ export function Sidebar() {
                 >
                   <Button
                     variant="outline"
-                    className="w-full justify-start gap-2 h-11 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all duration-200 group"
+                    className="w-full justify-start gap-2 h-9 md:h-11 text-xs md:text-sm border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all duration-200 group"
                   >
-                    <LogOut className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                    <LogOut className="w-3.5 h-3.5 md:w-4 md:h-4 transition-transform group-hover:translate-x-0.5" />
                     <span className="font-medium">Déconnexion</span>
                   </Button>
                 </motion.div>
               </AlertDialogTrigger>
-              <AlertDialogContent className="glass border-border/40">
+              <AlertDialogContent className="glass border-border/40 max-w-[90vw] md:max-w-md">
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-xl">Confirmer la déconnexion</AlertDialogTitle>
-                  <AlertDialogDescription className="text-base">
+                  <AlertDialogTitle className="text-lg md:text-xl">Confirmer la déconnexion</AlertDialogTitle>
+                  <AlertDialogDescription className="text-sm md:text-base">
                     Êtes-vous sûr de vouloir vous déconnecter ? Vous devrez vous reconnecter pour accéder à nouveau au CRM.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -401,10 +418,60 @@ export function Sidebar() {
           </div>
         </motion.div>
       )}
-    </aside>
-    {/* Spacer to offset fixed sidebar width in layouts */}
-    <div className="w-72 shrink-0" aria-hidden />
+    </>
+  )
+
+  return (
+    <>
+      {/* Mobile Menu Toggle Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-slate-900/90 border border-slate-700/50 backdrop-blur-sm hover:bg-slate-800 transition-colors"
+        aria-label="Toggle menu"
+      >
+        {isMobileMenuOpen ? (
+          <X className="w-5 h-5 text-white" />
+        ) : (
+          <Menu className="w-5 h-5 text-white" />
+        )}
+      </button>
+
+      {/* Mobile Backdrop Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Sidebar Drawer */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.aside
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="lg:hidden fixed top-0 left-0 w-72 h-screen glass border-r border-border/40 flex flex-col z-50 backdrop-blur-2xl bg-slate-950/95"
+          >
+            <SidebarContent />
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Sidebar - Always visible on large screens */}
+      <aside className="hidden lg:flex w-72 glass border-r border-border/40 flex-col h-screen fixed top-0 left-0 z-30 backdrop-blur-2xl bg-slate-950/95">
+        <SidebarContent />
+      </aside>
+
+      {/* Spacer to offset fixed sidebar width in layouts - only on desktop */}
+      <div className="hidden lg:block w-72 shrink-0" aria-hidden="true" />
     </>
   )
 }
-

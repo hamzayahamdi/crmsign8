@@ -70,14 +70,14 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed inset-0 z-50 flex items-center justify-center p-4',
+          'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4',
           containerClassName,
         )}
         {...props}
       >
         <div
           className={cn(
-            'w-full max-w-[calc(100%-2rem)] sm:max-w-lg md:max-w-xl lg:max-w-2xl bg-background rounded-lg border shadow-lg p-6 flex flex-col max-h-[90vh] overflow-hidden relative data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-98 data-[state=open]:zoom-in-98 duration-150',
+            'w-full max-w-[calc(100%-2rem)] sm:max-w-lg md:max-w-xl lg:max-w-2xl bg-background rounded-lg border shadow-lg p-4 sm:p-6 flex flex-col max-h-[90vh] overflow-hidden relative data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-98 data-[state=open]:zoom-in-98 duration-150',
             className,
           )}
         >

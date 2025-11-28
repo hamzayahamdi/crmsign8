@@ -40,10 +40,10 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
   }
 
   return (
-    <header className="bg-[rgb(13,17,28)]/90 backdrop-blur-xl border-b border-[rgb(30,41,59)] px-6 py-4 sticky top-0 z-20">
-      <div className="flex items-center justify-between gap-4">
-        {/* Search */}
-        <div className="flex-1 max-w-xl relative">
+    <header className="bg-[rgb(13,17,28)]/90 backdrop-blur-xl border-b border-[rgb(30,41,59)] px-4 md:px-6 py-3 md:py-4 sticky top-0 z-20">
+      <div className="flex items-center justify-between gap-2 md:gap-4">
+        {/* Search - Hidden on mobile, visible on md+ */}
+        <div className="hidden md:flex flex-1 max-w-xl relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             type="search"
@@ -58,27 +58,32 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
           />
         </div>
 
+        {/* Spacer for mobile to push actions to the right */}
+        <div className="flex-1 md:hidden" />
+
         {/* Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           {pathname === "/" && (
             <>
               {user?.role?.toLowerCase() === "admin" && onImportLeads && (
                 <Button
                   onClick={onImportLeads}
                   variant="outline"
-                  className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all bg-transparent"
+                  size="sm"
+                  className="hidden sm:flex border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all bg-transparent h-9 md:h-10 text-xs md:text-sm"
                 >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Importer
+                  <Upload className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-2" />
+                  <span className="hidden md:inline">Importer</span>
                 </Button>
               )}
               {hasPermission(user?.role, 'leads', 'create') && onCreateLead && (
                 <Button
                   onClick={onCreateLead}
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transition-all shadow-lg shadow-blue-500/20"
+                  size="sm"
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transition-all shadow-lg shadow-blue-500/20 h-9 md:h-10 text-xs md:text-sm px-3 md:px-4"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nouveau lead
+                  <Plus className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-2" />
+                  <span className="hidden sm:inline">Nouveau lead</span>
                 </Button>
               )}
             </>
@@ -89,29 +94,29 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="hover:bg-white/[0.05] rounded-full relative group bg-transparent">
-                <Avatar className="h-9 w-9 ring-2 ring-transparent group-hover:ring-blue-500/20 transition-all">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
+              <Button variant="ghost" size="icon" className="hover:bg-white/[0.05] rounded-full relative group bg-transparent h-9 w-9 md:h-10 md:w-10">
+                <Avatar className="h-8 w-8 md:h-9 md:w-9 ring-2 ring-transparent group-hover:ring-blue-500/20 transition-all">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-xs md:text-sm">
                     {user ? getInitials(user.name) : "U"}
                   </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 bg-[rgb(15,20,32)] border-[rgb(30,41,59)]">
+            <DropdownMenuContent align="end" className="w-56 md:w-64 bg-[rgb(15,20,32)] border-[rgb(30,41,59)]">
               <DropdownMenuLabel>
-                <div className="flex items-center gap-3 py-2">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
+                <div className="flex items-center gap-2 md:gap-3 py-1 md:py-2">
+                  <Avatar className="h-9 w-9 md:h-10 md:w-10">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-xs md:text-sm">
                       {user ? getInitials(user.name) : "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col space-y-1 flex-1 min-w-0">
-                    <p className="text-sm font-semibold leading-none truncate text-white">{user?.name}</p>
-                    <p className="text-xs leading-none text-gray-400 truncate">
+                    <p className="text-xs md:text-sm font-semibold leading-none truncate text-white">{user?.name}</p>
+                    <p className="text-[10px] md:text-xs leading-none text-gray-400 truncate">
                       {user?.email}
                     </p>
                     {user?.role && (
-                      <span className="text-xs text-blue-400 font-medium">
+                      <span className="text-[10px] md:text-xs text-blue-400 font-medium">
                         {user.role === "admin" ? "Administrateur" : "Utilisateur"}
                       </span>
                     )}
@@ -119,11 +124,11 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => logout()} 
-                className="text-red-400 focus:text-red-400 focus:bg-red-500/10 cursor-pointer"
+              <DropdownMenuItem
+                onClick={() => logout()}
+                className="text-red-400 focus:text-red-400 focus:bg-red-500/10 cursor-pointer text-xs md:text-sm"
               >
-                <LogOut className="w-4 h-4 mr-2" />
+                <LogOut className="w-3.5 h-3.5 md:w-4 md:h-4 mr-2" />
                 Se déconnecter
               </DropdownMenuItem>
             </DropdownMenuContent>

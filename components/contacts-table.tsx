@@ -18,6 +18,7 @@ import {
   Home,
   Building2,
   Store,
+  User,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
@@ -34,8 +35,9 @@ interface ContactsTableProps {
 }
 
 /**
- * Professional CRM-style Contacts Table - FULLY REDESIGNED
+ * Professional CRM-style Contacts Table - FULLY RESPONSIVE
  * Clean, minimal, role-based, focused on opportunities and workflow
+ * Mobile: Card view, Desktop: Table view
  * Role-based visibility: Admin sees all, Architect sees limited info
  */
 export function ContactsTable({
@@ -140,286 +142,472 @@ export function ContactsTable({
 
   if (isLoading) {
     return (
-      <div className="glass rounded-2xl border border-slate-600/30 overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-slate-600/20">
-              <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contact</th>
-              <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ville</th>
-              <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Type de projet</th>
-              {!isArchitect && (
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Architecte</th>
-              )}
-              <th className="text-center px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Opportunités</th>
-              <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Dernière activité</th>
-              <th className="text-center px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <tr key={i} className="border-b border-slate-600/5 animate-pulse">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 bg-slate-700/30 rounded-lg" />
-                    <div>
-                      <div className="h-3.5 w-32 bg-slate-700/30 rounded mb-1.5" />
-                      <div className="h-2.5 w-24 bg-slate-700/20 rounded" />
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="h-3 w-20 bg-slate-700/20 rounded" />
-                </td>
-                <td className="px-4 py-3">
-                  <div className="h-6 w-24 bg-slate-700/20 rounded" />
-                </td>
+      <>
+        {/* Mobile Loading Cards */}
+        <div className="lg:hidden space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="glass rounded-xl border border-slate-600/30 p-4 animate-pulse">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-10 h-10 bg-slate-700/30 rounded-lg" />
+                <div className="flex-1">
+                  <div className="h-4 w-32 bg-slate-700/30 rounded mb-2" />
+                  <div className="h-3 w-24 bg-slate-700/20 rounded" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-full bg-slate-700/20 rounded" />
+                <div className="h-3 w-3/4 bg-slate-700/20 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Loading Table */}
+        <div className="hidden lg:block glass rounded-2xl border border-slate-600/30 overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-600/20">
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contact</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ville</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Type de projet</th>
                 {!isArchitect && (
+                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Architecte</th>
+                )}
+                <th className="text-center px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Opportunités</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Dernière activité</th>
+                <th className="text-center px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <tr key={i} className="border-b border-slate-600/5 animate-pulse">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 bg-slate-700/30 rounded-lg" />
+                      <div>
+                        <div className="h-3.5 w-32 bg-slate-700/30 rounded mb-1.5" />
+                        <div className="h-2.5 w-24 bg-slate-700/20 rounded" />
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="h-3 w-20 bg-slate-700/20 rounded" />
                   </td>
-                )}
-                <td className="px-4 py-3">
-                  <div className="flex justify-center gap-1.5">
-                    <div className="h-5 w-8 bg-slate-700/20 rounded" />
-                    <div className="h-5 w-16 bg-slate-700/20 rounded" />
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="h-3 w-20 bg-slate-700/20 rounded" />
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-center">
-                    <div className="h-8 w-8 bg-slate-700/20 rounded-lg" />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  <td className="px-4 py-3">
+                    <div className="h-6 w-24 bg-slate-700/20 rounded" />
+                  </td>
+                  {!isArchitect && (
+                    <td className="px-4 py-3">
+                      <div className="h-3 w-20 bg-slate-700/20 rounded" />
+                    </td>
+                  )}
+                  <td className="px-4 py-3">
+                    <div className="flex justify-center gap-1.5">
+                      <div className="h-5 w-8 bg-slate-700/20 rounded" />
+                      <div className="h-5 w-16 bg-slate-700/20 rounded" />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="h-3 w-20 bg-slate-700/20 rounded" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-center">
+                      <div className="h-8 w-8 bg-slate-700/20 rounded-lg" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
     )
   }
 
   if (contacts.length === 0) {
     return (
-      <div className="glass rounded-2xl border border-slate-600/30 p-12 text-center">
-        <Phone className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-        <p className="text-slate-300 text-lg font-medium">Aucun contact trouvé</p>
-        <p className="text-sm text-slate-500 mt-1">Les contacts proviennent de la conversion des leads</p>
+      <div className="glass rounded-xl md:rounded-2xl border border-slate-600/30 p-8 md:p-12 text-center">
+        <Phone className="w-10 h-10 md:w-12 md:h-12 text-slate-500 mx-auto mb-3 md:mb-4" />
+        <p className="text-slate-300 text-base md:text-lg font-medium">Aucun contact trouvé</p>
+        <p className="text-xs md:text-sm text-slate-500 mt-1">Les contacts proviennent de la conversion des leads</p>
       </div>
     )
   }
 
   return (
-    <div className="glass rounded-2xl border border-slate-600/30 overflow-hidden shadow-[0_18px_48px_-28px_rgba(59,130,246,0.25)]">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-slate-600/20">
-              <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contact</th>
-              <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ville</th>
-              <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Type de projet</th>
-              {!isArchitect && (
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Architecte</th>
-              )}
-              <th className="text-center px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Opportunités</th>
-              <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Dernière activité</th>
-              <th className="text-center px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-600/10">
-            {contacts.map((contact, index) => {
-              const opportunities = contact.opportunities || []
+    <>
+      {/* Mobile Card View */}
+      <div className="lg:hidden space-y-3">
+        {contacts.map((contact, index) => {
+          const opportunities = contact.opportunities || []
 
-              // Helper: Check if opportunity is won (by statut or pipeline stage)
-              // Acompte Reçu (acompte_recu) means the opportunity is won (deposit received)
-              const isWon = (o: Opportunity) =>
-                o.statut === 'won' || o.pipelineStage === 'acompte_recu' || o.pipelineStage === 'gagnee'
+          const isWon = (o: Opportunity) =>
+            o.statut === 'won' || o.pipelineStage === 'acompte_recu' || o.pipelineStage === 'gagnee'
 
-              // Helper: Check if opportunity is open (statut is open AND not won)
-              const isOpen = (o: Opportunity) =>
-                o.statut === 'open' && !isWon(o)
+          const isOpen = (o: Opportunity) =>
+            o.statut === 'open' && !isWon(o)
 
-              const opportunityCounts = {
-                open: opportunities.filter(isOpen).length,
-                won: opportunities.filter(isWon).length,
-                lost: opportunities.filter((o) => o.statut === 'lost' || o.pipelineStage === 'perdue').length,
-                onHold: opportunities.filter((o) => o.statut === 'on_hold').length,
-              }
-              const projectType = getProjectType(opportunities)
-              const pipelineBadge = getPipelineBadge(contact)
+          const opportunityCounts = {
+            open: opportunities.filter(isOpen).length,
+            won: opportunities.filter(isWon).length,
+            lost: opportunities.filter((o) => o.statut === 'lost' || o.pipelineStage === 'perdue').length,
+            onHold: opportunities.filter((o) => o.statut === 'on_hold').length,
+          }
+          const projectType = getProjectType(opportunities)
 
-              // Check if contact has unread/untreated opportunities
-              const hasUntreatedOpps = opportunityCounts.open > 0
+          return (
+            <motion.div
+              key={contact.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.02, duration: 0.2 }}
+              onClick={() => onRowClick(contact.id)}
+              className="glass rounded-xl border border-slate-600/30 p-4 hover:bg-slate-800/50 transition-all duration-150 cursor-pointer active:scale-[0.98]"
+            >
+              {/* Header */}
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center shrink-0 font-bold text-primary text-sm border border-primary/30">
+                  {contact.nom.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-semibold text-white text-sm truncate">{contact.nom}</p>
+                    {contact.tag === 'client' && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 shrink-0">
+                        CLIENT
+                      </span>
+                    )}
+                    {contact.tag === 'vip' && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 shrink-0">
+                        VIP
+                      </span>
+                    )}
+                  </div>
+                  <a
+                    href={`tel:${contact.telephone}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-1"
+                  >
+                    <Phone className="w-3 h-3 shrink-0" />
+                    {contact.telephone}
+                  </a>
+                </div>
+              </div>
 
-              return (
-                <motion.tr
-                  key={contact.id}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.01, duration: 0.2 }}
-                  onClick={() => onRowClick(contact.id)}
-                  className="group cursor-pointer hover:bg-slate-800/50 transition-all duration-150 border-b border-slate-600/5 last:border-0"
+              {/* Details Grid */}
+              <div className="space-y-2 mb-3">
+                {/* City */}
+                {contact.ville && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="text-xs text-slate-300">{contact.ville}</span>
+                  </div>
+                )}
+
+                {/* Project Type */}
+                {projectType && (
+                  <div className="flex items-center gap-2">
+                    {React.createElement(getProjectTypeIcon(projectType), {
+                      className: "w-3.5 h-3.5 text-slate-400 shrink-0"
+                    })}
+                    <span className="text-xs text-slate-300">{getProjectTypeLabel(projectType)}</span>
+                  </div>
+                )}
+
+                {/* Architect */}
+                {!isArchitect && contact.architecteAssigne && (
+                  <div className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="text-xs text-slate-300 truncate">
+                      {architectNameMap[contact.architecteAssigne] || contact.architecteAssigne}
+                    </span>
+                  </div>
+                )}
+
+                {/* Last Activity */}
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-3 h-3 text-slate-500 shrink-0" />
+                  <span className="text-xs text-slate-400">
+                    {formatDistanceToNow(new Date(contact.updatedAt), {
+                      addSuffix: true,
+                      locale: fr,
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Opportunities */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-600/20">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-xs text-slate-400">Opportunités:</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {opportunities.length > 0 ? (
+                    <>
+                      <span className="text-sm font-semibold text-white">{opportunities.length}</span>
+                      {opportunityCounts.won > 0 && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-[10px] font-semibold">
+                          {opportunityCounts.won} Gagné{opportunityCounts.won > 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {opportunityCounts.open > 0 && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[10px] font-semibold">
+                          {opportunityCounts.open} Ouvert{opportunityCounts.open > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-slate-500 text-xs">Aucune</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-600/20">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onRowClick(contact.id)
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 transition-all text-xs font-medium"
                 >
-                  {/* Contact Name + Tag + Phone */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-start gap-2.5">
-                      <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center shrink-0 font-bold text-primary text-sm border border-primary/30">
-                        {contact.nom.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <p className="font-semibold text-white text-sm truncate">{contact.nom}</p>
-                          {contact.tag === 'client' && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 shrink-0">
-                              CLIENT
-                            </span>
-                          )}
-                          {contact.tag === 'vip' && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 shrink-0">
-                              VIP
-                            </span>
-                          )}
-                        </div>
-                        <a
-                          href={`tel:${contact.telephone}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-xs text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-1"
-                        >
-                          <Phone className="w-3 h-3 shrink-0" />
-                          {contact.telephone}
-                        </a>
-                      </div>
-                    </div>
-                  </td>
+                  <Eye className="w-3.5 h-3.5" />
+                  Voir
+                </button>
+                {isAdmin && onEditContact && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onEditContact(contact.id)
+                    }}
+                    className="px-3 py-2 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 transition-all"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {isAdmin && onDeleteContact && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDeleteContact(contact.id)
+                    }}
+                    className="px-3 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-all"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )
+        })}
+      </div>
 
-                  {/* City */}
-                  <td className="px-4 py-3">
-                    {contact.ville ? (
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span className="text-sm text-slate-200">{contact.ville}</span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-500 text-sm">—</span>
-                    )}
-                  </td>
+      {/* Desktop Table View */}
+      <div className="hidden lg:block glass rounded-2xl border border-slate-600/30 overflow-hidden shadow-[0_18px_48px_-28px_rgba(59,130,246,0.25)]">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-600/20">
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contact</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ville</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Type de projet</th>
+                {!isArchitect && (
+                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Architecte</th>
+                )}
+                <th className="text-center px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Opportunités</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Dernière activité</th>
+                <th className="text-center px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-600/10">
+              {contacts.map((contact, index) => {
+                const opportunities = contact.opportunities || []
 
-                  {/* Type de projet */}
-                  <td className="px-4 py-3">
-                    {projectType ? (
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-700/40 border border-slate-600/40">
-                        {React.createElement(getProjectTypeIcon(projectType), {
-                          className: "w-3.5 h-3.5 text-slate-400 shrink-0"
-                        })}
-                        <span className="text-xs font-medium text-slate-200">
-                          {getProjectTypeLabel(projectType)}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-500 text-sm">—</span>
-                    )}
-                  </td>
+                const isWon = (o: Opportunity) =>
+                  o.statut === 'won' || o.pipelineStage === 'acompte_recu' || o.pipelineStage === 'gagnee'
 
-                  {/* Architect */}
-                  {!isArchitect && (
+                const isOpen = (o: Opportunity) =>
+                  o.statut === 'open' && !isWon(o)
+
+                const opportunityCounts = {
+                  open: opportunities.filter(isOpen).length,
+                  won: opportunities.filter(isWon).length,
+                  lost: opportunities.filter((o) => o.statut === 'lost' || o.pipelineStage === 'perdue').length,
+                  onHold: opportunities.filter((o) => o.statut === 'on_hold').length,
+                }
+                const projectType = getProjectType(opportunities)
+                const pipelineBadge = getPipelineBadge(contact)
+
+                return (
+                  <motion.tr
+                    key={contact.id}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.01, duration: 0.2 }}
+                    onClick={() => onRowClick(contact.id)}
+                    className="group cursor-pointer hover:bg-slate-800/50 transition-all duration-150 border-b border-slate-600/5 last:border-0"
+                  >
+                    {/* Contact Name + Tag + Phone */}
                     <td className="px-4 py-3">
-                      {contact.architecteAssigne ? (
-                        <span className="text-sm text-slate-200 truncate max-w-[140px] block">
-                          {architectNameMap[contact.architecteAssigne] || contact.architecteAssigne}
-                        </span>
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center shrink-0 font-bold text-primary text-sm border border-primary/30">
+                          {contact.nom.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <p className="font-semibold text-white text-sm truncate">{contact.nom}</p>
+                            {contact.tag === 'client' && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 shrink-0">
+                                CLIENT
+                              </span>
+                            )}
+                            {contact.tag === 'vip' && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 shrink-0">
+                                VIP
+                              </span>
+                            )}
+                          </div>
+                          <a
+                            href={`tel:${contact.telephone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-xs text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-1"
+                          >
+                            <Phone className="w-3 h-3 shrink-0" />
+                            {contact.telephone}
+                          </a>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* City */}
+                    <td className="px-4 py-3">
+                      {contact.ville ? (
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span className="text-sm text-slate-200">{contact.ville}</span>
+                        </div>
                       ) : (
                         <span className="text-slate-500 text-sm">—</span>
                       )}
                     </td>
-                  )}
 
-                  {/* Opportunities */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-1.5">
-                      {opportunities.length > 0 ? (
-                        <>
-                          <span className="text-sm font-semibold text-white">{opportunities.length}</span>
-                          {opportunityCounts.won > 0 && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-[10px] font-semibold">
-                              {opportunityCounts.won} Gagné{opportunityCounts.won > 1 ? 's' : ''}
-                            </span>
-                          )}
-                          {opportunityCounts.open > 0 && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[10px] font-semibold">
-                              {opportunityCounts.open} Ouvert{opportunityCounts.open > 1 ? 's' : ''}
-                            </span>
-                          )}
-                        </>
+                    {/* Type de projet */}
+                    <td className="px-4 py-3">
+                      {projectType ? (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-700/40 border border-slate-600/40">
+                          {React.createElement(getProjectTypeIcon(projectType), {
+                            className: "w-3.5 h-3.5 text-slate-400 shrink-0"
+                          })}
+                          <span className="text-xs font-medium text-slate-200">
+                            {getProjectTypeLabel(projectType)}
+                          </span>
+                        </div>
                       ) : (
-                        <span className="text-slate-500 text-sm">Aucune</span>
+                        <span className="text-slate-500 text-sm">—</span>
                       )}
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* Last Activity */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3 h-3 text-slate-500 shrink-0" />
-                      <span className="text-xs text-slate-400">
-                        {formatDistanceToNow(new Date(contact.updatedAt), {
-                          addSuffix: true,
-                          locale: fr,
-                        })}
-                      </span>
-                    </div>
-                  </td>
+                    {/* Architect */}
+                    {!isArchitect && (
+                      <td className="px-4 py-3">
+                        {contact.architecteAssigne ? (
+                          <span className="text-sm text-slate-200 truncate max-w-[140px] block">
+                            {architectNameMap[contact.architecteAssigne] || contact.architecteAssigne}
+                          </span>
+                        ) : (
+                          <span className="text-slate-500 text-sm">—</span>
+                        )}
+                      </td>
+                    )}
 
-                  {/* Actions */}
-                  <td className="px-4 py-3">
-                    <div className="flex justify-center items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {/* View */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onRowClick(contact.id)
-                        }}
-                        className="p-2 rounded-lg hover:bg-blue-500/20 hover:text-blue-400 text-slate-400 transition-all"
-                        title="Voir les détails"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                    {/* Opportunities */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {opportunities.length > 0 ? (
+                          <>
+                            <span className="text-sm font-semibold text-white">{opportunities.length}</span>
+                            {opportunityCounts.won > 0 && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-[10px] font-semibold">
+                                {opportunityCounts.won} Gagné{opportunityCounts.won > 1 ? 's' : ''}
+                              </span>
+                            )}
+                            {opportunityCounts.open > 0 && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[10px] font-semibold">
+                                {opportunityCounts.open} Ouvert{opportunityCounts.open > 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-slate-500 text-sm">Aucune</span>
+                        )}
+                      </div>
+                    </td>
 
-                      {/* Edit - Admin only */}
-                      {isAdmin && onEditContact && (
+                    {/* Last Activity */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3 h-3 text-slate-500 shrink-0" />
+                        <span className="text-xs text-slate-400">
+                          {formatDistanceToNow(new Date(contact.updatedAt), {
+                            addSuffix: true,
+                            locale: fr,
+                          })}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-3">
+                      <div className="flex justify-center items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* View */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            onEditContact(contact.id)
+                            onRowClick(contact.id)
                           }}
-                          className="p-1.5 rounded-md hover:bg-yellow-500/20 hover:text-yellow-400 text-slate-400 transition-colors"
-                          title="Modifier"
+                          className="p-2 rounded-lg hover:bg-blue-500/20 hover:text-blue-400 text-slate-400 transition-all"
+                          title="Voir les détails"
                         >
-                          <Edit2 className="w-3.5 h-3.5" />
+                          <Eye className="w-4 h-4" />
                         </button>
-                      )}
 
-                      {/* Delete - Admin only */}
-                      {isAdmin && onDeleteContact && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDeleteContact(contact.id)
-                          }}
-                          className="p-1.5 rounded-md hover:bg-red-500/20 hover:text-red-400 text-slate-400 transition-colors"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </motion.tr>
-              )
-            })}
-          </tbody>
-        </table>
+                        {/* Edit - Admin only */}
+                        {isAdmin && onEditContact && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onEditContact(contact.id)
+                            }}
+                            className="p-1.5 rounded-md hover:bg-yellow-500/20 hover:text-yellow-400 text-slate-400 transition-colors"
+                            title="Modifier"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {/* Delete - Admin only */}
+                        {isAdmin && onDeleteContact && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onDeleteContact(contact.id)
+                            }}
+                            className="p-1.5 rounded-md hover:bg-red-500/20 hover:text-red-400 text-slate-400 transition-colors"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </motion.tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

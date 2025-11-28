@@ -45,11 +45,11 @@ export default function ContactsPage() {
   const { user } = useAuth()
   const isAdmin = user?.role?.toLowerCase() === 'admin'
   const isArchitect = user?.role?.toLowerCase() === 'architect'
-  
+
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  
+
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string>('all') // 'all', 'prospect', 'client'
   const [selectedArchitect, setSelectedArchitect] = useState<string>('all')
@@ -57,16 +57,16 @@ export default function ContactsPage() {
   const [cityFilter, setCityFilter] = useState<string>('all')
   const [projectTypeFilter, setProjectTypeFilter] = useState<string>('all')
   const [pipelineFilter, setPipelineFilter] = useState<string>('all') // Admin only
-  
+
   // Architect data from API
-  const [allArchitects, setAllArchitects] = useState<Array<{id: string, name: string}>>([])
-  
+  const [allArchitects, setAllArchitects] = useState<Array<{ id: string, name: string }>>([])
+
   // Pagination
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const ITEMS_PER_PAGE = 20
-  
+
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
 
   // Fetch architects from API
@@ -99,7 +99,7 @@ export default function ContactsPage() {
     try {
       setLoading(true)
       const offset = (pageNum - 1) * ITEMS_PER_PAGE
-      
+
       const result = await ContactService.getContacts({
         search: searchQuery,
         architectId: selectedArchitect !== 'all' ? selectedArchitect : undefined,
@@ -109,12 +109,12 @@ export default function ContactsPage() {
 
       // Apply client-side filters
       let filtered = result.data
-      
+
       // Filter by status (workflow stage)
       if (statusFilter !== 'all') {
         filtered = filtered.filter(c => c.status === statusFilter)
       }
-      
+
       // Filter by opportunities
       if (hasOpportunitiesFilter !== 'all') {
         filtered = filtered.filter(c => {
@@ -122,14 +122,14 @@ export default function ContactsPage() {
           return hasOpportunitiesFilter === 'has' ? hasOpps : !hasOpps
         })
       }
-      
+
       // Filter by city
       if (cityFilter !== 'all') {
-        filtered = filtered.filter(c => 
+        filtered = filtered.filter(c =>
           c.ville?.toLowerCase() === cityFilter.toLowerCase()
         )
       }
-      
+
       // Filter by project type
       if (projectTypeFilter !== 'all') {
         filtered = filtered.filter(c => {
@@ -137,7 +137,7 @@ export default function ContactsPage() {
           return opportunities.some((opp: any) => opp.type === projectTypeFilter)
         })
       }
-      
+
       // Filter by tag (Admin only)
       if (isAdmin && pipelineFilter !== 'all') {
         filtered = filtered.filter(c => c.tag === pipelineFilter)
@@ -166,7 +166,7 @@ export default function ContactsPage() {
 
   const handleDeleteContact = async (contactId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce contact ?')) return
-    
+
     try {
       const response = await fetch(`/api/contacts/${contactId}`, {
         method: 'DELETE',
@@ -210,47 +210,47 @@ export default function ContactsPage() {
     <AuthGuard>
       <div className="flex min-h-screen bg-[rgb(11,14,24)]">
         <Sidebar />
-        <main className="flex-1 flex flex-col overflow-x-hidden bg-linear-to-b from-[rgb(17,21,33)] via-[rgb(11,14,24)] to-[rgb(7,9,17)]">
+        <main className="flex-1 flex flex-col overflow-x-hidden bg-linear-to-b from-[rgb(17,21,33)] via-[rgb(11,14,24)] to-[rgb(7,9,17)] w-full">
           <Header />
 
           {/* Page Title - Show "Mes Contacts Assignés" for Architects */}
           {isArchitect && (
-            <div className="px-6 pt-6 pb-2">
+            <div className="px-4 md:px-6 pt-4 md:pt-6 pb-2">
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3"
+                className="flex items-center gap-2 md:gap-3"
               >
-                <Briefcase className="w-6 h-6 text-primary" />
-                <h1 className="text-2xl font-bold text-white">Mes Contacts Assignés</h1>
-                <span className="text-sm text-slate-400 ml-2">({total} contact{total !== 1 ? 's' : ''})</span>
+                <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                <h1 className="text-xl md:text-2xl font-bold text-white">Mes Contacts Assignés</h1>
+                <span className="text-xs md:text-sm text-slate-400 ml-1 md:ml-2">({total} contact{total !== 1 ? 's' : ''})</span>
               </motion.div>
-              <p className="text-sm text-slate-400 mt-2 ml-9">
+              <p className="text-xs md:text-sm text-slate-400 mt-2 ml-7 md:ml-9">
                 Tous les contacts qui vous ont été assignés
               </p>
             </div>
           )}
 
           {/* Stats Cards - ONLY 3 ESSENTIAL CARDS */}
-          <div className="px-6 pt-6 pb-2">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="px-4 md:px-6 pt-4 md:pt-6 pb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {/* Total Contacts */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass relative overflow-hidden rounded-xl px-4 py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(59,130,246,0.6)]"
+                className="glass relative overflow-hidden rounded-lg md:rounded-xl px-3 md:px-4 py-3 md:py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(59,130,246,0.6)]"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
                     {loading ? (
-                      <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-blue-400 animate-spin" />
                     ) : (
-                      <Users className="w-5 h-5 text-blue-400" />
+                      <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-slate-400 font-medium">Total Contacts</p>
-                    <p className="text-2xl font-bold text-white">{loading ? '...' : total}</p>
+                    <p className="text-[10px] md:text-xs text-slate-400 font-medium">Total Contacts</p>
+                    <p className="text-xl md:text-2xl font-bold text-white">{loading ? '...' : total}</p>
                   </div>
                 </div>
               </motion.div>
@@ -260,19 +260,19 @@ export default function ContactsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="glass relative overflow-hidden rounded-xl px-4 py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(249,115,22,0.55)]"
+                className="glass relative overflow-hidden rounded-lg md:rounded-xl px-3 md:px-4 py-3 md:py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(249,115,22,0.55)]"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
                     {loading ? (
-                      <Loader2 className="w-5 h-5 text-orange-400 animate-spin" />
+                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-orange-400 animate-spin" />
                     ) : (
-                      <Briefcase className="w-5 h-5 text-orange-400" />
+                      <Briefcase className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-slate-400 font-medium">Avec Opportunités</p>
-                    <p className="text-2xl font-bold text-white">{loading ? '...' : contactsWithOpportunities}</p>
+                    <p className="text-[10px] md:text-xs text-slate-400 font-medium">Avec Opportunités</p>
+                    <p className="text-xl md:text-2xl font-bold text-white">{loading ? '...' : contactsWithOpportunities}</p>
                   </div>
                 </div>
               </motion.div>
@@ -282,19 +282,19 @@ export default function ContactsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="glass relative overflow-hidden rounded-xl px-4 py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(34,197,94,0.55)]"
+                className="glass relative overflow-hidden rounded-lg md:rounded-xl px-3 md:px-4 py-3 md:py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(34,197,94,0.55)] sm:col-span-2 lg:col-span-1"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
                     {loading ? (
-                      <Loader2 className="w-5 h-5 text-green-400 animate-spin" />
+                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-green-400 animate-spin" />
                     ) : (
-                      <UserCheck className="w-5 h-5 text-green-400" />
+                      <UserCheck className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-slate-400 font-medium">Clients</p>
-                    <p className="text-2xl font-bold text-white">{loading ? '...' : clientsCount}</p>
+                    <p className="text-[10px] md:text-xs text-slate-400 font-medium">Clients</p>
+                    <p className="text-xl md:text-2xl font-bold text-white">{loading ? '...' : clientsCount}</p>
                   </div>
                 </div>
               </motion.div>
@@ -302,8 +302,8 @@ export default function ContactsPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="px-6 pb-4">
-            <div className="space-y-4">
+          <div className="px-4 md:px-6 pb-3 md:pb-4 mb-6 md:mb-8">
+            <div className="space-y-3 md:space-y-4">
               {/* Search Bar */}
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                 <div className="flex-1 min-w-[220px]">
@@ -311,7 +311,7 @@ export default function ContactsPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <Input
                       placeholder="Rechercher par nom, téléphone, email..."
-                      className="pl-10 border-slate-600/30 bg-slate-800/50 text-white placeholder:text-slate-500"
+                      className="pl-10 h-10 md:h-11 text-sm border-slate-600/30 bg-slate-800/50 text-white placeholder:text-slate-500"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -320,27 +320,27 @@ export default function ContactsPage() {
               </div>
 
               {/* Filters Section - Minimal & Clean */}
-              <div className="glass rounded-xl border border-slate-600/30 shadow-[0_18px_48px_-28px_rgba(59,130,246,0.65)]">
-                <div className="flex items-center justify-between p-3 gap-3">
+              <div className="glass rounded-lg md:rounded-xl border border-slate-600/30 shadow-[0_18px_48px_-28px_rgba(59,130,246,0.65)]">
+                <div className="flex items-center justify-between p-2.5 md:p-3 gap-2 md:gap-3">
                   <div
-                    className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1"
+                    className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1"
                     onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                   >
-                    <Filter className="w-5 h-5 text-primary" />
-                    <span className="font-medium text-white">Filtres</span>
+                    <Filter className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                    <span className="text-sm md:text-base font-medium text-white">Filtres</span>
                     {hasActiveFilters && (
-                      <span className="bg-primary/20 text-primary px-2 py-1 rounded-full text-xs font-medium">
-                        {(statusFilter !== 'all' ? 1 : 0) + 
-                         (selectedArchitect !== 'all' ? 1 : 0) + 
-                         (hasOpportunitiesFilter !== 'all' ? 1 : 0) + 
-                         (cityFilter !== 'all' ? 1 : 0) + 
-                         (projectTypeFilter !== 'all' ? 1 : 0) + 
-                         (pipelineFilter !== 'all' ? 1 : 0)} actif{((statusFilter !== 'all' ? 1 : 0) + (selectedArchitect !== 'all' ? 1 : 0) + (hasOpportunitiesFilter !== 'all' ? 1 : 0) + (cityFilter !== 'all' ? 1 : 0) + (projectTypeFilter !== 'all' ? 1 : 0) + (pipelineFilter !== 'all' ? 1 : 0)) > 1 ? 's' : ''}
+                      <span className="bg-primary/20 text-primary px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium">
+                        {(statusFilter !== 'all' ? 1 : 0) +
+                          (selectedArchitect !== 'all' ? 1 : 0) +
+                          (hasOpportunitiesFilter !== 'all' ? 1 : 0) +
+                          (cityFilter !== 'all' ? 1 : 0) +
+                          (projectTypeFilter !== 'all' ? 1 : 0) +
+                          (pipelineFilter !== 'all' ? 1 : 0)} actif{((statusFilter !== 'all' ? 1 : 0) + (selectedArchitect !== 'all' ? 1 : 0) + (hasOpportunitiesFilter !== 'all' ? 1 : 0) + (cityFilter !== 'all' ? 1 : 0) + (projectTypeFilter !== 'all' ? 1 : 0) + (pipelineFilter !== 'all' ? 1 : 0)) > 1 ? 's' : ''}
                       </span>
                     )}
                     <ChevronDown
                       className={cn(
-                        "w-4 h-4 text-white transition-transform ml-auto",
+                        "w-3.5 h-3.5 md:w-4 md:h-4 text-white transition-transform ml-auto",
                         isFiltersOpen && "rotate-180"
                       )}
                     />
@@ -357,22 +357,22 @@ export default function ContactsPage() {
                         setProjectTypeFilter('all')
                         setPipelineFilter('all')
                       }}
-                      className="text-xs text-muted-foreground hover:text-white flex items-center gap-1.5 transition-colors px-2 py-1 rounded hover:bg-slate-700/50"
+                      className="text-[10px] md:text-xs text-muted-foreground hover:text-white flex items-center gap-1 md:gap-1.5 transition-colors px-1.5 md:px-2 py-1 rounded hover:bg-slate-700/50"
                     >
-                      <X className="w-3.5 h-3.5" />
-                      Réinitialiser
+                      <X className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                      <span className="hidden sm:inline">Réinitialiser</span>
                     </button>
                   )}
                 </div>
 
                 {isFiltersOpen && (
-                  <div className="border-t border-slate-600/30 px-4 py-4 bg-slate-900/40">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="border-t border-slate-600/30 px-3 md:px-4 py-3 md:py-4 bg-slate-900/40">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                       {/* Status Filter (Workflow Stage) */}
                       <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Statut</label>
+                        <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wider">Statut</label>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
-                          <SelectTrigger className="h-10 w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                          <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-800 border-slate-600">
@@ -387,12 +387,12 @@ export default function ContactsPage() {
 
                       {/* City Filter */}
                       <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 md:gap-2">
                           <MapPin className="w-3.5 h-3.5" />
                           Ville
                         </label>
                         <Select value={cityFilter} onValueChange={setCityFilter}>
-                          <SelectTrigger className="h-10 w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                          <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-800 border-slate-600 max-h-72">
@@ -408,12 +408,12 @@ export default function ContactsPage() {
 
                       {/* Type de Projet Filter */}
                       <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 md:gap-2">
                           <Home className="w-3.5 h-3.5" />
                           Type de projet
                         </label>
                         <Select value={projectTypeFilter} onValueChange={setProjectTypeFilter}>
-                          <SelectTrigger className="h-10 w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                          <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-800 border-slate-600">
@@ -432,12 +432,12 @@ export default function ContactsPage() {
 
                       {/* Opportunities Filter */}
                       <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 md:gap-2">
                           <Briefcase className="w-3.5 h-3.5" />
                           Opportunités
                         </label>
                         <Select value={hasOpportunitiesFilter} onValueChange={setHasOpportunitiesFilter}>
-                          <SelectTrigger className="h-10 w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                          <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-800 border-slate-600">
@@ -451,12 +451,12 @@ export default function ContactsPage() {
                       {/* Architect Filter - Show for all roles */}
                       {allArchitects.length > 0 && (
                         <div className="space-y-2">
-                          <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                          <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 md:gap-2">
                             <UserCircle className="w-3.5 h-3.5" />
                             Architecte assigné
                           </label>
                           <Select value={selectedArchitect} onValueChange={setSelectedArchitect}>
-                            <SelectTrigger className="h-10 w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                            <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-slate-800 border-slate-600 max-h-72">
@@ -476,7 +476,7 @@ export default function ContactsPage() {
                         <div className="space-y-2">
                           <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Tag</label>
                           <Select value={pipelineFilter} onValueChange={setPipelineFilter}>
-                            <SelectTrigger className="h-10 w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                            <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-slate-800 border-slate-600">
@@ -498,7 +498,7 @@ export default function ContactsPage() {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 overflow-auto px-6 pb-6">
+          <div className="flex-1 overflow-auto px-4 md:px-6 pb-4 md:pb-6 mt-2">
             <ContactsTable
               contacts={contacts}
               onRowClick={handleContactClick}
@@ -509,27 +509,27 @@ export default function ContactsPage() {
 
             {/* Pagination */}
             {!loading && contacts.length > 0 && (
-              <div className="flex justify-between items-center mt-6">
-                <div className="text-sm text-slate-400">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4 md:mt-6">
+                <div className="text-xs md:text-sm text-slate-400">
                   Page {page} • {contacts.length} contact{contacts.length > 1 ? 's' : ''} affiché{contacts.length > 1 ? 's' : ''}
                 </div>
-                
+
                 <div className="flex gap-2">
                   {page > 1 && (
                     <Button
                       variant="outline"
                       onClick={() => loadContacts(page - 1)}
-                      className="gap-2 border-slate-600/30 text-slate-300 hover:text-white hover:bg-slate-700/50"
+                      className="gap-1 md:gap-2 text-xs md:text-sm h-8 md:h-10 px-3 md:px-4 border-slate-600/30 text-slate-300 hover:text-white hover:bg-slate-700/50"
                     >
                       ← Précédent
                     </Button>
                   )}
-                  
+
                   {hasMore && (
                     <Button
                       variant="outline"
                       onClick={() => loadContacts(page + 1)}
-                      className="gap-2 border-slate-600/30 text-slate-300 hover:text-white hover:bg-slate-700/50"
+                      className="gap-1 md:gap-2 text-xs md:text-sm h-8 md:h-10 px-3 md:px-4 border-slate-600/30 text-slate-300 hover:text-white hover:bg-slate-700/50"
                     >
                       Suivant →
                     </Button>

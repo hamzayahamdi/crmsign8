@@ -134,17 +134,17 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
   const getSortIcon = (field: SortField) => {
     const isActive = sortField === field
     const isHovered = hoveredColumn === field
-    
+
     if (!isActive && !isHovered) {
       return <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-30 transition-opacity" />
     }
-    
+
     if (isActive) {
-      return sortOrder === 'asc' ? 
-        <ArrowUp className="w-3 h-3 text-[#3B82F6]" /> : 
+      return sortOrder === 'asc' ?
+        <ArrowUp className="w-3 h-3 text-[#3B82F6]" /> :
         <ArrowDown className="w-3 h-3 text-[#3B82F6]" />
     }
-    
+
     return <ArrowUpDown className="w-3 h-3 opacity-30" />
   }
 
@@ -168,9 +168,9 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
 
   // Handle undefined or null leads
   const safeLeads = leads || []
-  
+
   const filteredLeads = safeLeads.filter(lead => passesSearch(lead) && passesFilters(lead))
-  
+
   // Debug logging
   console.log(`[LeadsTable] Total leads received: ${safeLeads.length}`)
   console.log(`[LeadsTable] After filtering: ${filteredLeads.length}`)
@@ -208,7 +208,7 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
     sortedLeads.forEach(lead => {
       // Create a unique key for each campaign
       const key = `${lead.source}-${lead.uploadedAt || 'unknown'}-${lead.campaignName || ''}`
-      
+
       if (!groupMap.has(key)) {
         const group: CampaignGroup = {
           source: lead.source,
@@ -219,7 +219,7 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
         groupMap.set(key, group)
         groups.push(group)
       }
-      
+
       groupMap.get(key)!.leads.push(lead)
     })
 
@@ -234,20 +234,20 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
-    
+
     // Reset time to midnight for accurate day comparison
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const compareDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-    
+
     const diffTime = today.getTime() - compareDate.getTime()
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    
+
     // Show relative time for recent dates
     if (diffDays === 0) return "Aujourd'hui"
     if (diffDays === 1) return "Hier"
     if (diffDays > 0 && diffDays < 7) return `Il y a ${diffDays}j`
     if (diffDays < 0 && diffDays > -2) return "Aujourd'hui" // Handle timezone edge cases
-    
+
     // Otherwise show formatted date
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',
@@ -260,7 +260,7 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
     const sourceInfo = sourceIcons[lead.source as keyof typeof sourceIcons] || sourceIcons.autre
     const Icon = sourceInfo.icon
     const isRecent = isRecentCampaign(lead.uploadedAt)
-    
+
     // Special handling for Magasin source
     if (lead.source === 'magasin' && lead.magasin) {
       return (
@@ -283,7 +283,7 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
         </div>
       )
     }
-    
+
     // For all other sources (TikTok, Facebook, etc.)
     return (
       <div className="flex flex-col gap-1">
@@ -293,7 +293,7 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
           <span className="text-sm font-medium text-[#E5E7EB]">
             {sourceInfo.label}
           </span>
-          
+
           {/* Dot separator and date on same line */}
           {lead.uploadedAt && (
             <>
@@ -303,14 +303,14 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
               </span>
             </>
           )}
-          
+
           {/* Freshness indicator */}
           <span className={cn(
             "w-1.5 h-1.5 rounded-full flex-shrink-0",
             isRecent ? "bg-green-400" : "bg-gray-500"
           )} />
         </div>
-        
+
         {/* Campaign name on separate line (if exists) */}
         {lead.campaignName && (
           <div className="text-[10px] font-medium text-fuchsia-400/90 truncate max-w-[200px] pl-5">
@@ -343,287 +343,376 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
           </div>
         </div>
 
-      {/* Table - Fixed height container to prevent flickering */}
-      <div 
-        className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[400px] scroll-smooth" 
-        style={{ 
-          willChange: 'scroll-position',
-          scrollbarGutter: 'stable'
-        }}
-      >
-        <table className="w-full table-fixed">
-          <colgroup><col className="w-[18%]" /><col className="w-[10%]" /><col className="w-[12%]" /><col className="w-[16%]" /><col className="w-[12%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[12%]" /></colgroup>
-          <thead className="bg-slate-800/20 border-b border-[#1F2937] sticky top-0 z-10 backdrop-blur-sm">
-            <tr>
-              <th 
-                className="px-6 py-4 text-left group"
-                onMouseEnter={() => setHoveredColumn('nom')}
-                onMouseLeave={() => setHoveredColumn(null)}
-              >
-                <button
-                  onClick={() => handleSort('nom')}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-[#9CA3AF] hover:text-[#3B82F6] transition-colors"
+        {/* Mobile Card View */}
+        <div className="lg:hidden space-y-4 px-4 pb-20 mt-4">
+          <AnimatePresence mode="popLayout">
+            {sortedLeads.map((lead) => {
+              const statusInfo = statusConfig[lead.statut]
+              const isNewlyAdded = lead.id === newlyAddedLeadId
+
+              return (
+                <motion.div
+                  key={lead.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  onClick={() => {
+                    setActionDialogLead(lead)
+                    setActionDialogOpen(true)
+                  }}
+                  className={cn(
+                    "bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 space-y-3 active:scale-[0.98] transition-all",
+                    isNewlyAdded && "ring-2 ring-primary/50 bg-primary/5"
+                  )}
                 >
-                  <span>Contact</span>
-                  {getSortIcon('nom')}
-                </button>
-              </th>
-              <th 
-                className="px-4 py-4 text-left group"
-                onMouseEnter={() => setHoveredColumn('ville')}
-                onMouseLeave={() => setHoveredColumn(null)}
-              >
-                <button
-                  onClick={() => handleSort('ville')}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-[#9CA3AF] hover:text-[#3B82F6] transition-colors"
-                >
-                  <span>Ville</span>
-                  {getSortIcon('ville')}
-                </button>
-              </th>
-              <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
-                Bien
-              </th>
-              <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
-                Source
-              </th>
-              <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
-                Assigné à
-              </th>
-              <th 
-                className="px-4 py-4 text-left group"
-                onMouseEnter={() => setHoveredColumn('statut')}
-                onMouseLeave={() => setHoveredColumn(null)}
-              >
-                <button
-                  onClick={() => handleSort('statut')}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-[#9CA3AF] hover:text-[#3B82F6] transition-colors"
-                >
-                  <span>Statut</span>
-                  {getSortIcon('statut')}
-                </button>
-              </th>
-              <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
-                Durée en lead
-              </th>
-              <th className="px-4 py-4 text-right text-xs font-semibold text-[#9CA3AF]">
-                {/* Actions - no text, just icons */}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#1F2937]">
-            <AnimatePresence mode="popLayout">
-              {sortedLeads.map((lead) => {
-                    const statusInfo = statusConfig[lead.statut]
-                    const isNewlyAdded = lead.id === newlyAddedLeadId
-                    return (
-                      <motion.tr 
-                    key={lead.id}
-                    layout
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ 
-                      opacity: 0, 
-                      x: 100,
-                      height: 0,
-                      transition: { 
-                        duration: 0.4,
-                        ease: "easeInOut"
-                      }
-                    }}
-                    transition={{ 
-                      duration: 0.3,
-                      ease: "easeOut"
-                    }}
-                    onClick={() => {
-                      setActionDialogLead(lead)
-                      setActionDialogOpen(true)
-                    }}
-                    className={cn(
-                      "transition-all duration-200 group cursor-pointer",
-                      "hover:bg-[rgba(255,255,255,0.03)]",
-                      isNewlyAdded && "bg-primary/10 ring-2 ring-primary/50"
-                    )}  
-                  >
-                  {/* Contact (Nom & Téléphone) */}
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-sm font-semibold text-[#E5E7EB] truncate">{lead.nom}</p>
-                      <div className="flex items-center gap-1.5 text-[#9CA3AF]">
-                        <Phone className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="text-xs truncate">{lead.telephone}</span>
+                  {/* Header: Name, Status, Date */}
+                  <div className="flex justify-between items-start gap-3">
+                    <div>
+                      <h4 className="font-semibold text-white text-base">{lead.nom}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge className={cn("border text-[10px] px-1.5 py-0.5 h-5", statusInfo.color)}>
+                          {statusInfo.icon} {statusInfo.label}
+                        </Badge>
+                        <span className="text-xs text-slate-500">{formatDate(lead.createdAt)}</span>
                       </div>
                     </div>
-                  </td>
-
-                  {/* Ville */}
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-[#9CA3AF] flex-shrink-0" />
-                      <span className="text-sm text-[#E5E7EB] truncate">{lead.ville}</span>
+                    {/* Actions (Edit/Delete) */}
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (onEditLead) onEditLead(lead)
+                          else onLeadClick(lead)
+                        }}
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
                     </div>
-                  </td>
+                  </div>
 
-                  {/* Type de bien */}
-                  <td className="px-4 py-4">
-                    <span className="text-sm text-[#E5E7EB] truncate">{lead.typeBien}</span>
-                  </td>
-
-                  {/* Source */}
-                  <td className="px-4 py-4">
-                    {getSourceDisplay(lead)}
-                  </td>
-
-                  {/* Assigné à */}
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-[#9CA3AF] flex-shrink-0" />
-                      <span className="text-sm text-[#E5E7EB] font-medium truncate">{lead.assignePar}</span>
+                  {/* Details Grid */}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-2 text-slate-300">
+                      <Phone className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="truncate">{lead.telephone}</span>
                     </div>
-                  </td>
+                    <div className="flex items-center gap-2 text-slate-300">
+                      <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="truncate">{lead.ville}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-300">
+                      <Store className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="truncate">{lead.typeBien}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-300">
+                      <User className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="truncate">{lead.assignePar}</span>
+                    </div>
+                  </div>
 
-                  {/* Statut */}
-                  <td className="px-4 py-4">
-                    <Badge className={cn("border text-xs font-medium px-2.5 py-1 whitespace-nowrap", statusInfo.color)}>
-                      {statusInfo.icon} {statusInfo.label}
-                    </Badge>
-                  </td>
+                  {/* Source & Campaign */}
+                  <div className="pt-3 border-t border-slate-700/50 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {getSourceDisplay(lead)}
+                    </div>
+                  </div>
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
 
-                  {/* Durée en lead */}
-                  <td className="px-4 py-4">
-                    {(() => {
-                      const duration = getLeadDuration(lead.createdAt, lead.convertedAt)
-                      const icon = getLeadDurationIcon(duration.days, duration.isActive)
-                      
-                      return (
-                        <div 
-                          className="flex items-center gap-1.5"
-                          title={duration.isActive ? `Lead actif depuis ${duration.days} jour(s)` : `Converti/Refusé après ${duration.days} jour(s)`}
-                        >
-                          <span className="text-[10px] leading-none">{icon}</span>
-                          <span className="text-xs text-slate-400 font-normal whitespace-nowrap">
-                            {duration.label}
-                          </span>
-                        </div>
-                      )
-                    })()}
-                  </td>
+          {sortedLeads.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-slate-400">Aucun lead trouvé</p>
+            </div>
+          )}
+        </div>
 
-                  {/* Actions */}
-                  <td className="px-4 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {onViewHistory && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  onViewHistory(lead)
-                                }}
-                                className="h-8 w-8 p-0 hover:bg-primary/10 transition-all text-[#9CA3AF] hover:text-[#3B82F6]"
-                              >
-                                <MessageSquarePlus className="w-4 h-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">Notes & Historique</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+        {/* Desktop Table View - Fixed height container to prevent flickering */}
+        <div
+          className="hidden lg:block overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[400px] scroll-smooth"
+          style={{
+            willChange: 'scroll-position',
+            scrollbarGutter: 'stable'
+          }}
+        >
+          <table className="w-full table-fixed">
+            <colgroup><col className="w-[18%]" /><col className="w-[10%]" /><col className="w-[12%]" /><col className="w-[16%]" /><col className="w-[12%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[12%]" /></colgroup>
+            <thead className="bg-slate-800/20 border-b border-[#1F2937] sticky top-0 z-10 backdrop-blur-sm">
+              <tr>
+                <th
+                  className="px-6 py-4 text-left group"
+                  onMouseEnter={() => setHoveredColumn('nom')}
+                  onMouseLeave={() => setHoveredColumn(null)}
+                >
+                  <button
+                    onClick={() => handleSort('nom')}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[#9CA3AF] hover:text-[#3B82F6] transition-colors"
+                  >
+                    <span>Contact</span>
+                    {getSortIcon('nom')}
+                  </button>
+                </th>
+                <th
+                  className="px-4 py-4 text-left group"
+                  onMouseEnter={() => setHoveredColumn('ville')}
+                  onMouseLeave={() => setHoveredColumn(null)}
+                >
+                  <button
+                    onClick={() => handleSort('ville')}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[#9CA3AF] hover:text-[#3B82F6] transition-colors"
+                  >
+                    <span>Ville</span>
+                    {getSortIcon('ville')}
+                  </button>
+                </th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
+                  Bien
+                </th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
+                  Source
+                </th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
+                  Assigné à
+                </th>
+                <th
+                  className="px-4 py-4 text-left group"
+                  onMouseEnter={() => setHoveredColumn('statut')}
+                  onMouseLeave={() => setHoveredColumn(null)}
+                >
+                  <button
+                    onClick={() => handleSort('statut')}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[#9CA3AF] hover:text-[#3B82F6] transition-colors"
+                  >
+                    <span>Statut</span>
+                    {getSortIcon('statut')}
+                  </button>
+                </th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
+                  Durée en lead
+                </th>
+                <th className="px-4 py-4 text-right text-xs font-semibold text-[#9CA3AF]">
+                  {/* Actions - no text, just icons */}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#1F2937]">
+              <AnimatePresence mode="popLayout">
+                {sortedLeads.map((lead) => {
+                  const statusInfo = statusConfig[lead.statut]
+                  const isNewlyAdded = lead.id === newlyAddedLeadId
+                  return (
+                    <motion.tr
+                      key={lead.id}
+                      layout
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{
+                        opacity: 0,
+                        x: 100,
+                        height: 0,
+                        transition: {
+                          duration: 0.4,
+                          ease: "easeInOut"
+                        }
+                      }}
+                      transition={{
+                        duration: 0.3,
+                        ease: "easeOut"
+                      }}
+                      onClick={() => {
+                        setActionDialogLead(lead)
+                        setActionDialogOpen(true)
+                      }}
+                      className={cn(
+                        "transition-all duration-200 group cursor-pointer",
+                        "hover:bg-[rgba(255,255,255,0.03)]",
+                        isNewlyAdded && "bg-primary/10 ring-2 ring-primary/50"
                       )}
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                // Use onEditLead if provided (always opens modal), otherwise use onLeadClick
-                                if (onEditLead) {
-                                  onEditLead(lead)
-                                } else {
-                                  onLeadClick(lead)
-                                }
-                              }}
-                              className="h-8 w-8 p-0 hover:bg-slate-600/30 transition-all text-[#9CA3AF] hover:text-[#E5E7EB]"
+                    >
+                      {/* Contact (Nom & Téléphone) */}
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <p className="text-sm font-semibold text-[#E5E7EB] truncate">{lead.nom}</p>
+                          <div className="flex items-center gap-1.5 text-[#9CA3AF]">
+                            <Phone className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="text-xs truncate">{lead.telephone}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Ville */}
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-4 h-4 text-[#9CA3AF] flex-shrink-0" />
+                          <span className="text-sm text-[#E5E7EB] truncate">{lead.ville}</span>
+                        </div>
+                      </td>
+
+                      {/* Type de bien */}
+                      <td className="px-4 py-4">
+                        <span className="text-sm text-[#E5E7EB] truncate">{lead.typeBien}</span>
+                      </td>
+
+                      {/* Source */}
+                      <td className="px-4 py-4">
+                        {getSourceDisplay(lead)}
+                      </td>
+
+                      {/* Assigné à */}
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-[#9CA3AF] flex-shrink-0" />
+                          <span className="text-sm text-[#E5E7EB] font-medium truncate">{lead.assignePar}</span>
+                        </div>
+                      </td>
+
+                      {/* Statut */}
+                      <td className="px-4 py-4">
+                        <Badge className={cn("border text-xs font-medium px-2.5 py-1 whitespace-nowrap", statusInfo.color)}>
+                          {statusInfo.icon} {statusInfo.label}
+                        </Badge>
+                      </td>
+
+                      {/* Durée en lead */}
+                      <td className="px-4 py-4">
+                        {(() => {
+                          const duration = getLeadDuration(lead.createdAt, lead.convertedAt)
+                          const icon = getLeadDurationIcon(duration.days, duration.isActive)
+
+                          return (
+                            <div
+                              className="flex items-center gap-1.5"
+                              title={duration.isActive ? `Lead actif depuis ${duration.days} jour(s)` : `Converti/Refusé après ${duration.days} jour(s)`}
                             >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top">Modifier</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <AlertDialog>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <AlertDialogTrigger asChild>
+                              <span className="text-[10px] leading-none">{icon}</span>
+                              <span className="text-xs text-slate-400 font-normal whitespace-nowrap">
+                                {duration.label}
+                              </span>
+                            </div>
+                          )
+                        })()}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {onViewHistory && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      onViewHistory(lead)
+                                    }}
+                                    className="h-8 w-8 p-0 hover:bg-primary/10 transition-all text-[#9CA3AF] hover:text-[#3B82F6]"
+                                  >
+                                    <MessageSquarePlus className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">Notes & Historique</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="h-8 w-8 p-0 hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-all"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    // Use onEditLead if provided (always opens modal), otherwise use onLeadClick
+                                    if (onEditLead) {
+                                      onEditLead(lead)
+                                    } else {
+                                      onLeadClick(lead)
+                                    }
+                                  }}
+                                  className="h-8 w-8 p-0 hover:bg-slate-600/30 transition-all text-[#9CA3AF] hover:text-[#E5E7EB]"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Edit className="w-4 h-4" />
                                 </Button>
-                              </AlertDialogTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">Supprimer</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Supprimer ce lead ?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Cette action est irréversible. Le lead sera définitivement supprimé de la base de données.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction
-                              className="bg-red-600 hover:bg-red-700 text-white"
-                              onClick={() => onDeleteLead(lead.id)}
-                            >
-                              Supprimer
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </td>
-                </motion.tr>
-                    )
-              })}
-            </AnimatePresence>
-          </tbody>
-        </table>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">Modifier</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <AlertDialog>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="h-8 w-8 p-0 hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-all"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">Supprimer</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Supprimer ce lead ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Cette action est irréversible. Le lead sera définitivement supprimé de la base de données.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                  onClick={() => onDeleteLead(lead.id)}
+                                >
+                                  Supprimer
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  )
+                })}
+              </AnimatePresence>
+            </tbody>
+          </table>
 
-        {sortedLeads.length === 0 && (
-          <div className="text-center py-12">
-            {isLoading ? (
-              <div className="glass rounded-lg p-8 max-w-md mx-auto">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full border-4 border-slate-700"></div>
-                    <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin absolute top-0 left-0"></div>
+          {sortedLeads.length === 0 && (
+            <div className="text-center py-12">
+              {isLoading ? (
+                <div className="glass rounded-lg p-8 max-w-md mx-auto">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full border-4 border-slate-700"></div>
+                      <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin absolute top-0 left-0"></div>
+                    </div>
+                    <p className="text-white font-medium">Chargement des leads...</p>
+                    <p className="text-sm text-muted-foreground">Veuillez patienter</p>
                   </div>
-                  <p className="text-white font-medium">Chargement des leads...</p>
-                  <p className="text-sm text-muted-foreground">Veuillez patienter</p>
                 </div>
-              </div>
-            ) : (
-              <div className="p-8">
-                <p className="text-slate-400">Aucun lead trouvé</p>
-                <p className="text-sm text-slate-500 mt-1">
-                  Essayez de modifier vos filtres ou votre recherche
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              ) : (
+                <div className="p-8">
+                  <p className="text-slate-400">Aucun lead trouvé</p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Essayez de modifier vos filtres ou votre recherche
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Lead Action Dialog */}

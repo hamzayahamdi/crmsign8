@@ -331,28 +331,28 @@ export default function ClientsPage() {
     <AuthGuard>
       <div className="flex min-h-screen bg-[rgb(11,14,24)]">
         <Sidebar />
-        <main className="flex-1 flex flex-col overflow-x-hidden bg-linear-to-b from-[rgb(17,21,33)] via-[rgb(11,14,24)] to-[rgb(7,9,17)]">
+        <main className="flex-1 flex flex-col overflow-x-hidden bg-linear-to-b from-[rgb(17,21,33)] via-[rgb(11,14,24)] to-[rgb(7,9,17)] w-full">
           <Header />
 
           {/* Stats Cards */}
-          <div className="px-6 pt-6 pb-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="px-4 md:px-6 pt-4 md:pt-6 pb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass relative overflow-hidden rounded-xl px-4 py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(59,130,246,0.6)]"
+                className="glass relative overflow-hidden rounded-lg md:rounded-xl px-3 md:px-4 py-3 md:py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(59,130,246,0.6)]"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
                     {isLoading ? (
-                      <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-blue-400 animate-spin" />
                     ) : (
-                      <Users className="w-4 h-4 text-blue-400" />
+                      <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-slate-400">Clients</p>
-                    <p className="text-xl font-bold text-white">{isLoading ? '...' : clients.length}</p>
+                    <p className="text-[10px] md:text-xs text-slate-400 font-medium">Clients</p>
+                    <p className="text-xl md:text-2xl font-bold text-white">{isLoading ? '...' : clients.length}</p>
                   </div>
                 </div>
               </motion.div>
@@ -361,19 +361,19 @@ export default function ClientsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="glass relative overflow-hidden rounded-xl px-4 py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(249,115,22,0.55)]"
+                className="glass relative overflow-hidden rounded-lg md:rounded-xl px-3 md:px-4 py-3 md:py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(249,115,22,0.55)]"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
                     {isLoading ? (
-                      <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
+                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-orange-400 animate-spin" />
                     ) : (
-                      <TrendingUp className="w-4 h-4 text-orange-400" />
+                      <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-slate-400">Actifs</p>
-                    <p className="text-xl font-bold text-white">{isLoading ? '...' : activeProjects}</p>
+                    <p className="text-[10px] md:text-xs text-slate-400 font-medium">Actifs</p>
+                    <p className="text-xl md:text-2xl font-bold text-white">{isLoading ? '...' : activeProjects}</p>
                   </div>
                 </div>
               </motion.div>
@@ -382,19 +382,19 @@ export default function ClientsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="glass relative overflow-hidden rounded-xl px-4 py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(34,197,94,0.55)]"
+                className="glass relative overflow-hidden rounded-lg md:rounded-xl px-3 md:px-4 py-3 md:py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(34,197,94,0.55)] sm:col-span-2 lg:col-span-1"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
                     {isLoading ? (
-                      <Loader2 className="w-4 h-4 text-green-400 animate-spin" />
+                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-green-400 animate-spin" />
                     ) : (
-                      <TrendingUp className="w-4 h-4 text-green-400" />
+                      <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-slate-400">Terminés</p>
-                    <p className="text-xl font-bold text-white">{isLoading ? '...' : completedProjects}</p>
+                    <p className="text-[10px] md:text-xs text-slate-400 font-medium">Terminés</p>
+                    <p className="text-xl md:text-2xl font-bold text-white">{isLoading ? '...' : completedProjects}</p>
                   </div>
                 </div>
               </motion.div>
@@ -402,14 +402,14 @@ export default function ClientsPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="px-6 pb-4">
-            <div className="space-y-4">
+          <div className="px-4 md:px-6 pb-3 md:pb-4">
+            <div className="space-y-3 md:space-y-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                 <div className="flex-1 min-w-[220px]">
                   <ClientAutocomplete
                     clients={clients}
                     onSelectClient={handleClientClick}
-                    placeholder="Rechercher un client par nom, ville, téléphone..."
+                    placeholder="Rechercher un client..."
                   />
                 </div>
 
@@ -417,55 +417,54 @@ export default function ClientsPage() {
                   <button
                     onClick={() => handleViewModeChange('table')}
                     className={cn(
-                      "flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all duration-200",
+                      "flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all duration-200 flex-1 lg:flex-none",
                       viewMode === 'table'
                         ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
                         : "text-slate-400 hover:text-white hover:bg-slate-700/50"
                     )}
                   >
                     <TableIcon className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Table</span>
+                    <span className="inline">Table</span>
                   </button>
                   <button
                     onClick={() => handleViewModeChange('kanban')}
                     className={cn(
-                      "flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all duration-200",
+                      "flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all duration-200 flex-1 lg:flex-none",
                       viewMode === 'kanban'
                         ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
                         : "text-slate-400 hover:text-white hover:bg-slate-700/50"
                     )}
                   >
                     <LayoutGrid className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Kanban</span>
+                    <span className="inline">Kanban</span>
                   </button>
                 </div>
 
                 <Button
                   onClick={handleAddClient}
-                  className="h-10 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium text-sm shadow-[0_12px_40px_-24px_rgba(59,130,246,0.9)]"
+                  className="h-10 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium text-sm shadow-[0_12px_40px_-24px_rgba(59,130,246,0.9)] w-full lg:w-auto"
                 >
                   <Plus className="w-4 h-4 mr-1.5" />
-                  <span className="hidden sm:inline">Nouveau</span>
-                  <span className="sm:hidden">+</span>
+                  <span>Nouveau client</span>
                 </Button>
               </div>
 
-              <div className="glass rounded-xl border border-slate-600/30 shadow-[0_18px_48px_-28px_rgba(59,130,246,0.65)]">
-                <div className="flex items-center justify-between p-3 gap-3">
+              <div className="glass rounded-lg md:rounded-xl border border-slate-600/30 shadow-[0_18px_48px_-28px_rgba(59,130,246,0.65)]">
+                <div className="flex items-center justify-between p-2.5 md:p-3 gap-2 md:gap-3">
                   <div
-                    className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1"
+                    className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1"
                     onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                   >
-                    <Filter className="w-5 h-5 text-primary" />
-                    <span className="font-medium text-white">Filtres</span>
+                    <Filter className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                    <span className="text-sm md:text-base font-medium text-white">Filtres</span>
                     {getActiveFiltersCount() > 0 && (
-                      <span className="bg-primary/20 text-primary px-2 py-1 rounded-full text-xs font-medium">
+                      <span className="bg-primary/20 text-primary px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium">
                         {getActiveFiltersCount()} actif{getActiveFiltersCount() > 1 ? 's' : ''}
                       </span>
                     )}
                     <ChevronDown
                       className={cn(
-                        "w-4 h-4 text-white transition-transform ml-auto",
+                        "w-3.5 h-3.5 md:w-4 md:h-4 text-white transition-transform ml-auto",
                         isFiltersOpen && "rotate-180"
                       )}
                     />
@@ -477,10 +476,10 @@ export default function ClientsPage() {
                         e.stopPropagation()
                         clearAllFilters()
                       }}
-                      className="text-xs text-muted-foreground hover:text-white flex items-center gap-1.5 transition-colors px-2 py-1 rounded hover:bg-slate-700/50"
+                      className="text-[10px] md:text-xs text-muted-foreground hover:text-white flex items-center gap-1 md:gap-1.5 transition-colors px-1.5 md:px-2 py-1 rounded hover:bg-slate-700/50"
                     >
-                      <X className="w-3.5 h-3.5" />
-                      Effacer filtres
+                      <X className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                      <span className="hidden sm:inline">Effacer filtres</span>
                     </button>
                   )}
                 </div>
@@ -531,15 +530,15 @@ export default function ClientsPage() {
                 )}
 
                 {isFiltersOpen && (
-                  <div className="px-4 pb-4 pt-3 border-t border-slate-600/30 bg-slate-900/35 rounded-b-xl">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="px-3 md:px-4 pb-3 md:pb-4 pt-2 md:pt-3 border-t border-slate-600/30 bg-slate-900/35 rounded-b-xl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-white">Statut du projet</label>
+                        <label className="text-xs md:text-sm font-medium text-white">Statut du projet</label>
                         <Select
                           value={filters.statut}
                           onValueChange={(value) => setFilters(f => ({ ...f, statut: value as ProjectStatus | "all" }))}
                         >
-                          <SelectTrigger className="bg-slate-800/70 border border-slate-600/40 text-white">
+                          <SelectTrigger className="h-9 md:h-10 text-sm bg-slate-800/70 border border-slate-600/40 text-white">
                             <SelectValue placeholder="Tous les statuts" />
                           </SelectTrigger>
                           <SelectContent className="border border-slate-600/40 bg-slate-900/95 text-white">
@@ -558,12 +557,12 @@ export default function ClientsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-white">Ville</label>
+                        <label className="text-xs md:text-sm font-medium text-white">Ville</label>
                         <Select
                           value={filters.ville}
                           onValueChange={(value) => setFilters(f => ({ ...f, ville: value }))}
                         >
-                          <SelectTrigger className="bg-slate-800/70 border border-slate-600/40 text-white">
+                          <SelectTrigger className="h-9 md:h-10 text-sm bg-slate-800/70 border border-slate-600/40 text-white">
                             <SelectValue placeholder="Toutes les villes" />
                           </SelectTrigger>
                           <SelectContent className="border border-slate-600/40 bg-slate-900/95 text-white">
@@ -576,12 +575,12 @@ export default function ClientsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-white">Type de projet</label>
+                        <label className="text-xs md:text-sm font-medium text-white">Type de projet</label>
                         <Select
                           value={filters.typeProjet}
                           onValueChange={(value) => setFilters(f => ({ ...f, typeProjet: value }))}
                         >
-                          <SelectTrigger className="bg-slate-800/70 border border-slate-600/40 text-white">
+                          <SelectTrigger className="h-9 md:h-10 text-sm bg-slate-800/70 border border-slate-600/40 text-white">
                             <SelectValue placeholder="Tous les types" />
                           </SelectTrigger>
                           <SelectContent className="border border-slate-600/40 bg-slate-900/95 text-white">
@@ -594,7 +593,7 @@ export default function ClientsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-white">Équipe</label>
+                        <label className="text-xs md:text-sm font-medium text-white">Équipe</label>
                         <Select
                           value={filters.architecte}
                           onValueChange={(value) => setFilters(f => ({ ...f, architecte: value }))}
@@ -618,7 +617,7 @@ export default function ClientsPage() {
           </div>
 
           {/* Clients Content - Table or Kanban */}
-          <div className="flex-1 px-6 pb-10 overflow-hidden">
+          <div className="flex-1 px-4 md:px-6 pb-6 md:pb-10 overflow-hidden">
             <div className="flex h-full w-full flex-col">
               {isLoading ? (
                 <div className="flex h-full items-center justify-center">

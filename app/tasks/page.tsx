@@ -72,7 +72,7 @@ export default function TasksPage() {
         })
         toast.success('Tâche créée avec succès')
       }
-      
+
       // Reload tasks from database
       await loadTasks()
       setIsAddModalOpen(false)
@@ -138,11 +138,11 @@ export default function TasksPage() {
   const userRole = (user?.role || '').toLowerCase()
   // Guard against malformed items missing an id
   const validTasks = tasks.filter(t => !!t.id)
-  const filteredTasksByRole = userRole === 'architect' 
+  const filteredTasksByRole = userRole === 'architect'
     ? validTasks.filter(t => {
-        if (!user) return false
-        return t.assignedTo === user.name || t.assignedTo === user.id
-      })
+      if (!user) return false
+      return t.assignedTo === user.name || t.assignedTo === user.id
+    })
     : validTasks
 
   // Calculate statistics
@@ -160,76 +160,76 @@ export default function TasksPage() {
         <Sidebar />
         <main className="flex-1 flex flex-col overflow-x-hidden">
           <Header />
-          
+
           {/* Removed page title and subtitle for a cleaner layout */}
 
           {/* Stats Cards */}
-          <div className="p-6 pb-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <motion.div 
+          <div className="p-4 md:p-6 pb-2 md:pb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="glass rounded-2xl p-5 border border-slate-600/30"
+                className="glass rounded-xl md:rounded-2xl p-4 md:p-5 border border-slate-600/30"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-400 mb-1">Total Tâches</p>
-                    <p className="text-3xl font-bold text-white">{totalTasks}</p>
+                    <p className="text-xs md:text-sm text-slate-400 mb-1">Total Tâches</p>
+                    <p className="text-2xl md:text-3xl font-bold text-white">{totalTasks}</p>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <Calendar className="w-6 h-6 text-blue-400" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                    <Calendar className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
                   </div>
                 </div>
               </motion.div>
 
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="glass rounded-2xl p-5 border border-slate-600/30"
+                className="glass rounded-xl md:rounded-2xl p-4 md:p-5 border border-slate-600/30"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-400 mb-1">À faire</p>
-                    <p className="text-3xl font-bold text-white">{todoTasks}</p>
+                    <p className="text-xs md:text-sm text-slate-400 mb-1">À faire</p>
+                    <p className="text-2xl md:text-3xl font-bold text-white">{todoTasks}</p>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-red-400" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                    <Clock className="w-5 h-5 md:w-6 md:h-6 text-red-400" />
                   </div>
                 </div>
               </motion.div>
 
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="glass rounded-2xl p-5 border border-slate-600/30"
+                className="glass rounded-xl md:rounded-2xl p-4 md:p-5 border border-slate-600/30"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-400 mb-1">En cours</p>
-                    <p className="text-3xl font-bold text-white">{inProgressTasks}</p>
+                    <p className="text-xs md:text-sm text-slate-400 mb-1">En cours</p>
+                    <p className="text-2xl md:text-3xl font-bold text-white">{inProgressTasks}</p>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-orange-400" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                    <Clock className="w-5 h-5 md:w-6 md:h-6 text-orange-400" />
                   </div>
                 </div>
               </motion.div>
 
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="glass rounded-2xl p-5 border border-slate-600/30"
+                className="glass rounded-xl md:rounded-2xl p-4 md:p-5 border border-slate-600/30"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-400 mb-1">Terminées</p>
-                    <p className="text-3xl font-bold text-white">{completedTasks}</p>
+                    <p className="text-xs md:text-sm text-slate-400 mb-1">Terminées</p>
+                    <p className="text-2xl md:text-3xl font-bold text-white">{completedTasks}</p>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <CheckCircle2 className="w-6 h-6 text-green-400" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
                   </div>
                 </div>
               </motion.div>
@@ -237,44 +237,44 @@ export default function TasksPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="px-6 pb-4 space-y-3">
+          <div className="px-4 md:px-6 pb-3 md:pb-4 space-y-3">
             {/* Search Bar and Add Button */}
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher par titre, description, assigné à..."
-                  className="pl-12 h-12 bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-500 rounded-xl"
+                  placeholder="Rechercher..."
+                  className="pl-10 md:pl-12 h-10 md:h-12 bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-500 rounded-lg md:rounded-xl text-sm md:text-base"
                 />
               </div>
               <Button
                 onClick={handleAddTask}
-                className="h-12 px-6 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium"
+                className="h-10 md:h-12 px-4 md:px-6 bg-primary hover:bg-primary/90 text-white rounded-lg md:rounded-xl font-medium text-sm md:text-base"
               >
-                <Plus className="w-5 h-5 mr-2" />
+                <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                 Nouvelle Tâche
               </Button>
             </div>
 
             {/* Filters */}
-            <div className="glass rounded-xl border border-slate-600/30">
+            <div className="glass rounded-lg md:rounded-xl border border-slate-600/30">
               {/* Filter Header */}
-              <div className="flex items-center justify-between p-4 gap-4">
-                <div 
-                  className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1"
+              <div className="flex items-center justify-between p-3 md:p-4 gap-3 md:gap-4">
+                <div
+                  className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1"
                   onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                 >
-                  <Filter className="w-5 h-5 text-primary" />
-                  <span className="font-medium text-white">Filtres</span>
+                  <Filter className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                  <span className="font-medium text-white text-sm md:text-base">Filtres</span>
                   {getActiveFiltersCount() > 0 && (
-                    <span className="bg-primary/20 text-primary px-2 py-1 rounded-full text-xs font-medium">
+                    <span className="bg-primary/20 text-primary px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium">
                       {getActiveFiltersCount()} actif{getActiveFiltersCount() > 1 ? 's' : ''}
                     </span>
                   )}
                   <ChevronDown className={cn(
-                    "w-4 h-4 text-white transition-transform ml-auto",
+                    "w-3.5 h-3.5 md:w-4 md:h-4 text-white transition-transform ml-auto",
                     isFiltersOpen && "rotate-180"
                   )} />
                 </div>
@@ -285,10 +285,10 @@ export default function TasksPage() {
                       e.stopPropagation()
                       clearAllFilters()
                     }}
-                    className="text-xs text-muted-foreground hover:text-white flex items-center gap-1.5 transition-colors px-2 py-1 rounded hover:bg-slate-700/50"
+                    className="text-[10px] md:text-xs text-muted-foreground hover:text-white flex items-center gap-1 md:gap-1.5 transition-colors px-1.5 md:px-2 py-1 rounded hover:bg-slate-700/50"
                   >
-                    <X className="w-3.5 h-3.5" />
-                    Effacer filtres
+                    <X className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                    <span className="hidden sm:inline">Effacer filtres</span>
                   </button>
                 )}
               </div>
@@ -327,15 +327,15 @@ export default function TasksPage() {
 
               {/* Filter Content */}
               {isFiltersOpen && (
-                <div className="border-t border-slate-600/30 p-4 bg-slate-800/60">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="border-t border-slate-600/30 p-3 md:p-4 bg-slate-800/60">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
                     {/* Status Filter */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-white">Statut</label>
+                      <label className="text-xs md:text-sm font-medium text-white">Statut</label>
                       <select
                         value={filters.status}
                         onChange={(e) => setFilters(f => ({ ...f, status: e.target.value as any }))}
-                        className="h-10 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        className="h-9 md:h-10 text-sm w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
                       >
                         <option value="all">Tous les statuts</option>
                         <option value="a_faire">À faire</option>
@@ -346,11 +346,11 @@ export default function TasksPage() {
 
                     {/* Linked Type Filter */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-white">Lié à</label>
+                      <label className="text-xs md:text-sm font-medium text-white">Lié à</label>
                       <select
                         value={filters.linkedType}
                         onChange={(e) => setFilters(f => ({ ...f, linkedType: e.target.value as any }))}
-                        className="h-10 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        className="h-9 md:h-10 text-sm w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
                       >
                         <option value="all">Tous</option>
                         <option value="lead">Lead</option>
@@ -361,11 +361,11 @@ export default function TasksPage() {
                     {/* Assigned To Filter - Only show for Admin/Operator */}
                     {userRole !== 'architect' && (
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-white">Assigné à</label>
+                        <label className="text-xs md:text-sm font-medium text-white">Assigné à</label>
                         <select
                           value={filters.assignedTo}
                           onChange={(e) => setFilters(f => ({ ...f, assignedTo: e.target.value }))}
-                          className="h-10 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                          className="h-9 md:h-10 text-sm w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
                         >
                           <option value="all">Tous</option>
                           {uniqueAssignees.map(a => (
@@ -381,7 +381,7 @@ export default function TasksPage() {
           </div>
 
           {/* Tasks Table or Empty State */}
-          <div className="flex-1 px-6 pb-6 overflow-hidden">
+          <div className="flex-1 px-4 md:px-6 pb-6 overflow-hidden">
             {isLoading ? (
               <div className="h-full flex items-center justify-center">
                 <div className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center">

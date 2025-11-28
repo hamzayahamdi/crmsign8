@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { 
-  ArrowLeft, 
-  Search, 
-  User, 
-  MapPin, 
-  Briefcase, 
-  CheckCircle2, 
+import {
+  ArrowLeft,
+  Search,
+  User,
+  MapPin,
+  Briefcase,
+  CheckCircle2,
   Loader2,
   AlertCircle,
   Sparkles,
@@ -178,7 +178,7 @@ export function ArchitectSelectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[85vh] bg-neutral-900/95 backdrop-blur-2xl border border-white/10 text-white shadow-2xl rounded-2xl overflow-hidden p-0">
+      <DialogContent className="w-[95vw] sm:w-full sm:max-w-[700px] max-h-[85vh] bg-neutral-900/95 backdrop-blur-2xl border border-white/10 text-white shadow-2xl rounded-2xl overflow-hidden p-0">
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
 
@@ -259,8 +259,8 @@ export function ArchitectSelectionDialog({
                       {searchQuery ? "Aucun architecte trouvé" : "Aucun architecte actif"}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
-                      {searchQuery 
-                        ? "Essayez une autre recherche ou vérifiez l'orthographe" 
+                      {searchQuery
+                        ? "Essayez une autre recherche ou vérifiez l'orthographe"
                         : "Ajoutez des architectes pour continuer"}
                     </p>
                     {architects.length > 0 && activeArchitects.length === 0 && !searchQuery && (
@@ -293,8 +293,8 @@ export function ArchitectSelectionDialog({
                             {/* Avatar */}
                             <div className={cn(
                               "w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 transition-all",
-                              isFocused 
-                                ? "bg-blue-500/30 scale-105" 
+                              isFocused
+                                ? "bg-blue-500/30 scale-105"
                                 : "bg-gradient-to-br from-blue-500/20 to-purple-500/20"
                             )}>
                               {architect.photo ? (
@@ -349,7 +349,7 @@ export function ArchitectSelectionDialog({
               <div className="p-4 border-t border-white/5 bg-white/5">
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-gray-500">
-                    {activeArchitects.length > 0 
+                    {activeArchitects.length > 0
                       ? `${activeArchitects.length} architecte${activeArchitects.length !== 1 ? 's' : ''} actif${activeArchitects.length !== 1 ? 's' : ''} disponible${activeArchitects.length !== 1 ? 's' : ''}`
                       : "Aucun architecte actif disponible"
                     }

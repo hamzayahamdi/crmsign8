@@ -135,9 +135,12 @@
 
   /* Modal glow animation */
   @keyframes modal-glow {
-    0%, 100% {
+
+    0%,
+    100% {
       box-shadow: 0 0 20px rgba(96, 165, 250, 0.3), 0 0 40px rgba(96, 165, 250, 0.2), 0 0 60px rgba(96, 165, 250, 0.1);
     }
+
     50% {
       box-shadow: 0 0 30px rgba(96, 165, 250, 0.4), 0 0 60px rgba(96, 165, 250, 0.3), 0 0 90px rgba(96, 165, 250, 0.2);
     }
@@ -182,9 +185,11 @@
     0% {
       box-shadow: 0 0 20px rgba(56, 189, 248, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
     }
+
     50% {
       box-shadow: 0 0 30px rgba(56, 189, 248, 0.8), 0 0 60px rgba(59, 130, 246, 0.5), 0 0 90px rgba(56, 189, 248, 0.3);
     }
+
     100% {
       box-shadow: 0 0 20px rgba(56, 189, 248, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
     }
@@ -199,29 +204,31 @@
     0% {
       background-position: -1000px 0;
     }
+
     100% {
       background-position: 1000px 0;
     }
   }
 
   .shimmer {
-    background-image: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.2) 25%,
-      transparent 50%,
-      rgba(255, 255, 255, 0.2) 75%,
-      transparent 100%
-    );
+    background-image: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.2) 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.2) 75%,
+        transparent 100%);
     background-size: 1000px 100%;
     animation: shimmer 2.5s infinite;
   }
 
   /* Glowing text effect */
   @keyframes text-glow {
-    0%, 100% {
+
+    0%,
+    100% {
       text-shadow: 0 0 10px rgba(56, 189, 248, 0.5), 0 0 20px rgba(59, 130, 246, 0.3);
     }
+
     50% {
       text-shadow: 0 0 20px rgba(56, 189, 248, 0.8), 0 0 40px rgba(59, 130, 246, 0.5);
     }
@@ -233,9 +240,12 @@
 
   /* Icon glow animation */
   @keyframes icon-pulse-glow {
-    0%, 100% {
+
+    0%,
+    100% {
       filter: drop-shadow(0 0 15px rgba(56, 189, 248, 0.7));
     }
+
     50% {
       filter: drop-shadow(0 0 25px rgba(56, 189, 248, 1)) drop-shadow(0 0 40px rgba(59, 130, 246, 0.6));
     }
@@ -251,10 +261,12 @@
       transform: scale(0.95);
       opacity: 0.5;
     }
+
     50% {
       transform: scale(1.05);
       opacity: 0.8;
     }
+
     100% {
       transform: scale(0.95);
       opacity: 0.5;
@@ -271,6 +283,7 @@
       opacity: 0;
       transform: scaleX(0.8);
     }
+
     to {
       opacity: 1;
       transform: scaleX(1);
@@ -283,9 +296,12 @@
 
   /* Badge pulse animation */
   @keyframes badge-scale {
-    0%, 100% {
+
+    0%,
+    100% {
       transform: scale(1);
     }
+
     50% {
       transform: scale(1.1);
     }
@@ -301,6 +317,7 @@
       opacity: 0;
       transform: translateY(4px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -309,5 +326,169 @@
 
   .page-enter {
     animation: page-enter 0.3s ease-out;
+  }
+
+  /* Responsive Modal Styles */
+  [role="dialog"],
+  [role="alertdialog"] {
+    @apply max-h-[90vh] overflow-y-auto;
+  }
+
+  @media (max-width: 640px) {
+
+    [role="dialog"],
+    [role="alertdialog"] {
+      @apply max-w-[95vw] mx-auto;
+    }
+
+    /* Make all dialog content responsive */
+    [role="dialog"]>div,
+    [role="alertdialog"]>div {
+      @apply px-3 py-2;
+    }
+
+    /* Responsive form inputs in modals - compact height */
+    [role="dialog"] input:not([type="checkbox"]):not([type="radio"]),
+    [role="dialog"] textarea,
+    [role="alertdialog"] input:not([type="checkbox"]):not([type="radio"]),
+    [role="alertdialog"] textarea {
+      @apply text-sm h-10;
+      padding: 0.5rem 0.75rem;
+    }
+
+    /* Responsive select dropdowns */
+    [role="dialog"] select,
+    [role="dialog"] [role="combobox"],
+    [role="alertdialog"] select,
+    [role="alertdialog"] [role="combobox"] {
+      @apply text-sm h-10;
+      padding: 0.5rem 0.75rem;
+    }
+
+    /* Responsive buttons in modals - compact */
+    [role="dialog"] button,
+    [role="alertdialog"] button {
+      @apply text-sm px-3 py-2 h-10;
+      min-height: 40px;
+    }
+
+    /* Compact labels */
+    [role="dialog"] label,
+    [role="alertdialog"] label {
+      @apply text-xs mb-1;
+    }
+
+    /* Reduce section padding */
+    [role="dialog"] section,
+    [role="alertdialog"] section {
+      @apply p-3;
+    }
+
+    /* Compact headings */
+    [role="dialog"] h1,
+    [role="dialog"] h2,
+    [role="dialog"] h3,
+    [role="alertdialog"] h1,
+    [role="alertdialog"] h2,
+    [role="alertdialog"] h3 {
+      @apply text-base;
+    }
+
+    /* Reduce gap spacing */
+    [role="dialog"] .space-y-6>*+*,
+    [role="alertdialog"] .space-y-6>*+* {
+      margin-top: 1rem !important;
+    }
+
+    [role="dialog"] .space-y-4>*+*,
+    [role="alertdialog"] .space-y-4>*+* {
+      margin-top: 0.75rem !important;
+    }
+
+    [role="dialog"] .gap-4,
+    [role="alertdialog"] .gap-4 {
+      gap: 0.75rem !important;
+    }
+
+    [role="dialog"] .gap-3,
+    [role="alertdialog"] .gap-3 {
+      gap: 0.5rem !important;
+    }
+  }
+
+  /* Mobile-first responsive utilities */
+  @media (max-width: 768px) {
+    .mobile-full-width {
+      @apply w-full;
+    }
+
+    .mobile-stack {
+      @apply flex-col;
+    }
+
+    .mobile-text-sm {
+      @apply text-sm;
+    }
+
+    .mobile-text-xs {
+      @apply text-xs;
+    }
+
+    .mobile-p-4 {
+      @apply p-4;
+    }
+
+    .mobile-p-3 {
+      @apply p-3;
+    }
+
+    .mobile-h-10 {
+      height: 2.5rem;
+    }
+
+    .mobile-compact-input {
+      @apply h-10 text-sm;
+      padding: 0.5rem 0.75rem;
+    }
+  }
+
+  /* Touch-friendly tap targets for mobile */
+  @media (max-width: 768px) {
+
+    button:not(.compact),
+    a:not(.compact),
+    [role="button"]:not(.compact) {
+      min-height: 40px;
+      min-width: 40px;
+    }
+  }
+
+  /* Kanban horizontal scroll styling */
+  .kanban-scroll::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .kanban-scroll::-webkit-scrollbar-track {
+    @apply bg-slate-800/30 rounded-full;
+  }
+
+  .kanban-scroll::-webkit-scrollbar-thumb {
+    @apply bg-primary/30 rounded-full;
+  }
+
+  .kanban-scroll::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary/50;
+  }
+
+  /* Hide scrollbar on mobile for cleaner look */
+  @media (max-width: 768px) {
+    .kanban-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .kanban-scroll {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
   }
 }

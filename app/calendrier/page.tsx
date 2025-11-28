@@ -17,13 +17,13 @@ import { AuthGuard } from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Calendar, 
-  Plus, 
-  Search, 
-  Filter, 
-  LayoutGrid, 
-  LayoutList, 
+import {
+  Calendar,
+  Plus,
+  Search,
+  Filter,
+  LayoutGrid,
+  LayoutList,
   CalendarDays,
   PanelRightOpen,
   PanelRightClose,
@@ -38,15 +38,15 @@ type ViewMode = 'month' | 'week' | 'day';
 
 function CalendrierContent() {
   // Use Zustand store for state management
-  const { 
+  const {
     events,
-    filteredEvents, 
-    isLoading, 
-    setEvents, 
-    setFilter, 
-    setCurrentUser, 
+    filteredEvents,
+    isLoading,
+    setEvents,
+    setFilter,
+    setCurrentUser,
     setLoading,
-    filter 
+    filter
   } = useCalendarStore();
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -71,21 +71,21 @@ function CalendrierContent() {
   const loadEvents = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Fetch events for a wider range (3 months)
       const start = startOfMonth(addMonths(currentDate, -1));
       const end = endOfMonth(addMonths(currentDate, 1));
-      
+
       console.log('[Calendar] Loading events from', start.toISOString(), 'to', end.toISOString());
       const data = await fetchCalendarEvents({
         startDate: start.toISOString(),
         endDate: end.toISOString()
       });
-      
+
       console.log('[Calendar] Events loaded:', data.length);
       console.log('[Calendar] Events data:', data);
       setEvents(data);
-      
+
       // Log what's in the store after setting
       setTimeout(() => {
         const storeState = useCalendarStore.getState();
@@ -93,7 +93,7 @@ function CalendrierContent() {
         console.log('[Calendar] Store filteredEvents:', storeState.filteredEvents.length);
         console.log('[Calendar] Store filter:', storeState.filter);
       }, 100);
-      
+
       if (data.length === 0) {
         console.warn('[Calendar] No events found in date range');
       }
@@ -156,25 +156,25 @@ function CalendrierContent() {
       console.log('[Calendar] Initializing notifications and user...');
       // Get current user info
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      
+
       if (!token) {
         console.error('[Calendar] No token found in localStorage');
         toast.error('Session expirée. Veuillez vous reconnecter.');
         return;
       }
-      
+
       const response = await fetch('/api/auth/me', {
         credentials: 'include',
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (response.ok) {
         const userData = await response.json();
         console.log('[Calendar] User data loaded:', userData);
         setCurrentUserId(userData.id);
         setCurrentUserEmail(userData.email);
         setCurrentUserRole(userData.role);
-        
+
         // Set current user in store for permission checks
         setCurrentUser(userData.id, userData.role);
         console.log('[Calendar] User set in store:', userData.id, userData.role);
@@ -219,7 +219,7 @@ function CalendrierContent() {
 
   const handleEventClick = async (event: CalendarEventWithDetails) => {
     console.log('[Calendar] Event clicked:', event);
-    
+
     // Refetch the event to ensure we have all details including participant names
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -227,7 +227,7 @@ function CalendrierContent() {
         credentials: 'include',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      
+
       if (response.ok) {
         const enrichedEvent = await response.json();
         console.log('[Calendar] Enriched event data:', enrichedEvent);
@@ -240,7 +240,7 @@ function CalendrierContent() {
       console.error('[Calendar] Error fetching event details:', error);
       setSelectedEvent(event);
     }
-    
+
     setShowEventDetail(true);
   };
 
@@ -265,44 +265,44 @@ function CalendrierContent() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="shrink-0 border-b border-border/40 bg-gradient-to-br from-background via-background to-muted/20 backdrop-blur-xl p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="shrink-0 border-b border-border/40 bg-gradient-to-br from-background via-background to-muted/20 backdrop-blur-xl p-4 md:p-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/80 to-primary/60 rounded-2xl blur-lg opacity-50"></div>
-              <div className="relative p-3 bg-gradient-to-br from-primary via-primary/90 to-primary/70 rounded-2xl shadow-2xl">
-                <Calendar className="h-7 w-7 text-primary-foreground" />
+              <div className="relative p-2 md:p-3 bg-gradient-to-br from-primary via-primary/90 to-primary/70 rounded-xl md:rounded-2xl shadow-2xl">
+                <Calendar className="h-5 w-5 md:h-7 md:w-7 text-primary-foreground" />
               </div>
             </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                Calendrier Intelligent
+              <h1 className="text-xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                Calendrier
               </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Gérez vos événements et rendez-vous avec élégance
+              <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+                Gérez vos événements
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3 self-end md:self-auto">
             <Button
               variant="outline"
               size="icon"
               onClick={() => setShowNotificationDialog(true)}
-              className="h-11 w-11 rounded-xl border-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
+              className="h-9 w-9 md:h-11 md:w-11 rounded-lg md:rounded-xl border-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
               title="Paramètres de notification"
             >
-              <Bell className="h-5 w-5" />
+              <Bell className="h-4 w-4 md:h-5 md:w-5" />
             </Button>
             <Button
               onClick={() => {
                 setSelectedDate(undefined);
                 setShowAddModal(true);
               }}
-              className="gap-2 px-6 h-11 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300"
+              className="gap-2 px-3 md:px-6 h-9 md:h-11 rounded-lg md:rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300 text-xs md:text-sm"
             >
-              <Plus className="h-5 w-5" />
-              <span className="font-semibold">Nouvel événement</span>
+              <Plus className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="font-semibold">Nouveau</span>
             </Button>
           </div>
         </div>
@@ -317,156 +317,160 @@ function CalendrierContent() {
             animate={{ opacity: 1, y: 0 }}
             className="shrink-0"
           >
-            <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-background via-background to-muted/10 backdrop-blur-xl shadow-xl p-5">
+            <div className="relative overflow-hidden rounded-xl md:rounded-2xl border border-border/40 bg-gradient-to-br from-background via-background to-muted/10 backdrop-blur-xl shadow-xl p-3 md:p-5">
               <div className="flex flex-col gap-3">
                 {/* Top Row: Search and View Modes */}
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
                   {/* Search */}
-                  <div className="flex-1 min-w-[280px] relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-muted-foreground/60" />
                     <Input
-                      placeholder="Rechercher un événement..."
+                      placeholder="Rechercher..."
                       value={filter.searchQuery}
                       onChange={(e) => setFilter({ searchQuery: e.target.value })}
-                      className="pl-12 h-12 bg-background/50 border-border/60 rounded-xl focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-base"
+                      className="pl-10 md:pl-12 h-10 md:h-12 bg-background/50 border-border/60 rounded-lg md:rounded-xl focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-sm md:text-base"
                     />
                   </div>
 
-                  {/* View Mode Toggles */}
-                  <div className="flex items-center gap-1.5 bg-muted/30 rounded-xl p-1.5 border border-border/40">
+                  <div className="flex items-center gap-2 md:gap-3 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
+                    {/* View Mode Toggles */}
+                    <div className="flex items-center gap-1 bg-muted/30 rounded-lg md:rounded-xl p-1 border border-border/40 shrink-0">
+                      <Button
+                        variant={viewMode === 'month' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('month')}
+                        className={`gap-1.5 md:gap-2 h-8 md:h-10 px-3 md:px-5 rounded-md md:rounded-lg transition-all duration-300 text-xs md:text-sm ${viewMode === 'month' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
+                      >
+                        <LayoutGrid className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                        <span className="font-semibold">Mois</span>
+                      </Button>
+                      <Button
+                        variant={viewMode === 'week' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('week')}
+                        className={`gap-1.5 md:gap-2 h-8 md:h-10 px-3 md:px-5 rounded-md md:rounded-lg transition-all duration-300 text-xs md:text-sm ${viewMode === 'week' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
+                      >
+                        <LayoutList className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                        <span className="font-semibold">Semaine</span>
+                      </Button>
+                      <Button
+                        variant={viewMode === 'day' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('day')}
+                        className={`gap-1.5 md:gap-2 h-8 md:h-10 px-3 md:px-5 rounded-md md:rounded-lg transition-all duration-300 text-xs md:text-sm ${viewMode === 'day' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
+                      >
+                        <CalendarDays className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                        <span className="font-semibold">Jour</span>
+                      </Button>
+                    </div>
+
+                    {/* Sidebar Toggle */}
                     <Button
-                      variant={viewMode === 'month' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('month')}
-                      className={`gap-2 h-10 px-5 rounded-lg transition-all duration-300 ${viewMode === 'month' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setShowSidebar(!showSidebar)}
+                      className="shrink-0 h-10 w-10 md:h-11 md:w-11 rounded-lg md:rounded-xl border-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 hidden lg:flex"
                     >
-                      <LayoutGrid className="h-4 w-4" />
-                      <span className="font-semibold">Mois</span>
-                    </Button>
-                    <Button
-                      variant={viewMode === 'week' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('week')}
-                      className={`gap-2 h-10 px-5 rounded-lg transition-all duration-300 ${viewMode === 'week' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
-                    >
-                      <LayoutList className="h-4 w-4" />
-                      <span className="font-semibold">Semaine</span>
-                    </Button>
-                    <Button
-                      variant={viewMode === 'day' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('day')}
-                      className={`gap-2 h-10 px-5 rounded-lg transition-all duration-300 ${viewMode === 'day' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
-                    >
-                      <CalendarDays className="h-4 w-4" />
-                      <span className="font-semibold">Jour</span>
+                      {showSidebar ? (
+                        <PanelRightClose className="h-5 w-5" />
+                      ) : (
+                        <PanelRightOpen className="h-5 w-5" />
+                      )}
                     </Button>
                   </div>
-
-                  {/* Sidebar Toggle */}
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setShowSidebar(!showSidebar)}
-                    className="shrink-0 h-11 w-11 rounded-xl border-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300"
-                  >
-                    {showSidebar ? (
-                      <PanelRightClose className="h-5 w-5" />
-                    ) : (
-                      <PanelRightOpen className="h-5 w-5" />
-                    )}
-                  </Button>
                 </div>
 
                 {/* Bottom Row: Filters */}
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-2.5 text-sm font-semibold text-muted-foreground">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <Filter className="h-4 w-4 text-primary" />
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 text-xs md:text-sm font-semibold text-muted-foreground">
+                    <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg">
+                      <Filter className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
                     </div>
                     <span>Filtres:</span>
                   </div>
 
-                  {/* Type Filter */}
-                  <Select value={filter.eventType} onValueChange={(value) => setFilter({ eventType: value })}>
-                    <SelectTrigger className="w-[240px] h-12 px-4 bg-background/50 border-border/60 rounded-xl hover:border-primary/50 transition-all duration-300">
-                      <SelectValue placeholder="Type d'événement" />
-                    </SelectTrigger>
-                    <SelectContent className="min-w-[260px] rounded-xl border-border/60">
-                      <SelectItem value="all" className="py-3 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className="font-semibold text-sm">Tous les types</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="rendez_vous" className="py-3 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50" />
-                          <span className="text-sm font-medium">Rendez-vous client</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="suivi_projet" className="py-3 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className="w-3 h-3 rounded-full bg-green-500 shadow-lg shadow-green-500/50" />
-                          <span className="text-sm font-medium">Suivi projet</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="appel_reunion" className="py-3 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className="w-3 h-3 rounded-full bg-orange-500 shadow-lg shadow-orange-500/50" />
-                          <span className="text-sm font-medium">Appel ou réunion</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="urgent" className="py-3 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className="w-3 h-3 rounded-full bg-red-500 shadow-lg shadow-red-500/50" />
-                          <span className="text-sm font-medium">Urgent / Critique</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {/* Architect Filter - Only for Gestionnaire/Admin */}
-                  {(currentUserRole === 'admin' || currentUserRole === 'gestionnaire') && (
-                    <Select value={architectFilter} onValueChange={setArchitectFilter}>
-                      <SelectTrigger className="w-[300px] h-12 px-4 bg-background/50 border-border/60 rounded-xl hover:border-primary/50 transition-all duration-300">
-                        <SelectValue placeholder="Voir les RDV de" />
+                  <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    {/* Type Filter */}
+                    <Select value={filter.eventType} onValueChange={(value) => setFilter({ eventType: value })}>
+                      <SelectTrigger className="w-full md:w-[240px] h-10 md:h-12 px-3 md:px-4 bg-background/50 border-border/60 rounded-lg md:rounded-xl hover:border-primary/50 transition-all duration-300 text-sm">
+                        <SelectValue placeholder="Type d'événement" />
                       </SelectTrigger>
-                      <SelectContent className="min-w-[320px] rounded-xl border-border/60">
-                        <SelectItem value="all" className="py-3.5 rounded-lg">
+                      <SelectContent className="min-w-[260px] rounded-xl border-border/60">
+                        <SelectItem value="all" className="py-3 rounded-lg">
                           <div className="flex items-center gap-3">
-                            <div className="p-1.5 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg">
-                              <LayoutGrid className="h-4 w-4 text-primary" />
-                            </div>
-                            <span className="font-semibold text-sm">Tous les architectes</span>
+                            <span className="font-semibold text-sm">Tous les types</span>
                           </div>
                         </SelectItem>
-                        <SelectItem value={currentUserId} className="py-3.5 rounded-lg">
+                        <SelectItem value="rendez_vous" className="py-3 rounded-lg">
                           <div className="flex items-center gap-3">
-                            <div className="p-1.5 bg-gradient-to-br from-blue-500/20 to-blue-500/10 rounded-lg">
-                              <User className="h-4 w-4 text-blue-600" />
-                            </div>
-                            <span className="text-sm font-semibold">Moi uniquement</span>
+                            <span className="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50" />
+                            <span className="text-sm font-medium">Rendez-vous client</span>
                           </div>
                         </SelectItem>
-                        {users
-                          .filter(u => u.role === 'architecte' || u.role === 'commercial' || u.role === 'architect')
-                          .map((user) => (
-                            <SelectItem key={user.id} value={user.id} className="py-3.5 rounded-lg">
-                              <div className="flex items-center gap-3">
-                                <div className="p-1.5 bg-muted/50 rounded-lg">
-                                  <User className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                                <span className="text-sm font-medium">{user.name}</span>
-                                <span className="text-xs px-2.5 py-1 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary font-medium ml-auto capitalize">
-                                  {user.role === 'architecte' || user.role === 'architect' ? 'Architecte' : 'Commercial'}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))
-                        }
+                        <SelectItem value="suivi_projet" className="py-3 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="w-3 h-3 rounded-full bg-green-500 shadow-lg shadow-green-500/50" />
+                            <span className="text-sm font-medium">Suivi projet</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="appel_reunion" className="py-3 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="w-3 h-3 rounded-full bg-orange-500 shadow-lg shadow-orange-500/50" />
+                            <span className="text-sm font-medium">Appel ou réunion</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="urgent" className="py-3 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="w-3 h-3 rounded-full bg-red-500 shadow-lg shadow-red-500/50" />
+                            <span className="text-sm font-medium">Urgent / Critique</span>
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
-                  )}
+
+                    {/* Architect Filter - Only for Gestionnaire/Admin */}
+                    {(currentUserRole === 'admin' || currentUserRole === 'gestionnaire') && (
+                      <Select value={architectFilter} onValueChange={setArchitectFilter}>
+                        <SelectTrigger className="w-full md:w-[300px] h-10 md:h-12 px-3 md:px-4 bg-background/50 border-border/60 rounded-lg md:rounded-xl hover:border-primary/50 transition-all duration-300 text-sm">
+                          <SelectValue placeholder="Voir les RDV de" />
+                        </SelectTrigger>
+                        <SelectContent className="min-w-[320px] rounded-xl border-border/60">
+                          <SelectItem value="all" className="py-3.5 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="p-1.5 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg">
+                                <LayoutGrid className="h-4 w-4 text-primary" />
+                              </div>
+                              <span className="font-semibold text-sm">Tous les architectes</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value={currentUserId} className="py-3.5 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="p-1.5 bg-gradient-to-br from-blue-500/20 to-blue-500/10 rounded-lg">
+                                <User className="h-4 w-4 text-blue-600" />
+                              </div>
+                              <span className="text-sm font-semibold">Moi uniquement</span>
+                            </div>
+                          </SelectItem>
+                          {users
+                            .filter(u => u.role === 'architecte' || u.role === 'commercial' || u.role === 'architect')
+                            .map((user) => (
+                              <SelectItem key={user.id} value={user.id} className="py-3.5 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-1.5 bg-muted/50 rounded-lg">
+                                    <User className="h-4 w-4 text-muted-foreground" />
+                                  </div>
+                                  <span className="text-sm font-medium">{user.name}</span>
+                                  <span className="text-xs px-2.5 py-1 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary font-medium ml-auto capitalize">
+                                    {user.role === 'architecte' || user.role === 'architect' ? 'Architecte' : 'Commercial'}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))
+                          }
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -477,7 +481,7 @@ function CalendrierContent() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="flex-1 relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-background via-background to-muted/10 backdrop-blur-xl shadow-2xl p-6"
+            className="flex-1 relative overflow-hidden rounded-xl md:rounded-2xl border border-border/40 bg-gradient-to-br from-background via-background to-muted/10 backdrop-blur-xl shadow-2xl p-3 md:p-6"
           >
             {isLoading ? (
               <div className="flex items-center justify-center h-full">

@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Lead, LeadNote } from "@/types/lead"
-import { 
-  X, 
+import {
+  X,
   MessageSquare,
   Plus,
   Send,
@@ -43,7 +43,7 @@ export function LeadNotesPanel({ open, onOpenChange, lead, onAddNote }: LeadNote
 
   const handleAddNote = async () => {
     if (!newNote.trim() || !onAddNote) return
-    
+
     setIsSaving(true)
     try {
       await onAddNote(lead.id, newNote.trim())
@@ -69,7 +69,7 @@ export function LeadNotesPanel({ open, onOpenChange, lead, onAddNote }: LeadNote
       if (diffMins < 60) return `Il y a ${diffMins} min`
       if (diffHours < 24) return `Il y a ${diffHours}h`
       if (diffDays < 7) return `Il y a ${diffDays}j`
-      
+
       return format(date, "d MMM yyyy", { locale: fr })
     } catch {
       return dateString
@@ -78,7 +78,7 @@ export function LeadNotesPanel({ open, onOpenChange, lead, onAddNote }: LeadNote
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] p-0 gap-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-slate-700/50 overflow-hidden">
+      <DialogContent className="w-[95vw] sm:w-full max-w-2xl max-h-[85vh] p-0 gap-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-slate-700/50 overflow-hidden">
         {/* Compact Header */}
         <div className="relative bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 border-b border-slate-700/50">
           <DialogHeader className="relative px-5 py-3">
@@ -179,8 +179,8 @@ export function LeadNotesPanel({ open, onOpenChange, lead, onAddNote }: LeadNote
                     key={note.id}
                     className={cn(
                       "group relative p-3 rounded-lg border transition-all duration-300",
-                      index === 0 
-                        ? "bg-gradient-to-br from-primary/10 to-purple-500/10 border-primary/30 shadow-lg shadow-primary/5" 
+                      index === 0
+                        ? "bg-gradient-to-br from-primary/10 to-purple-500/10 border-primary/30 shadow-lg shadow-primary/5"
                         : "bg-slate-800/40 border-slate-700/30 hover:border-slate-600/50"
                     )}
                   >
@@ -188,7 +188,7 @@ export function LeadNotesPanel({ open, onOpenChange, lead, onAddNote }: LeadNote
                     {index < lead.notes!.length - 1 && (
                       <div className="absolute left-4 top-full h-3 w-px bg-gradient-to-b from-slate-600/50 to-transparent"></div>
                     )}
-                    
+
                     <div className="flex items-start gap-2">
                       <div className={cn(
                         "p-1.5 rounded-md flex-shrink-0 mt-0.5",

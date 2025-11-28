@@ -16,7 +16,7 @@ interface JWTPayload {
 async function getUserFromToken(request?: NextRequest): Promise<JWTPayload | null> {
   try {
     let token: string | undefined;
-    
+
     // First, try to get token from Authorization header
     if (request) {
       const authHeader = request.headers.get('authorization');
@@ -25,7 +25,7 @@ async function getUserFromToken(request?: NextRequest): Promise<JWTPayload | nul
         console.log('[Calendar Auth] Token found in Authorization header');
       }
     }
-    
+
     // Fall back to cookies if no Authorization header
     if (!token) {
       const cookieStore = await cookies();
@@ -34,12 +34,12 @@ async function getUserFromToken(request?: NextRequest): Promise<JWTPayload | nul
         console.log('[Calendar Auth] Token found in cookies');
       }
     }
-    
+
     if (!token) {
       console.log('[Calendar Auth] No token found');
       return null;
     }
-    
+
     const decoded = verify(token, JWT_SECRET) as JWTPayload;
     console.log('[Calendar Auth] User authenticated:', decoded.email, decoded.role);
     return decoded;
@@ -79,10 +79,10 @@ export async function GET(request: NextRequest) {
 
       // Get user details
       const users = await prisma.user.findMany({
-        where: { 
-          id: { 
-            in: [event.assignedTo, event.createdBy, ...(event.participants || [])] 
-          } 
+        where: {
+          id: {
+            in: [event.assignedTo, event.createdBy, ...(event.participants || [])]
+          }
         },
         select: { id: true, name: true, email: true, role: true }
       });
@@ -127,9 +127,9 @@ export async function GET(request: NextRequest) {
 
     // Role-based visibility - MUST be applied first
     const isRestrictedRole = shouldViewOwnDataOnly(user.role);
-    
+
     console.log('[Calendar API] Role check - isRestrictedRole:', isRestrictedRole, 'role:', user.role);
-    
+
     if (isRestrictedRole) {
       // Gestionnaire, Architects and commercials see: their own events + events they're invited to + public events
       where.AND.push({
@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
     });
 
     console.log('[Calendar API] Found events:', events.length);
-    
+
     if (events.length > 0) {
       console.log('[Calendar API] Sample event:', {
         id: events[0].id,
@@ -314,6 +314,117 @@ export async function POST(request: NextRequest) {
 
     await Promise.all(notificationPromises);
 
+    // Send WhatsApp notifications to participants
+    try {
+      // Get all participants with phone numbers
+      const participantUsers = await prisma.user.findMany({
+        where: {
+          id: { in: Array.from(notificationRecipients) },
+          phone: { not: null }
+        },
+        select: { id: true, name: true, phone: true }
+      });
+
+      console.log(`[Calendar] Sending WhatsApp to ${participantUsers.length} participants`);
+
+      // Format date and time for WhatsApp message
+      const eventDate = new Date(startDate);
+      const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'short' };
+      const formattedDate = eventDate.toLocaleDateString('fr-FR', dateOptions);
+      const finalDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+      const timeStr = eventDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      const endTimeStr = new Date(endDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+      // Construct calendar link
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://signature8-sketch.vercel.app";
+      const calendarLink = `${appUrl}/calendrier?event=${event.id}`;
+
+      // UltraMSG API credentials
+      const ULTRA_INSTANCE_ID = process.env.ULTRA_INSTANCE_ID;
+      const ULTRA_TOKEN = process.env.ULTRA_TOKEN;
+
+      if (!ULTRA_INSTANCE_ID || !ULTRA_TOKEN) {
+        console.error('[Calendar] UltraMSG credentials not configured');
+      } else {
+        // Send WhatsApp notification to each participant
+        const whatsappPromises = participantUsers.map(async (participant) => {
+          try {
+            const message = `📅 *Nouveau Rendez-vous Confirmé*\n\n` +
+              `Bonjour ${participant.name.split(' ')[0]},\n` +
+              `Un nouveau rendez-vous a été ajouté à votre agenda.\n\n` +
+              `📌 *${title}*\n` +
+              `───────────────\n` +
+              `📆 *Date :* ${finalDate}\n` +
+              `⏰ *Heure :* ${timeStr} - ${endTimeStr}\n` +
+              `${location ? `📍 *Lieu :* ${location}\n` : ''}` +
+              `${description ? `📝 *Détails :* ${description}\n` : ''}` +
+              `\n🔗 *Voir dans l'agenda :*\n` +
+              `${calendarLink}\n\n` +
+              `💡 *Action requise :*\n` +
+              `Merci de confirmer votre présence.\n\n` +
+              `_Organisé par ${creator?.name || 'Signature8'}_`;
+
+            // Send via UltraMSG
+            const ultraResponse = await fetch(
+              `https://api.ultramsg.com/${ULTRA_INSTANCE_ID}/messages/chat`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                  token: ULTRA_TOKEN,
+                  to: participant.phone!,
+                  body: message,
+                  priority: '10',
+                  referenceId: event.id
+                })
+              }
+            );
+
+            const ultraResult = await ultraResponse.json();
+            console.log(`[Calendar] UltraMSG response for ${participant.name}:`, ultraResult);
+
+            // Save notification to database
+            await prisma.notification.create({
+              data: {
+                userId: participant.id,
+                type: 'rdv_created',
+                priority: eventType === 'urgent' ? 'high' : 'medium',
+                title: `Nouveau RDV : ${title}`,
+                message: `WhatsApp envoyé: ${message.substring(0, 100)}...`,
+                linkedType: 'calendar_event',
+                linkedId: event.id,
+                linkedName: title,
+                createdBy: user.userId,
+                metadata: {
+                  whatsappSent: ultraResult.sent === 'true' || ultraResult.sent === true,
+                  whatsappResponse: ultraResult,
+                  phone: participant.phone,
+                  eventType,
+                  startDate,
+                  endDate,
+                  location: location || null,
+                  creatorName: creator?.name
+                }
+              }
+            });
+
+            if (ultraResult.sent === 'true' || ultraResult.sent === true) {
+              console.log(`[Calendar] ✅ WhatsApp sent successfully to ${participant.name} (${participant.phone})`);
+            } else {
+              console.error(`[Calendar] ❌ WhatsApp failed for ${participant.name}:`, ultraResult);
+            }
+          } catch (error) {
+            console.error(`[Calendar] Error sending WhatsApp to ${participant.name}:`, error);
+          }
+        });
+
+        await Promise.allSettled(whatsappPromises);
+      }
+    } catch (error) {
+      console.error('[Calendar] Error sending WhatsApp notifications:', error);
+      // Don't fail the request if WhatsApp fails
+    }
+
     return NextResponse.json(event, { status: 201 });
   } catch (error) {
     console.error('Error creating calendar event:', error);
@@ -355,12 +466,12 @@ export async function PUT(request: NextRequest) {
     }
 
     // Admin, Operator, Gestionnaire can update their own events, or Admin/Operator can update any event
-    const canUpdate = 
-      user.role === 'admin' || 
-      user.role === 'operator' || 
-      (existingEvent.createdBy === user.userId && 
-       (user.role === 'gestionnaire' || user.role === 'architect'));
-    
+    const canUpdate =
+      user.role === 'admin' ||
+      user.role === 'operator' ||
+      (existingEvent.createdBy === user.userId &&
+        (user.role === 'gestionnaire' || user.role === 'architect'));
+
     if (!canUpdate) {
       return NextResponse.json(
         { error: 'Non autorisé à modifier cet événement' },
@@ -450,12 +561,12 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Admin, Operator can delete any event, Gestionnaire/Architect can delete their own
-    const canDelete = 
-      user.role === 'admin' || 
-      user.role === 'operator' || 
-      (existingEvent.createdBy === user.userId && 
-       (user.role === 'gestionnaire' || user.role === 'architect'));
-    
+    const canDelete =
+      user.role === 'admin' ||
+      user.role === 'operator' ||
+      (existingEvent.createdBy === user.userId &&
+        (user.role === 'gestionnaire' || user.role === 'architect'));
+
     if (!canDelete) {
       return NextResponse.json(
         { error: 'Non autorisé à supprimer cet événement' },

@@ -124,7 +124,7 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     const clientData: any = {
       nom: formData.nom.trim(),
       telephone: formData.telephone.trim(),
@@ -165,15 +165,15 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-[96vw] !max-w-4xl max-h-[90vh] overflow-y-auto bg-[oklch(22%_0.03_260)] border-slate-600/30 rounded-2xl">
+      <DialogContent className="w-[96vw] !max-w-4xl max-h-[90vh] overflow-y-auto bg-[oklch(22%_0.03_260)] border-slate-600/30 rounded-xl md:rounded-2xl p-4 md:p-6">
         <DialogHeader>
-          <DialogTitle className="text-3xl font-bold text-white flex items-center gap-3">
-            <User className="w-6 h-6 text-primary" />
+          <DialogTitle className="text-xl md:text-3xl font-bold text-white flex items-center gap-2 md:gap-3">
+            <User className="w-5 h-5 md:w-6 md:h-6 text-primary" />
             {editingClient ? "Modifier le client" : "Nouveau client"}
           </DialogTitle>
-          <DialogDescription className="text-slate-400 text-base">
-            {editingClient 
-              ? "Modifiez les informations du client" 
+          <DialogDescription className="text-slate-400 text-sm md:text-base">
+            {editingClient
+              ? "Modifiez les informations du client"
               : "Recherchez un lead existant ou complétez les informations du client"}
           </DialogDescription>
         </DialogHeader>
@@ -188,24 +188,24 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
           >
             {/* Search Section (compact) */}
             {!editingClient && (
-              <div className="relative z-10 glass rounded-2xl p-5 border border-slate-600/30 overflow-visible">
-                <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="relative z-10 glass rounded-xl md:rounded-2xl p-4 md:p-5 border border-slate-600/30 overflow-visible">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                      <Sparkles className="w-5 h-5 text-primary" />
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="text-base font-semibold text-white">Recherche intelligente</h3>
-                      <p className="text-xs text-slate-400">Trouvez rapidement un lead existant</p>
+                      <h3 className="text-sm md:text-base font-semibold text-white">Recherche intelligente</h3>
+                      <p className="text-[10px] md:text-xs text-slate-400">Trouvez rapidement un lead existant</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
                     <span className="text-xs text-slate-400">Ou</span>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={handleCreateNew}
-                      className="h-9 px-3 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 text-xs"
+                      className="h-8 md:h-9 px-3 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 text-xs"
                     >
                       Saisir manuellement
                     </Button>
@@ -224,17 +224,17 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="rounded-2xl p-5 bg-gradient-to-r from-primary/20 to-premium/10 border border-primary/40 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]"
+                className="rounded-xl md:rounded-2xl p-4 md:p-5 bg-gradient-to-r from-primary/20 to-premium/10 border border-primary/40 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center ring-2 ring-primary/40">
-                      <span className="text-sm font-semibold text-white">
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center ring-2 ring-primary/40 shrink-0">
+                      <span className="text-xs md:text-sm font-semibold text-white">
                         {selectedLead.nom.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                       </span>
                     </div>
                     <div>
-                      <p className="text-base md:text-lg font-bold text-white tracking-wide">{selectedLead.nom}</p>
+                      <p className="text-sm md:text-lg font-bold text-white tracking-wide line-clamp-1">{selectedLead.nom}</p>
                     </div>
                   </div>
                   <Button
@@ -245,7 +245,7 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
                       setSelectedLead(null)
                       setMode("search")
                     }}
-                    className="text-slate-300 hover:text-white"
+                    className="text-slate-300 hover:text-white h-8 w-8 p-0 md:h-9 md:w-auto md:px-3"
                   >
                     <X className="w-4 h-4" />
                   </Button>
@@ -258,10 +258,10 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
               onSubmit={handleSubmit}
               className="space-y-8"
             >
-    
+
               {/* Informations principales */}
-              <div className="glass rounded-2xl p-6 border border-slate-600/30 space-y-6">
-                <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
+              <div className="glass rounded-xl md:rounded-2xl p-4 md:p-6 border border-slate-600/30 space-y-4 md:space-y-6">
+                <h3 className="text-xs md:text-sm font-semibold text-white uppercase tracking-wider">
                   Informations principales
                 </h3>
 
@@ -341,8 +341,8 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
               </div>
 
               {/* Détails du projet (essentiels) */}
-              <div className="glass rounded-2xl p-6 border border-slate-600/30 space-y-6">
-                <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
+              <div className="glass rounded-xl md:rounded-2xl p-4 md:p-6 border border-slate-600/30 space-y-4 md:space-y-6">
+                <h3 className="text-xs md:text-sm font-semibold text-white uppercase tracking-wider">
                   Détails du projet
                 </h3>
 
@@ -416,9 +416,9 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
               </div>
 
               {/* Section avancée (optionnelle) */}
-              <div className="glass rounded-2xl p-6 border border-slate-600/30 space-y-4">
+              <div className="glass rounded-xl md:rounded-2xl p-4 md:p-6 border border-slate-600/30 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Options avancées</h3>
+                  <h3 className="text-xs md:text-sm font-semibold text-white uppercase tracking-wider">Options avancées</h3>
                   <Button type="button" variant="outline" onClick={() => setShowAdvanced(v => !v)} className="h-9 px-3 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 text-xs">
                     {showAdvanced ? "Masquer" : "Afficher"}
                   </Button>
@@ -444,7 +444,7 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
               </div>
 
               {/* Actions */}
-              <div className="flex gap-4 justify-end pt-4 border-t border-slate-600/30">
+              <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 justify-end pt-4 border-t border-slate-600/30">
                 {!editingClient && (
                   <Button
                     type="button"
@@ -457,7 +457,7 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
                         handleCreateNew()
                       }
                     }}
-                    className="h-12 px-6 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 text-base"
+                    className="h-10 md:h-12 px-4 md:px-6 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 text-sm md:text-base w-full sm:w-auto"
                   >
                     <X className="w-4 h-4 mr-2" />
                     {mode === "manual" ? "Retour à la recherche" : "Saisir manuellement"}
@@ -467,14 +467,14 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
                   type="button"
                   variant="outline"
                   onClick={handleClose}
-                  className="h-12 px-6 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 text-base"
+                  className="h-10 md:h-12 px-4 md:px-6 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 text-sm md:text-base w-full sm:w-auto"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Annuler
                 </Button>
                 <Button
                   type="submit"
-                  className="h-12 px-6 bg-primary hover:bg-primary/90 text-white text-base"
+                  className="h-10 md:h-12 px-4 md:px-6 bg-primary hover:bg-primary/90 text-white text-sm md:text-base w-full sm:w-auto"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {editingClient ? "Enregistrer" : "Créer le client"}

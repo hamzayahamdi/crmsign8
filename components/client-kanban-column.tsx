@@ -43,7 +43,7 @@ export function ClientKanbanColumn({
   })
 
   return (
-    <div className="flex flex-col h-full min-w-[320px] max-w-[320px]">
+    <div className="flex flex-col h-full min-w-[280px] sm:min-w-[320px] max-w-[280px] sm:max-w-[320px]">
       {/* Column Header - Modern with Gradient */}
       <div className="bg-[#171B22] border border-white/10 rounded-xl p-4 mb-3">
         <div className="flex items-center justify-between mb-2">

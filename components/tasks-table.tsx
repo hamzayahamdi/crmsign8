@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Edit2, Trash2, ExternalLink, CheckCircle2, Clock, CircleDashed, Loader2, User } from "lucide-react"
+import { Edit2, Trash2, ExternalLink, CheckCircle2, Clock, CircleDashed, Loader2, User, Calendar } from "lucide-react"
 import type { Task, TaskStatus } from "@/types/task"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
 
 interface TasksTableProps {
   tasks: Task[]
@@ -152,20 +153,20 @@ export function TasksTable({
     const base = "inline-flex items-center gap-1.5 px-2 h-7 rounded-full text-xs font-medium border whitespace-nowrap select-none"
     if (status === "a_faire") {
       return (
-        <span className={cn(base, "bg-red-500/15 text-red-300 border-red-500/30")}> 
+        <span className={cn(base, "bg-red-500/15 text-red-300 border-red-500/30")}>
           <CircleDashed className="w-3.5 h-3.5" /> À faire
         </span>
       )
     }
     if (status === "en_cours") {
       return (
-        <span className={cn(base, "bg-blue-500/15 text-blue-300 border-blue-500/30")}> 
+        <span className={cn(base, "bg-blue-500/15 text-blue-300 border-blue-500/30")}>
           <Clock className="w-3.5 h-3.5" /> En cours
         </span>
       )
     }
     return (
-      <span className={cn(base, "bg-green-500/15 text-green-300 border-green-500/30")}> 
+      <span className={cn(base, "bg-green-500/15 text-green-300 border-green-500/30")}>
         <CheckCircle2 className="w-3.5 h-3.5" /> Terminé
       </span>
     )
@@ -184,30 +185,157 @@ export function TasksTable({
     }
   }
 
+  if (sortedTasks.length === 0) {
+    return (
+      <div className="glass rounded-xl md:rounded-2xl border border-slate-600/30 p-8 md:p-12 text-center">
+        <Calendar className="w-10 h-10 md:w-12 md:h-12 text-slate-400 mx-auto mb-3 md:mb-4" />
+        <h2 className="text-xl md:text-2xl font-bold text-white mb-2">Aucune tâche trouvée</h2>
+        <p className="text-sm md:text-base text-slate-400">Essayez de modifier vos filtres ou ajoutez une nouvelle tâche.</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="glass rounded-2xl border border-slate-600/30 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-slate-900/60 border-b border-slate-600/30">
-            <tr>
-              <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Tâche</th>
-              <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Assigné à</th>
-              <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Créée par</th>
-              <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Échéance</th>
-              <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Statut</th>
-              <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Lié à</th>
-              <th className="text-right px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-600/30">
-            {sortedTasks.length === 0 ? (
+    <>
+      {/* Mobile Card View */}
+      <div className="lg:hidden space-y-3">
+        {sortedTasks.map((task, index) => (
+          <motion.div
+            key={task.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.02, duration: 0.2 }}
+            className="glass rounded-xl border border-slate-600/30 p-4 hover:bg-slate-800/50 transition-all duration-150"
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-white text-sm truncate mb-1">{task.title}</p>
+                <p className="text-xs text-slate-400 line-clamp-2">{task.description}</p>
+              </div>
+              <div className="shrink-0">
+                <Select
+                  value={task.status}
+                  onValueChange={async (value) => {
+                    if (value === task.status) return
+                    if (!task.id) return
+                    try {
+                      setUpdatingId(task.id)
+                      await onUpdateStatus(task.id, value as TaskStatus)
+                    } finally {
+                      setUpdatingId(null)
+                    }
+                  }}
+                  disabled={updatingId === task.id || !task.id}
+                >
+                  <SelectTrigger className="h-7 w-[110px] bg-slate-800/50 border-slate-600/50 text-white text-xs px-2">
+                    <div className="flex items-center gap-1.5 pointer-events-none whitespace-nowrap">
+                      {task.status === "a_faire" && <CircleDashed className="w-3 h-3 text-red-400" />}
+                      {task.status === "en_cours" && <Clock className="w-3 h-3 text-blue-400" />}
+                      {task.status === "termine" && <CheckCircle2 className="w-3 h-3 text-green-400" />}
+                      <span className="truncate">
+                        {task.status === "a_faire" ? "À faire" : task.status === "en_cours" ? "En cours" : "Terminé"}
+                      </span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="glass border-border/40">
+                    <SelectItem value="a_faire" className="text-xs">À faire</SelectItem>
+                    <SelectItem value="en_cours" className="text-xs">En cours</SelectItem>
+                    <SelectItem value="termine" className="text-xs">Terminé</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Details Grid */}
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="space-y-1">
+                <p className="text-[10px] text-slate-500 uppercase font-semibold">Assigné à</p>
+                <p className="text-xs text-white truncate">
+                  {userNameById[task.assignedTo] || task.assignedTo || "—"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] text-slate-500 uppercase font-semibold">Échéance</p>
+                <p className="text-xs">{formatDate(task.dueDate)}</p>
+              </div>
+              <div className="space-y-1 col-span-2">
+                <p className="text-[10px] text-slate-500 uppercase font-semibold">Lié à</p>
+                <button
+                  onClick={() => handleLinkedClick(task)}
+                  className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors truncate w-full"
+                >
+                  <span className="capitalize">{task.linkedType}</span>
+                  {task.linkedName && (
+                    <span className="text-slate-400 truncate">: {task.linkedName}</span>
+                  )}
+                  <ExternalLink className="w-3 h-3 shrink-0" />
+                </button>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-600/20">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEditTask(task)}
+                className="h-8 px-3 text-slate-400 hover:text-white hover:bg-slate-700/50 text-xs"
+              >
+                <Edit2 className="w-3.5 h-3.5 mr-1.5" />
+                Modifier
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 text-xs"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    Supprimer
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="glass border-border/40 max-w-[90vw]">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Êtes-vous sûr de vouloir supprimer cette tâche ? Cette action est irréversible.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="hover:bg-accent">Annuler</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => onDeleteTask(task.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Supprimer
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden lg:block glass rounded-2xl border border-slate-600/30 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-900/60 border-b border-slate-600/30">
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
-                  Aucune tâche trouvée
-                </td>
+                <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Tâche</th>
+                <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Assigné à</th>
+                <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Créée par</th>
+                <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Échéance</th>
+                <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Statut</th>
+                <th className="text-left px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Lié à</th>
+                <th className="text-right px-6 py-3.5 text-xs tracking-wide uppercase font-semibold text-slate-400">Actions</th>
               </tr>
-            ) : (
-              sortedTasks.map((task, idx) => (
+            </thead>
+            <tbody className="divide-y divide-slate-600/30">
+              {sortedTasks.map((task, idx) => (
                 <tr
                   key={task.id}
                   className={cn("transition-colors group", idx % 2 === 1 ? "bg-slate-800/20" : "", "hover:bg-slate-800/40")}
@@ -280,7 +408,6 @@ export function TasksTable({
                         <Loader2 className="w-4 h-4 text-primary animate-spin" />
                       )}
                     </div>
-                    {/* Removed duplicate badge to avoid double display */}
                   </td>
                   <td className="px-6 py-4">
                     <button
@@ -335,11 +462,11 @@ export function TasksTable({
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

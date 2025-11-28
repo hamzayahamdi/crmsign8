@@ -46,8 +46,8 @@ import { LeadCallHistory } from "@/components/lead-call-history"
 import { CampaignBadge } from "@/components/campaign-badge"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/auth-context"
- 
- 
+
+
 
 interface LeadModalRedesignedProps {
   open: boolean
@@ -103,11 +103,11 @@ const calculatePriority = (source: LeadSource): LeadPriority => {
   }
 }
 
-export function LeadModalRedesigned({ 
-  open, 
-  onOpenChange, 
-  lead, 
-  onSave, 
+export function LeadModalRedesigned({
+  open,
+  onOpenChange,
+  lead,
+  onSave,
   onDelete,
   onConvertToClient,
   onMarkAsNotInterested,
@@ -123,7 +123,7 @@ export function LeadModalRedesigned({
   const [isSaving, setIsSaving] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
   const [showConvertDialog, setShowConvertDialog] = useState(false)
-  
+
   const initialForm = {
     nom: lead?.nom || "",
     telephone: lead?.telephone || "",
@@ -149,11 +149,11 @@ export function LeadModalRedesigned({
         const res = await fetch("/api/users")
         if (res.ok) {
           const users = (await res.json()) as Array<{ role?: string; name?: string }>
-          
+
           // Filter for gestionnaires (project managers) and architects
           let architectList = Array.from(
             new Set(
-            users
+              users
                 .filter((u) => {
                   const role = (u.role || "").toLowerCase()
                   return role === "gestionnaire" || role === "admin" || role === "architect"
@@ -162,31 +162,31 @@ export function LeadModalRedesigned({
                 .filter(Boolean),
             ),
           )
-          
+
           // Find Mohamed as the default gestionnaire de projet
-          const mohamedUser = users.find((u) => 
-            (u.name || '').toLowerCase().includes('mohamed') && 
+          const mohamedUser = users.find((u) =>
+            (u.name || '').toLowerCase().includes('mohamed') &&
             (u.role || '').toLowerCase() === 'gestionnaire'
           )
-          
+
           // Sort list to put Mohamed first
           if (mohamedUser?.name) {
             architectList = architectList.filter(name => name !== mohamedUser.name)
             architectList.unshift(mohamedUser.name) // Put Mohamed at the beginning
           }
-          
+
           // If no users found, default to Mohamed
           if (architectList.length === 0) {
             architectList = ["Mohamed"]
           }
-          
+
           setArchitects(architectList)
-          
+
           // Always use Mohamed as default (or first in list if Mohamed not found)
-          const defaultAssignee = mohamedUser?.name || (architectList.find(name => 
+          const defaultAssignee = mohamedUser?.name || (architectList.find(name =>
             name.toLowerCase().includes('mohamed')
           )) || architectList[0] || 'Mohamed'
-          
+
           // Set Mohamed as default for new leads
           if (!lead) {
             setFormData((prev) => ({ ...prev, assignePar: defaultAssignee }))
@@ -194,7 +194,7 @@ export function LeadModalRedesigned({
 
           const commercialList = Array.from(
             new Set(
-            users
+              users
                 .filter((u) => (u.role || "").toLowerCase() === "commercial")
                 .map((u) => (u.name || "").trim())
                 .filter(Boolean),
@@ -215,14 +215,14 @@ export function LeadModalRedesigned({
     loadUsers()
   }, [lead])
 
-  
+
 
   const resetForm = () => {
     // Find Mohamed or use first available gestionnaire as default
-    const defaultAssignee = architects.find((name: string) => 
+    const defaultAssignee = architects.find((name: string) =>
       name.toLowerCase().includes('mohamed')
     ) || architects[0] || 'Mohamed'
-    
+
     setFormData({
       nom: "",
       telephone: "",
@@ -247,10 +247,10 @@ export function LeadModalRedesigned({
       if (lead) {
         console.log('[LeadModal] Loading lead data into form:', lead)
         // Find Mohamed in the list for fallback
-        const defaultAssignee = architects.find((name: string) => 
+        const defaultAssignee = architects.find((name: string) =>
           name.toLowerCase().includes('mohamed')
         ) || architects[0] || 'Mohamed'
-        
+
         // Load lead data into form with all fields
         setFormData({
           nom: lead.nom || "",
@@ -275,7 +275,7 @@ export function LeadModalRedesigned({
         resetForm()
         // ALWAYS set Mohamed as default when creating a new lead
         // If Mohamed exists in the architects list, use that exact name; otherwise use "Mohamed"
-        const mohamedInList = architects.find((name: string) => 
+        const mohamedInList = architects.find((name: string) =>
           name.toLowerCase().includes('mohamed')
         )
         const defaultAssignee = mohamedInList || 'Mohamed'
@@ -284,14 +284,14 @@ export function LeadModalRedesigned({
     }
   }, [lead, open, currentUserRole, currentUserMagasin, currentUserName, architects])
 
-  
 
-  
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSaving(true)
-    
+
     try {
       const calculatedPriority = calculatePriority(formData.source)
       const dataToSave = {
@@ -302,7 +302,7 @@ export function LeadModalRedesigned({
         createdAt: lead?.createdAt ?? new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
-      
+
       await onSave(dataToSave)
       setIsSaving(false)
     } catch (error) {
@@ -320,12 +320,12 @@ export function LeadModalRedesigned({
     if (lead && onConvertToClient) {
       setIsConverting(true)
       setShowConvertDialog(false)
-      
+
       toast({
         title: "⏳ Conversion en cours...",
         description: "Le lead est en cours de conversion",
       })
-      
+
       try {
         onConvertToClient(lead)
         setTimeout(() => {
@@ -343,9 +343,9 @@ export function LeadModalRedesigned({
     }
   }
 
-  
 
-  
+
+
 
   const normalizedRole = (authUser?.role || currentUserRole || "").toLowerCase()
   const isAdmin = normalizedRole === "admin"
@@ -355,32 +355,32 @@ export function LeadModalRedesigned({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           showCloseButton={false}
-          className="sm:max-w-[1100px] h-[92vh] sm:h-[88vh] p-0 gap-0 rounded-3xl overflow-hidden glass bg-slate-950/95 border border-white/10 ring-1 ring-cyan-500/20 shadow-[0_20px_60px_rgba(8,24,68,0.65)] relative flex flex-col"
+          className="w-[95vw] sm:w-full sm:max-w-[1100px] h-[92vh] sm:h-[88vh] p-0 gap-0 rounded-3xl overflow-hidden glass bg-slate-950/95 border border-white/10 ring-1 ring-cyan-500/20 shadow-[0_20px_60px_rgba(8,24,68,0.65)] relative flex flex-col"
         >
-          <DialogHeader className="px-8 py-6 border-b border-slate-200/10 bg-linear-to-br from-slate-950/80 via-slate-900/70 to-slate-900/40">
+          <DialogHeader className="px-3 py-3 md:px-8 md:py-6 border-b border-slate-200/10 bg-linear-to-br from-slate-950/80 via-slate-900/70 to-slate-900/40">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="h-11 w-11 rounded-2xl bg-linear-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
                   <UserPlus className="h-5 w-5 text-white" />
                 </div>
-                <DialogTitle className="text-2xl font-semibold text-white tracking-tight">
+                <DialogTitle className="text-lg md:text-2xl font-semibold text-white tracking-tight">
                   {lead ? "Modifier le lead" : "Créer un lead"}
                 </DialogTitle>
                 {lead?.campaignName && <CampaignBadge campaignName={lead.campaignName} size="md" />}
               </div>
 
               <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="h-10 w-10 rounded-full bg-red-500/90 hover:bg-red-500 text-white transition-colors shadow focus:ring-2 focus:ring-red-400"
-                onClick={() => onOpenChange(false)}
-                aria-label="Fermer"
-                title="Fermer"
-              >
-                <X className="h-4 w-4 text-white" />
-              </Button>
-            </div>
+                  onClick={() => onOpenChange(false)}
+                  aria-label="Fermer"
+                  title="Fermer"
+                >
+                  <X className="h-4 w-4 text-white" />
+                </Button>
+              </div>
             </div>
 
             {lead && (
@@ -403,189 +403,189 @@ export function LeadModalRedesigned({
           </DialogHeader>
 
           <AnimatePresence mode="wait">
-              <motion.form
-                key="lead-form"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ 
-                  duration: 0.15,
-                  ease: [0.4, 0.0, 0.2, 1] as const
-                }}
-                onSubmit={handleSubmit}
-                className="flex-1 min-h-0 flex flex-col"
-              >
-                <div className="flex-1 min-h-0 px-8 py-6 space-y-6 overflow-y-auto custom-scrollbar">
-              {lead && (
-                <div className="rounded-2xl border border-white/10 bg-linear-to-r from-slate-900/70 via-slate-900/50 to-slate-900/40 p-5 space-y-5 shadow-inner shadow-black/20">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-400/90">Statut du lead</p>
-                      <p className="mt-2 flex flex-wrap items-center gap-2 text-lg font-semibold text-white">
-                        <Badge variant="outline" className="border-emerald-400/40 text-emerald-200 bg-emerald-500/10">
-                          {statuts.find((s) => s.value === lead.statut)?.label ?? lead.statut}
-                        </Badge>
-                        <span className="text-sm text-slate-300">
-                          • Priorité <span className="font-semibold text-white">{lead.priorite}</span>
-                        </span>
-                      </p>
+            <motion.form
+              key="lead-form"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration: 0.15,
+                ease: [0.4, 0.0, 0.2, 1] as const
+              }}
+              onSubmit={handleSubmit}
+              className="flex-1 min-h-0 flex flex-col"
+            >
+              <div className="flex-1 min-h-0 px-3 py-3 md:px-8 md:py-6 space-y-3 md:space-y-6 overflow-y-auto custom-scrollbar">
+                {lead && (
+                  <div className="rounded-2xl border border-white/10 bg-linear-to-r from-slate-900/70 via-slate-900/50 to-slate-900/40 p-5 space-y-5 shadow-inner shadow-black/20">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.2em] text-slate-400/90">Statut du lead</p>
+                        <p className="mt-2 flex flex-wrap items-center gap-2 text-lg font-semibold text-white">
+                          <Badge variant="outline" className="border-emerald-400/40 text-emerald-200 bg-emerald-500/10">
+                            {statuts.find((s) => s.value === lead.statut)?.label ?? lead.statut}
+                          </Badge>
+                          <span className="text-sm text-slate-300">
+                            • Priorité <span className="font-semibold text-white">{lead.priorite}</span>
+                          </span>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-xs text-slate-200">
-                    <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5">
-                      <Phone className="h-3.5 w-3.5" />
-                      {lead.telephone}
-                    </span>
-                    {lead.email && (
+                    <div className="flex flex-wrap gap-2 text-xs text-slate-200">
                       <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5">
-                        <Mail className="h-3.5 w-3.5" />
-                        {lead.email}
+                        <Phone className="h-3.5 w-3.5" />
+                        {lead.telephone}
                       </span>
-                    )}
-                    <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {lead.ville}
-                    </span>
+                      {lead.email && (
+                        <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5">
+                          <Mail className="h-3.5 w-3.5" />
+                          {lead.email}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5">
+                        <MapPin className="h-3.5 w-3.5" />
+                        {lead.ville}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="space-y-6">
+                <div className="space-y-6">
                   <section className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-inner shadow-black/20">
                     <div className="mb-6 flex items-center justify-between">
-                      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  Informations de contact
-                </h3>
+                      <h3 className="text-xs md:text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        Informations de contact
+                      </h3>
                     </div>
-                
+
                     <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="nom" className="text-sm text-slate-300">
-                      Nom complet *
-                    </Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
-                      <Input
-                        id="nom"
-                        value={formData.nom}
-                        onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                        className="pl-12 glass rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
-                        placeholder="Ex: Ahmed Benali"
-                        required
-                      />
-                    </div>
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="nom" className="text-xs md:text-sm text-slate-300">
+                          Nom complet *
+                        </Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
+                          <Input
+                            id="nom"
+                            value={formData.nom}
+                            onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                            className="pl-10 md:pl-12 h-10 md:h-11 text-sm md:text-base glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
+                            placeholder="Ex: Ahmed Benali"
+                            required
+                          />
+                        </div>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="telephone" className="text-sm text-slate-300">
-                      Téléphone *
-                    </Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
-                      <Input
-                        id="telephone"
-                        value={formData.telephone}
-                        onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                        className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
-                        placeholder="06 XX XX XX XX"
-                        required
-                      />
-                  </div>
-                </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="telephone" className="text-sm text-slate-300">
+                          Téléphone *
+                        </Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
+                          <Input
+                            id="telephone"
+                            value={formData.telephone}
+                            onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                            className="pl-9 md:pl-10 h-10 md:h-11 text-sm md:text-base glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
+                            placeholder="06 XX XX XX XX"
+                            required
+                          />
+                        </div>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm text-slate-300">
-                      Email
-                    </Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
-                        placeholder="email@exemple.com"
-                      />
-                    </div>
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-sm text-slate-300">
+                          Email
+                        </Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
+                          <Input
+                            id="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
+                            placeholder="email@exemple.com"
+                          />
+                        </div>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="ville" className="text-sm text-slate-300">
-                      Ville *
-                    </Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400 z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(16,185,129,0.55)]" />
-                      <div className="[&>button]:pl-10">
-                        <Select value={formData.ville} onValueChange={(value) => setFormData({ ...formData, ville: value })}>
-                          <SelectTrigger className="pl-12 glass rounded-xl bg-white/10 border border-white/10 text-white">
-                            <SelectValue placeholder="Sélectionner" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {villes.map((v) => (
+                      <div className="space-y-2">
+                        <Label htmlFor="ville" className="text-sm text-slate-300">
+                          Ville *
+                        </Label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400 z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(16,185,129,0.55)]" />
+                          <div className="[&>button]:pl-10">
+                            <Select value={formData.ville} onValueChange={(value) => setFormData({ ...formData, ville: value })}>
+                              <SelectTrigger className="pl-12 glass rounded-xl bg-white/10 border border-white/10 text-white">
+                                <SelectValue placeholder="Sélectionner" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {villes.map((v) => (
                                   <SelectItem key={v} value={v}>
                                     {v}
                                   </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
                   </section>
 
-                  <section className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-inner shadow-black/20 space-y-6">
+                  <section className="rounded-xl md:rounded-2xl border border-white/10 bg-slate-900/60 p-3 md:p-6 shadow-inner shadow-black/20 space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
-                  <Building2 className="w-4 h-4" />
-                  Bien & Source
-                </h3>
+                        <Building2 className="w-4 h-4" />
+                        Bien & Source
+                      </h3>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="typeBien" className="text-sm text-slate-300">
-                      Type de bien *
-                    </Label>
-                    <div className="relative">
-                      <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400 z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(168,85,247,0.55)]" />
-                      <div className="[&>button]:pl-10">
-                        <Select value={formData.typeBien} onValueChange={(value) => setFormData({ ...formData, typeBien: value })}>
-                          <SelectTrigger className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white">
-                            <SelectValue placeholder="Sélectionner" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {typesBien.map((t) => (
+                      <div className="space-y-2">
+                        <Label htmlFor="typeBien" className="text-sm text-slate-300">
+                          Type de bien *
+                        </Label>
+                        <div className="relative">
+                          <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400 z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(168,85,247,0.55)]" />
+                          <div className="[&>button]:pl-10">
+                            <Select value={formData.typeBien} onValueChange={(value) => setFormData({ ...formData, typeBien: value })}>
+                              <SelectTrigger className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white">
+                                <SelectValue placeholder="Sélectionner" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {typesBien.map((t) => (
                                   <SelectItem key={t} value={t}>
                                     {t}
                                   </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="source" className="text-sm text-slate-300">
-                      Source *
-                    </Label>
-                    <div className="relative">
-                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-400 z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(59,130,246,0.55)]" />
-                      <div className="[&>button]:pl-10">
-                        <Select
-                          value={formData.source}
-                          onValueChange={(value) => {
-                            const newSource = value as LeadSource
-                            const calculatedPriority = calculatePriority(newSource)
-                            setFormData({ 
-                              ...formData, 
-                              source: newSource, 
-                              priorite: calculatedPriority,
+                      <div className="space-y-2">
+                        <Label htmlFor="source" className="text-sm text-slate-300">
+                          Source *
+                        </Label>
+                        <div className="relative">
+                          <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-400 z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(59,130,246,0.55)]" />
+                          <div className="[&>button]:pl-10">
+                            <Select
+                              value={formData.source}
+                              onValueChange={(value) => {
+                                const newSource = value as LeadSource
+                                const calculatedPriority = calculatePriority(newSource)
+                                setFormData({
+                                  ...formData,
+                                  source: newSource,
+                                  priorite: calculatedPriority,
                                   magasin:
                                     newSource !== "magasin"
                                       ? ""
@@ -594,127 +594,127 @@ export function LeadModalRedesigned({
                                     newSource !== "magasin"
                                       ? ""
                                       : formData.commercialMagasin || (currentUserRole === "commercial" ? currentUserName : ""),
-                            })
-                          }}
-                        >
-                          <SelectTrigger className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {sources.map((source) => (
-                              <SelectItem key={source.value} value={source.value}>
-                                {source.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                                })
+                              }}
+                            >
+                              <SelectTrigger className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {sources.map((source) => (
+                                  <SelectItem key={source.value} value={source.value}>
+                                    {source.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
 
                     {formData.source === "magasin" && (
                       <div className="grid gap-4 rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 md:grid-cols-2">
-                    <div className="space-y-2">
+                        <div className="space-y-2">
                           <Label htmlFor="magasin" className="text-sm text-slate-200">
-                        Magasin *
-                      </Label>
+                            Magasin *
+                          </Label>
                           <Select value={formData.magasin} onValueChange={(value) => setFormData({ ...formData, magasin: value })}>
-                        <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
-                          <SelectValue placeholder="Sélectionner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {magasins.map((mag) => (
-                            <SelectItem key={mag} value={mag}>
-                              {mag}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                            <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
+                              <SelectValue placeholder="Sélectionner" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {magasins.map((mag) => (
+                                <SelectItem key={mag} value={mag}>
+                                  {mag}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="commercialMagasin" className="text-sm text-slate-200">
+                            Commercial magasin *
+                          </Label>
+                          <Input
+                            id="commercialMagasin"
+                            value={formData.commercialMagasin}
+                            onChange={(e) => setFormData({ ...formData, commercialMagasin: e.target.value })}
+                            className="glass rounded-xl bg-white/10 border border-white/10 text-white"
+                            placeholder="Nom du commercial"
+                            required
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     <div className="space-y-2">
-                          <Label htmlFor="commercialMagasin" className="text-sm text-slate-200">
-                        Commercial magasin *
+                      <Label htmlFor="assignePar" className="text-sm text-slate-300">
+                        Assigné à *
                       </Label>
-                      <Input
-                        id="commercialMagasin"
-                        value={formData.commercialMagasin}
-                        onChange={(e) => setFormData({ ...formData, commercialMagasin: e.target.value })}
-                        className="glass rounded-xl bg-white/10 border border-white/10 text-white"
-                            placeholder="Nom du commercial"
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-  <Label htmlFor="assignePar" className="text-sm text-slate-300">
-    Assigné à *
-  </Label>
-  <div className="relative">
-    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white z-30 pointer-events-none drop-shadow-[0_0_12px_rgba(255,255,255,0.65)]" />
-    <div className="[&>button]:pl-10">
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white z-30 pointer-events-none drop-shadow-[0_0_12px_rgba(255,255,255,0.65)]" />
+                        <div className="[&>button]:pl-10">
                           <Select value={formData.assignePar} onValueChange={(value) => setFormData({ ...formData, assignePar: value })}>
-                        <SelectTrigger className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {architects.map((name) => (
-                            <SelectItem key={name} value={name}>
-                              {name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                            <SelectTrigger className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {architects.map((name) => (
+                                <SelectItem key={name} value={name}>
+                                  {name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
                   </section>
 
                   <section className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-inner shadow-black/20 space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Statut & Notes
-                </h3>
+                        <FileText className="w-4 h-4" />
+                        Statut & Notes
+                      </h3>
                     </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="statut" className="text-sm text-slate-300">
-                    État du lead
-                  </Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="statut" className="text-sm text-slate-300">
+                        État du lead
+                      </Label>
                       <Select value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value as LeadStatus })}>
-                    <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statuts.map((statut) => (
-                        <SelectItem key={statut.value} value={statut.value}>
-                          {statut.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                        <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statuts.map((statut) => (
+                            <SelectItem key={statut.value} value={statut.value}>
+                              {statut.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="message" className="text-sm text-slate-300">
-                    Notes / Message
-                  </Label>
-                  <Textarea
-                    id="message"
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    <div className="space-y-2">
+                      <Label htmlFor="message" className="text-sm text-slate-300">
+                        Notes / Message
+                      </Label>
+                      <Textarea
+                        id="message"
+                        value={formData.message}
+                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                         className="glass rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all min-h-[90px] resize-none"
-                    placeholder="Informations complémentaires sur le lead..."
-                  />
-                </div>
+                        placeholder="Informations complémentaires sur le lead..."
+                      />
+                    </div>
                   </section>
-              </div>
+                </div>
 
-              {lead && lead.notes && lead.notes.length > 0 && (
+                {lead && lead.notes && lead.notes.length > 0 && (
                   <section className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-inner shadow-black/20 space-y-4">
                     <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
                       <MessageSquare className="w-4 h-4 text-primary" />
@@ -773,96 +773,96 @@ export function LeadModalRedesigned({
                 )}
               </div>
 
-            <div className="px-8 py-6 border-t border-white/10 bg-gradient-to-r from-slate-900/60 via-slate-900/50 to-slate-900/60 backdrop-blur-sm">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                  className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-slate-500 rounded-xl transition-all px-6 h-11 font-medium"
-                >
-                  Annuler
-                </Button>
+              <div className="px-3 py-3 md:px-8 md:py-6 border-t border-white/10 bg-gradient-to-r from-slate-900/60 via-slate-900/50 to-slate-900/60 backdrop-blur-sm">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    className="border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-slate-500 rounded-lg md:rounded-xl transition-all px-4 md:px-6 h-10 md:h-11 text-sm md:text-base font-medium"
+                  >
+                    Annuler
+                  </Button>
 
-                <div className="flex items-center gap-3">
-                  {lead && onConvertToClient && isAdmin && lead.statut !== "qualifie" && (
-                  <AlertDialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        type="button"
-                        disabled={isConverting || isSaving}
-                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl transition-all shadow-lg shadow-green-600/30 hover:shadow-green-600/40 disabled:opacity-50 px-6 h-11 font-medium"
-                      >
-                        {isConverting ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Conversion...
-                          </>
-                        ) : (
-                          <>
-                            <ArrowRightLeft className="w-4 h-4 mr-2" />
-                            Convertir en Contact
-                          </>
-                        )}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="rounded-2xl border border-white/10 bg-slate-950">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="text-white">Convertir en client ?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-slate-400">
-                            Souhaitez-vous convertir ce lead en client ? Un nouveau client sera créé automatiquement dans la section Clients &amp; Projets.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                          <AlertDialogCancel className="rounded-xl border-slate-600 hover:bg-slate-800" disabled={isConverting}>
-                            Annuler
-                          </AlertDialogCancel>
-                        <AlertDialogAction 
-                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl disabled:opacity-50"
-                          onClick={handleConvertToClient}
-                          disabled={isConverting}
-                        >
-                          {isConverting ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Conversion...
-                            </>
-                          ) : (
-                              "Convertir"
-                          )}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
+                  <div className="flex items-center gap-3">
+                    {lead && onConvertToClient && isAdmin && lead.statut !== "qualifie" && (
+                      <AlertDialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            type="button"
+                            disabled={isConverting || isSaving}
+                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl transition-all shadow-lg shadow-green-600/30 hover:shadow-green-600/40 disabled:opacity-50 px-6 h-11 font-medium"
+                          >
+                            {isConverting ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Conversion...
+                              </>
+                            ) : (
+                              <>
+                                <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                Convertir en Contact
+                              </>
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="rounded-2xl border border-white/10 bg-slate-950">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="text-white">Convertir en client ?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-slate-400">
+                              Souhaitez-vous convertir ce lead en client ? Un nouveau client sera créé automatiquement dans la section Clients &amp; Projets.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="rounded-xl border-slate-600 hover:bg-slate-800" disabled={isConverting}>
+                              Annuler
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl disabled:opacity-50"
+                              onClick={handleConvertToClient}
+                              disabled={isConverting}
+                            >
+                              {isConverting ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Conversion...
+                                </>
+                              ) : (
+                                "Convertir"
+                              )}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
 
-                <Button
-                  type="submit"
-                  disabled={isSaving}
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-xl transition-all shadow-lg shadow-blue-600/30 hover:shadow-blue-600/40 min-w-[160px] h-11 font-semibold"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Enregistrement...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Enregistrer
-                    </>
-                  )}
-                </Button>
+                    <Button
+                      type="submit"
+                      disabled={isSaving}
+                      className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-xl transition-all shadow-lg shadow-blue-600/30 hover:shadow-blue-600/40 min-w-[160px] h-11 font-semibold"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Enregistrement...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Enregistrer
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-              </motion.form>
+            </motion.form>
           </AnimatePresence>
-          
-          
-          </DialogContent>
-        </Dialog>
-      </>
-    )
-  }
+
+
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
 

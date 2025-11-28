@@ -28,10 +28,10 @@ export function LeadActionDialog({
 
   const handleConvert = () => {
     if (!lead) return
-    
+
     // Close the action dialog
     handleOpenChange(false)
-    
+
     // Call the parent handler to show the convert modal
     if (onConvertToClient) {
       onConvertToClient(lead)
@@ -50,10 +50,10 @@ export function LeadActionDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-[500px] bg-neutral-900/95 backdrop-blur-2xl border border-white/10 text-white shadow-2xl rounded-2xl overflow-hidden">
+        <DialogContent className="w-[95vw] sm:w-full sm:max-w-[500px] bg-neutral-900/95 backdrop-blur-2xl border border-white/10 text-white shadow-2xl rounded-2xl overflow-hidden">
           {/* Gradient overlay for premium feel */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-          
+
           <DialogHeader className="relative">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
@@ -68,7 +68,7 @@ export function LeadActionDialog({
             </p>
           </DialogHeader>
 
-          <motion.div 
+          <motion.div
             className="flex flex-col gap-3 mt-6 relative"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
