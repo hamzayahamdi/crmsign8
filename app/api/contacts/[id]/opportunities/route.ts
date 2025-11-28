@@ -70,7 +70,7 @@ export async function POST(
         titre,
         type: type as any,
         statut: 'open',
-        pipelineStage: 'projet_accepte', // Default stage for new opportunities (Project Accepted)
+        pipelineStage: 'acompte_recu', // Default stage for new opportunities
         budget: budget ? parseFloat(budget) : undefined,
         description: description || undefined,
         architecteAssigne: architecteAssigne || undefined,
@@ -123,7 +123,7 @@ export async function POST(
           metadata: {
             type: type,
             budget: budget ? parseFloat(budget) : null,
-            pipelineStage: 'projet_accepte'
+            pipelineStage: 'acompte_recu'
           },
           author: decoded.userId,
         },

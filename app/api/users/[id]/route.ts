@@ -18,8 +18,6 @@ export async function GET(
         name: true,
         role: true,
         magasin: true,
-        ville: true,
-        phone: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -73,7 +71,7 @@ export async function PATCH(
     const { email, password, name } = body
 
     const updateData: any = {}
-
+    
     if (email) updateData.email = email.toLowerCase()
     if (name) updateData.name = name
     if (typeof body.role === 'string' && ALLOWED_ROLES.has(body.role)) {
@@ -86,18 +84,6 @@ export async function PATCH(
     // If role set to non-magasiner and magasin was not explicitly provided, clear magasin
     if (updateData.role && updateData.role !== 'magasiner' && typeof body.magasin === 'undefined') {
       updateData.magasin = undefined
-    }
-    // Handle ville field
-    if (typeof body.ville === 'string') {
-      updateData.ville = body.ville
-    } else if (body.ville === null) {
-      updateData.ville = null
-    }
-    // Handle phone field
-    if (typeof body.phone === 'string') {
-      updateData.phone = body.phone
-    } else if (body.phone === null) {
-      updateData.phone = null
     }
     if (password) {
       updateData.password = await bcrypt.hash(password, 10)
@@ -120,8 +106,6 @@ export async function PATCH(
         name: true,
         role: true,
         magasin: true,
-        ville: true,
-        phone: true,
         createdAt: true,
         updatedAt: true,
       }

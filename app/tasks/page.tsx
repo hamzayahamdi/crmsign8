@@ -9,6 +9,13 @@ import { TasksTable } from "@/components/tasks-table"
 import { AddTaskModal } from "@/components/add-task-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { Header } from "@/components/header"
 import { motion } from "framer-motion"
@@ -332,46 +339,58 @@ export default function TasksPage() {
                     {/* Status Filter */}
                     <div className="space-y-2">
                       <label className="text-xs md:text-sm font-medium text-white">Statut</label>
-                      <select
+                      <Select
                         value={filters.status}
-                        onChange={(e) => setFilters(f => ({ ...f, status: e.target.value as any }))}
-                        className="h-9 md:h-10 text-sm w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        onValueChange={(value) => setFilters(f => ({ ...f, status: value as any }))}
                       >
-                        <option value="all">Tous les statuts</option>
-                        <option value="a_faire">À faire</option>
-                        <option value="en_cours">En cours</option>
-                        <option value="termine">Terminé</option>
-                      </select>
+                        <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20">
+                          <SelectValue placeholder="Tous les statuts" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                          <SelectItem value="all">Tous les statuts</SelectItem>
+                          <SelectItem value="a_faire">À faire</SelectItem>
+                          <SelectItem value="en_cours">En cours</SelectItem>
+                          <SelectItem value="termine">Terminé</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Linked Type Filter */}
                     <div className="space-y-2">
                       <label className="text-xs md:text-sm font-medium text-white">Lié à</label>
-                      <select
+                      <Select
                         value={filters.linkedType}
-                        onChange={(e) => setFilters(f => ({ ...f, linkedType: e.target.value as any }))}
-                        className="h-9 md:h-10 text-sm w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        onValueChange={(value) => setFilters(f => ({ ...f, linkedType: value as any }))}
                       >
-                        <option value="all">Tous</option>
-                        <option value="lead">Lead</option>
-                        <option value="client">Client</option>
-                      </select>
+                        <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20">
+                          <SelectValue placeholder="Tous" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                          <SelectItem value="all">Tous</SelectItem>
+                          <SelectItem value="lead">Lead</SelectItem>
+                          <SelectItem value="client">Client</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Assigned To Filter - Only show for Admin/Operator */}
                     {userRole !== 'architect' && (
                       <div className="space-y-2">
                         <label className="text-xs md:text-sm font-medium text-white">Assigné à</label>
-                        <select
+                        <Select
                           value={filters.assignedTo}
-                          onChange={(e) => setFilters(f => ({ ...f, assignedTo: e.target.value }))}
-                          className="h-9 md:h-10 text-sm w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                          onValueChange={(value) => setFilters(f => ({ ...f, assignedTo: value }))}
                         >
-                          <option value="all">Tous</option>
-                          {uniqueAssignees.map(a => (
-                            <option key={a} value={a}>{a}</option>
-                          ))}
-                        </select>
+                          <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20">
+                            <SelectValue placeholder="Tous" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                            <SelectItem value="all">Tous</SelectItem>
+                            {uniqueAssignees.map(a => (
+                              <SelectItem key={a} value={a}>{a}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     )}
                   </div>

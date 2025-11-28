@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/database'
+import { PrismaClient } from '@prisma/client'
 import { notifyTaskAssigned } from '@/lib/notification-creator'
 import { Prisma } from '@prisma/client'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+const prisma = new PrismaClient()
 
 // GET single task
 export async function GET(
@@ -28,26 +30,10 @@ export async function GET(
       success: true,
       data: task
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching task:', error)
-    
-    // Handle Prisma connection errors
-    if (error?.code === 'P1001') {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Database connection failed. Please check your database configuration and ensure the server is running.',
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        },
-        { status: 503 }
-      )
-    }
-    
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error?.message || 'Failed to fetch task' 
-      },
+      { success: false, error: 'Failed to fetch task' },
       { status: 500 }
     )
   }
@@ -134,24 +120,8 @@ export async function PUT(
     })
   } catch (error: any) {
     console.error('Error updating task:', error)
-    
-    // Handle Prisma connection errors
-    if (error?.code === 'P1001') {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Database connection failed. Please check your database configuration and ensure the server is running.',
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        },
-        { status: 503 }
-      )
-    }
-    
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error?.message || 'Failed to update task' 
-      },
+      { success: false, error: error?.message || 'Failed to update task' },
       { status: 500 }
     )
   }
@@ -216,24 +186,8 @@ export async function DELETE(
     }
 
     console.error('Error deleting task:', error)
-    
-    // Handle Prisma connection errors
-    if (error?.code === 'P1001') {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Database connection failed. Please check your database configuration and ensure the server is running.',
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        },
-        { status: 503 }
-      )
-    }
-    
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error?.message || 'Failed to delete task' 
-      },
+      { success: false, error: 'Failed to delete task' },
       { status: 500 }
     )
   }

@@ -311,6 +311,10 @@ interface KanbanBoardProps {
   searchQuery?: string
 }
 
+import { useDebounce } from "@/hooks/use-debounce"
+
+// ... (imports remain the same)
+
 export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps) {
   const router = useRouter()
   const [activeLead, setActiveLead] = useState<Lead | null>(null)
@@ -334,8 +338,10 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
   const [newlyAddedLeadId, setNewlyAddedLeadId] = useState<string | null>(null)
   const [architectAssignees, setArchitectAssignees] = useState<string[]>([])
 
-  // Use infinite scroll hook with eager loading
-  // Note: No filter dependencies - we do client-side filtering
+  // Debounce search query
+  const debouncedSearch = useDebounce(searchQuery, 300)
+
+  // Use infinite scroll hook with eager loading and server-side filtering
   const {
     data: leads,
     loading: isLoading,
@@ -349,17 +355,17 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     removeItem: removeLead
   } = useEnhancedInfiniteScroll<Lead>(
     (params) => LeadsService.getLeads(params),
-    {},
-    100, // Page size - fetch 100 items at a time for faster loading
-    [], // No dependencies - prevents unwanted resets
+    {
+      search: debouncedSearch,
+      ...filters
+    },
+    100, // Page size
+    [debouncedSearch, filters], // Dependencies
     true, // Enabled
     true  // Eager load
   )
 
   const error = fetchError
-
-  // Use leads directly from the hook instead of maintaining separate local state
-  // This prevents sync issues where local changes get overwritten
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -384,23 +390,21 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
   const customCollisionDetection = (args: any) => {
     // First, try to find intersecting droppable containers
     const pointerCollisions = pointerWithin(args)
-    
+
     if (pointerCollisions.length > 0) {
       return pointerCollisions
     }
-    
+
     // Fall back to rectangle intersection
     const rectCollisions = rectIntersection(args)
-    
+
     if (rectCollisions.length > 0) {
       return rectCollisions
     }
-    
+
     // Finally, use closest center as last resort
     return closestCenter(args)
   }
-
-  const normalizedQuery = searchQuery.trim().toLowerCase()
 
   // Load architect users (assignees) for filter options
   useEffect(() => {
@@ -425,31 +429,10 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     loadArchitects()
   }, [])
 
-  const passesSearch = (lead: Lead) => {
-    if (!normalizedQuery) return true
-    const haystack = [
-      lead.nom,
-      lead.telephone,
-      lead.ville,
-      lead.typeBien,
-      lead.assignePar,
-      lead.statutDetaille ?? "",
-      lead.message ?? "",
-    ]
-      .join(" ")
-      .toLowerCase()
-    return haystack.includes(normalizedQuery)
-  }
-
-  const passesFilters = (lead: Lead) => {
-    if (filters.status !== "all" && lead.statut !== filters.status) return false
-    if (filters.city !== "all" && lead.ville !== filters.city) return false
-    if (filters.type !== "all" && lead.typeBien !== filters.type) return false
-    if (filters.assigned !== "all" && lead.assignePar !== filters.assigned) return false
-    if (filters.priority !== "all" && lead.priorite !== filters.priority) return false
-    if (filters.source !== "all" && lead.source !== filters.source) return false
-    if (filters.campaign !== "all" && lead.campaignName !== filters.campaign) return false
-    return true
+  // Client-side filtering is no longer needed as we rely on server-side filtering
+  // However, for the Kanban columns, we still need to filter the *loaded* leads by status
+  const getLeadsByStatus = (status: LeadStatus) => {
+    return leads.filter((lead: Lead) => lead.statut === status)
   }
 
   const getActiveFiltersCount = () => {
@@ -483,10 +466,6 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     }))
   }
 
-  const getLeadsByStatus = (status: LeadStatus) => {
-    return leads.filter((lead: Lead) => lead.statut === status && passesSearch(lead) && passesFilters(lead))
-  }
-
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event
     const lead = leads.find((l: Lead) => l.id === active.id)
@@ -501,9 +480,9 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
-    
+
     console.log('[Drag] Drag ended', { activeId: active.id, overId: over?.id })
-    
+
     if (!over) {
       console.log('[Drag] No drop target detected')
       setActiveLead(null)
@@ -577,21 +556,21 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         qualifie: "Qualifié",
         refuse: "Refusé",
       }
-      
+
       toast.success("Lead déplacé", {
         description: `${draggedLead.nom} a été déplacé vers ${statusLabels[targetStatus]}`
       })
-      
+
       console.log('[Drag] Successfully updated lead status in database')
     } catch (error) {
       console.error("[Drag] Error updating lead status:", error)
-      
+
       // Revert optimistic update on error
       updateLead(draggedId, {
         statut: previousStatus,
         derniereMaj: new Date().toISOString()
       })
-      
+
       toast.error("Échec de la mise à jour du statut. Veuillez réessayer.")
     }
   }
@@ -602,14 +581,14 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     try {
       console.log('[KanbanBoard] 📝 Opening edit modal for lead:', lead.id)
       const token = localStorage.getItem('token')
-      
+
       // Fetch the latest lead data to ensure we have all fields
       const leadResponse = await fetch(`/api/leads/${lead.id}`, {
         headers: {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
       })
-      
+
       if (leadResponse.ok) {
         const freshLeadData = await leadResponse.json()
         console.log('[KanbanBoard] ✅ Loaded fresh lead data:', freshLeadData)
@@ -633,13 +612,13 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     // If lead is converted, redirect to the associated contact details page
     if (lead.statut === 'qualifie' || lead.convertedToContactId) {
       console.log('[KanbanBoard] 🔄 Lead is converted - fetching associated contact...')
-      
+
       try {
         const token = localStorage.getItem('token')
-        
+
         // If we have convertedToContactId, use it directly
         let contactId = lead.convertedToContactId
-        
+
         // If not, try to fetch from the lead endpoint
         if (!contactId) {
           const leadResponse = await fetch(`/api/leads/${lead.id}`, {
@@ -647,16 +626,16 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
               ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
             },
           })
-          
+
           if (leadResponse.ok) {
             const leadData = await leadResponse.json()
             contactId = leadData.convertedToContactId
           }
         }
-        
+
         if (contactId) {
           console.log('[KanbanBoard] ✅ Found associated contact:', contactId)
-          
+
           // Redirect to contact details page using Next.js router (no refresh)
           router.push(`/contacts/${contactId}`)
           return
@@ -681,7 +660,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
 
   useEffect(() => {
     if (onCreateLead) {
-      ;(window as any).__signature8CreateLead = handleCreateLead
+      ; (window as any).__signature8CreateLead = handleCreateLead
     }
   }, [onCreateLead])
 
@@ -699,11 +678,11 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         console.log('[KanbanBoard] Updating lead with data:', leadData)
         const updatedLead = await LeadsService.updateLead(leadData.id, leadData)
         console.log('[KanbanBoard] Lead updated from API:', updatedLead)
-        
+
         // Update in the list immediately with fresh data from API
         updateLead(leadData.id, updatedLead)
         console.log('[KanbanBoard] Lead updated in list')
-        
+
         // Update editingLead so modal shows fresh data if reopened
         setEditingLead(updatedLead)
 
@@ -720,15 +699,15 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         console.log('[KanbanBoard] Creating lead:', leadData)
         const createdLead = await LeadsService.createLead(leadData)
         console.log('[KanbanBoard] Lead created from API:', createdLead)
-        
+
         // Add to the list immediately
         console.log('[KanbanBoard] Adding lead to list...')
         addLead(createdLead)
         console.log('[KanbanBoard] Lead added to list')
-        
+
         // Highlight the newly added lead
         setNewlyAddedLeadId(createdLead.id)
-        
+
         // Remove highlight after 3 seconds
         setTimeout(() => {
           setNewlyAddedLeadId(null)
@@ -738,7 +717,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
         toast.success("✅ Lead créé", {
           description: "Le nouveau lead a été créé avec succès",
         })
-        
+
         // Close modal after successful creation
         setEditingLead(null)
         setIsModalOpen(false)
@@ -754,15 +733,15 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
   const handleDeleteLead = async (leadId: string) => {
     try {
       console.log(`[Delete Lead] Deleting lead ${leadId}`)
-      
+
       // Delete from database
       await LeadsService.deleteLead(leadId)
-      
+
       // Remove from list immediately
       removeLead(leadId)
-      
+
       setIsModalOpen(false)
-      
+
       toast.success("✅ Lead supprimé", {
         description: "Le lead a été supprimé avec succès (client préservé si converti)",
       })
@@ -774,10 +753,10 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
 
   const handleConvertToClient = (lead: Lead) => {
     console.log('🔄 [Conversion] Opening architect selection modal for lead:', lead.id, lead.nom)
-    
+
     // Close edit modal if open
     setIsModalOpen(false)
-    
+
     // Open architect selection modal
     setLeadToConvert(lead)
     setIsArchitectModalOpen(true)
@@ -787,7 +766,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
     if (!leadToConvert) return
 
     console.log('🔄 [Conversion] Architect selected:', architectId || 'none', 'for lead:', leadToConvert.id)
-    
+
     // Close architect modal
     setIsArchitectModalOpen(false)
     const lead = leadToConvert
@@ -801,7 +780,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
 
     try {
       const token = localStorage.getItem('token')
-      
+
       if (!token) {
         toast.dismiss(loadingToast)
         toast.error("Non authentifié. Veuillez vous reconnecter.")
@@ -824,7 +803,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         console.error('❌ [Conversion] API error:', errorData)
-        
+
         toast.dismiss(loadingToast)
         toast.error(errorData.error || "Échec de la conversion. Veuillez réessayer.")
         return
@@ -832,26 +811,26 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
 
       const data = await response.json()
       console.log('✅ [Conversion] Full API response:', data)
-      
+
       if (!data.contact || !data.contact.id) {
         console.error('❌ [Conversion] No contact data in response!')
         toast.dismiss(loadingToast)
         toast.error("Le contact a été créé mais les données sont manquantes. Rechargez la page.")
         return
       }
-      
+
       // Dismiss loading toast before showing success
       toast.dismiss(loadingToast)
-      
+
       // Small delay to ensure loading toast is dismissed
       await new Promise(resolve => setTimeout(resolve, 100))
-      
+
       console.log('🎉 [Kanban] Showing success toast for:', lead.nom)
       toast.success(`✨ ${lead.nom} converti en contact !`, {
         description: "Redirection vers le profil du contact...",
         duration: 2000,
       })
-      
+
       // Remove lead from UI
       console.log('🎬 [Conversion] Removing lead from UI...')
       removeLead(lead.id)
@@ -859,13 +838,13 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
       // Redirect to contact details page with conversion flag after a short delay
       const contactId = data.contact.id
       console.log('🔄 [Conversion] Redirecting to:', `/contacts/${contactId}`)
-      
+
       // Use setTimeout to ensure redirect happens after toast is shown
       // Use window.location.href for more reliable navigation
       setTimeout(() => {
         window.location.href = `/contacts/${contactId}?converted=true`
       }, 800)
-      
+
     } catch (error) {
       console.error("❌ [Conversion] Error:", error)
       toast.dismiss(loadingToast)
@@ -875,15 +854,15 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
 
   const handleMarkAsNotInterested = async (lead: Lead) => {
     console.log('🚫 [Not Interested] Starting for lead:', lead.id, lead.nom)
-    
+
     try {
       // Call mark not interested API
       const token = localStorage.getItem('token')
-      
+
       if (!token) {
         throw new Error('No authentication token found')
       }
-      
+
       console.log('📡 [Not Interested] Calling API...')
       const response = await fetch(`/api/leads/${lead.id}/mark-not-interested`, {
         method: 'POST',
@@ -903,7 +882,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
 
       const data = await response.json()
       console.log('✅ [Not Interested] API response:', data)
-      
+
       // Update lead status in local state
       if (data.lead) {
         console.log('🔄 [Not Interested] Updating lead status to:', data.lead.statut)
@@ -915,7 +894,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
 
       setIsModalOpen(false)
       console.log('✅ [Not Interested] Modal closed')
-      
+
       toast.success("🔴 Lead marqué", {
         description: "Le lead a été marqué comme non intéressé",
       })
@@ -952,7 +931,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                 {/* Top Row: Filter Button and Clear */}
                 <div className="flex items-center justify-between">
                   {/* Left: Filter Section */}
-                  <button 
+                  <button
                     className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-all flex-1 group"
                     onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                   >
@@ -1005,11 +984,11 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                             className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 border border-blue-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-blue-500/25 transition-colors"
                           >
                             <span className="truncate max-w-[100px]">{columns.find(c => c.status === filters.status)?.label}</span>
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 removeFilter('status')
-                              }} 
+                              }}
                               className="hover:text-blue-200 transition-colors flex-shrink-0"
                               aria-label="Remove status filter"
                             >
@@ -1025,11 +1004,11 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                             className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 border border-blue-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-blue-500/25 transition-colors"
                           >
                             <span className="truncate max-w-[100px]">{filters.city}</span>
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 removeFilter('city')
-                              }} 
+                              }}
                               className="hover:text-blue-200 transition-colors flex-shrink-0"
                               aria-label="Remove city filter"
                             >
@@ -1045,11 +1024,11 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                             className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 border border-blue-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-blue-500/25 transition-colors"
                           >
                             <span className="truncate max-w-[100px]">{filters.type}</span>
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 removeFilter('type')
-                              }} 
+                              }}
                               className="hover:text-blue-200 transition-colors flex-shrink-0"
                               aria-label="Remove type filter"
                             >
@@ -1065,11 +1044,11 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                             className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 border border-blue-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-blue-500/25 transition-colors"
                           >
                             <span className="truncate max-w-[100px]">{filters.assigned}</span>
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 removeFilter('assigned')
-                              }} 
+                              }}
                               className="hover:text-blue-200 transition-colors flex-shrink-0"
                               aria-label="Remove assigned filter"
                             >
@@ -1085,11 +1064,11 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                             className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-300 border border-blue-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-blue-500/25 transition-colors"
                           >
                             <span className="truncate max-w-[100px]">{filters.priority === 'haute' ? 'Haute' : filters.priority === 'moyenne' ? 'Moyenne' : 'Basse'}</span>
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 removeFilter('priority')
-                              }} 
+                              }}
                               className="hover:text-blue-200 transition-colors flex-shrink-0"
                               aria-label="Remove priority filter"
                             >
@@ -1105,11 +1084,11 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                             className="inline-flex items-center gap-1 bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-fuchsia-500/25 transition-colors"
                           >
                             <span className="truncate max-w-[100px]">{filters.source.charAt(0).toUpperCase() + filters.source.slice(1)}</span>
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 removeFilter('source')
-                              }} 
+                              }}
                               className="hover:text-fuchsia-200 transition-colors flex-shrink-0"
                               aria-label="Remove source filter"
                             >
@@ -1125,11 +1104,11 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                             className="inline-flex items-center gap-1 bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/25 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-fuchsia-500/25 transition-colors"
                           >
                             <span className="truncate max-w-[100px]">{filters.campaign}</span>
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 removeFilter('campaign')
-                              }} 
+                              }}
                               className="hover:text-fuchsia-200 transition-colors flex-shrink-0"
                               aria-label="Remove campaign filter"
                             >
@@ -1145,11 +1124,11 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
 
               {/* Filter Content - Compact Grid */}
               {isFiltersOpen && (
-                <div className="border-t border-slate-600/20 p-4 bg-gradient-to-b from-slate-800/30 to-slate-800/50">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="border-t border-slate-600/20 p-3 md:p-4 bg-gradient-to-b from-slate-800/30 to-slate-800/50">
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
                     {/* Status Filter */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <div className="space-y-1">
+                      <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                         Statut
                       </label>
@@ -1157,7 +1136,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                         value={filters.status}
                         onValueChange={(v) => setFilters((f) => ({ ...f, status: v as any }))}
                       >
-                        <SelectTrigger className="h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-sm hover:border-primary/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
+                        <SelectTrigger className="h-8 md:h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-xs md:text-sm hover:border-primary/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 text-white border-slate-600">
@@ -1172,8 +1151,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                     </div>
 
                     {/* City Filter */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <div className="space-y-1">
+                      <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
                         Ville
                       </label>
@@ -1181,7 +1160,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                         value={filters.city}
                         onValueChange={(v) => setFilters((f) => ({ ...f, city: v }))}
                       >
-                        <SelectTrigger className="h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-sm hover:border-blue-400/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
+                        <SelectTrigger className="h-8 md:h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-xs md:text-sm hover:border-blue-400/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 text-white border-slate-600 max-h-72">
@@ -1196,8 +1175,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                     </div>
 
                     {/* Type Filter */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <div className="space-y-1">
+                      <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                         Type de bien
                       </label>
@@ -1205,7 +1184,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                         value={filters.type}
                         onValueChange={(v) => setFilters((f) => ({ ...f, type: v }))}
                       >
-                        <SelectTrigger className="h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-sm hover:border-emerald-400/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
+                        <SelectTrigger className="h-8 md:h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-xs md:text-sm hover:border-emerald-400/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 text-white border-slate-600">
@@ -1220,8 +1199,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                     </div>
 
                     {/* Assigned Filter */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <div className="space-y-1">
+                      <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
                         Assigné à
                       </label>
@@ -1229,7 +1208,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                         value={filters.assigned}
                         onValueChange={(v) => setFilters((f) => ({ ...f, assigned: v }))}
                       >
-                        <SelectTrigger className="h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-sm hover:border-amber-400/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
+                        <SelectTrigger className="h-8 md:h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-xs md:text-sm hover:border-amber-400/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 text-white border-slate-600 max-h-72">
@@ -1244,8 +1223,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                     </div>
 
                     {/* Priority Filter */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <div className="space-y-1">
+                      <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
                         Priorité
                       </label>
@@ -1253,7 +1232,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                         value={filters.priority}
                         onValueChange={(v) => setFilters((f) => ({ ...f, priority: v as any }))}
                       >
-                        <SelectTrigger className="h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-sm hover:border-orange-400/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
+                        <SelectTrigger className="h-8 md:h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-xs md:text-sm hover:border-orange-400/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 text-white border-slate-600">
@@ -1266,8 +1245,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                     </div>
 
                     {/* Source Filter */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <div className="space-y-1">
+                      <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
                         Source
                       </label>
@@ -1275,7 +1254,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                         value={filters.source}
                         onValueChange={(v) => setFilters((f) => ({ ...f, source: v }))}
                       >
-                        <SelectTrigger className="h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-sm hover:border-purple-400/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
+                        <SelectTrigger className="h-8 md:h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-xs md:text-sm hover:border-purple-400/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 text-white border-slate-600">
@@ -1293,8 +1272,8 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
 
                     {/* Campaign Filter - Only show if TikTok source is selected or if there are campaigns */}
                     {(filters.source === "tiktok" || filters.source === "all") && (
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
+                      <div className="space-y-1">
+                        <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wide flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400"></span>
                           Campagne
                         </label>
@@ -1302,7 +1281,7 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                           value={filters.campaign}
                           onValueChange={(v) => setFilters((f) => ({ ...f, campaign: v }))}
                         >
-                          <SelectTrigger className="h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-sm hover:border-fuchsia-400/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
+                          <SelectTrigger className="h-8 md:h-9 w-full bg-slate-700/60 border border-slate-600/40 text-white text-xs md:text-sm hover:border-fuchsia-400/40 hover:bg-slate-700/80 transition-all rounded-lg shadow-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-800 text-white border-slate-600 max-h-72">
@@ -1341,9 +1320,9 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
 
           <DragOverlay dropAnimation={null}>
             {activeLead ? (
-              <div 
+              <div
                 className="rotate-3 scale-110 shadow-2xl border-2 border-primary/80 bg-slate-800 backdrop-blur-md rounded-lg p-1 cursor-grabbing"
-                style={{ 
+                style={{
                   opacity: 1,
                   pointerEvents: 'none',
                   zIndex: 9999
@@ -1422,17 +1401,17 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
             }
 
             const newNote = await response.json()
-            
+
             // Fetch the updated lead with all notes
             const leadResponse = await fetch(`/api/leads/${leadId}`)
             const updatedLead = await leadResponse.json()
-            
+
             // Update the lead in the list
             updateLead(leadId, updatedLead)
-            
+
             // Update the history panel lead
             setHistoryLead(updatedLead)
-            
+
             toast.success("✅ Note ajoutée", {
               description: "La note a été ajoutée avec succès",
             })

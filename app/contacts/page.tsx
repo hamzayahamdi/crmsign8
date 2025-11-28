@@ -367,7 +367,7 @@ export default function ContactsPage() {
 
                 {isFiltersOpen && (
                   <div className="border-t border-slate-600/30 px-3 md:px-4 py-3 md:py-4 bg-slate-900/40">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                       {/* Status Filter (Workflow Stage) */}
                       <div className="space-y-2">
                         <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wider">Statut</label>

@@ -7,11 +7,13 @@ import { Lead } from "@/types/lead"
 import { LeadsService } from "@/lib/leads-service"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { CommercialAddLeadModal } from "@/components/commercial-add-lead-modal"
 import { CommercialLeadsTable } from "@/components/commercial-leads-table"
 import { LeadModalRedesigned } from "@/components/lead-modal-redesigned"
-import { Plus, Building2, TrendingUp, Users, Loader2, Sparkles } from "lucide-react"
+import { Plus, Building2, TrendingUp, Users, Loader2, Sparkles, Search } from "lucide-react"
 import { toast } from "sonner"
+import { useDebounce } from "@/hooks/use-debounce"
 
 export default function CommercialDashboard() {
   const { user, isLoading: authLoading } = useAuth()
@@ -21,6 +23,10 @@ export default function CommercialDashboard() {
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // Debounce search query to avoid excessive API calls
+  const debouncedSearch = useDebounce(searchQuery, 300)
 
   // Redirect if not commercial
   useEffect(() => {
@@ -29,11 +35,15 @@ export default function CommercialDashboard() {
     }
   }, [user, authLoading, router])
 
-  // Fetch leads
+  // Fetch leads with debounced search
   const fetchLeads = async () => {
     try {
       setLoading(true)
-      const response = await LeadsService.getLeads({ page: 1, limit: 1000 })
+      const response = await LeadsService.getLeads({
+        page: 1,
+        limit: 1000,
+        search: debouncedSearch // Use debounced search
+      })
       setLeads(response.data)
     } catch (error) {
       console.error("Error fetching leads:", error)
@@ -47,7 +57,7 @@ export default function CommercialDashboard() {
     if (user?.role === "commercial") {
       fetchLeads()
     }
-  }, [user])
+  }, [user, debouncedSearch]) // Re-fetch when debounced search changes
 
   const handleLeadAdded = () => {
     fetchLeads()
@@ -64,9 +74,9 @@ export default function CommercialDashboard() {
         // Check if this lead was converted and status is being changed
         const wasConverted = selectedLead?.statut === 'qualifie'
         const statusChanged = updatedLead.statut !== 'qualifie'
-        
+
         const updated = await LeadsService.updateLead(updatedLead.id, updatedLead)
-        
+
         // If lead was converted but status changed, remove associated client from localStorage
         if (wasConverted && statusChanged) {
           try {
@@ -74,7 +84,7 @@ export default function CommercialDashboard() {
             if (storedClients) {
               const clients = JSON.parse(storedClients)
               const filteredClients = clients.filter((client: any) => client.leadId !== updatedLead.id)
-              
+
               if (filteredClients.length < clients.length) {
                 localStorage.setItem('signature8-clients', JSON.stringify(filteredClients))
                 console.log(`[Commercial] Removed client associated with lead ${updatedLead.id} from localStorage`)
@@ -85,18 +95,18 @@ export default function CommercialDashboard() {
             console.error('[Commercial] Error removing client from localStorage:', err)
           }
         }
-        
+
         // Update the leads list immediately
-        setLeads(prevLeads => 
+        setLeads(prevLeads =>
           prevLeads.map(lead => lead.id === updated.id ? updated : lead)
         )
-        
+
         // Update selected lead to show new status
         setSelectedLead(updated)
-        
+
         toast.success("Lead mis à jour avec succès")
         setViewModalOpen(false)
-        
+
         // Refresh to ensure sync with server
         await fetchLeads()
       }
@@ -226,7 +236,7 @@ export default function CommercialDashboard() {
         {/* Leads Section */}
         <div className="rounded-3xl shadow-2xl border border-white/10 overflow-hidden backdrop-blur-xl bg-gradient-to-br from-slate-800/90 to-slate-700/90">
           <div className="p-6 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                   Mes Leads
@@ -237,6 +247,18 @@ export default function CommercialDashboard() {
                 <p className="text-sm text-slate-300 mt-1">
                   Liste de tous les leads que vous avez soumis
                 </p>
+              </div>
+
+              {/* Search Input */}
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  type="text"
+                  placeholder="Rechercher par nom, téléphone, ville..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-slate-700/50 border-slate-600/50 text-white placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20"
+                />
               </div>
             </div>
           </div>

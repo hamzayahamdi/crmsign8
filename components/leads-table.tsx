@@ -93,34 +93,7 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
   const [actionDialogLead, setActionDialogLead] = useState<Lead | null>(null)
   const [actionDialogOpen, setActionDialogOpen] = useState(false)
 
-  const normalizedQuery = searchQuery.trim().toLowerCase()
 
-  const passesSearch = (lead: Lead) => {
-    if (!normalizedQuery) return true
-    const haystack = [
-      lead.nom,
-      lead.telephone,
-      lead.ville,
-      lead.typeBien,
-      lead.assignePar,
-      lead.statutDetaille ?? "",
-      lead.message ?? "",
-    ]
-      .join(" ")
-      .toLowerCase()
-    return haystack.includes(normalizedQuery)
-  }
-
-  const passesFilters = (lead: Lead) => {
-    if (filters.status !== "all" && lead.statut !== filters.status) return false
-    if (filters.city !== "all" && lead.ville !== filters.city) return false
-    if (filters.type !== "all" && lead.typeBien !== filters.type) return false
-    if (filters.assigned !== "all" && lead.assignePar !== filters.assigned) return false
-    if (filters.priority !== "all" && lead.priorite !== filters.priority) return false
-    if (filters.source !== "all" && lead.source !== filters.source) return false
-    if (filters.campaign !== "all" && lead.campaignName !== filters.campaign) return false
-    return true
-  }
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -169,12 +142,11 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
   // Handle undefined or null leads
   const safeLeads = leads || []
 
-  const filteredLeads = safeLeads.filter(lead => passesSearch(lead) && passesFilters(lead))
+  // Client-side filtering is removed as it is now handled server-side
+  const filteredLeads = safeLeads
 
   // Debug logging
   console.log(`[LeadsTable] Total leads received: ${safeLeads.length}`)
-  console.log(`[LeadsTable] After filtering: ${filteredLeads.length}`)
-  console.log(`[LeadsTable] Filtered out: ${safeLeads.length - filteredLeads.length}`)
   console.log(`[LeadsTable] Active filters:`, filters)
   console.log(`[LeadsTable] Search query: "${searchQuery}"`)
 
@@ -673,7 +645,10 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
                                 <AlertDialogCancel>Annuler</AlertDialogCancel>
                                 <AlertDialogAction
                                   className="bg-red-600 hover:bg-red-700 text-white"
-                                  onClick={() => onDeleteLead(lead.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    onDeleteLead(lead.id)
+                                  }}
                                 >
                                   Supprimer
                                 </AlertDialogAction>

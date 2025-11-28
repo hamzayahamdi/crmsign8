@@ -40,6 +40,9 @@ model Lead {
   @@index([assignePar])
   @@index([source])
   @@index([month])
+  @@index([nom])
+  @@index([telephone])
+  @@index([typeBien])
   @@map("leads")
 }
 

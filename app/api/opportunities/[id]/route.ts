@@ -77,7 +77,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const { titre, type, statut, budget, description, architecteAssigne, dateClotureAttendue, pipelineStage, notes } = body;
+    const { titre, type, statut, budget, description, architecteAssigne, dateClotureAttendue } = body;
 
     // Get current opportunity to track changes
     const current = await prisma.opportunity.findUnique({
@@ -95,8 +95,6 @@ export async function PATCH(
     if (budget !== undefined) updateData.budget = budget ? parseFloat(budget) : null;
     if (description !== undefined) updateData.description = description;
     if (architecteAssigne !== undefined) updateData.architecteAssigne = architecteAssigne;
-    if (pipelineStage !== undefined) updateData.pipelineStage = pipelineStage;
-    if (notes !== undefined) updateData.notes = notes;
     if (dateClotureAttendue !== undefined) {
       updateData.dateClotureAttendue = dateClotureAttendue ? new Date(dateClotureAttendue) : null;
     }
@@ -179,37 +177,6 @@ export async function PATCH(
         });
       } catch (timelineErr) {
         console.error('Error creating status change timeline entry:', timelineErr);
-        // Continue even if timeline creation fails
-      }
-    }
-
-    // Log pipeline stage changes to timeline
-    if (pipelineStage && pipelineStage !== current.pipelineStage) {
-      const stageLabels: any = {
-        prise_de_besoin: '📝 Prise de besoin',
-        projet_accepte: '✅ Projet Accepté',
-        acompte_recu: '💰 Acompte Reçu',
-        gagnee: '🎉 Gagnée',
-        perdue: '❌ Perdue',
-      };
-
-      try {
-        await prisma.timeline.create({
-          data: {
-            contactId: current.contactId,
-            opportunityId: current.id,
-            eventType: 'status_changed',
-            title: `Pipeline: ${stageLabels[pipelineStage] || pipelineStage}`,
-            description: `Étape pipeline changée: ${stageLabels[current.pipelineStage] || current.pipelineStage} → ${stageLabels[pipelineStage] || pipelineStage}`,
-            metadata: {
-              previousStage: current.pipelineStage,
-              newStage: pipelineStage,
-            },
-            author: decoded.userId,
-          },
-        });
-      } catch (timelineErr) {
-        console.error('Error creating pipeline stage timeline entry:', timelineErr);
         // Continue even if timeline creation fails
       }
     }

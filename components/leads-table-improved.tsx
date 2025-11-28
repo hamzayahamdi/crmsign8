@@ -42,6 +42,7 @@ const statusConfig: Record<LeadStatus, { label: string; color: string; icon: str
   a_recontacter: { label: "À recontacter", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40", icon: "🟡" },
   sans_reponse: { label: "Sans réponse", color: "bg-orange-500/20 text-orange-400 border-orange-500/40", icon: "🟠" },
   non_interesse: { label: "Non intéressé", color: "bg-red-500/20 text-red-400 border-red-500/40", icon: "🔴" },
+  converti: { label: "Converti", color: "bg-purple-500/20 text-purple-400 border-purple-500/40", icon: "✅" },
   qualifie: { label: "Qualifié", color: "bg-blue-500/20 text-blue-400 border-blue-500/40", icon: "🔵" },
   refuse: { label: "Refusé", color: "bg-gray-500/20 text-gray-400 border-gray-500/40", icon: "⚫" },
 }
@@ -62,33 +63,16 @@ const sourceIcons = {
   autre: { icon: Package, label: "Autre", color: "text-gray-400" },
 }
 
-export function LeadsTableImproved({ 
-  leads, 
-  onLeadClick, 
-  onDeleteLead, 
-  searchQuery, 
-  filters, 
-  isLoading = false, 
-  newlyAddedLeadId = null 
+export function LeadsTableImproved({
+  leads,
+  onLeadClick,
+  onDeleteLead,
+  searchQuery,
+  filters,
+  isLoading = false,
+  newlyAddedLeadId = null
 }: LeadsTableImprovedProps) {
-  const normalizedQuery = searchQuery.trim().toLowerCase()
-
-  const passesSearch = (lead: Lead) => {
-    if (!normalizedQuery) return true
-    const haystack = [
-      lead.nom,
-      lead.telephone,
-      lead.ville,
-      lead.typeBien,
-      lead.assignePar,
-      lead.statutDetaille ?? "",
-      lead.message ?? "",
-    ]
-      .join(" ")
-      .toLowerCase()
-    return haystack.includes(normalizedQuery)
-  }
-
+  // Only apply filters (search is handled server-side)
   const passesFilters = (lead: Lead) => {
     if (filters.status !== "all" && lead.statut !== filters.status) return false
     if (filters.city !== "all" && lead.ville !== filters.city) return false
@@ -99,8 +83,8 @@ export function LeadsTableImproved({
     return true
   }
 
-  const filteredLeads = leads.filter(lead => passesSearch(lead) && passesFilters(lead))
-  
+  const filteredLeads = leads.filter(lead => passesFilters(lead))
+
   // Sort by creation date (newest first)
   const sortedLeads = [...filteredLeads].sort((a, b) => {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -113,17 +97,17 @@ export function LeadsTableImproved({
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
-    
+
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const compareDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-    
+
     const diffTime = today.getTime() - compareDate.getTime()
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    
+
     if (diffDays === 0) return "Aujourd'hui"
     if (diffDays === 1) return "Hier"
     if (diffDays > 0 && diffDays < 7) return `Il y a ${diffDays}j`
-    
+
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: 'short',
@@ -134,7 +118,7 @@ export function LeadsTableImproved({
   const getSourceDisplay = (lead: Lead) => {
     const sourceInfo = sourceIcons[lead.source] || sourceIcons.autre
     const Icon = sourceInfo.icon
-    
+
     if (lead.source === 'magasin' && lead.magasin) {
       return (
         <div className="flex items-start gap-2.5">
@@ -152,7 +136,7 @@ export function LeadsTableImproved({
         </div>
       )
     }
-    
+
     if (lead.source === 'tiktok') {
       return (
         <div className="flex items-center gap-2">
@@ -168,7 +152,7 @@ export function LeadsTableImproved({
         </div>
       )
     }
-    
+
     // Default display for other sources (Facebook, Instagram, Site Web, etc.)
     const gradientMap: Record<string, string> = {
       facebook: "from-blue-500/20 to-blue-600/20 border-blue-500/30",
@@ -177,7 +161,7 @@ export function LeadsTableImproved({
       reference_client: "from-green-500/20 to-emerald-500/20 border-green-500/30",
       autre: "from-slate-500/20 to-slate-600/20 border-slate-500/30"
     }
-    
+
     const textColorMap: Record<string, string> = {
       facebook: "text-blue-300",
       instagram: "text-pink-300",
@@ -185,7 +169,7 @@ export function LeadsTableImproved({
       reference_client: "text-green-300",
       autre: "text-slate-300"
     }
-    
+
     return (
       <div className="flex items-center gap-2.5">
         <div className={cn(
@@ -212,7 +196,7 @@ export function LeadsTableImproved({
           </div>
         </div>
       )}
-      
+
       {/* Table Header */}
       <div className="bg-slate-800/30 px-6 py-4 border-b border-slate-200/10">
         <div className="flex items-center justify-between">
@@ -264,8 +248,8 @@ export function LeadsTableImproved({
               const statusInfo = statusConfig[lead.statut]
               const isNewlyAdded = lead.id === newlyAddedLeadId
               return (
-                <tr 
-                  key={lead.id} 
+                <tr
+                  key={lead.id}
                   className={cn(
                     "hover:bg-slate-700/10 transition-all duration-300 group",
                     isNewlyAdded && "bg-primary/10 ring-2 ring-primary/50"
@@ -331,9 +315,9 @@ export function LeadsTableImproved({
                       const duration = getLeadDuration(lead.createdAt, lead.convertedAt)
                       const colorClass = getLeadDurationColor(duration.days, duration.isActive)
                       const icon = getLeadDurationIcon(duration.days, duration.isActive)
-                      
+
                       return (
-                        <Badge 
+                        <Badge
                           className={cn(
                             "border text-xs font-medium px-2.5 py-1 flex items-center gap-1.5 w-fit",
                             colorClass
@@ -382,7 +366,10 @@ export function LeadsTableImproved({
                             <AlertDialogCancel>Annuler</AlertDialogCancel>
                             <AlertDialogAction
                               className="bg-red-600 hover:bg-red-700 text-white"
-                              onClick={() => onDeleteLead(lead.id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDeleteLead(lead.id)
+                              }}
                             >
                               Supprimer
                             </AlertDialogAction>

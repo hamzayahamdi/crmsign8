@@ -50,26 +50,26 @@ export function LeadActionDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="w-[95vw] sm:w-full sm:max-w-[500px] bg-neutral-900/95 backdrop-blur-2xl border border-white/10 text-white shadow-2xl rounded-2xl overflow-hidden">
+        <DialogContent className="w-[90vw] sm:w-full sm:max-w-[420px] md:sm:max-w-[500px] bg-neutral-900/95 backdrop-blur-2xl border border-white/10 text-white shadow-2xl rounded-2xl overflow-hidden p-4 md:p-6">
           {/* Gradient overlay for premium feel */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
 
           <DialogHeader className="relative">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-blue-400" />
+            <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
               </div>
-              <DialogTitle className="text-xl font-semibold">
+              <DialogTitle className="text-lg md:text-xl font-semibold">
                 Que souhaitez-vous faire ?
               </DialogTitle>
             </div>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-xs md:text-sm text-gray-400 mt-1">
               Choisissez une action pour <span className="text-white font-medium">{lead.nom}</span>
             </p>
           </DialogHeader>
 
           <motion.div
-            className="flex flex-col gap-3 mt-6 relative"
+            className="flex flex-col gap-2 md:gap-3 mt-4 md:mt-6 relative"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -77,17 +77,17 @@ export function LeadActionDialog({
             {/* Convert to Contact Button */}
             <Button
               onClick={handleConvert}
-              className="w-full h-auto py-4 px-5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl transition-all duration-300 shadow-lg shadow-green-600/20 hover:shadow-green-500/30 hover:scale-[1.02] group"
+              className="w-full h-auto py-3 px-4 md:py-4 md:px-5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl transition-all duration-300 shadow-lg shadow-green-600/20 hover:shadow-green-500/30 hover:scale-[1.02] group"
             >
               <div className="flex items-center gap-3 w-full">
-                <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                  <Building2 className="w-5 h-5" />
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                  <Building2 className="w-4 h-4 md:w-5 md:h-5" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="font-semibold text-base">Convertir en Contact</p>
-                  <p className="text-xs text-white/70 mt-0.5">Assigner un architecte et créer le dossier</p>
+                  <p className="font-semibold text-sm md:text-base">Convertir en Contact</p>
+                  <p className="text-[10px] md:text-xs text-white/70 mt-0.5">Assigner un architecte et créer le dossier</p>
                 </div>
-                <CheckCircle2 className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </Button>
 
@@ -95,15 +95,15 @@ export function LeadActionDialog({
             <Button
               onClick={handleEdit}
               variant="outline"
-              className="w-full h-auto py-4 px-5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white rounded-xl transition-all duration-300 hover:scale-[1.02] group"
+              className="w-full h-auto py-3 px-4 md:py-4 md:px-5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white rounded-xl transition-all duration-300 hover:scale-[1.02] group"
             >
               <div className="flex items-center gap-3 w-full">
-                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                  <Edit className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                  <Edit className="w-4 h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-white transition-colors" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="font-semibold text-base">Modifier le lead</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Mettre à jour les informations</p>
+                  <p className="font-semibold text-sm md:text-base">Modifier le lead</p>
+                  <p className="text-[10px] md:text-xs text-gray-400 mt-0.5">Mettre à jour les informations</p>
                 </div>
               </div>
             </Button>

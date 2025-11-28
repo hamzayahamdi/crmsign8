@@ -13,8 +13,9 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MagasinerAddLeadModal } from "@/components/magasiner-add-lead-modal"
 import { MagasinerLeadsTable } from "@/components/magasiner-leads-table"
-import { Plus, Building2, TrendingUp, Users, Loader2, MapPin } from "lucide-react"
+import { Plus, Building2, TrendingUp, Users, Loader2, MapPin, Search } from "lucide-react"
 import { toast } from "sonner"
+import { useDebounce } from "@/hooks/use-debounce"
 
 export default function MagasinerDashboard() {
   const { user, isLoading: authLoading } = useAuth()
@@ -24,6 +25,7 @@ export default function MagasinerDashboard() {
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [editLead, setEditLead] = useState<Lead | null>(null)
   const [editLoading, setEditLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const [editForm, setEditForm] = useState({
     nom: "",
     telephone: "",
@@ -32,6 +34,9 @@ export default function MagasinerDashboard() {
     commercialMagasin: "",
   })
 
+  // Debounce search query
+  const debouncedSearch = useDebounce(searchQuery, 300)
+
   // Redirect if not magasiner
   useEffect(() => {
     if (!authLoading && (!user || user.role !== "magasiner")) {
@@ -39,11 +44,15 @@ export default function MagasinerDashboard() {
     }
   }, [user, authLoading, router])
 
-  // Fetch leads
+  // Fetch leads with debounced search
   const fetchLeads = async () => {
     try {
       setLoading(true)
-      const response = await LeadsService.getLeads({ page: 1, limit: 1000 })
+      const response = await LeadsService.getLeads({
+        page: 1,
+        limit: 1000,
+        search: debouncedSearch // Use debounced search
+      })
       setLeads(response.data)
     } catch (error) {
       console.error("Error fetching leads:", error)
@@ -57,7 +66,7 @@ export default function MagasinerDashboard() {
     if (user?.role === "magasiner") {
       fetchLeads()
     }
-  }, [user])
+  }, [user, debouncedSearch]) // Re-fetch when debounced search changes
 
   const handleLeadAdded = () => {
     fetchLeads()
@@ -240,7 +249,7 @@ export default function MagasinerDashboard() {
         {/* Leads Section */}
         <div className="rounded-3xl shadow-2xl border border-white/10 overflow-hidden backdrop-blur-xl bg-gradient-to-br from-slate-800/90 to-slate-700/90">
           <div className="p-6 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                   Mes Leads
@@ -251,6 +260,18 @@ export default function MagasinerDashboard() {
                 <p className="text-sm text-slate-300 mt-1">
                   Liste de tous les leads de votre magasin
                 </p>
+              </div>
+
+              {/* Search Input */}
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  type="text"
+                  placeholder="Rechercher par nom, téléphone, ville..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-slate-700/50 border-slate-600/50 text-white placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-blue-500/20"
+                />
               </div>
             </div>
           </div>
@@ -298,7 +319,7 @@ export default function MagasinerDashboard() {
                   <SelectTrigger className="glass border-border/40"><SelectValue placeholder="Ville" /></SelectTrigger>
                   <SelectContent className="glass border-border/40">
                     {[
-                      "Casablanca","Rabat","Marrakech","Fès","Tanger","Agadir","Meknès","Oujda","Kenitra","Tétouan","Safi","Temara","Mohammedia","Khouribga","El Jadida","Béni Mellal","Nador","Taza","Settat","Ksar El Kebir","Larache","Khemisset","Guelmim","Berrechid","Berkane","Taourirt","Bouskoura","Dar Bouazza"
+                      "Casablanca", "Rabat", "Marrakech", "Fès", "Tanger", "Agadir", "Meknès", "Oujda", "Kenitra", "Tétouan", "Safi", "Temara", "Mohammedia", "Khouribga", "El Jadida", "Béni Mellal", "Nador", "Taza", "Settat", "Ksar El Kebir", "Larache", "Khemisset", "Guelmim", "Berrechid", "Berkane", "Taourirt", "Bouskoura", "Dar Bouazza"
                     ].map((c) => (
                       <SelectItem key={c} value={c}>{c}</SelectItem>
                     ))}
@@ -310,7 +331,7 @@ export default function MagasinerDashboard() {
                 <Select value={editForm.typeBien} onValueChange={(v) => setEditForm({ ...editForm, typeBien: v })}>
                   <SelectTrigger className="glass border-border/40"><SelectValue placeholder="Type" /></SelectTrigger>
                   <SelectContent className="glass border-border/40">
-                    {["Villa","Appartement","B2B","autre"].map((t) => (
+                    {["Villa", "Appartement", "B2B", "autre"].map((t) => (
                       <SelectItem key={t} value={t}>{t}</SelectItem>
                     ))}
                   </SelectContent>

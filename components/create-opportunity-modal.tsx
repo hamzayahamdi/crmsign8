@@ -50,41 +50,13 @@ export function CreateOpportunityModal({
     if (isOpen) {
       fetchArchitects()
       loadLeadPropertyType()
-    } else {
-      // Reset form when modal closes
-      setNomOportunite("")
-      setDescription("")
-      setMontantEstime("")
-      setArchitectId("")
+
+      // Pre-select architect if assigned to contact
+      if (contact.architecteAssigne) {
+        setArchitectId(contact.architecteAssigne)
+      }
     }
   }, [isOpen, contact])
-
-  // Pre-populate architect after architects are loaded
-  useEffect(() => {
-    if (isOpen && architects.length > 0 && contact.architecteAssigne) {
-      // Check if architecteAssigne is an ID (exists in architects list)
-      const architectById = architects.find(a => a.id === contact.architecteAssigne)
-      
-      if (architectById) {
-        // It's an ID, use it directly
-        setArchitectId(contact.architecteAssigne)
-      } else {
-        // It might be a name, try to find by matching name
-        const architectByName = architects.find(a => {
-          const fullName = `${a.prenom} ${a.nom}`.trim()
-          return fullName === contact.architecteAssigne || 
-                 a.nom === contact.architecteAssigne ||
-                 contact.architecteAssigne?.includes(a.nom)
-        })
-        
-        if (architectByName) {
-          setArchitectId(architectByName.id)
-        }
-      }
-    } else if (isOpen && !contact.architecteAssigne) {
-      setArchitectId("")
-    }
-  }, [isOpen, architects, contact.architecteAssigne])
 
   const fetchArchitects = async () => {
     try {
@@ -157,13 +129,28 @@ export function CreateOpportunityModal({
   }
 
   const defaultTitle = (t: OpportunityType) => {
-    // Use only property type and city for default title, NOT contact name
-    const suffix = contact.ville
+    const suffix = contact.ville || contact.nom
     return `${typeLabel(t)}${suffix ? ` - ${suffix}` : ""}`
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validation
+    if (!architectId) {
+      toast.error("L'assignation à un architecte est requise")
+      return
+    }
+
+    if (!description) {
+      toast.error("La description est requise")
+      return
+    }
+
+    if (!montantEstime) {
+      toast.error("Le montant estimé est requis")
+      return
+    }
 
     try {
       setSubmitting(true)
@@ -178,11 +165,6 @@ export function CreateOpportunityModal({
       const titre = nomOportunite.trim() || defaultTitle(propertyType)
       const type = propertyType
 
-      // Use the architect from state (already includes pre-assigned one)
-      const finalArchitectId = architectId || undefined
-
-      console.log('[CreateOpportunity] Submitting with architect:', finalArchitectId, 'Pre-assigned:', contact.architecteAssigne)
-
       const response = await fetch(`/api/contacts/${contact.id}/opportunities`, {
         method: "POST",
         headers: {
@@ -192,9 +174,9 @@ export function CreateOpportunityModal({
         body: JSON.stringify({
           titre,
           type,
-          description: description || "",
-          budget: montantEstime || "0",
-          architecteAssigne: finalArchitectId,
+          description,
+          budget: montantEstime,
+          architecteAssigne: architectId,
         }),
       })
 
@@ -204,20 +186,18 @@ export function CreateOpportunityModal({
       }
 
       const opportunity = await response.json()
-      
-      // Show success message with architect info
-      if (isArchitectPreAssigned) {
-        toast.success("Opportunité créée avec l'architecte pré-assigné.")
-      } else if (finalArchitectId) {
-        toast.success("Opportunité créée et architecte assigné.")
-      } else {
-        toast.success("Opportunité créée avec succès.")
-      }
+      toast.success("L'opportunité a été créée avec succès.")
+
+      // Reset form
+      setNomOportunite("")
+      setDescription("")
+      setMontantEstime("")
+      setArchitectId("")
 
       // Call success callback
       onSuccess?.(opportunity.id)
 
-      // Close modal (form will be reset in useEffect)
+      // Close modal
       onClose()
     } catch (error) {
       console.error("Error creating opportunity:", error)
@@ -229,10 +209,7 @@ export function CreateOpportunityModal({
     }
   }
 
-  // Get the architect to display - from architectId state which includes pre-assigned architect
   const selectedArchitect = architects.find((a) => a.id === architectId)
-  // Check if the architect was pre-assigned from contact (not manually changed by user)
-  const isArchitectPreAssigned = architectId === contact.architecteAssigne && contact.architecteAssigne
 
   return (
     <AnimatePresence>
@@ -253,7 +230,7 @@ export function CreateOpportunityModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl z-50 bg-neutral-900/95 backdrop-blur-2xl border border-white/10 text-white"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl z-50 bg-neutral-900/95 backdrop-blur-2xl border border-white/10 text-white"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
             {/* Close Button */}
@@ -261,120 +238,147 @@ export function CreateOpportunityModal({
               whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
               onClick={onClose}
-              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/15 border border-white/10 flex items-center justify-center transition-colors z-10"
+              className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/15 border border-white/10 flex items-center justify-center transition-colors z-10"
             >
-              <X className="w-4 h-4 text-white" />
+              <X className="w-5 h-5 text-white" />
             </motion.button>
 
-            <div className="p-6 relative">
+            <div className="p-8 sm:p-10 relative">
               {/* HEADER */}
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-6"
+                className="mb-8"
               >
-                <h1 className="text-2xl font-bold text-white mb-1">
+                <h1 className="text-3xl font-bold text-white mb-2">
                   Créer une nouvelle opportunité
                 </h1>
-                <p className="text-gray-400 text-xs">
+                <p className="text-gray-400 text-sm">
                   Informations liées au contact & assignation à un architecte
                 </p>
               </motion.div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-8">
                 {/* CONTACT INFORMATION SECTION - READ ONLY */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
                 >
-                  <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                    Informations du contact
+                  <h2 className="text-sm font-semibold text-slate-200 uppercase tracking-wide mb-4">
+                    Informations du contact (Lecture seule)
                   </h2>
-                  <div className="rounded-xl p-4 border border-white/10 bg-white/5">
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="rounded-2xl p-6 border border-white/10 bg-white/5 shadow-inner opacity-80">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                       {/* Nom complet */}
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                          <User className="w-4 h-4 text-blue-400" />
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <User className="w-5 h-5 text-blue-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-slate-400">Nom</p>
-                          <p className="text-sm font-medium text-white truncate">{contact.nom}</p>
+                          <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1">
+                            Nom complet
+                          </p>
+                          <p className="text-sm font-medium text-white truncate">
+                            {contact.nom}
+                          </p>
                         </div>
                       </div>
 
                       {/* Téléphone */}
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                          <Phone className="w-4 h-4 text-green-400" />
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Phone className="w-5 h-5 text-green-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-slate-400">Téléphone</p>
-                          <p className="text-sm font-medium text-white truncate">{contact.telephone}</p>
+                          <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1">
+                            Téléphone
+                          </p>
+                          <p className="text-sm font-medium text-white truncate">
+                            {contact.telephone}
+                          </p>
                         </div>
                       </div>
 
                       {/* Ville */}
                       {contact.ville && (
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                            <MapPin className="w-4 h-4 text-purple-400" />
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <MapPin className="w-5 h-5 text-purple-400" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs text-slate-400">Ville</p>
-                            <p className="text-sm font-medium text-white truncate">{contact.ville}</p>
+                            <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1">
+                              Ville
+                            </p>
+                            <p className="text-sm font-medium text-white truncate">
+                              {contact.ville}
+                            </p>
                           </div>
                         </div>
                       )}
 
-                      {/* Type de bien */}
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
-                          <Home className="w-4 h-4 text-red-400" />
+                      {/* Type de bien - from lead */}
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Home className="w-5 h-5 text-red-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-slate-400">Type</p>
-                          <p className="text-sm font-medium text-white truncate">{typeLabel(propertyType)}</p>
+                          <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1">
+                            Type de bien
+                          </p>
+                          <p className="text-sm font-medium text-white truncate">
+                            {typeLabel(propertyType)}
+                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
                 </motion.div>
 
-                {/* OPPORTUNITY DETAILS & ARCHITECT IN ONE ROW */}
+                {/* OPPORTUNITY FIELDS SECTION */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
-                  className="space-y-4"
                 >
-                  <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  <h2 className="text-sm font-semibold text-slate-200 uppercase tracking-wide mb-4">
                     Détails de l'opportunité
                   </h2>
-
-                  {/* Compact 2-column layout */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-5">
                     {/* Nom de l'opportunité */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-slate-300">
-                        Nom du projet <span className="text-red-400">*</span>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                        Nom de l'opportunité
+                        <span className="text-xs text-slate-400">(optionnel)</span>
                       </Label>
                       <Input
                         type="text"
                         value={nomOportunite}
                         onChange={(e) => setNomOportunite(e.target.value)}
-                        placeholder="Ex: Villa moderne, Rénovation appartement..."
-                        className="h-10 bg-white/10 border border-white/10 text-white placeholder:text-slate-500 rounded-lg focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all text-sm"
-                        required
+                        placeholder="Ex: Rénovation villa - Casablanca"
+                        className="h-11 bg-white/10 border border-white/10 text-white placeholder:text-slate-400 rounded-xl focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
                       />
-                      <p className="text-xs text-slate-500">Ce nom apparaîtra dans la liste des clients</p>
                     </div>
 
-                    {/* Montant Estimé */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-slate-300">
-                        Montant Estimé (MAD) <span className="text-slate-500">(optionnel)</span>
+                    {/* Description - REQUIRED */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                        Description
+                        <span className="text-xs text-red-400">* (Requis)</span>
+                      </Label>
+                      <Textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Détails du projet, besoins spécifiques..."
+                        className="min-h-[100px] bg-white/10 border border-white/10 text-white placeholder:text-slate-400 rounded-xl focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      />
+                    </div>
+
+                    {/* Montant Estimé - REQUIRED */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                        Montant Estimé (MAD)
+                        <span className="text-xs text-red-400">* (Requis)</span>
                       </Label>
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -382,99 +386,71 @@ export function CreateOpportunityModal({
                           type="number"
                           value={montantEstime}
                           onChange={(e) => setMontantEstime(e.target.value)}
-                          placeholder="0"
-                          className="h-10 pl-9 bg-white/10 border border-white/10 text-white placeholder:text-slate-500 rounded-lg focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all text-sm"
+                          placeholder="0.00"
+                          className="h-11 pl-10 bg-white/10 border border-white/10 text-white placeholder:text-slate-400 rounded-xl focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
                         />
                       </div>
                     </div>
                   </div>
+                </motion.div>
 
-                  {/* Description - full width */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-slate-300">
-                      Description <span className="text-slate-500">(optionnel)</span>
-                    </Label>
-                    <Textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Détails du projet, besoins spécifiques..."
-                      className="min-h-[80px] bg-white/10 border border-white/10 text-white placeholder:text-slate-500 rounded-lg focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all text-sm resize-none"
-                    />
-                  </div>
-
-                  {/* ARCHITECT ASSIGNMENT */}
-                  <div className="space-y-2 pt-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-medium text-slate-300">
-                        Architecte assigné <span className="text-slate-500">(optionnel)</span>
-                      </Label>
-                      {isArchitectPreAssigned && !loading && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-medium">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-                          Pré-assigné
-                        </span>
+                {/* ARCHITECT ASSIGNMENT SECTION */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <h2 className="text-sm font-semibold text-slate-200 uppercase tracking-wide mb-4">
+                    Attribuer un architecte
+                  </h2>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Button
+                        type="button"
+                        onClick={() => setArchitectDialogOpen(true)}
+                        className="h-11 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-medium shadow-sm"
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Choisir un architecte
+                      </Button>
+                      {architectId && (
+                        <span className="text-xs text-green-400">Architecte sélectionné</span>
                       )}
                     </div>
-                    
-                    {loading ? (
-                      <div className="flex items-center justify-center gap-2 p-4 rounded-lg bg-white/5 border border-white/10">
-                        <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-                        <span className="text-xs text-slate-400">Chargement des architectes...</span>
-                      </div>
-                    ) : selectedArchitect ? (
+
+                    {/* Selected architect preview */}
+                    {selectedArchitect && (
                       <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className={cn(
-                          "p-3.5 rounded-lg border flex items-center gap-3 transition-all",
-                          isArchitectPreAssigned 
-                            ? "bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.15)]" 
-                            : "bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-blue-500/30"
-                        )}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20"
                       >
-                        <div className={cn(
-                          "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
-                          isArchitectPreAssigned
-                            ? "bg-gradient-to-br from-green-500/30 to-emerald-500/30"
-                            : "bg-gradient-to-br from-blue-500/30 to-purple-500/30"
-                        )}>
-                          <span className="text-sm font-bold text-white">
-                            {(selectedArchitect.prenom || selectedArchitect.nom).charAt(0).toUpperCase()}
-                          </span>
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center flex-shrink-0">
+                            <span className="text-base font-bold text-white">
+                              {(selectedArchitect.prenom || selectedArchitect.nom).charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-white">
+                              {selectedArchitect.prenom} {selectedArchitect.nom}
+                            </p>
+                            <p className="text-xs text-gray-300">
+                              {selectedArchitect.specialite}
+                            </p>
+                            {selectedArchitect.email && (
+                              <p className="text-xs text-gray-400 truncate">{selectedArchitect.email}</p>
+                            )}
+                          </div>
+                          <Users className="w-5 h-5 text-blue-400 flex-shrink-0" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white">
-                            {selectedArchitect.prenom} {selectedArchitect.nom}
-                          </p>
-                          {selectedArchitect.specialite && (
-                            <p className="text-xs text-slate-300">{selectedArchitect.specialite}</p>
-                          )}
-                          {selectedArchitect.ville && (
-                            <p className="text-xs text-slate-400 mt-0.5">{selectedArchitect.ville}</p>
-                          )}
-                        </div>
-                        <Button
-                          type="button"
-                          onClick={() => setArchitectDialogOpen(true)}
-                          className="h-8 px-3 text-xs rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white transition-all hover:scale-105"
-                        >
-                          {isArchitectPreAssigned ? "Modifier" : "Changer"}
-                        </Button>
                       </motion.div>
-                    ) : (
-                      <div className="space-y-1.5">
-                        <Button
-                          type="button"
-                          onClick={() => setArchitectDialogOpen(true)}
-                          className="w-full h-10 px-4 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white font-medium text-sm transition-all hover:scale-[1.02]"
-                        >
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Choisir un architecte
-                        </Button>
-                        <p className="text-xs text-slate-400">
-                          Vous pouvez assigner un architecte maintenant ou plus tard
-                        </p>
-                      </div>
+                    )}
+
+                    {!architectId && (
+                      <p className="text-xs text-red-400 font-medium">
+                        L'assignation à un architecte est obligatoire
+                      </p>
                     )}
                   </div>
                 </motion.div>
@@ -483,23 +459,23 @@ export function CreateOpportunityModal({
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="flex gap-3 pt-4 border-t border-white/10"
+                  transition={{ delay: 0.25 }}
+                  className="flex gap-3 pt-6 border-t border-white/10"
                 >
                   <Button
                     type="button"
                     onClick={onClose}
                     disabled={submitting}
-                    className="flex-1 h-10 bg-white/10 hover:bg-white/15 text-white font-medium rounded-lg transition-all border border-white/10 text-sm"
+                    className="flex-1 h-11 bg-white/10 hover:bg-white/15 text-white font-medium rounded-xl transition-all border border-white/10"
                   >
                     Annuler
                   </Button>
                   <Button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || !architectId || !description || !montantEstime}
                     className={cn(
-                      "flex-1 h-10 font-medium rounded-lg transition-all shadow-lg text-sm",
-                      submitting
+                      "flex-1 h-11 font-medium rounded-xl transition-all shadow-lg",
+                      submitting || !architectId || !description || !montantEstime
                         ? "bg-white/10 text-slate-400 cursor-not-allowed border border-white/10"
                         : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
                     )}
@@ -510,10 +486,7 @@ export function CreateOpportunityModal({
                         Création...
                       </div>
                     ) : (
-                      <span className="inline-flex items-center">
-                        Créer l'opportunité
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </span>
+                      <span className="inline-flex items-center">Créer l'opportunité <ArrowRight className="w-4 h-4 ml-2" /></span>
                     )}
                   </Button>
                 </motion.div>

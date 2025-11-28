@@ -11,7 +11,16 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
     const skip = (page - 1) * limit
-    
+
+    // Get search and filter params
+    const searchQuery = searchParams.get('search') || ''
+    const statusFilter = searchParams.get('status') || 'all'
+    const cityFilter = searchParams.get('city') || 'all'
+    const typeFilter = searchParams.get('type') || 'all'
+    const assignedFilter = searchParams.get('assigned') || 'all'
+    const priorityFilter = searchParams.get('priority') || 'all'
+    const sourceFilter = searchParams.get('source') || 'all'
+
     // Read and verify JWT (optional but used for role-based filtering)
     const authHeader = request.headers.get('authorization')
     let user: { userId: string; email: string; name: string; role: string; magasin?: string } | null = null
@@ -31,11 +40,11 @@ export async function GET(request: NextRequest) {
         user = null
       }
     }
-    
+
     // Build where clause based on role
     const where: any = {}
     const userRole = (user?.role || '').toLowerCase()
-    
+
     // Admin, Operator, and Gestionnaire can see ALL leads (no filter applied)
     if (userRole === 'admin' || userRole === 'operator' || userRole === 'gestionnaire') {
       // No filter - they see everything including unassigned leads
@@ -49,9 +58,9 @@ export async function GET(request: NextRequest) {
         { assignePar: { contains: normalizedName, mode: 'insensitive' } },
         ...(tokens.length >= 2
           ? [
-              { assignePar: { contains: tokens[0], mode: 'insensitive' } },
-              { assignePar: { contains: tokens[tokens.length - 1], mode: 'insensitive' } },
-            ]
+            { assignePar: { contains: tokens[0], mode: 'insensitive' } },
+            { assignePar: { contains: tokens[tokens.length - 1], mode: 'insensitive' } },
+          ]
           : []),
       ]
     } else if (userRole === 'commercial') {
@@ -66,10 +75,58 @@ export async function GET(request: NextRequest) {
         where.magasin = user.magasin
       }
     }
-    
+
+    // Apply search filter (server-side)
+    if (searchQuery.trim()) {
+      const searchTerm = searchQuery.trim()
+      const searchConditions = {
+        OR: [
+          { nom: { contains: searchTerm, mode: 'insensitive' as const } },
+          { telephone: { contains: searchTerm, mode: 'insensitive' as const } },
+          { ville: { contains: searchTerm, mode: 'insensitive' as const } },
+          { typeBien: { contains: searchTerm, mode: 'insensitive' as const } },
+          { assignePar: { contains: searchTerm, mode: 'insensitive' as const } },
+          { statutDetaille: { contains: searchTerm, mode: 'insensitive' as const } },
+          { message: { contains: searchTerm, mode: 'insensitive' as const } },
+        ]
+      }
+
+      // Combine with existing where conditions
+      if (where.OR) {
+        // If we already have OR conditions (from role-based filtering), we need to combine them with AND
+        where.AND = [
+          { OR: where.OR },
+          searchConditions
+        ]
+        delete where.OR
+      } else {
+        Object.assign(where, searchConditions)
+      }
+    }
+
+    // Apply other filters
+    if (statusFilter !== 'all') {
+      where.statut = statusFilter
+    }
+    if (cityFilter !== 'all') {
+      where.ville = cityFilter
+    }
+    if (typeFilter !== 'all') {
+      where.typeBien = typeFilter
+    }
+    if (assignedFilter !== 'all') {
+      where.assignePar = assignedFilter
+    }
+    if (priorityFilter !== 'all') {
+      where.priorite = priorityFilter
+    }
+    if (sourceFilter !== 'all') {
+      where.source = sourceFilter
+    }
+
     // Fetch total count (respecting role filter)
     const totalCount = await prisma.lead.count({ where })
-    
+
     // Fetch leads - newest first, include notes
     const leads = await prisma.lead.findMany({
       skip,
@@ -86,11 +143,11 @@ export async function GET(request: NextRequest) {
         }
       }
     })
-    
+
     const hasMore = (skip + leads.length) < totalCount
-    
+
     console.log(`[API] Page ${page}: Fetched ${leads.length} leads, Total: ${totalCount}, HasMore: ${hasMore}${user ? `, Role: ${user.role}` : ''}`)
-    
+
     return NextResponse.json({
       success: true,
       data: leads,
@@ -139,13 +196,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    
+
     // Get user info from token for createdBy
     let createdBy = user.name
     let assignePar = body.assignePar || 'Mohamed' // Default to Mohamed (gestionnaire de projet)
     let magasin = body.magasin || user.magasin
     let commercialMagasin = body.commercialMagasin || (user.role === 'commercial' ? user.name : undefined)
-    
+
     // For commercial and magasiner users, force status to "nouveau" and set default values
     let statut = body.statut
     let statutDetaille = body.statutDetaille
@@ -153,7 +210,7 @@ export async function POST(request: NextRequest) {
       statut = 'nouveau'
       statutDetaille = 'Nouveau lead'
     }
-    
+
     // Auto-assign month for TikTok leads
     let month = body.month
     let uploadedAt = body.uploadedAt
@@ -170,7 +227,7 @@ export async function POST(request: NextRequest) {
       const tokens = (s: string) => norm(s).split(/\s+/).filter(Boolean)
       // Look for gestionnaires and architects
       const allAssignees = await prisma.user.findMany({
-        where: { 
+        where: {
           OR: [
             { role: { equals: 'gestionnaire', mode: 'insensitive' } },
             { role: { equals: 'architect', mode: 'insensitive' } }
@@ -227,7 +284,7 @@ export async function POST(request: NextRequest) {
         notes: true
       }
     })
-    
+
     console.log('[API] Created lead:', lead.id)
     return NextResponse.json(lead, { status: 201 })
   } catch (error) {
