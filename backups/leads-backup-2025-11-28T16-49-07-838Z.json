@@ -1,0 +1,530 @@
+[
+  {
+    "id": "cmij3a3360000uj8ss6u2qv5u",
+    "nom": "عزيز",
+    "telephone": "0661280058",
+    "ville": "Benslimane",
+    "notes": [],
+    "statutDetaille": "En deplacement a recontacter dans 10 jours",
+    "message": null
+  },
+  {
+    "id": "cmij3a3d10001uj8sjysecvzv",
+    "nom": "Younes",
+    "telephone": "0661619857",
+    "ville": "Marrakech",
+    "notes": [],
+    "statutDetaille": "En cours d'acquisition",
+    "message": null
+  },
+  {
+    "id": "cmij3a3mb0002uj8sxj7ried3",
+    "nom": "Ahmed Mahmoudi",
+    "telephone": "0661568358",
+    "ville": "Non spécifié",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3a3vv0003uj8skltyvivc",
+    "nom": "Amine Othmani",
+    "telephone": "0669743071",
+    "ville": "Non spécifié",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3a4560004uj8sbc6neqdy",
+    "nom": "Xxxx",
+    "telephone": "0666006666",
+    "ville": "Non spécifié",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3a4f50005uj8smcsfewq5",
+    "nom": "Jihad",
+    "telephone": "0600030551",
+    "ville": "Non spécifié",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3a4oi0006uj8svknnu7g4",
+    "nom": "Najib",
+    "telephone": "0661894472",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "RDV a confirmer",
+    "message": null
+  },
+  {
+    "id": "cmij3a4xx0007uj8s5dsbwo22",
+    "nom": "Hind",
+    "telephone": "0662206577",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "A recontacter",
+    "message": null
+  },
+  {
+    "id": "cmij3a5790008uj8sylpowada",
+    "nom": "Majd Yousif",
+    "telephone": "0613495405",
+    "ville": "Rabat",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3a5h30009uj8scmk0uwx2",
+    "nom": "Mme Boukhtara",
+    "telephone": "0669514300",
+    "ville": "Sale",
+    "notes": [],
+    "statutDetaille": "En voyage à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmij3a5qp000auj8sxdjtwkj8",
+    "nom": "Med el Amrani",
+    "telephone": "0666503731",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "pas de retour",
+    "message": null
+  },
+  {
+    "id": "cmij3a608000buj8sq8jftgrn",
+    "nom": "Karim Houti",
+    "telephone": "0626974350",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel effectué le 07/11/2025",
+        "author": "admin",
+        "createdAt": "2025-11-07T00:00:00.000Z"
+      },
+      {
+        "content": "📞 Premier appel effectué le 07/11/2025",
+        "author": "Système Import",
+        "createdAt": "2025-11-07T00:00:00.000Z"
+      },
+      {
+        "content": "📝 Note de campagne Oct–Nov 202: \"Promoteur déjà engagé avec un prestataire",
+        "author": "admin",
+        "createdAt": "2025-11-11T15:49:28.993Z"
+      },
+      {
+        "content": "📝 Note de campagne TikTok Leads Import – Octobre/Novembre 2025: Promoteur déjà engagé avec un prestataire, mais intéressé : il a un appartement à Casablanca et souhaite voir nos réalisations et nos pages, puis échanger sur WhatsApp.",
+        "author": "Système Import",
+        "createdAt": "2025-11-11T16:05:02.798Z"
+      }
+    ],
+    "statutDetaille": "En reunion à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmij3a7ax000kuj8sdc0ifr1p",
+    "nom": "Fahim abdelaali",
+    "telephone": "0663148132",
+    "ville": "Non spécifié",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3a7k2000luj8s0oya1n6w",
+    "nom": "Mohammed  Mohammed Tazi",
+    "telephone": "0600251156",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "RDV LE 18/07/202.5 A 16H",
+    "message": null
+  },
+  {
+    "id": "cmij3a7to000muj8s5342ocjr",
+    "nom": "ابراهيم",
+    "telephone": "0629394534",
+    "ville": "Agadir",
+    "notes": [],
+    "statutDetaille": "En reunion à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmij3a83a000nuj8s67q23s6a",
+    "nom": "Said Hanani",
+    "telephone": "0661717348",
+    "ville": "Marrakech",
+    "notes": [],
+    "statutDetaille": "RDV la semaine prochaine sur place",
+    "message": null
+  },
+  {
+    "id": "cmij3a8d8000ouj8s1o6jjl7d",
+    "nom": "Aziz",
+    "telephone": "0661324741",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "RDV semaine prochaine jour et heure a confirmer",
+    "message": null
+  },
+  {
+    "id": "cmij3a8me000puj8srw7yr8ry",
+    "nom": "Hassane  El MASBAHI",
+    "telephone": "0622809204",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "En déplacement à recontacter la semaine prochaine",
+    "message": null
+  },
+  {
+    "id": "cmij3a8we000quj8snxs4rlab",
+    "nom": "Naanai Fouad",
+    "telephone": "0626275216",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3a95x000ruj8s3v6kk01y",
+    "nom": "ساميك",
+    "telephone": "0762041728",
+    "ville": "0762041728",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3a9fb000suj8s0g2m48mu",
+    "nom": "Namir youssef",
+    "telephone": "0661461818",
+    "ville": "Tanger",
+    "notes": [],
+    "statutDetaille": "Plan envoyé pour une istimation",
+    "message": null
+  },
+  {
+    "id": "cmij3a9pa000tuj8ssjy5wgnc",
+    "nom": "Nora Touhami",
+    "telephone": "0634767799",
+    "ville": "Marrakech",
+    "notes": [],
+    "statutDetaille": "Localisation de showroom envoée à la cliente ainsi que le numero de laila",
+    "message": null
+  },
+  {
+    "id": "cmij3a9ye000uuj8skon1i2wj",
+    "nom": "Siam",
+    "telephone": "0664947883",
+    "ville": "Marrakech",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3aa7t000vuj8s0rmokshc",
+    "nom": "خديجة",
+    "telephone": "0669797858",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "A recontacter",
+    "message": null
+  },
+  {
+    "id": "cmij3aaha000wuj8sihouo5tx",
+    "nom": "رحل ع اللطيف",
+    "telephone": "0703439003",
+    "ville": "Temara",
+    "notes": [],
+    "statutDetaille": "A recontacter",
+    "message": null
+  },
+  {
+    "id": "cmij3aar2000xuj8s58xmog0c",
+    "nom": "lotfi lotfi",
+    "telephone": "0661543660",
+    "ville": "Berkane",
+    "notes": [],
+    "statutDetaille": "RDV semaine prochaine a casa jour et heure a confirmer",
+    "message": null
+  },
+  {
+    "id": "cmij3ab0g000yuj8sy0wzo3xh",
+    "nom": "Benjelloun",
+    "telephone": "0666200048",
+    "ville": "Fes",
+    "notes": [],
+    "statutDetaille": "Elle va nous contacter prochainement",
+    "message": null
+  },
+  {
+    "id": "cmij3ab9p000zuj8sne96hj7h",
+    "nom": "Sahili hanane",
+    "telephone": "0605449360",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "RDV semaine prochaine jour et heure a confirmer",
+    "message": null
+  },
+  {
+    "id": "cmij3abj40010uj8saz2ppav3",
+    "nom": "Aziz",
+    "telephone": "0662133769",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3absg0011uj8s382lero4",
+    "nom": "EL FALAH",
+    "telephone": "0661076888",
+    "ville": "RABAT  (MAROC)",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3ac1y0012uj8s1qyl79d7",
+    "nom": "توفيق",
+    "telephone": "0652434762",
+    "ville": "Tanger",
+    "notes": [],
+    "statutDetaille": "Localisation de showroom envoée  ainsi que le numero de Nadi",
+    "message": null
+  },
+  {
+    "id": "cmij3acbz0013uj8swyv1f0pz",
+    "nom": "Tata Ahmed tata",
+    "telephone": "0661045934",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel effectué le 11/05/2025",
+        "author": "admin",
+        "createdAt": "2025-05-11T00:00:00.000Z"
+      },
+      {
+        "content": "📞 Premier appel effectué le 11/05/2025",
+        "author": "Système Import",
+        "createdAt": "2025-05-11T00:00:00.000Z"
+      },
+      {
+        "content": "📝 Note de campagne Oct–Nov 202: Il veut qu'on lui envoyer une plaquette avec nos info pour quil nous recontacte",
+        "author": "admin",
+        "createdAt": "2025-11-11T15:48:38.559Z"
+      },
+      {
+        "content": "📝 Note de campagne TikTok Leads Import – Octobre/Novembre 2025: Il veut qu'on lui envoyer une plaquette avec nos info pour quil nous recontacte",
+        "author": "Système Import",
+        "createdAt": "2025-11-11T16:04:15.448Z"
+      }
+    ],
+    "statutDetaille": "A rappeler la semaine prochaine",
+    "message": null
+  },
+  {
+    "id": "cmij3adpu001cuj8s4gbm2jl4",
+    "nom": "Jamila",
+    "telephone": "0682724470",
+    "ville": "Rabat",
+    "notes": [],
+    "statutDetaille": "Travaux a contacter le 18/07/2025 pour RDV",
+    "message": null
+  },
+  {
+    "id": "cmij3adzb001duj8s65ajj4gg",
+    "nom": "Omar",
+    "telephone": "0607641400",
+    "ville": "Marrakech",
+    "notes": [],
+    "statutDetaille": "Pas de reponse",
+    "message": null
+  },
+  {
+    "id": "cmij3ae8s001euj8sk85ulnm1",
+    "nom": "Ali berrada",
+    "telephone": "0661582241",
+    "ville": "Marrakech",
+    "notes": [],
+    "statutDetaille": "Aquisition fin juillet",
+    "message": null
+  },
+  {
+    "id": "cmij3aei2001fuj8sbppu2dik",
+    "nom": "Laila",
+    "telephone": "0659383466",
+    "ville": "Rabat",
+    "notes": [],
+    "statutDetaille": "Travaux ,Prendre l'avis de son mari",
+    "message": null
+  },
+  {
+    "id": "cmij3aeta001guj8s3btqt1n4",
+    "nom": "Youssef",
+    "telephone": "0608110110",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3af2m001huj8sqcu98h0l",
+    "nom": "Imane Al iyane",
+    "telephone": "0680661536",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3afdd001iuj8spng9l5dh",
+    "nom": "Gliouine youssef",
+    "telephone": "0661485347",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "En cours d'aquisition",
+    "message": null
+  },
+  {
+    "id": "cmij3afmt001juj8shyt6s9o4",
+    "nom": "Laila Maslouh",
+    "telephone": "0676658882",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3afw1001kuj8sd6gog9xg",
+    "nom": "Aghrod",
+    "telephone": "0696768870",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "Numéro remis a Hajar",
+    "message": null
+  },
+  {
+    "id": "cmij3ag59001luj8s52t5d9ep",
+    "nom": "Ziad",
+    "telephone": "0665886000",
+    "ville": "Mansouriya",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3ageg001muj8sqfl8ths2",
+    "nom": "Chaima",
+    "telephone": "+97337026556",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3agnn001nuj8s7xfmkiqo",
+    "nom": "Uj",
+    "telephone": "0617535228",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3agwu001ouj8sco149jue",
+    "nom": "بشرى",
+    "telephone": "0700076601",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "Pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3ah61001puj8sk0dd154s",
+    "nom": "Fadli ibtissam",
+    "telephone": "0664253975",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "RDV SAMEDI 19/07/2025 A 10H AVEC HAJAR",
+    "message": null
+  },
+  {
+    "id": "cmij3ahfm001quj8s2qzuwnrd",
+    "nom": "Abdelkrim",
+    "telephone": "0661802365",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "Numéro remis a Hajar",
+    "message": null
+  },
+  {
+    "id": "cmij3ahoq001ruj8sd23mj0jp",
+    "nom": "Nadia ZAHIRI",
+    "telephone": "0661495895",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": ":Pas de reponse",
+    "message": null
+  },
+  {
+    "id": "cmij3ahxx001suj8snaaos40h",
+    "nom": "Afaf",
+    "telephone": "0672953822",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3ai7j001tuj8sefvv5jko",
+    "nom": "Oumaima Sbai",
+    "telephone": "0612420408",
+    "ville": "Rabat",
+    "notes": [],
+    "statutDetaille": "pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3aigu001uuj8syub4dubk",
+    "nom": "Aboubacar Sidiki camara",
+    "telephone": "0690560894",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "pas de reponse message envoyé",
+    "message": null
+  },
+  {
+    "id": "cmij3aiq3001vuj8s8u1nzs76",
+    "nom": "Mr. ALI",
+    "telephone": "0661155402",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "besoin canapé , salle a manger et bardagge . passage au showroom",
+    "message": null
+  },
+  {
+    "id": "cmij3aizg001wuj8s3mpy31pw",
+    "nom": "مليكة",
+    "telephone": "0661326249",
+    "ville": "Marrakech",
+    "notes": [],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmij3aj8l001xuj8stp3271op",
+    "nom": "Bouchra",
+    "telephone": "0611250744",
+    "ville": "Meknes",
+    "notes": [],
+    "statutDetaille": "Qualifié",
+    "message": null
+  }
+]

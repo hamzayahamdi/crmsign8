@@ -25,6 +25,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Sidebar } from '@/components/sidebar'
 import { Header } from '@/components/header'
 import { AuthGuard } from '@/components/auth-guard'
@@ -164,11 +174,17 @@ export default function ContactsPage() {
     toast.info('Fonction de modification à venir')
   }
 
-  const handleDeleteContact = async (contactId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce contact ?')) return
+  const [contactToDelete, setContactToDelete] = useState<string | null>(null)
+
+  const handleDeleteContact = (contactId: string) => {
+    setContactToDelete(contactId)
+  }
+
+  const confirmDeleteContact = async () => {
+    if (!contactToDelete) return
 
     try {
-      const response = await fetch(`/api/contacts/${contactId}`, {
+      const response = await fetch(`/api/contacts/${contactToDelete}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -178,10 +194,12 @@ export default function ContactsPage() {
       if (!response.ok) throw new Error('Erreur lors de la suppression')
 
       toast.success('Contact supprimé avec succès')
+      setContactToDelete(null)
       loadContacts(page)
     } catch (error) {
       console.error('Error deleting contact:', error)
       toast.error('Erreur lors de la suppression du contact')
+      setContactToDelete(null)
     }
   }
 
@@ -539,8 +557,38 @@ export default function ContactsPage() {
             )}
           </div>
         </main>
+
+        {/* Delete Confirmation Modal */}
+        <AlertDialog open={contactToDelete !== null} onOpenChange={(open) => !open && setContactToDelete(null)}>
+          <AlertDialogContent className="bg-slate-900 border-slate-700/50 shadow-2xl max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                  ⚠️
+                </div>
+                Supprimer ce contact ?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-300 text-sm leading-relaxed mt-2">
+                Cette action est <span className="font-semibold text-red-400">irréversible</span>. Le contact et toutes ses données associées seront définitivement supprimés de la base de données.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-6 gap-2">
+              <AlertDialogCancel
+                onClick={() => setContactToDelete(null)}
+                className="bg-slate-800 hover:bg-slate-700 text-white border-slate-600/50 transition-all"
+              >
+                Annuler
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDeleteContact}
+                className="bg-red-600 hover:bg-red-700 text-white font-semibold transition-all shadow-lg shadow-red-500/20"
+              >
+                Supprimer définitivement
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AuthGuard>
   )
 }
-

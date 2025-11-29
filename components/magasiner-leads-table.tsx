@@ -65,6 +65,14 @@ const getStatusConfig = (status: LeadStatus) => {
       text: "text-gray-200",
       border: "border-gray-500/40",
     },
+    converti: {
+      label: "",
+      bg: "",
+      dot: "",
+      ring: "",
+      text: "",
+      border: ""
+    }
   }
   return configs[status]
 }

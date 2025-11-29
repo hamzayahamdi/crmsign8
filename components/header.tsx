@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { NotificationBell } from "@/components/notification-bell"
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { usePathname } from "next/navigation"
 import { hasPermission } from "@/lib/permissions"
@@ -29,6 +29,24 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
   const [localQuery, setLocalQuery] = useState(searchQuery)
   const { user, logout } = useAuth()
   const pathname = usePathname()
+
+  // Debounce search to prevent excessive re-renders
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (onSearchChange && localQuery !== searchQuery) {
+        onSearchChange(localQuery)
+      }
+    }, 300) // 300ms debounce
+
+    return () => clearTimeout(timer)
+  }, [localQuery, onSearchChange, searchQuery])
+
+  // Update local query when prop changes (e.g., when cleared externally)
+  useEffect(() => {
+    if (searchQuery !== localQuery) {
+      setLocalQuery(searchQuery)
+    }
+  }, [searchQuery])
 
   const getInitials = (name: string) => {
     return name
@@ -49,11 +67,7 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
             type="search"
             placeholder="Rechercher un lead..."
             value={localQuery}
-            onChange={(e) => {
-              const v = e.target.value
-              setLocalQuery(v)
-              onSearchChange?.(v)
-            }}
+            onChange={(e) => setLocalQuery(e.target.value)}
             className="h-11 rounded-lg pl-10 bg-[rgb(15,20,32)] border-[rgb(30,41,59)] focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 text-white placeholder:text-slate-500"
           />
         </div>

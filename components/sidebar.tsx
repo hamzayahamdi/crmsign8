@@ -7,7 +7,7 @@ import { Signature8Logo } from "@/components/signature8-logo"
 import { useAuth } from "@/contexts/auth-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { useMemo, useEffect, useState, useCallback } from "react"
+import { useMemo, useEffect, useState, useCallback, memo } from "react"
 import { motion, LayoutGroup, AnimatePresence } from "framer-motion"
 import { TasksService } from "@/lib/tasks-service"
 import { toast } from "sonner"
@@ -36,12 +36,11 @@ const iconMap: Record<string, any> = {
   Settings,
 }
 
-export function Sidebar() {
+const SidebarComponent = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const { user, logout } = useAuth()
-  const [isNavigating, setIsNavigating] = useState(false)
 
   // Tasks badge state
   const [myPendingTasks, setMyPendingTasks] = useState<number>(0)
@@ -65,32 +64,34 @@ export function Sidebar() {
     }
   }, [isMobileMenuOpen])
 
-  // Optimized navigation with immediate redirect
+  // Optimized instant navigation - no loading states to prevent flicker
   const handleNavigation = useCallback((href: string) => {
     // Don't navigate if already on this page
     if (href === pathname) {
       return
     }
 
-    // Set navigating state briefly for visual feedback
-    setIsNavigating(true)
-
-    // Prefetch the route immediately
-    router.prefetch(href)
-
-    // Immediate navigation - no transition delay
+    // Instant navigation without any loading state
     router.push(href)
-
-    // Reset navigating state after a short delay
-    setTimeout(() => setIsNavigating(false), 100)
   }, [router, pathname])
 
-  // Prefetch routes on hover for faster navigation
-  const handleMouseEnter = useCallback((href: string) => {
-    if (href !== pathname) {
-      router.prefetch(href)
+  // Prefetch routes on mount for instant navigation
+  useEffect(() => {
+    const role = user?.role
+    let routes: string[] = []
+
+    if (role?.toLowerCase() === 'commercial') {
+      routes = ['/commercial']
+    } else {
+      const visibleItems = getVisibleSidebarItems(role)
+      routes = visibleItems.map(item => item.href)
     }
-  }, [router, pathname])
+
+    // Prefetch all routes immediately
+    routes.forEach(route => {
+      router.prefetch(route)
+    })
+  }, [user?.role, router])
 
   // Load tasks count for the signed-in user and compute new tasks since last seen
   useEffect(() => {
@@ -220,15 +221,12 @@ export function Sidebar() {
                     handleNavigation(item.href)
                   }
                 }}
-                onMouseEnter={() => handleMouseEnter(item.href)}
-                disabled={isNavigating && pathname !== item.href}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.4, ease: "easeOut" }}
                 whileHover={{ x: 4 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.98 }}
                 className="w-full text-left block"
-                style={{ cursor: (isNavigating && pathname !== item.href) ? 'wait' : 'pointer' }}
                 type="button"
               >
                 <motion.div
@@ -237,60 +235,80 @@ export function Sidebar() {
                     "relative flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3.5 rounded-xl md:rounded-2xl group overflow-hidden transition-all duration-150",
                     isActive
                       ? "text-sky-50"
-                      : "text-muted-foreground hover:text-foreground",
-                    isNavigating && "opacity-60"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
-                  transition={{ type: "spring", stiffness: 350, damping: 35, mass: 0.9 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.8 }}
                 >
                   {isActive && (
                     <>
-                      {/* Background glow effect */}
+                      {/* Background glow effect with improved spring */}
                       <motion.div
                         layoutId="sidebar-active-pill"
                         className="absolute inset-0 rounded-xl md:rounded-2xl"
                         style={{
-                          background: "linear-gradient(135deg, rgba(56,189,248,0.85) 0%, rgba(59,130,246,0.95) 100%)",
-                          boxShadow: "0 0 32px rgba(56,189,248,0.7), 0 0 64px rgba(59,130,246,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
+                          background: "linear-gradient(135deg, rgba(56,189,248,0.9) 0%, rgba(59,130,246,1) 100%)",
+                          boxShadow: "0 0 40px rgba(56,189,248,0.8), 0 0 80px rgba(59,130,246,0.5), inset 0 1px 0 rgba(255,255,255,0.25)",
                         }}
-                        transition={{ type: "spring", stiffness: 330, damping: 32, mass: 1 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 500,
+                          damping: 35,
+                          mass: 0.6,
+                          velocity: 2
+                        }}
                       />
 
-                      {/* Animated outer glow */}
+                      {/* Animated outer glow with smoother pulse */}
                       <motion.div
                         layoutId="sidebar-active-glow-outer"
                         className="pointer-events-none absolute -inset-2 rounded-3xl blur-xl"
                         style={{
-                          background: "radial-gradient(circle, rgba(56,189,248,0.6) 0%, rgba(59,130,246,0.3) 50%, transparent 100%)",
+                          background: "radial-gradient(circle, rgba(56,189,248,0.7) 0%, rgba(59,130,246,0.4) 50%, transparent 100%)",
                         }}
-                        animate={{ opacity: [0.5, 0.8, 0.5], scale: [0.95, 1.05, 0.95] }}
-                        transition={{ duration: 3, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+                        animate={{ opacity: [0.6, 0.9, 0.6], scale: [0.96, 1.04, 0.96] }}
+                        transition={{
+                          duration: 2.5,
+                          repeat: Infinity,
+                          repeatType: "mirror",
+                          ease: [0.4, 0, 0.6, 1] // Custom cubic-bezier for smoother easing
+                        }}
                       />
 
-                      {/* Inner shimmer glow */}
+                      {/* Inner shimmer glow with faster, smoother animation */}
                       <motion.div
                         layoutId="sidebar-active-glow-inner"
                         className="pointer-events-none absolute inset-0 rounded-xl md:rounded-2xl"
                         style={{
-                          background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)",
+                          background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%)",
                         }}
-                        animate={{ x: [-100, 100] }}
-                        transition={{ duration: 3, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+                        animate={{ x: [-120, 120] }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          repeatType: "mirror",
+                          ease: [0.4, 0, 0.2, 1] // Smoother easing
+                        }}
                       />
                     </>
                   )}
 
-                  {/* Icon with enhanced glow */}
+                  {/* Icon with enhanced glow and smoother pulse */}
                   <motion.div
                     className="relative z-10"
-                    animate={isActive ? { scale: [1, 1.15, 1] } : {}}
-                    transition={{ duration: 0.6, repeat: Infinity, repeatType: "mirror" }}
+                    animate={isActive ? { scale: [1, 1.12, 1] } : {}}
+                    transition={{
+                      duration: 2.5,
+                      repeat: Infinity,
+                      repeatType: "mirror",
+                      ease: [0.4, 0, 0.6, 1]
+                    }}
                   >
                     <item.icon
                       className={cn(
                         "w-4 h-4 md:w-5 md:h-5 transition-all duration-300",
                         isActive
-                          ? "drop-shadow-[0_0_20px_rgba(56,189,248,0.95)] drop-shadow-[0_0_40px_rgba(59,130,246,0.5)]"
-                          : "group-hover:scale-110 group-hover:drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]",
+                          ? "drop-shadow-[0_0_24px_rgba(56,189,248,1)] drop-shadow-[0_0_48px_rgba(59,130,246,0.6)]"
+                          : "group-hover:scale-110 group-hover:drop-shadow-[0_0_12px_rgba(56,189,248,0.6)]",
                       )}
                     />
                   </motion.div>
@@ -475,3 +493,6 @@ export function Sidebar() {
     </>
   )
 }
+
+// Export memoized version to prevent unnecessary re-renders
+export const Sidebar = memo(SidebarComponent)
