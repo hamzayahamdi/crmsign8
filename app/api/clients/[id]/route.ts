@@ -20,10 +20,10 @@ export async function GET(
         { status: 500 }
       )
     }
-    
+
     const cookieStore = await cookies()
     const authCookie = cookieStore.get('token')
-    
+
     if (!authCookie) {
       return NextResponse.json(
         { error: 'Non authentifié' },
@@ -45,7 +45,7 @@ export async function GET(
 
     // Check if this is an opportunity-based client (composite ID: contactId-opportunityId)
     const isOpportunityClient = clientId.includes('-') && clientId.split('-').length === 2
-    
+
     let client: any = null
     let contactId: string | null = null
     let opportunityId: string | null = null
@@ -73,7 +73,7 @@ export async function GET(
       }
 
       const opportunity = contact.opportunities[0]
-      
+
       // Map opportunity pipeline stage to project status
       let status = 'nouveau'
       if (opportunity.pipelineStage === 'prise_de_besoin') status = 'prise_de_besoin'
@@ -98,7 +98,7 @@ export async function GET(
       // Map architect and commercial IDs to names
       const architectId = opportunity.architecteAssigne || contact.architecteAssigne || ''
       const architectName = architectId ? (userNameMap[architectId] || architectId) : ''
-      
+
       const commercialId = contact.createdBy || ''
       const commercialName = commercialId ? (userNameMap[commercialId] || commercialId) : ''
 
@@ -126,10 +126,10 @@ export async function GET(
           .filter(note => {
             // Remove placeholder/template text
             const cleanNote = note.trim()
-            return cleanNote && 
-                   !cleanNote.match(/^===.*===\s*$/i) && 
-                   cleanNote !== 'confirmer' &&
-                   !cleanNote.match(/^===\s*Prise de besoin\s*===\s*confirmer$/i)
+            return cleanNote &&
+              !cleanNote.match(/^===.*===\s*$/i) &&
+              cleanNote !== 'confirmer' &&
+              !cleanNote.match(/^===\s*Prise de besoin\s*===\s*confirmer$/i)
           })
           .join('\n\n') || '', // Combine contact notes, opportunity notes, and description
         magasin: contact.magasin,
@@ -155,7 +155,7 @@ export async function GET(
         )
       }
       client = legacyClient
-      
+
       // Map architect and commercial IDs to names for legacy clients
       if (client.architecte_assigne) {
         const mappedArchitect = userNameMap[client.architecte_assigne]
@@ -163,7 +163,7 @@ export async function GET(
           client.architecte_assigne = mappedArchitect
         }
       }
-      
+
       if (client.commercial_attribue) {
         const mappedCommercial = userNameMap[client.commercial_attribue]
         if (mappedCommercial) {
@@ -204,7 +204,7 @@ export async function GET(
           .limit(1)
           .single()
       ])
-      
+
       historique = histData || []
       appointments = apptData || []
       devis = devisData || []
@@ -232,17 +232,17 @@ export async function GET(
             let authorName = 'Système'
             if (entry.author) {
               // Map user ID to name
-              authorName = userNameMap[entry.author] || 
-                          userNameMap[entry.author.toLowerCase()] || 
-                          entry.author
+              authorName = userNameMap[entry.author] ||
+                userNameMap[entry.author.toLowerCase()] ||
+                entry.author
             }
-            
+
             return {
               id: entry.id,
               date: entry.createdAt.toISOString(),
-              type: entry.eventType === 'note_added' ? 'note' : 
-                    entry.eventType === 'appointment_created' ? 'rdv' :
-                    entry.eventType === 'status_changed' ? 'statut' : 'note',
+              type: entry.eventType === 'note_added' ? 'note' :
+                entry.eventType === 'appointment_created' ? 'rdv' :
+                  entry.eventType === 'status_changed' ? 'statut' : 'note',
               description: entry.title || entry.description || '',
               auteur: authorName,
               metadata: entry.metadata || {}
@@ -274,7 +274,7 @@ export async function GET(
           console.error('[GET /api/clients/[id]] Error fetching opportunity data:', error)
         }
       }
-      
+
       devis = []
       documents = []
       payments = []
@@ -385,9 +385,9 @@ export async function GET(
         // Map user ID to name if it looks like an ID
         let authorName = entry.auteur || 'Système'
         if (authorName && authorName.length > 20) {
-          authorName = userNameMap[authorName] || 
-                      userNameMap[authorName.toLowerCase()] || 
-                      entry.auteur
+          authorName = userNameMap[authorName] ||
+            userNameMap[authorName.toLowerCase()] ||
+            entry.auteur
         }
         return {
           ...entry,
@@ -410,11 +410,11 @@ export async function GET(
       let authorName = h.auteur || 'Système'
       // Map user ID to name if it looks like an ID
       if (authorName && authorName.length > 20) {
-        authorName = userNameMap[authorName] || 
-                    userNameMap[authorName.toLowerCase()] || 
-                    h.auteur
+        authorName = userNameMap[authorName] ||
+          userNameMap[authorName.toLowerCase()] ||
+          h.auteur
       }
-      
+
       return {
         id: h.id,
         date: h.date,
@@ -454,8 +454,8 @@ export async function GET(
         const rawNotes = client.notes || ''
         // Clean up placeholder text
         if (rawNotes.match(/^===\s*Prise de besoin\s*===\s*confirmer$/i) ||
-            rawNotes.trim() === 'confirmer' ||
-            rawNotes.match(/^===.*===\s*$/i)) {
+          rawNotes.trim() === 'confirmer' ||
+          rawNotes.match(/^===.*===\s*$/i)) {
           return ''
         }
         return rawNotes
@@ -520,7 +520,7 @@ export async function GET(
         } catch (err) {
           console.error('[Documents] Failed to generate signed URL:', err)
         }
-        
+
         return {
           id: d.id,
           name: d.name,
@@ -574,10 +574,10 @@ export async function PATCH(
         { status: 500 }
       )
     }
-    
+
     const cookieStore = await cookies()
     const authCookie = cookieStore.get('token')
-    
+
     if (!authCookie) {
       return NextResponse.json(
         { error: 'Non authentifié' },
@@ -675,10 +675,10 @@ export async function DELETE(
         { status: 500 }
       )
     }
-    
+
     const cookieStore = await cookies()
     const authCookie = cookieStore.get('token')
-    
+
     if (!authCookie) {
       return NextResponse.json(
         { error: 'Non authentifié' },
@@ -689,107 +689,157 @@ export async function DELETE(
     const { id: clientId } = await params
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // First, fetch the client to check if it has leadData for restoration
+    // 1. Check if this is an opportunity-based client (composite ID: contactId-opportunityId)
+    const isOpportunityClient = clientId.includes('-') && clientId.split('-').length === 2
+
+    if (isOpportunityClient) {
+      const [contactId, opportunityId] = clientId.split('-')
+
+      try {
+        // Delete the opportunity using Prisma
+        await prisma.opportunity.delete({
+          where: { id: opportunityId }
+        })
+
+        console.log(`[DELETE /api/clients/[id]] ✅ Deleted opportunity: ${opportunityId}`)
+
+        return NextResponse.json({
+          success: true,
+          message: 'Client (Opportunité) supprimé avec succès'
+        })
+      } catch (err) {
+        console.error('[DELETE /api/clients/[id]] Error deleting opportunity:', err)
+        return NextResponse.json(
+          { error: 'Erreur lors de la suppression de l\'opportunité' },
+          { status: 500 }
+        )
+      }
+    }
+
+    // 2. Check 'clients' table (Legacy Client)
     const { data: client, error: fetchError } = await supabase
       .from('clients')
       .select('*')
       .eq('id', clientId)
       .single()
 
-    if (fetchError || !client) {
-      console.error('[DELETE /api/clients/[id]] Client not found:', fetchError)
-      return NextResponse.json(
-        { error: 'Client non trouvé' },
-        { status: 404 }
-      )
+    if (client && !fetchError) {
+      let restoredLead = null
+
+      // If client has leadData, restore the lead before deleting the client
+      if (client.lead_data && client.lead_id) {
+        console.log(`[DELETE /api/clients/[id]] 🔄 Restoring lead from client data...`)
+
+        try {
+          const leadData = client.lead_data as any
+
+          // Restore the lead with all original data
+          restoredLead = await prisma.lead.create({
+            data: {
+              id: leadData.id,
+              nom: leadData.nom,
+              telephone: leadData.telephone,
+              ville: leadData.ville,
+              typeBien: leadData.typeBien,
+              statut: 'nouveau', // Reset to 'nouveau'
+              statutDetaille: '🔄 Lead restauré après suppression du client - À requalifier',
+              message: leadData.message,
+              assignePar: leadData.assignePar,
+              source: leadData.source,
+              priorite: leadData.priorite,
+              magasin: leadData.magasin,
+              commercialMagasin: leadData.commercialMagasin,
+              month: leadData.month,
+              campaignName: leadData.campaignName,
+              uploadedAt: leadData.uploadedAt ? new Date(leadData.uploadedAt) : null,
+              convertedAt: null,
+              createdBy: leadData.createdBy,
+              createdAt: leadData.createdAt ? new Date(leadData.createdAt) : new Date(),
+              derniereMaj: new Date()
+            }
+          })
+
+          // Restore lead notes if they exist
+          if (leadData.notes && Array.isArray(leadData.notes)) {
+            await prisma.leadNote.createMany({
+              data: leadData.notes.map((note: any) => ({
+                id: note.id,
+                leadId: leadData.id,
+                content: note.content,
+                author: note.author,
+                createdAt: note.createdAt ? new Date(note.createdAt) : new Date()
+              }))
+            })
+          }
+
+          console.log(`[DELETE /api/clients/[id]] ✅ Lead restored: ${restoredLead.id}`)
+        } catch (restoreError) {
+          console.error('[DELETE /api/clients/[id]] ❌ Failed to restore lead:', restoreError)
+        }
+      }
+
+      // Delete client (cascade will handle related data)
+      const { error: deleteError } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', clientId)
+
+      if (deleteError) {
+        console.error('[DELETE /api/clients/[id]] Delete error:', deleteError)
+        return NextResponse.json(
+          { error: 'Erreur lors de la suppression du client' },
+          { status: 500 }
+        )
+      }
+
+      console.log(`[DELETE /api/clients/[id]] ✅ Deleted legacy client: ${clientId}`)
+
+      return NextResponse.json({
+        success: true,
+        message: restoredLead
+          ? 'Client supprimé et lead restauré avec succès'
+          : 'Client supprimé avec succès',
+        restoredLead: restoredLead ? {
+          id: restoredLead.id,
+          nom: restoredLead.nom,
+          statut: restoredLead.statut
+        } : null
+      })
     }
 
-    let restoredLead = null
+    // 3. If not found in 'clients' table, check if it's a Contact
+    try {
+      const contact = await prisma.contact.findUnique({
+        where: { id: clientId }
+      })
 
-    // If client has leadData, restore the lead before deleting the client
-    if (client.lead_data && client.lead_id) {
-      console.log(`[DELETE /api/clients/[id]] 🔄 Restoring lead from client data...`)
-      
-      try {
-        const leadData = client.lead_data as any
-        
-        // Restore the lead with all original data
-        // IMPORTANT: Status is reset to 'nouveau' (not 'converti') because:
-        // 1. Lead is no longer a client, so 'converti' status would be misleading
-        // 2. 'nouveau' gives it a fresh start and requires re-qualification
-        // 3. This prevents confusion in the leads table
-        restoredLead = await prisma.lead.create({
-          data: {
-            id: leadData.id,
-            nom: leadData.nom,
-            telephone: leadData.telephone,
-            ville: leadData.ville,
-            typeBien: leadData.typeBien,
-            statut: 'nouveau', // Reset to 'nouveau' - lead gets fresh start after client deletion
-            statutDetaille: '🔄 Lead restauré après suppression du client - À requalifier',
-            message: leadData.message,
-            assignePar: leadData.assignePar,
-            source: leadData.source,
-            priorite: leadData.priorite,
-            magasin: leadData.magasin,
-            commercialMagasin: leadData.commercialMagasin,
-            month: leadData.month,
-            campaignName: leadData.campaignName,
-            uploadedAt: leadData.uploadedAt ? new Date(leadData.uploadedAt) : null,
-            convertedAt: null, // Clear conversion timestamp - no longer converted
-            createdBy: leadData.createdBy,
-            createdAt: leadData.createdAt ? new Date(leadData.createdAt) : new Date(),
-            derniereMaj: new Date() // Update to current time
-          }
+      if (contact) {
+        // Delete the contact (cascade will delete opportunities)
+        await prisma.contact.delete({
+          where: { id: clientId }
         })
 
-        // Restore lead notes if they exist
-        if (leadData.notes && Array.isArray(leadData.notes)) {
-          await prisma.leadNote.createMany({
-            data: leadData.notes.map((note: any) => ({
-              id: note.id,
-              leadId: leadData.id,
-              content: note.content,
-              author: note.author,
-              createdAt: note.createdAt ? new Date(note.createdAt) : new Date()
-            }))
-          })
-        }
+        console.log(`[DELETE /api/clients/[id]] ✅ Deleted contact: ${clientId}`)
 
-        console.log(`[DELETE /api/clients/[id]] ✅ Lead restored: ${restoredLead.id}`)
-      } catch (restoreError) {
-        console.error('[DELETE /api/clients/[id]] ❌ Failed to restore lead:', restoreError)
-        // Continue with client deletion even if lead restoration fails
+        return NextResponse.json({
+          success: true,
+          message: 'Client (Contact) et ses opportunités supprimés avec succès'
+        })
       }
-    }
-
-    // Delete client (cascade will handle related data)
-    const { error: deleteError } = await supabase
-      .from('clients')
-      .delete()
-      .eq('id', clientId)
-
-    if (deleteError) {
-      console.error('[DELETE /api/clients/[id]] Delete error:', deleteError)
+    } catch (err) {
+      console.error('[DELETE /api/clients/[id]] Error deleting contact:', err)
       return NextResponse.json(
-        { error: 'Erreur lors de la suppression du client' },
+        { error: 'Erreur lors de la suppression du contact' },
         { status: 500 }
       )
     }
 
-    console.log(`[DELETE /api/clients/[id]] ✅ Deleted client: ${clientId}`)
-
-    return NextResponse.json({
-      success: true,
-      message: restoredLead 
-        ? 'Client supprimé et lead restauré avec succès' 
-        : 'Client supprimé avec succès',
-      restoredLead: restoredLead ? {
-        id: restoredLead.id,
-        nom: restoredLead.nom,
-        statut: restoredLead.statut
-      } : null
-    })
+    // If neither found
+    console.error('[DELETE /api/clients/[id]] Client not found in any table')
+    return NextResponse.json(
+      { error: 'Client non trouvé' },
+      { status: 404 }
+    )
 
   } catch (error) {
     console.error('[DELETE /api/clients/[id]] Error:', error)

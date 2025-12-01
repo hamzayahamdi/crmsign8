@@ -2,12 +2,13 @@
 
 import type { Client, ProjectStatus } from "@/types/client"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, ChevronRight, Building2, DollarSign } from "lucide-react"
+import { MapPin, ChevronRight, Building2, DollarSign, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface ClientsListMobileProps {
   clients: Client[]
   onClientClick: (client: Client) => void
+  onDeleteClient?: (client: Client) => void
   searchQuery: string
   filters: {
     architecte: string
@@ -18,7 +19,7 @@ interface ClientsListMobileProps {
   isLoading?: boolean
 }
 
-const statutConfig: Record<ProjectStatus, { label: string; color: string }> = {
+const statutConfig: Record<string, { label: string; color: string }> = {
   nouveau: { label: "Nouveau projet", color: "bg-green-500/20 text-green-400 border-green-500/40" },
   acompte_verse: { label: "Acompte versé", color: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
   en_conception: { label: "En conception", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
@@ -30,7 +31,7 @@ const statutConfig: Record<ProjectStatus, { label: string; color: string }> = {
   suspendu: { label: "Suspendu", color: "bg-slate-500/20 text-slate-400 border-slate-500/40" },
 }
 
-export function ClientsListMobile({ clients, onClientClick, searchQuery, filters, isLoading = false }: ClientsListMobileProps) {
+export function ClientsListMobile({ clients, onClientClick, onDeleteClient, searchQuery, filters, isLoading = false }: ClientsListMobileProps) {
   const normalizedQuery = searchQuery.trim().toLowerCase()
 
   const passesSearch = (client: Client) => {
@@ -91,10 +92,10 @@ export function ClientsListMobile({ clients, onClientClick, searchQuery, filters
       {items.map((c) => {
         const st = statutConfig[c.statutProjet] || { label: c.statutProjet, color: "bg-gray-500/20 text-gray-400 border-gray-500/40" }
         return (
-          <button
+          <div
             key={c.id}
             onClick={() => onClientClick(c)}
-            className="w-full text-left glass rounded-xl border border-slate-600/30 p-4 hover:border-primary/40 hover:bg-primary/5 transition-colors"
+            className="w-full text-left glass rounded-xl border border-slate-600/30 p-4 hover:border-primary/40 hover:bg-primary/5 transition-colors group relative cursor-pointer"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1 space-y-2">
@@ -112,7 +113,7 @@ export function ClientsListMobile({ clients, onClientClick, searchQuery, filters
                     </>
                   )}
                 </div>
-                
+
                 {/* Budget & Status - Most important */}
                 <div className="flex items-center gap-3">
                   {c.budget && c.budget > 0 && (
@@ -138,9 +139,20 @@ export function ClientsListMobile({ clients, onClientClick, searchQuery, filters
               </div>
               <div className="flex flex-col items-end gap-2">
                 <ChevronRight className="w-4 h-4 text-slate-400" />
+                {onDeleteClient && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDeleteClient(c)
+                    }}
+                    className="p-2 -mr-2 text-slate-400 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
-          </button>
+          </div>
         )
       })}
     </div>

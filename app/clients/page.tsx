@@ -18,20 +18,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Header } from "@/components/header"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { ensureIssamInLocalStorage } from "@/lib/seed-issam"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import {
   Select,
   SelectContent,
@@ -60,6 +50,7 @@ export default function ClientsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('table')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Load view mode from localStorage on mount
   useEffect(() => {
@@ -207,14 +198,6 @@ export default function ClientsPage() {
 
   // Open confirm dialog for deletion
   const requestDeleteClient = (client: Client & { isContact?: boolean }) => {
-    if (client.isContact) {
-      toast({
-        title: "Action non autorisée",
-        description: "Ce client est lié à un contact. Veuillez le gérer depuis la page Contacts.",
-        variant: "destructive"
-      })
-      return
-    }
     setClientToDelete(client)
     setDeleteDialogOpen(true)
   }
@@ -672,6 +655,7 @@ export default function ClientsPage() {
                         <ClientsListMobile
                           clients={clients}
                           onClientClick={handleClientClick}
+                          onDeleteClient={requestDeleteClient}
                           searchQuery={searchQuery}
                           filters={filters}
                         />
@@ -709,24 +693,58 @@ export default function ClientsPage() {
           onDelete={requestDeleteClient}
         />
 
-        {/* Confirm Delete Modal */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent className="bg-slate-900 border-slate-700">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-white">Supprimer le client ?</AlertDialogTitle>
-              <AlertDialogDescription className="text-slate-300">
-                Cette action supprimera uniquement le client
-                {clientToDelete ? ` "${clientToDelete.nom}"` : ""} de la table Clients.
-                Le lead associé (s'il existe) sera <span className="font-semibold text-white">préservé</span>.
-                Cette action est irréversible.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel className="bg-transparent border border-slate-700 text-slate-200 hover:bg-slate-800">Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDeleteClient} className="bg-red-600 hover:bg-red-700 text-white">Supprimer</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* Confirm Delete Modal - Custom Implementation */}
+        <AnimatePresence>
+          {deleteDialogOpen && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => !isDeleting && setDeleteDialogOpen(false)}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[99998]"
+              />
+
+              {/* Modal Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[99999] w-full max-w-md"
+              >
+                <div className="bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-6 mx-4">
+                  <h2 className="text-xl font-semibold text-white mb-2">
+                    Supprimer le client ?
+                  </h2>
+                  <p className="text-slate-300 text-sm mb-6">
+                    Cette action supprimera uniquement le client
+                    {clientToDelete ? ` "${clientToDelete.nom}"` : ""} de la table Clients.
+                    Le lead associé (s'il existe) sera <span className="font-semibold text-white">préservé</span>.
+                    Cette action est irréversible.
+                  </p>
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      onClick={() => setDeleteDialogOpen(false)}
+                      disabled={isDeleting}
+                      className="px-4 py-2 rounded-md bg-transparent border border-slate-700 text-slate-200 hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      onClick={confirmDeleteClient}
+                      disabled={isDeleting}
+                      className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isDeleting && <Loader2 className="w-4 h-4 animate-spin" />}
+                      {isDeleting ? 'Suppression...' : 'Supprimer'}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Add/Edit Client Modal */}
         <AddClientModalImproved

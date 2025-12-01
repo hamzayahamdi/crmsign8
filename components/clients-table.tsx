@@ -73,13 +73,13 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
     if (sortField !== field) {
       return <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
     }
-    return sortOrder === 'asc' ? 
-      <ArrowUp className="w-3.5 h-3.5 text-primary" /> : 
+    return sortOrder === 'asc' ?
+      <ArrowUp className="w-3.5 h-3.5 text-primary" /> :
       <ArrowDown className="w-3.5 h-3.5 text-primary" />
   }
 
   const filteredClients = clients.filter(client => passesSearch(client) && passesFilters(client))
-  
+
   // Sort clients
   const sortedClients = [...filteredClients].sort((a, b) => {
     let aValue: any = a[sortField]
@@ -121,18 +121,18 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
-    
+
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const compareDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-    
+
     const diffTime = today.getTime() - compareDate.getTime()
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    
+
     if (diffDays === 0) return "Aujourd'hui"
     if (diffDays === 1) return "Hier"
     if (diffDays > 0 && diffDays < 7) return `Il y a ${diffDays}j`
     if (diffDays < 0 && diffDays > -2) return "Aujourd'hui"
-    
+
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: 'short',
@@ -164,7 +164,7 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
           </div>
         </div>
       )}
-      
+
       {/* Table Header */}
       <div className="bg-slate-800/30 px-6 py-4 border-b border-slate-200/10">
         <div className="flex items-center justify-between">
@@ -258,7 +258,7 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
                 color: `${sc.bgColor} ${sc.textColor} ${sc.borderColor}`
               }
               return (
-                <motion.tr 
+                <motion.tr
                   key={client.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}

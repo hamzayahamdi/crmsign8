@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import type { Client, ProjectStatus } from "@/types/client"
-import { 
-  X, Phone, Mail, MessageCircle, Plus, MapPin, Building2, 
+import {
+  X, Phone, Mail, MessageCircle, Plus, MapPin, Building2,
   User, Calendar, DollarSign, Edit, Trash2, FileText,
   Send, Share2, Paperclip, Clock, ChevronDown, ChevronUp
 } from "lucide-react"
@@ -43,14 +43,14 @@ export function ClientDetailPanelRedesigned({
   const [newNote, setNewNote] = useState("")
   const [isAddingNote, setIsAddingNote] = useState(false)
   const [showAllHistory, setShowAllHistory] = useState(false)
-  
+
   // Modal states
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false)
   const [isStatusConfirmModalOpen, setIsStatusConfirmModalOpen] = useState(false)
   const [pendingStatus, setPendingStatus] = useState<ProjectStatus | null>(null)
-  
+
   // Check if user can edit status (Admin, Operator, Gestionnaire, or Architecte)
   const canEditStatus = hasPermission(user?.role, 'clients', 'edit')
 
@@ -124,9 +124,9 @@ export function ClientDetailPanelRedesigned({
       })
       return
     }
-    
+
     if (newStatus === localClient.statutProjet) return
-    
+
     setPendingStatus(newStatus)
     setIsStatusConfirmModalOpen(true)
   }
@@ -134,13 +134,13 @@ export function ClientDetailPanelRedesigned({
   const confirmStatusChange = (selectedStatus: ProjectStatus) => {
     const now = new Date().toISOString()
     const userName = user?.name || 'Admin'
-    
+
     // Calculate duration in previous status
     const previousStatus = localClient.statutProjet
     const lastStatusChange = localClient.historique?.find(h => h.type === 'statut')
     const timestampStart = lastStatusChange?.date || localClient.createdAt
     const durationInHours = calculateDurationInHours(timestampStart, now)
-    
+
     const updatedClient = {
       ...localClient,
       statutProjet: selectedStatus,
@@ -181,21 +181,14 @@ export function ClientDetailPanelRedesigned({
 
   const handleDeleteClient = () => {
     if (!onDelete) return
-    
-    const confirmDelete = window.confirm(
-      `Êtes-vous sûr de vouloir supprimer le client "${localClient.nom}" ?\n\nCette action supprimera uniquement le client de la table Clients.\nLe lead associé (si existant) sera préservé.`
-    )
-    
-    if (confirmDelete) {
-      onDelete(localClient)
-      onClose()
-    }
+    onDelete(localClient)
+    onClose()
   }
 
   const handleAddPayment = (payment: PaymentData) => {
     const now = new Date().toISOString()
     const userName = user?.name || 'Admin'
-    
+
     const newPayment: import('@/types/client').Payment = {
       id: `pay-${Date.now()}`,
       amount: payment.amount,
@@ -206,7 +199,7 @@ export function ClientDetailPanelRedesigned({
       createdBy: userName,
       createdAt: now
     }
-    
+
     const updatedClient = {
       ...localClient,
       payments: [
@@ -270,7 +263,7 @@ export function ClientDetailPanelRedesigned({
   const handleDocumentUpload = (documents: any[]) => {
     const now = new Date().toISOString()
     const userName = user?.name || 'Admin'
-    
+
     const updatedClient = {
       ...localClient,
       documents: [
@@ -293,7 +286,7 @@ export function ClientDetailPanelRedesigned({
 
     setLocalClient(updatedClient)
     onUpdate?.(updatedClient)
-    
+
     toast({
       title: "Documents ajoutés",
       description: `${documents.length} document(s) ajouté(s) avec succès`,
@@ -303,7 +296,7 @@ export function ClientDetailPanelRedesigned({
   const handleStageAction = (action: string, data?: any) => {
     const now = new Date().toISOString()
     const userName = user?.name || 'Admin'
-    
+
     switch (action) {
       case 'add_payment':
       case 'view_payments':
@@ -442,7 +435,7 @@ export function ClientDetailPanelRedesigned({
 
   const allHistory = [...(localClient.historique || [])]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  
+
   const displayedHistory = showAllHistory ? allHistory : allHistory.slice(0, 5)
   const hasMoreHistory = allHistory.length > 5
 
@@ -497,7 +490,7 @@ export function ClientDetailPanelRedesigned({
                   <h2 className="text-3xl font-bold text-white mb-2">
                     {localClient.nom}
                   </h2>
-                  
+
                   <div className="flex flex-wrap items-center gap-4 text-sm text-white/60">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
@@ -581,7 +574,7 @@ export function ClientDetailPanelRedesigned({
                       Informations de contact
                     </h3>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -629,7 +622,7 @@ export function ClientDetailPanelRedesigned({
                         Actions rapides
                       </h3>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Button
                         onClick={() => setIsAddingNote(true)}
@@ -747,8 +740,8 @@ export function ClientDetailPanelRedesigned({
                             >
                               <div className="flex items-start gap-2 mb-1.5">
                                 <div className="text-xs text-white/50">
-                                  {new Date(entry.date).toLocaleDateString('fr-FR', { 
-                                    day: 'numeric', 
+                                  {new Date(entry.date).toLocaleDateString('fr-FR', {
+                                    day: 'numeric',
                                     month: 'short',
                                     hour: '2-digit',
                                     minute: '2-digit'
@@ -763,7 +756,7 @@ export function ClientDetailPanelRedesigned({
                             </motion.div>
                           ))}
                         </div>
-                        
+
                         {hasMoreHistory && (
                           <Button
                             onClick={() => setShowAllHistory(!showAllHistory)}
