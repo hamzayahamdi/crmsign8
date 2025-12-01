@@ -42,7 +42,8 @@
     "test:sms": "tsx scripts/test-sms.ts",
     "test:notification-sms": "tsx scripts/test-notification-with-sms.ts",
     "import:november-leads": "tsx scripts/import-tiktok-leads-november.ts",
-    "import:november-csv": "tsx scripts/import-tiktok-leads-november-csv.ts"
+    "import:november-csv": "tsx scripts/import-tiktok-leads-november-csv.ts",
+    "test:db-connection": "node scripts/test-db-connection.js"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",

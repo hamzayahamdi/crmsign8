@@ -43,9 +43,9 @@ export default function TasksPage() {
       setIsLoading(true)
       const fetchedTasks = await TasksService.getTasks()
       setTasks(fetchedTasks)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading tasks:', error)
-      toast.error('Erreur lors du chargement des tâches')
+      toast.error(error.message || 'Erreur lors du chargement des tâches')
     } finally {
       setIsLoading(false)
     }

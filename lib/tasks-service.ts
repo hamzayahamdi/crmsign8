@@ -6,6 +6,7 @@ interface TasksResponse {
   success: boolean
   data: Task[]
   count: number
+  error?: string
 }
 
 interface TaskFilters {
@@ -46,13 +47,21 @@ export class TasksService {
 
       if (!response.ok) {
         let errorMessage = 'Erreur lors du chargement des tâches'
+        let errorDetails = ''
 
         try {
           const errorData = await response.json()
-          console.error('[TasksService] Error response:', errorData)
+          console.error('[TasksService] Error response data:', errorData)
           errorMessage = errorData.error || errorMessage
+          errorDetails = errorData.details || ''
         } catch (e) {
-          console.error('[TasksService] Could not parse error response')
+          console.error('[TasksService] Could not parse error response JSON')
+          try {
+            const text = await response.text()
+            console.error('[TasksService] Error response text:', text)
+          } catch (textError) {
+            // ignore
+          }
         }
 
         if (response.status === 401) {
@@ -61,10 +70,19 @@ export class TasksService {
           errorMessage = 'Service temporairement indisponible. Veuillez réessayer.'
         }
 
+        console.error(`[TasksService] Request failed: ${response.status} ${response.statusText} - ${errorMessage}`)
+        if (errorDetails) console.error('[TasksService] Details:', errorDetails)
+
         throw new Error(errorMessage)
       }
 
       const result: TasksResponse = await response.json()
+
+      if (!result.success) {
+        console.error('[TasksService] API returned success: false', result)
+        throw new Error(typeof result.error === 'string' ? result.error : 'Erreur inconnue lors du chargement des tâches')
+      }
+
       console.log('[TasksService] Successfully loaded', result.data?.length || 0, 'tasks')
       return result.data || []
     } catch (error) {
