@@ -15,35 +15,35 @@ function isAssignedToArchitect(
   architectName: string
 ): boolean {
   if (!assignedValue) return false
-  
+
   const assigned = assignedValue.trim()
   if (!assigned) return false
-  
+
   const architectNameLower = architectName.toLowerCase()
   const assignedLower = assigned.toLowerCase()
-  
+
   // Match by ID (exact match)
   if (assigned === architectId) return true
-  
+
   // Match by exact name (case-insensitive)
   if (assignedLower === architectNameLower) return true
-  
+
   // Match by name parts - bidirectional matching
   const nameParts = architectNameLower.split(/\s+/).filter(p => p.length > 0)
   const assignedParts = assignedLower.split(/\s+/).filter(p => p.length > 0)
-  
+
   // If architect name parts are all present in assigned value, it's a match
   // e.g., "John Doe" matches "John Doe Smith" or "John"
   if (nameParts.length > 0 && nameParts.every(part => assignedLower.includes(part))) {
     return true
   }
-  
+
   // If assigned value parts are all present in architect name, it's a match
   // e.g., "John" matches "John Doe"
   if (assignedParts.length > 0 && assignedParts.every(part => architectNameLower.includes(part))) {
     return true
   }
-  
+
   return false
 }
 
@@ -59,7 +59,7 @@ function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_
   ) {
     return 'termine'
   }
-  
+
   // En attente - new or qualified projects waiting to start
   if (
     statut === 'nouveau' ||
@@ -68,7 +68,7 @@ function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_
   ) {
     return 'en_attente'
   }
-  
+
   // En cours - all active projects (default)
   // Includes: acompte_recu, conception, devis_negociation, accepte, premier_depot, 
   // projet_en_cours, chantier, facture_reglee, en_conception, en_validation, en_chantier
@@ -157,18 +157,25 @@ export async function GET(request: NextRequest) {
     // Calculate statistics for each architect
     const architectsWithStats = architects.map(architect => {
       const architectName = architect.name
-      
+
       // Find all dossiers assigned to this architect
-      const architectClients = clients.filter(client => 
+      const architectClients = clients.filter(client =>
         isAssignedToArchitect(client.architecteAssigne, architect.id, architectName)
       )
-      
-      const architectContacts = contacts.filter(contact => 
+
+      const architectContacts = contacts.filter(contact =>
         isAssignedToArchitect(contact.architecteAssigne, architect.id, architectName)
       )
-      
-      const architectOpportunities = opportunities.filter(opportunity => 
-        isAssignedToArchitect(opportunity.architecteAssigne, architect.id, architectName)
+
+      // Get all opportunity IDs that are already included in contacts
+      const contactOpportunityIds = new Set(
+        architectContacts.flatMap(contact => contact.opportunities.map(opp => opp.id))
+      )
+
+      // Filter out opportunities that are already included in contacts to avoid duplicates
+      const architectOpportunities = opportunities.filter(opportunity =>
+        isAssignedToArchitect(opportunity.architecteAssigne, architect.id, architectName) &&
+        !contactOpportunityIds.has(opportunity.id)
       )
 
       // Combine all dossiers - IMPORTANT: Count opportunities within contacts, not contacts themselves
@@ -176,39 +183,39 @@ export async function GET(request: NextRequest) {
       const allDossiers = [
         ...architectClients.map(c => ({ type: 'client' as const, statut: c.statutProjet })),
         // Extract all opportunities from contacts - each opportunity is a separate dossier
-        ...architectContacts.flatMap(c => 
+        ...architectContacts.flatMap(c =>
           c.opportunities.map(o => ({
             type: 'contact_opportunity' as const,
             statut: o.pipelineStage === 'perdue' ? 'perdu' :
-                   o.pipelineStage === 'gagnee' ? 'termine' :
-                   o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                   o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                   o.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
-                   'projet_en_cours'
+              o.pipelineStage === 'gagnee' ? 'termine' :
+                o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                  o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                    o.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
+                      'projet_en_cours'
           }))
         ),
-        ...architectOpportunities.map(o => ({ 
-          type: 'opportunity' as const, 
-          statut: o.statut === 'won' ? 'termine' : o.statut === 'lost' ? 'perdu' : 
-                 o.pipelineStage === 'perdue' ? 'perdu' : 
-                 o.pipelineStage === 'gagnee' ? 'termine' : 
-                 o.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
-                 'projet_en_cours'
+        ...architectOpportunities.map(o => ({
+          type: 'opportunity' as const,
+          statut: o.statut === 'won' ? 'termine' : o.statut === 'lost' ? 'perdu' :
+            o.pipelineStage === 'perdue' ? 'perdu' :
+              o.pipelineStage === 'gagnee' ? 'termine' :
+                o.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
+                  'projet_en_cours'
         }))
       ]
 
       const totalDossiers = allDossiers.length
-      
+
       // Categorize dossiers by status
-      const dossiersEnCours = allDossiers.filter(d => 
+      const dossiersEnCours = allDossiers.filter(d =>
         getDossierStatusCategory(d.statut) === 'en_cours'
       ).length
 
-      const dossiersTermines = allDossiers.filter(d => 
+      const dossiersTermines = allDossiers.filter(d =>
         getDossierStatusCategory(d.statut) === 'termine'
       ).length
 
-      const dossiersEnAttente = allDossiers.filter(d => 
+      const dossiersEnAttente = allDossiers.filter(d =>
         getDossierStatusCategory(d.statut) === 'en_attente'
       ).length
 

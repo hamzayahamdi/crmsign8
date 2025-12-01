@@ -38,8 +38,8 @@ export function AssignDossierModal({ isOpen, onClose, architect, onAssign }: Ass
     return clients.filter(client => {
       const architectName = `${architect.prenom} ${architect.nom}`.toLowerCase()
       const clientArchitect = client.architecteAssigne.toLowerCase()
-      return !clientArchitect.includes(architect.prenom.toLowerCase()) && 
-             !clientArchitect.includes(architect.nom.toLowerCase())
+      return !clientArchitect.includes(architect.prenom.toLowerCase()) &&
+        !clientArchitect.includes(architect.nom.toLowerCase())
     })
   }, [clients, architect])
 
@@ -72,13 +72,24 @@ export function AssignDossierModal({ isOpen, onClose, architect, onAssign }: Ass
     onClose()
   }
 
-  const statusConfig = {
+  const statusConfig: Record<string, { label: string; color: string }> = {
     nouveau: { label: "Nouveau", color: "text-blue-400" },
+    qualifie: { label: "Qualifié", color: "text-cyan-400" },
+    prise_de_besoin: { label: "Prise de besoin", color: "text-indigo-400" },
+    acompte_recu: { label: "Acompte reçu", color: "text-teal-400" },
     acompte_verse: { label: "Acompte versé", color: "text-cyan-400" },
+    conception: { label: "Conception", color: "text-purple-400" },
     en_conception: { label: "En conception", color: "text-purple-400" },
+    projet_en_cours: { label: "Projet en cours", color: "text-orange-400" },
     en_chantier: { label: "En chantier", color: "text-orange-400" },
+    accepte: { label: "Accepté", color: "text-green-400" },
     livraison: { label: "Livraison", color: "text-yellow-400" },
+    livraison_termine: { label: "Livraison terminée", color: "text-green-400" },
     termine: { label: "Terminé", color: "text-green-400" },
+    refuse: { label: "Refusé", color: "text-red-400" },
+    perdu: { label: "Perdu", color: "text-red-400" },
+    annule: { label: "Annulé", color: "text-slate-400" },
+    suspendu: { label: "Suspendu", color: "text-yellow-400" },
   }
 
   return (
@@ -159,8 +170,8 @@ export function AssignDossierModal({ isOpen, onClose, architect, onAssign }: Ass
                     {searchQuery ? "Aucun client trouvé" : "Aucun dossier disponible"}
                   </p>
                   <p className="text-slate-500 text-sm">
-                    {searchQuery 
-                      ? "Essayez une autre recherche" 
+                    {searchQuery
+                      ? "Essayez une autre recherche"
                       : "Tous les clients sont déjà assignés à cet architecte"}
                   </p>
                 </div>
@@ -168,7 +179,10 @@ export function AssignDossierModal({ isOpen, onClose, architect, onAssign }: Ass
                 <div className="space-y-3">
                   {filteredClients.map((client, index) => {
                     const isSelected = selectedClientIds.has(client.id)
-                    const statusInfo = statusConfig[client.statutProjet]
+                    const statusInfo = statusConfig[client.statutProjet] || {
+                      label: client.statutProjet,
+                      color: "text-slate-400"
+                    }
 
                     return (
                       <motion.div
@@ -179,8 +193,8 @@ export function AssignDossierModal({ isOpen, onClose, architect, onAssign }: Ass
                         onClick={() => toggleClient(client.id)}
                         className={cn(
                           "glass rounded-xl p-4 border cursor-pointer transition-all duration-200",
-                          isSelected 
-                            ? "border-primary/50 bg-primary/10" 
+                          isSelected
+                            ? "border-primary/50 bg-primary/10"
                             : "border-slate-600/30 hover:border-slate-500/50"
                         )}
                       >

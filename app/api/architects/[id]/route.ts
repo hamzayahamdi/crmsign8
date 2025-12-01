@@ -15,35 +15,35 @@ function isAssignedToArchitect(
   architectName: string
 ): boolean {
   if (!assignedValue) return false
-  
+
   const assigned = assignedValue.trim()
   if (!assigned) return false
-  
+
   const architectNameLower = architectName.toLowerCase()
   const assignedLower = assigned.toLowerCase()
-  
+
   // Match by ID (exact match)
   if (assigned === architectId) return true
-  
+
   // Match by exact name (case-insensitive)
   if (assignedLower === architectNameLower) return true
-  
+
   // Match by name parts - bidirectional matching
   const nameParts = architectNameLower.split(/\s+/).filter(p => p.length > 0)
   const assignedParts = assignedLower.split(/\s+/).filter(p => p.length > 0)
-  
+
   // If architect name parts are all present in assigned value, it's a match
   // e.g., "John Doe" matches "John Doe Smith" or "John"
   if (nameParts.length > 0 && nameParts.every(part => assignedLower.includes(part))) {
     return true
   }
-  
+
   // If assigned value parts are all present in architect name, it's a match
   // e.g., "John" matches "John Doe"
   if (assignedParts.length > 0 && assignedParts.every(part => architectNameLower.includes(part))) {
     return true
   }
-  
+
   return false
 }
 
@@ -59,7 +59,7 @@ function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_
   ) {
     return 'termine'
   }
-  
+
   // En attente - new or qualified projects waiting to start
   if (
     statut === 'nouveau' ||
@@ -68,7 +68,7 @@ function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_
   ) {
     return 'en_attente'
   }
-  
+
   // En cours - all active projects (default)
   return 'en_cours'
 }
@@ -174,50 +174,57 @@ export async function GET(
     ])
 
     // Filter dossiers for this architect
-    const architectClients = allClients.filter(client => 
+    const architectClients = allClients.filter(client =>
       isAssignedToArchitect(client.architecteAssigne, architect.id, architectName)
     )
-    
-    const architectContacts = allContacts.filter(contact => 
+
+    const architectContacts = allContacts.filter(contact =>
       isAssignedToArchitect(contact.architecteAssigne, architect.id, architectName)
     )
-    
-    const architectOpportunities = allOpportunities.filter(opportunity => 
-      isAssignedToArchitect(opportunity.architecteAssigne, architect.id, architectName)
+
+    // Get all opportunity IDs that are already included in contacts
+    const contactOpportunityIds = new Set(
+      architectContacts.flatMap(contact => contact.opportunities.map(opp => opp.id))
+    )
+
+    // Filter out opportunities that are already included in contacts to avoid duplicates
+    const architectOpportunities = allOpportunities.filter(opportunity =>
+      isAssignedToArchitect(opportunity.architecteAssigne, architect.id, architectName) &&
+      !contactOpportunityIds.has(opportunity.id)
     )
 
     // Combine all dossiers for statistics
     const allDossiers = [
       ...architectClients.map(c => ({ type: 'client' as const, statut: c.statutProjet })),
-      ...architectContacts.flatMap(c => 
+      ...architectContacts.flatMap(c =>
         c.opportunities.map(o => ({
           type: 'contact_opportunity' as const,
           statut: o.pipelineStage === 'perdue' ? 'perdu' :
-                 o.pipelineStage === 'gagnee' ? 'termine' :
-                 o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                 o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                 'projet_en_cours'
+            o.pipelineStage === 'gagnee' ? 'termine' :
+              o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                  'projet_en_cours'
         }))
       ),
-      ...architectOpportunities.map(o => ({ 
-        type: 'opportunity' as const, 
-        statut: o.statut === 'won' ? 'termine' : o.statut === 'lost' ? 'perdu' : 
-               o.pipelineStage === 'perdue' ? 'perdu' : 
-               o.pipelineStage === 'gagnee' ? 'termine' : 
-               o.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
-               'projet_en_cours'
+      ...architectOpportunities.map(o => ({
+        type: 'opportunity' as const,
+        statut: o.statut === 'won' ? 'termine' : o.statut === 'lost' ? 'perdu' :
+          o.pipelineStage === 'perdue' ? 'perdu' :
+            o.pipelineStage === 'gagnee' ? 'termine' :
+              o.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
+                'projet_en_cours'
       }))
     ]
 
     // Calculate statistics
     const totalDossiers = allDossiers.length
-    const dossiersEnCours = allDossiers.filter(d => 
+    const dossiersEnCours = allDossiers.filter(d =>
       getDossierStatusCategory(d.statut) === 'en_cours'
     ).length
-    const dossiersTermines = allDossiers.filter(d => 
+    const dossiersTermines = allDossiers.filter(d =>
       getDossierStatusCategory(d.statut) === 'termine'
     ).length
-    const dossiersEnAttente = allDossiers.filter(d => 
+    const dossiersEnAttente = allDossiers.filter(d =>
       getDossierStatusCategory(d.statut) === 'en_attente'
     ).length
 
@@ -275,7 +282,7 @@ export async function GET(
         opportunityId: undefined
       })),
       // Contacts with opportunities (transform to opportunity-based clients)
-      ...architectContacts.flatMap(contact => 
+      ...architectContacts.flatMap(contact =>
         contact.opportunities.map(opportunity => ({
           id: `${contact.id}-${opportunity.id}`, // Composite ID format
           nom: contact.nom,
@@ -284,11 +291,11 @@ export async function GET(
           typeProjet: opportunity.type as any,
           architecteAssigne: contact.architecteAssigne || '',
           statutProjet: opportunity.pipelineStage === 'perdue' ? 'perdu' :
-                       opportunity.pipelineStage === 'gagnee' ? 'termine' :
-                       opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                       opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                       opportunity.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
-                       'projet_en_cours',
+            opportunity.pipelineStage === 'gagnee' ? 'termine' :
+              opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                  opportunity.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
+                    'projet_en_cours',
           derniereMaj: opportunity.updatedAt ? opportunity.updatedAt.toISOString() : contact.updatedAt.toISOString(),
           leadId: contact.leadId || undefined,
           email: contact.email || undefined,
@@ -313,13 +320,13 @@ export async function GET(
         ville: opportunity.contact.ville || '',
         typeProjet: opportunity.type as any,
         architecteAssigne: opportunity.architecteAssigne || '',
-        statutProjet: opportunity.statut === 'won' ? 'termine' : 
-                     opportunity.statut === 'lost' ? 'perdu' :
-                     opportunity.pipelineStage === 'perdue' ? 'perdu' :
-                     opportunity.pipelineStage === 'gagnee' ? 'termine' :
-                     opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                     opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                     'projet_en_cours',
+        statutProjet: opportunity.statut === 'won' ? 'termine' :
+          opportunity.statut === 'lost' ? 'perdu' :
+            opportunity.pipelineStage === 'perdue' ? 'perdu' :
+              opportunity.pipelineStage === 'gagnee' ? 'termine' :
+                opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                  opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                    'projet_en_cours',
         derniereMaj: opportunity.updatedAt.toISOString(),
         leadId: undefined,
         email: opportunity.contact.email || undefined,
