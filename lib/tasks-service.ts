@@ -19,7 +19,7 @@ export class TasksService {
   static async getTasks(filters?: TaskFilters): Promise<Task[]> {
     try {
       const url = new URL(API_BASE, window.location.origin)
-      
+
       if (filters?.assignedTo && filters.assignedTo !== 'all') {
         url.searchParams.set('assignedTo', filters.assignedTo)
       }
@@ -31,6 +31,9 @@ export class TasksService {
       }
 
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+
+      console.log('[TasksService] Fetching tasks from:', url.toString())
+
       const response = await fetch(url.toString(), {
         cache: 'no-store',
         headers: {
@@ -39,14 +42,33 @@ export class TasksService {
         },
       })
 
+      console.log('[TasksService] Response status:', response.status)
+
       if (!response.ok) {
-        throw new Error('Failed to fetch tasks')
+        let errorMessage = 'Erreur lors du chargement des tâches'
+
+        try {
+          const errorData = await response.json()
+          console.error('[TasksService] Error response:', errorData)
+          errorMessage = errorData.error || errorMessage
+        } catch (e) {
+          console.error('[TasksService] Could not parse error response')
+        }
+
+        if (response.status === 401) {
+          errorMessage = 'Session expirée. Veuillez vous reconnecter.'
+        } else if (response.status === 503) {
+          errorMessage = 'Service temporairement indisponible. Veuillez réessayer.'
+        }
+
+        throw new Error(errorMessage)
       }
 
       const result: TasksResponse = await response.json()
+      console.log('[TasksService] Successfully loaded', result.data?.length || 0, 'tasks')
       return result.data || []
     } catch (error) {
-      console.error('Error fetching tasks:', error)
+      console.error('[TasksService] Error fetching tasks:', error)
       throw error
     }
   }
@@ -106,7 +128,7 @@ export class TasksService {
       const url = `${API_BASE}/${id}`
       const body = { id, ...task }
       console.log('[TasksService] updateTask - URL:', url, 'Body:', body)
-      
+
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
       const response = await fetch(url, {
         method: 'PUT',
@@ -118,14 +140,14 @@ export class TasksService {
       })
 
       console.log('[TasksService] updateTask - Response status:', response.status)
-      
+
       if (!response.ok) {
         let msg = 'Failed to update task'
-        try { 
+        try {
           const err = await response.json()
           console.error('[TasksService] updateTask - Error response:', err)
-          msg = err?.error || msg 
-        } catch {}
+          msg = err?.error || msg
+        } catch { }
         throw new Error(msg)
       }
 

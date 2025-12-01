@@ -15,13 +15,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    console.log('[Task Detail API] GET request for id:', id)
+
     const task = await prisma.task.findUnique({
       where: { id }
     })
 
     if (!task) {
+      console.warn('[Task Detail API] Task not found:', id)
       return NextResponse.json(
-        { success: false, error: 'Task not found' },
+        { success: false, error: 'Tâche non trouvée' },
         { status: 404 }
       )
     }
@@ -30,10 +33,23 @@ export async function GET(
       success: true,
       data: task
     })
-  } catch (error) {
-    console.error('Error fetching task:', error)
+  } catch (error: any) {
+    console.error('[Task Detail API] Error fetching task:', error)
+
+    // Handle Prisma connection errors
+    if (error?.code === 'P1001') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Erreur de connexion à la base de données. Veuillez réessayer.',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        },
+        { status: 503 }
+      )
+    }
+
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch task' },
+      { success: false, error: 'Erreur lors du chargement de la tâche' },
       { status: 500 }
     )
   }
@@ -48,13 +64,16 @@ export async function PUT(
     const body = await request.json()
     const { id: paramId } = await params
     let id = paramId
+
+    console.log('[Task Detail API] PUT request for id:', id)
+
     if (!id || id === 'undefined' || id === 'null') {
       if (body?.id && typeof body.id === 'string') {
         id = body.id
       }
     }
     if (!id || id === 'undefined' || id === 'null') {
-      return NextResponse.json({ success: false, error: 'Missing task id' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'ID de tâche manquant' }, { status: 400 })
     }
     const updateData: any = {}
 
@@ -63,24 +82,24 @@ export async function PUT(
     if (body.dueDate !== undefined) {
       const d = new Date(body.dueDate)
       if (isNaN(d.getTime())) {
-        return NextResponse.json({ success: false, error: 'Invalid dueDate' }, { status: 400 })
+        return NextResponse.json({ success: false, error: 'Date d\'échéance invalide' }, { status: 400 })
       }
       updateData.dueDate = d
     }
     if (body.assignedTo !== undefined) updateData.assignedTo = String(body.assignedTo)
     if (body.linkedType !== undefined) {
-      const validLinked = ['lead','client']
+      const validLinked = ['lead', 'client']
       if (!validLinked.includes(body.linkedType)) {
-        return NextResponse.json({ success: false, error: 'Invalid linkedType' }, { status: 400 })
+        return NextResponse.json({ success: false, error: 'Type de lien invalide' }, { status: 400 })
       }
       updateData.linkedType = body.linkedType
     }
     if (body.linkedId !== undefined) updateData.linkedId = String(body.linkedId)
     if (body.linkedName !== undefined) updateData.linkedName = body.linkedName ? String(body.linkedName) : null
     if (body.status !== undefined) {
-      const validStatus = ['a_faire','en_cours','termine']
+      const validStatus = ['a_faire', 'en_cours', 'termine']
       if (!validStatus.includes(body.status)) {
-        return NextResponse.json({ success: false, error: 'Invalid status' }, { status: 400 })
+        return NextResponse.json({ success: false, error: 'Statut invalide' }, { status: 400 })
       }
       updateData.status = body.status
     }
@@ -90,10 +109,16 @@ export async function PUT(
     // Fetch previous task to detect assignee change
     const previous = await prisma.task.findUnique({ where: { id } })
 
+    if (!previous) {
+      return NextResponse.json({ success: false, error: 'Tâche non trouvée' }, { status: 404 })
+    }
+
     const task = await prisma.task.update({
       where: { id },
       data: updateData
     })
+
+    console.log('[Task Detail API] Task updated successfully:', id)
 
     // If assignedTo changed, notify new assignee
     try {
@@ -111,7 +136,7 @@ export async function PUT(
         }
       }
     } catch (notifyError) {
-      console.error('[API/tasks:id] Failed to send reassignment notification:', notifyError)
+      console.error('[Task Detail API] Failed to send reassignment notification:', notifyError)
     }
 
     return NextResponse.json({
@@ -119,9 +144,28 @@ export async function PUT(
       data: task
     })
   } catch (error: any) {
-    console.error('Error updating task:', error)
+    console.error('[Task Detail API] Error updating task:', error)
+
+    if (error?.code === 'P1001') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Erreur de connexion à la base de données. Veuillez réessayer.',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        },
+        { status: 503 }
+      )
+    }
+
+    if (error?.code === 'P2025') {
+      return NextResponse.json(
+        { success: false, error: 'Tâche non trouvée' },
+        { status: 404 }
+      )
+    }
+
     return NextResponse.json(
-      { success: false, error: error?.message || 'Failed to update task' },
+      { success: false, error: error?.message || 'Erreur lors de la mise à jour de la tâche' },
       { status: 500 }
     )
   }
@@ -141,9 +185,11 @@ export async function DELETE(
     const rawId = paramId ?? idFromUrl ?? ''
     const id = Array.isArray(rawId) ? rawId[0]?.trim() : String(rawId).trim()
 
+    console.log('[Task Detail API] DELETE request for id:', id)
+
     if (!id) {
       return NextResponse.json(
-        { success: false, error: 'Missing task id' },
+        { success: false, error: 'ID de tâche manquant' },
         { status: 400 }
       )
     }
@@ -154,8 +200,9 @@ export async function DELETE(
     })
 
     if (!existing) {
+      console.warn('[Task Detail API] Task to delete not found:', id)
       return NextResponse.json(
-        { success: false, error: 'Task not found' },
+        { success: false, error: 'Tâche non trouvée' },
         { status: 404 }
       )
     }
@@ -173,21 +220,35 @@ export async function DELETE(
       })
     })
 
+    console.log('[Task Detail API] Task deleted successfully:', id)
+
     return NextResponse.json({
       success: true,
-      message: 'Task deleted successfully'
+      message: 'Tâche supprimée avec succès'
     })
   } catch (error: any) {
+    console.error('[Task Detail API] Error deleting task:', error)
+
+    if (error?.code === 'P1001') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Erreur de connexion à la base de données. Veuillez réessayer.',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        },
+        { status: 503 }
+      )
+    }
+
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       return NextResponse.json(
-        { success: false, error: 'Task not found' },
+        { success: false, error: 'Tâche non trouvée' },
         { status: 404 }
       )
     }
 
-    console.error('Error deleting task:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to delete task' },
+      { success: false, error: 'Erreur lors de la suppression de la tâche' },
       { status: 500 }
     )
   }
