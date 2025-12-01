@@ -34,7 +34,7 @@ export function LeadAutocomplete({
     const loadLeads = async () => {
       setIsLoading(true)
       try {
-        const token = localStorage.getItem('auth_token')
+        const token = localStorage.getItem('token')
         const response = await fetch('/api/leads?limit=1000', {
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),

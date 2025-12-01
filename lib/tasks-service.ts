@@ -31,7 +31,7 @@ export class TasksService {
         url.searchParams.set('linkedType', filters.linkedType)
       }
 
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
 
       console.log('[TasksService] Fetching tasks from:', url.toString())
 
@@ -94,7 +94,7 @@ export class TasksService {
   // Get a specific task
   static async getTask(id: string): Promise<Task> {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
       const response = await fetch(`${API_BASE}/${id}`, {
         cache: 'no-store',
         headers: {
@@ -118,7 +118,7 @@ export class TasksService {
   // Create a new task
   static async createTask(task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task> {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
       const response = await fetch(API_BASE, {
         method: 'POST',
         headers: {
@@ -147,7 +147,7 @@ export class TasksService {
       const body = { id, ...task }
       console.log('[TasksService] updateTask - URL:', url, 'Body:', body)
 
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
       const response = await fetch(url, {
         method: 'PUT',
         headers: {
@@ -181,7 +181,7 @@ export class TasksService {
   // Delete a task
   static async deleteTask(id: string): Promise<void> {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
       const response = await fetch(`${API_BASE}/${id}`, {
         method: 'DELETE',
         headers: {

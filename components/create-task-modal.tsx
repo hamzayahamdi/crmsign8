@@ -66,7 +66,7 @@ export function CreateTaskModal({
   const fetchUsers = async () => {
     setIsLoadingUsers(true)
     try {
-      const token = localStorage.getItem('auth_token')
+      const token = localStorage.getItem('token')
       const response = await fetch('/api/users', {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -86,9 +86,9 @@ export function CreateTaskModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.title.trim()) return
-    
+
     onCreateTask(formData)
-    
+
     // Reset form
     const today = new Date()
     setSelectedDate(today)
