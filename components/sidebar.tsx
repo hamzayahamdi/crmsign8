@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useUIStore } from "@/stores/ui-store"
 
 // Icon mapping for sidebar items
 const iconMap: Record<string, any> = {
@@ -37,7 +38,7 @@ const iconMap: Record<string, any> = {
 }
 
 const SidebarComponent = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { isMobileMenuOpen, setMobileMenuOpen } = useUIStore() // Changed to useUIStore
   const router = useRouter()
   const pathname = usePathname()
   const { user, logout } = useAuth()
@@ -49,8 +50,8 @@ const SidebarComponent = () => {
 
   // Close mobile menu when route changes
   useEffect(() => {
-    setIsMobileMenuOpen(false)
-  }, [pathname])
+    setMobileMenuOpen(false) // Changed to setMobileMenuOpen
+  }, [pathname, setMobileMenuOpen]) // Added setMobileMenuOpen to dependencies
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -441,19 +442,6 @@ const SidebarComponent = () => {
 
   return (
     <>
-      {/* Mobile Menu Toggle Button */}
-      <button
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-slate-900/90 border border-slate-700/50 backdrop-blur-sm hover:bg-slate-800 transition-colors"
-        aria-label="Toggle menu"
-      >
-        {isMobileMenuOpen ? (
-          <X className="w-5 h-5 text-white" />
-        ) : (
-          <Menu className="w-5 h-5 text-white" />
-        )}
-      </button>
-
       {/* Mobile Backdrop Overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
@@ -463,7 +451,7 @@ const SidebarComponent = () => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-            onClick={() => setIsMobileMenuOpen(false)}
+            onClick={() => setMobileMenuOpen(false)} // Changed to setMobileMenuOpen
           />
         )}
       </AnimatePresence>

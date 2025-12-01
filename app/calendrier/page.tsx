@@ -309,57 +309,57 @@ function CalendrierContent() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden p-3">
-        <div className="h-full flex flex-col gap-3">
+      <div className="flex-1 overflow-hidden p-2 md:p-3">
+        <div className="h-full flex flex-col gap-2 md:gap-3">
           {/* Filters & Controls */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="shrink-0"
           >
-            <div className="relative overflow-hidden rounded-xl md:rounded-2xl border border-border/40 bg-gradient-to-br from-background via-background to-muted/10 backdrop-blur-xl shadow-xl p-3 md:p-5">
-              <div className="flex flex-col gap-3">
+            <div className="relative overflow-hidden rounded-lg md:rounded-2xl border border-border/40 bg-gradient-to-br from-background via-background to-muted/10 backdrop-blur-xl shadow-xl p-2 md:p-5">
+              <div className="flex flex-col gap-2 md:gap-3">
                 {/* Top Row: Search and View Modes */}
-                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 md:gap-3">
                   {/* Search */}
                   <div className="flex-1 relative">
-                    <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-muted-foreground/60" />
+                    <Search className="absolute left-2.5 md:left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-5 md:w-5 text-muted-foreground/60" />
                     <Input
                       placeholder="Rechercher..."
                       value={filter.searchQuery}
                       onChange={(e) => setFilter({ searchQuery: e.target.value })}
-                      className="pl-10 md:pl-12 h-10 md:h-12 bg-background/50 border-border/60 rounded-lg md:rounded-xl focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-sm md:text-base"
+                      className="pl-8 md:pl-12 h-9 md:h-12 bg-background/50 border-border/60 rounded-lg md:rounded-xl focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-xs md:text-base"
                     />
                   </div>
 
-                  <div className="flex items-center gap-2 md:gap-3 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
+                  <div className="flex items-center gap-1.5 md:gap-3 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
                     {/* View Mode Toggles */}
-                    <div className="flex items-center gap-1 bg-muted/30 rounded-lg md:rounded-xl p-1 border border-border/40 shrink-0">
+                    <div className="flex items-center gap-0.5 md:gap-1 bg-muted/30 rounded-lg md:rounded-xl p-0.5 md:p-1 border border-border/40 shrink-0">
                       <Button
                         variant={viewMode === 'month' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setViewMode('month')}
-                        className={`gap-1.5 md:gap-2 h-8 md:h-10 px-3 md:px-5 rounded-md md:rounded-lg transition-all duration-300 text-xs md:text-sm ${viewMode === 'month' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
+                        className={`gap-1 md:gap-2 h-7 md:h-10 px-2 md:px-5 rounded-md md:rounded-lg transition-all duration-300 text-[10px] md:text-sm ${viewMode === 'month' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
                       >
-                        <LayoutGrid className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                        <LayoutGrid className="h-3 w-3 md:h-4 md:w-4" />
                         <span className="font-semibold">Mois</span>
                       </Button>
                       <Button
                         variant={viewMode === 'week' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setViewMode('week')}
-                        className={`gap-1.5 md:gap-2 h-8 md:h-10 px-3 md:px-5 rounded-md md:rounded-lg transition-all duration-300 text-xs md:text-sm ${viewMode === 'week' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
+                        className={`gap-1 md:gap-2 h-7 md:h-10 px-2 md:px-5 rounded-md md:rounded-lg transition-all duration-300 text-[10px] md:text-sm ${viewMode === 'week' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
                       >
-                        <LayoutList className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                        <LayoutList className="h-3 w-3 md:h-4 md:w-4" />
                         <span className="font-semibold">Semaine</span>
                       </Button>
                       <Button
                         variant={viewMode === 'day' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setViewMode('day')}
-                        className={`gap-1.5 md:gap-2 h-8 md:h-10 px-3 md:px-5 rounded-md md:rounded-lg transition-all duration-300 text-xs md:text-sm ${viewMode === 'day' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
+                        className={`gap-1 md:gap-2 h-7 md:h-10 px-2 md:px-5 rounded-md md:rounded-lg transition-all duration-300 text-[10px] md:text-sm ${viewMode === 'day' ? 'bg-gradient-to-r from-primary to-primary/80 shadow-lg' : 'hover:bg-muted/50'}`}
                       >
-                        <CalendarDays className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                        <CalendarDays className="h-3 w-3 md:h-4 md:w-4" />
                         <span className="font-semibold">Jour</span>
                       </Button>
                     </div>
@@ -369,30 +369,30 @@ function CalendrierContent() {
                       variant="outline"
                       size="icon"
                       onClick={() => setShowSidebar(!showSidebar)}
-                      className="shrink-0 h-10 w-10 md:h-11 md:w-11 rounded-lg md:rounded-xl border-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 hidden lg:flex"
+                      className="shrink-0 h-9 w-9 md:h-11 md:w-11 rounded-lg md:rounded-xl border-2 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 hidden lg:flex"
                     >
                       {showSidebar ? (
-                        <PanelRightClose className="h-5 w-5" />
+                        <PanelRightClose className="h-4 w-4 md:h-5 md:w-5" />
                       ) : (
-                        <PanelRightOpen className="h-5 w-5" />
+                        <PanelRightOpen className="h-4 w-4 md:h-5 md:w-5" />
                       )}
                     </Button>
                   </div>
                 </div>
 
                 {/* Bottom Row: Filters */}
-                <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4 flex-wrap">
-                  <div className="flex items-center gap-2 text-xs md:text-sm font-semibold text-muted-foreground">
-                    <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg">
-                      <Filter className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 flex-wrap">
+                  <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-sm font-semibold text-muted-foreground">
+                    <div className="p-1 md:p-2 bg-primary/10 rounded-md md:rounded-lg">
+                      <Filter className="h-3 w-3 md:h-4 md:w-4 text-primary" />
                     </div>
                     <span>Filtres:</span>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                  <div className="flex flex-col sm:flex-row gap-2 md:gap-3 w-full md:w-auto">
                     {/* Type Filter */}
                     <Select value={filter.eventType} onValueChange={(value) => setFilter({ eventType: value })}>
-                      <SelectTrigger className="w-full md:w-[240px] h-10 md:h-12 px-3 md:px-4 bg-background/50 border-border/60 rounded-lg md:rounded-xl hover:border-primary/50 transition-all duration-300 text-sm">
+                      <SelectTrigger className="w-full md:w-[240px] h-9 md:h-12 px-2.5 md:px-4 bg-background/50 border-border/60 rounded-lg md:rounded-xl hover:border-primary/50 transition-all duration-300 text-xs md:text-sm">
                         <SelectValue placeholder="Type d'événement" />
                       </SelectTrigger>
                       <SelectContent className="min-w-[260px] rounded-xl border-border/60">
@@ -431,7 +431,7 @@ function CalendrierContent() {
                     {/* Architect Filter - Only for Gestionnaire/Admin */}
                     {(currentUserRole === 'admin' || currentUserRole === 'gestionnaire') && (
                       <Select value={architectFilter} onValueChange={setArchitectFilter}>
-                        <SelectTrigger className="w-full md:w-[300px] h-10 md:h-12 px-3 md:px-4 bg-background/50 border-border/60 rounded-lg md:rounded-xl hover:border-primary/50 transition-all duration-300 text-sm">
+                        <SelectTrigger className="w-full md:w-[300px] h-9 md:h-12 px-2.5 md:px-4 bg-background/50 border-border/60 rounded-lg md:rounded-xl hover:border-primary/50 transition-all duration-300 text-xs md:text-sm">
                           <SelectValue placeholder="Voir les RDV de" />
                         </SelectTrigger>
                         <SelectContent className="min-w-[320px] rounded-xl border-border/60">
@@ -481,7 +481,7 @@ function CalendrierContent() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="flex-1 relative overflow-hidden rounded-xl md:rounded-2xl border border-border/40 bg-gradient-to-br from-background via-background to-muted/10 backdrop-blur-xl shadow-2xl p-3 md:p-6"
+            className="flex-1 relative overflow-hidden rounded-lg md:rounded-2xl border border-border/40 bg-gradient-to-br from-background via-background to-muted/10 backdrop-blur-xl shadow-2xl p-2 md:p-6"
           >
             {isLoading ? (
               <div className="flex items-center justify-center h-full">

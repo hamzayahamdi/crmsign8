@@ -1,6 +1,7 @@
 "use client"
 
-import { Search, Plus, User, LogOut, Upload } from "lucide-react"
+import { useUIStore } from "@/stores/ui-store"
+import { Search, Plus, User, LogOut, Upload, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -29,6 +30,7 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
   const [localQuery, setLocalQuery] = useState(searchQuery)
   const { user, logout } = useAuth()
   const pathname = usePathname()
+  const { toggleMobileMenu } = useUIStore()
 
   // Debounce search to prevent excessive re-renders
   useEffect(() => {
@@ -60,6 +62,15 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
   return (
     <header className="bg-[rgb(13,17,28)]/90 backdrop-blur-xl border-b border-[rgb(30,41,59)] px-4 md:px-6 py-3 md:py-4 sticky top-0 z-20">
       <div className="flex items-center justify-between gap-2 md:gap-4">
+        {/* Mobile Menu Toggle */}
+        <button
+          onClick={toggleMobileMenu}
+          className="lg:hidden p-2 -ml-2 mr-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+          aria-label="Toggle menu"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+
         {/* Search - Hidden on mobile, visible on md+ */}
         <div className="hidden md:flex flex-1 max-w-xl relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

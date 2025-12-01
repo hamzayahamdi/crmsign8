@@ -28,6 +28,7 @@ interface CreatableSelectProps {
   searchPlaceholder?: string
   className?: string
   disabled?: boolean
+  onCreateNew?: (newValue: string) => void
 }
 
 export function CreatableSelect({
@@ -39,6 +40,7 @@ export function CreatableSelect({
   searchPlaceholder = "Rechercher...",
   className,
   disabled = false,
+  onCreateNew,
 }: CreatableSelectProps) {
   const [open, setOpen] = React.useState(false)
   const [searchValue, setSearchValue] = React.useState("")
@@ -58,14 +60,22 @@ export function CreatableSelect({
   const handleCreateNew = () => {
     const trimmedValue = searchValue.trim()
     if (trimmedValue && !localOptions.includes(trimmedValue)) {
-      setLocalOptions([...localOptions, trimmedValue])
+      const newOptions = [...localOptions, trimmedValue]
+      setLocalOptions(newOptions)
       onValueChange(trimmedValue)
+
+      // Call the callback to update parent state
+      if (onCreateNew) {
+        onCreateNew(trimmedValue)
+      }
+
       setOpen(false)
       setSearchValue("")
     }
   }
 
   const handleClear = (e: React.MouseEvent) => {
+    e.preventDefault()
     e.stopPropagation()
     onValueChange("")
   }
@@ -81,46 +91,50 @@ export function CreatableSelect({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
+          type="button"
           className={cn(
-            "w-full justify-between border-border/60 hover:border-primary/60 transition-all duration-200 h-10",
+            "w-full justify-between border border-white/10 glass bg-white/10 text-white hover:bg-white/15 hover:border-primary/40 transition-all duration-200",
             !value && "text-muted-foreground",
-            open && "border-primary/60 ring-2 ring-primary/20",
+            open && "border-primary/40 ring-2 ring-primary/20",
             className
           )}
         >
-          <span className="truncate">
+          <span className="truncate text-left font-normal">
             {value || placeholder}
           </span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
             {value && !disabled && (
-              <X
-                className="h-4 w-4 shrink-0 opacity-50 hover:opacity-100 transition-opacity"
+              <div
+                className="h-4 w-4 shrink-0 opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
                 onClick={handleClear}
-              />
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <X className="h-4 w-4" />
+              </div>
             )}
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
           </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 glass border-primary/30" align="start">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 glass bg-slate-900/95 border-white/10" align="start">
         <Command className="bg-transparent" shouldFilter={false}>
           <CommandInput
             placeholder={searchPlaceholder}
             value={searchValue}
             onValueChange={setSearchValue}
-            className="border-none focus:ring-0 h-11"
+            className="border-none focus:ring-0 h-10 text-white"
           />
-          <CommandList className="max-h-[280px]">
+          <CommandList className="max-h-[240px]">
             {filteredOptions.length === 0 && !canCreateNew && (
-              <div className="py-6 text-center text-sm">
+              <div className="py-4 text-center text-sm">
                 <p className="text-muted-foreground">{emptyText}</p>
               </div>
             )}
-            
+
             {filteredOptions.length > 0 && (
               <CommandGroup>
                 {filteredOptions.map((option) => (
@@ -128,7 +142,7 @@ export function CreatableSelect({
                     key={option}
                     value={option}
                     onSelect={() => handleSelect(option)}
-                    className="cursor-pointer hover:bg-primary/10 transition-colors"
+                    className="cursor-pointer hover:bg-primary/10 transition-colors text-white"
                   >
                     <Check
                       className={cn(
@@ -145,17 +159,17 @@ export function CreatableSelect({
                 ))}
               </CommandGroup>
             )}
-            
+
             {canCreateNew && (
               <CommandGroup className={cn(filteredOptions.length > 0 && "border-t border-border/30 mt-1")}>
                 <CommandItem
                   onSelect={handleCreateNew}
-                  className="cursor-pointer bg-gradient-to-r from-primary/10 to-premium/10 hover:from-primary/20 hover:to-premium/20 transition-all py-3"
+                  className="cursor-pointer bg-gradient-to-r from-emerald-500/10 to-primary/10 hover:from-emerald-500/20 hover:to-primary/20 transition-all py-2.5"
                 >
-                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 mr-2">
-                    <Plus className="h-4 w-4 text-primary" />
+                  <div className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/20 mr-2">
+                    <Plus className="h-3.5 w-3.5 text-emerald-400" />
                   </div>
-                  <span className="text-primary font-semibold">
+                  <span className="text-emerald-400 font-semibold text-sm">
                     Créer "{trimmedSearch}"
                   </span>
                 </CommandItem>

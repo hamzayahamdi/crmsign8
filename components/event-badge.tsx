@@ -20,22 +20,22 @@ const iconMap = {
 export function EventBadge({ event, size = 'md', showIcon = true }: EventBadgeProps) {
   const config = EVENT_TYPE_CONFIG[event.eventType];
   const isTaskEvent = event.title.startsWith('[TÂCHE]');
-  
+
   // Déterminer le badge à afficher
   const badge = isTaskEvent ? 'Tâche' : config.badge;
   const iconKey = (isTaskEvent ? 'CheckSquare' : config.iconLucide) as keyof typeof iconMap;
   const icon = iconMap[iconKey];
 
   const sizeClasses = {
-    sm: 'px-2 py-0.5 text-xs gap-1',
-    md: 'px-2.5 py-1 text-sm gap-1.5',
-    lg: 'px-3 py-1.5 text-base gap-2'
+    sm: 'px-1.5 md:px-2 py-0.5 text-[10px] md:text-xs gap-1',
+    md: 'px-2 md:px-2.5 py-0.5 md:py-1 text-[11px] md:text-sm gap-1 md:gap-1.5',
+    lg: 'px-2.5 md:px-3 py-1 md:py-1.5 text-xs md:text-base gap-1.5 md:gap-2'
   };
 
   const iconSizeClasses = {
-    sm: 'w-3 h-3',
-    md: 'w-4 h-4',
-    lg: 'w-5 h-5'
+    sm: 'w-2.5 h-2.5 md:w-3 md:h-3',
+    md: 'w-3 h-3 md:w-4 md:h-4',
+    lg: 'w-4 h-4 md:w-5 md:h-5'
   };
 
   return (
@@ -60,9 +60,9 @@ export function EventBadge({ event, size = 'md', showIcon = true }: EventBadgePr
  */
 export function EventTypeTag({ eventType, isTask = false }: { eventType: string; isTask?: boolean }) {
   const config = EVENT_TYPE_CONFIG[eventType as keyof typeof EVENT_TYPE_CONFIG];
-  
+
   if (!config) return null;
-  
+
   const displayBadge = isTask ? 'Tâche' : config.badge;
   const iconKey = (isTask ? 'CheckSquare' : config.iconLucide) as keyof typeof iconMap;
   const icon = iconMap[iconKey];

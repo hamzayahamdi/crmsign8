@@ -308,31 +308,32 @@ export default function UsersPage() {
           <main className="flex-1 flex flex-col">
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
               {/* Header */}
-              <div className="glass border-b border-border/40 p-6">
-                <div className="flex items-center justify-between">
+              <div className="glass border-b border-border/40 p-4 md:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-premium flex items-center justify-center glow">
-                      <Users className="w-6 h-6 text-white" />
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-primary to-premium flex items-center justify-center glow">
+                      <Users className="w-5 h-5 md:w-6 md:h-6 text-white" />
                     </div>
                     <div>
-                      <h1 className="text-3xl font-bold text-white">Utilisateurs</h1>
-                      <p className="text-muted-foreground">
+                      <h1 className="text-xl md:text-3xl font-bold text-white">Utilisateurs</h1>
+                      <p className="text-sm md:text-base text-muted-foreground">
                         {users.length} utilisateur{users.length !== 1 ? "s" : ""} au total
                       </p>
                     </div>
                   </div>
                   <Button
                     onClick={() => setShowCreateDialog(true)}
-                    className="bg-gradient-to-r from-primary to-premium hover:opacity-90 transition-opacity"
+                    className="bg-gradient-to-r from-primary to-premium hover:opacity-90 transition-opacity w-full sm:w-auto"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Nouvel utilisateur
+                    <span className="hidden sm:inline">Nouvel utilisateur</span>
+                    <span className="sm:hidden">Nouveau</span>
                   </Button>
                 </div>
               </div>
 
               {/* Users Table */}
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-4 md:p-6">
                 {isLoading ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
@@ -356,163 +357,258 @@ export default function UsersPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="glass rounded-xl border border-border/40 overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="sticky top-0 z-10">
-                          <tr className="border-b border-border/40 bg-secondary/40 backdrop-blur supports-[backdrop-filter]:bg-secondary/30">
-                            <th
-                              className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
-                              onClick={() => handleSort('name')}
-                            >
-                              <div className="flex items-center gap-2">
-                                Nom {getSortIcon('name')}
+                  <>
+                    {/* Mobile Card View */}
+                    <div className="md:hidden space-y-3">
+                      {sortedUsers.map((user, index) => (
+                        <motion.div
+                          key={user.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="glass rounded-xl border border-border/40 p-4 space-y-3"
+                        >
+                          {/* User Header */}
+                          <div className="flex items-start gap-3">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-premium flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-base font-semibold text-white truncate">{user.name}</h3>
+                              <div className="flex items-center gap-2 mt-1 text-sm text-foreground">
+                                <Mail className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                <span className="truncate">{user.email}</span>
                               </div>
-                            </th>
-                            <th
-                              className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
-                              onClick={() => handleSort('email')}
+                              {user.phone && (
+                                <p className="text-sm text-white/70 mt-1">{user.phone}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Role Badge */}
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border ${getRoleBadgeColor(
+                                user.role
+                              )}`}
                             >
-                              <div className="flex items-center gap-2">
-                                Email {getSortIcon('email')}
-                              </div>
-                            </th>
-                            <th
-                              className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide"
+                              <Shield className="w-3.5 h-3.5" />
+                              {getRoleLabel(user.role)}
+                            </span>
+                          </div>
+
+                          {/* Location Info */}
+                          {user.role === "magasiner" && user.magasin && (
+                            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                              <Building2 className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                              <span className="text-sm text-purple-300 font-medium">📍 {user.magasin}</span>
+                            </div>
+                          )}
+                          {user.role === "architect" && user.ville && (
+                            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                              <span className="text-sm text-blue-300 font-medium">📍 {user.ville}</span>
+                            </div>
+                          )}
+
+                          {/* Dates */}
+                          <div className="pt-2 border-t border-border/20 space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span>Créé: {formatDate(user.createdAt)}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span>Modifié: {formatDate(user.updatedAt)}</span>
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditUser(user)}
+                              className="flex-1 glass border-border/40 hover:bg-blue-500/10"
                             >
-                              Téléphone
-                            </th>
-                            <th
-                              className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
-                              onClick={() => handleSort('role')}
+                              <Edit className="w-4 h-4 mr-2" />
+                              Modifier
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedUser(user)
+                                setShowDeleteDialog(true)
+                              }}
+                              className="flex-1 glass border-border/40 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                             >
-                              <div className="flex items-center gap-2">
-                                Rôle {getSortIcon('role')}
-                              </div>
-                            </th>
-                            <th
-                              className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
-                              onClick={() => handleSort('createdAt')}
-                            >
-                              <div className="flex items-center gap-2">
-                                Date de création {getSortIcon('createdAt')}
-                              </div>
-                            </th>
-                            <th
-                              className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
-                              onClick={() => handleSort('updatedAt')}
-                            >
-                              <div className="flex items-center gap-2">
-                                Dernière mise à jour {getSortIcon('updatedAt')}
-                              </div>
-                            </th>
-                            <th className="text-right p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sortedUsers.map((user, index) => (
-                            <motion.tr
-                              key={user.id}
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.05 }}
-                              className="border-b border-border/10 hover:bg-secondary/20 transition-colors"
-                            >
-                              <td className="p-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-premium flex items-center justify-center text-white font-semibold">
-                                    {user.name.charAt(0).toUpperCase()}
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-white font-medium">{user.name}</span>
-                                    {user.role === "magasiner" && user.magasin && (
-                                      <span className="mt-0.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                                        <Building2 className="w-3 h-3" /> 📍 {user.magasin}
-                                      </span>
-                                    )}
-                                    {user.role === "architect" && user.ville && (
-                                      <span className="mt-0.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/10 text-blue-300 border border-blue-500/20">
-                                        📍 {user.ville}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center gap-2 text-foreground">
-                                  <Mail className="w-4 h-4 text-muted-foreground" />
-                                  {user.email}
-                                </div>
-                              </td>
-                              <td className="p-4">
-                                <div className="text-sm text-white/80">
-                                  {user.phone || "-"}
-                                </div>
-                              </td>
-                              <td className="p-4">
-                                <span
-                                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${getRoleBadgeColor(
-                                    user.role
-                                  )}`}
-                                >
-                                  <Shield className="w-3 h-3" />
-                                  {getRoleLabel(user.role)}
-                                </span>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Calendar className="w-4 h-4" />
-                                  {formatDate(user.createdAt)}
-                                </div>
-                              </td>
-                              <td className="p-4 text-sm text-muted-foreground">
-                                {formatDate(user.updatedAt)}
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center justify-end gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => openEditUser(user)}
-                                    className="hover:bg-blue-500/10"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedUser(user)
-                                      setShowDeleteDialog(true)
-                                    }}
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </motion.tr>
-                          ))}
-                        </tbody>
-                      </table>
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Supprimer
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
-                  </div>
+
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block glass rounded-xl border border-border/40 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="sticky top-0 z-10">
+                            <tr className="border-b border-border/40 bg-secondary/40 backdrop-blur supports-[backdrop-filter]:bg-secondary/30">
+                              <th
+                                className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
+                                onClick={() => handleSort('name')}
+                              >
+                                <div className="flex items-center gap-2">
+                                  Nom {getSortIcon('name')}
+                                </div>
+                              </th>
+                              <th
+                                className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
+                                onClick={() => handleSort('email')}
+                              >
+                                <div className="flex items-center gap-2">
+                                  Email {getSortIcon('email')}
+                                </div>
+                              </th>
+                              <th
+                                className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide"
+                              >
+                                Téléphone
+                              </th>
+                              <th
+                                className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
+                                onClick={() => handleSort('role')}
+                              >
+                                <div className="flex items-center gap-2">
+                                  Rôle {getSortIcon('role')}
+                                </div>
+                              </th>
+                              <th
+                                className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
+                                onClick={() => handleSort('createdAt')}
+                              >
+                                <div className="flex items-center gap-2">
+                                  Date de création {getSortIcon('createdAt')}
+                                </div>
+                              </th>
+                              <th
+                                className="text-left p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide cursor-pointer hover:bg-secondary/50 transition-colors"
+                                onClick={() => handleSort('updatedAt')}
+                              >
+                                <div className="flex items-center gap-2">
+                                  Dernière mise à jour {getSortIcon('updatedAt')}
+                                </div>
+                              </th>
+                              <th className="text-right p-4 text-xs md:text-sm font-semibold text-white/90 tracking-wide">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sortedUsers.map((user, index) => (
+                              <motion.tr
+                                key={user.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                className="border-b border-border/10 hover:bg-secondary/20 transition-colors"
+                              >
+                                <td className="p-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-premium flex items-center justify-center text-white font-semibold">
+                                      {user.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="text-white font-medium">{user.name}</span>
+                                      {user.role === "magasiner" && user.magasin && (
+                                        <span className="mt-0.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                          <Building2 className="w-3 h-3" /> 📍 {user.magasin}
+                                        </span>
+                                      )}
+                                      {user.role === "architect" && user.ville && (
+                                        <span className="mt-0.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                                          📍 {user.ville}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex items-center gap-2 text-foreground">
+                                    <Mail className="w-4 h-4 text-muted-foreground" />
+                                    {user.email}
+                                  </div>
+                                </td>
+                                <td className="p-4">
+                                  <div className="text-sm text-white/80">
+                                    {user.phone || "-"}
+                                  </div>
+                                </td>
+                                <td className="p-4">
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${getRoleBadgeColor(
+                                      user.role
+                                    )}`}
+                                  >
+                                    <Shield className="w-3 h-3" />
+                                    {getRoleLabel(user.role)}
+                                  </span>
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Calendar className="w-4 h-4" />
+                                    {formatDate(user.createdAt)}
+                                  </div>
+                                </td>
+                                <td className="p-4 text-sm text-muted-foreground">
+                                  {formatDate(user.updatedAt)}
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openEditUser(user)}
+                                      className="hover:bg-blue-500/10"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedUser(user)
+                                        setShowDeleteDialog(true)
+                                      }}
+                                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </motion.tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
 
               {/* Create User Dialog */}
               <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                <DialogContent className="glass border-border/40">
+                <DialogContent className="glass border-border/40 max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Créer un nouvel utilisateur</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="text-white text-lg md:text-xl">Créer un nouvel utilisateur</DialogTitle>
+                    <DialogDescription className="text-sm">
                       Ajoutez un nouvel utilisateur au système
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleCreateUser}>
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-3 md:space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="name" className="text-white">Nom complet</Label>
+                        <Label htmlFor="name" className="text-white text-sm">Nom complet</Label>
                         <Input
                           id="name"
                           value={formData.name}
@@ -523,7 +619,7 @@ export default function UsersPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email" className="text-white">Email</Label>
+                        <Label htmlFor="email" className="text-white text-sm">Email</Label>
                         <Input
                           id="email"
                           type="email"
@@ -535,7 +631,7 @@ export default function UsersPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-white">Téléphone</Label>
+                        <Label htmlFor="phone" className="text-white text-sm">Téléphone</Label>
                         <Input
                           id="phone"
                           value={formData.phone}
@@ -545,7 +641,7 @@ export default function UsersPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="password" className="text-white">Mot de passe</Label>
+                        <Label htmlFor="password" className="text-white text-sm">Mot de passe</Label>
                         <Input
                           id="password"
                           type="password"
@@ -558,7 +654,7 @@ export default function UsersPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="role" className="text-white">Rôle</Label>
+                        <Label htmlFor="role" className="text-white text-sm">Rôle</Label>
                         <Select
                           value={formData.role}
                           onValueChange={(value) => setFormData({ ...formData, role: value })}
@@ -590,7 +686,7 @@ export default function UsersPage() {
                       </div>
                       {formData.role === "magasiner" && (
                         <div className="space-y-2">
-                          <Label htmlFor="magasin" className="text-white flex items-center gap-2">
+                          <Label htmlFor="magasin" className="text-white flex items-center gap-2 text-sm">
                             <Building2 className="w-4 h-4 text-purple-400" />
                             Magasin <span className="text-red-400">*</span>
                           </Label>
@@ -616,7 +712,7 @@ export default function UsersPage() {
                       )}
                       {formData.role === "architect" && (
                         <div className="space-y-2">
-                          <Label htmlFor="ville" className="text-white flex items-center gap-2">
+                          <Label htmlFor="ville" className="text-white flex items-center gap-2 text-sm">
                             📍 Ville
                           </Label>
                           <Select
@@ -640,18 +736,18 @@ export default function UsersPage() {
                         </div>
                       )}
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="flex-col sm:flex-row gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => setShowCreateDialog(false)}
-                        className="glass border-border/40"
+                        className="glass border-border/40 w-full sm:w-auto"
                       >
                         Annuler
                       </Button>
                       <Button
                         type="submit"
-                        className="bg-gradient-to-r from-primary to-premium"
+                        className="bg-gradient-to-r from-primary to-premium w-full sm:w-auto"
                       >
                         Créer
                       </Button>
@@ -662,17 +758,17 @@ export default function UsersPage() {
 
               {/* Edit User Dialog */}
               <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                <DialogContent className="glass border-border/40">
+                <DialogContent className="glass border-border/40 max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Modifier l'utilisateur</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="text-white text-lg md:text-xl">Modifier l'utilisateur</DialogTitle>
+                    <DialogDescription className="text-sm">
                       Mettez à jour les informations de l'utilisateur
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleUpdateUser}>
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-3 md:space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="edit-name" className="text-white">Nom complet</Label>
+                        <Label htmlFor="edit-name" className="text-white text-sm">Nom complet</Label>
                         <Input
                           id="edit-name"
                           value={editFormData.name}
@@ -683,7 +779,7 @@ export default function UsersPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-email" className="text-white">Email</Label>
+                        <Label htmlFor="edit-email" className="text-white text-sm">Email</Label>
                         <Input
                           id="edit-email"
                           type="email"
@@ -695,7 +791,7 @@ export default function UsersPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-phone" className="text-white">Téléphone</Label>
+                        <Label htmlFor="edit-phone" className="text-white text-sm">Téléphone</Label>
                         <Input
                           id="edit-phone"
                           value={editFormData.phone}
@@ -705,7 +801,7 @@ export default function UsersPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-password" className="text-white">Nouveau mot de passe (optionnel)</Label>
+                        <Label htmlFor="edit-password" className="text-white text-sm">Nouveau mot de passe (optionnel)</Label>
                         <Input
                           id="edit-password"
                           type="password"
@@ -716,7 +812,7 @@ export default function UsersPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-role" className="text-white">Rôle</Label>
+                        <Label htmlFor="edit-role" className="text-white text-sm">Rôle</Label>
                         <Select
                           value={editFormData.role}
                           onValueChange={(value) => setEditFormData({ ...editFormData, role: value })}
@@ -748,7 +844,7 @@ export default function UsersPage() {
                       </div>
                       {editFormData.role === "magasiner" && (
                         <div className="space-y-2">
-                          <Label htmlFor="edit-magasin" className="text-white flex items-center gap-2">
+                          <Label htmlFor="edit-magasin" className="text-white flex items-center gap-2 text-sm">
                             <Building2 className="w-4 h-4 text-purple-400" />
                             Magasin <span className="text-red-400">*</span>
                           </Label>
@@ -774,7 +870,7 @@ export default function UsersPage() {
                       )}
                       {editFormData.role === "architect" && (
                         <div className="space-y-2">
-                          <Label htmlFor="edit-ville" className="text-white flex items-center gap-2">
+                          <Label htmlFor="edit-ville" className="text-white flex items-center gap-2 text-sm">
                             📍 Ville
                           </Label>
                           <Select
@@ -798,18 +894,18 @@ export default function UsersPage() {
                         </div>
                       )}
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="flex-col sm:flex-row gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => setShowEditDialog(false)}
-                        className="glass border-border/40"
+                        className="glass border-border/40 w-full sm:w-auto"
                       >
                         Annuler
                       </Button>
                       <Button
                         type="submit"
-                        className="bg-gradient-to-r from-primary to-premium"
+                        className="bg-gradient-to-r from-primary to-premium w-full sm:w-auto"
                       >
                         Enregistrer
                       </Button>
@@ -822,24 +918,25 @@ export default function UsersPage() {
               <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <DialogContent className="glass border-border/40 sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Confirmer la suppression</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="text-white text-lg md:text-xl">Confirmer la suppression</DialogTitle>
+                    <DialogDescription className="text-sm">
                       Êtes-vous sûr de vouloir supprimer l'utilisateur{" "}
                       <span className="font-semibold text-white">{selectedUser?.name}</span> ?
                       Cette action est irréversible.
                     </DialogDescription>
                   </DialogHeader>
-                  <DialogFooter>
+                  <DialogFooter className="flex-col sm:flex-row gap-2">
                     <Button
                       variant="outline"
                       onClick={() => setShowDeleteDialog(false)}
-                      className="glass border-border/40"
+                      className="glass border-border/40 w-full sm:w-auto"
                     >
                       Annuler
                     </Button>
                     <Button
                       variant="destructive"
                       onClick={handleDeleteUser}
+                      className="w-full sm:w-auto"
                     >
                       Supprimer
                     </Button>

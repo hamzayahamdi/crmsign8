@@ -341,21 +341,21 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[900px] w-[90vw] max-h-[90vh] overflow-hidden p-0 border-border/60 shadow-2xl backdrop-blur-xl bg-background/95">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/40 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent relative overflow-hidden">
+      <DialogContent className="max-w-[900px] w-[95vw] md:w-[90vw] max-h-[92vh] md:max-h-[90vh] overflow-hidden p-0 border-border/60 shadow-2xl backdrop-blur-xl bg-background/95">
+        <DialogHeader className="px-3 md:px-6 pt-3 md:pt-6 pb-2 md:pb-4 border-b border-border/40 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
-          <DialogTitle className="text-2xl font-bold flex items-center gap-3 relative z-10">
+          <DialogTitle className="text-lg md:text-2xl font-bold flex items-center gap-2 md:gap-3 relative z-10">
             <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-md" />
-              <div className="relative p-2.5 bg-gradient-to-br from-primary to-primary/80 rounded-2xl shadow-lg">
-                <CalendarIcon className="h-6 w-6 text-primary-foreground" />
+              <div className="absolute inset-0 bg-primary/20 rounded-xl md:rounded-2xl blur-md" />
+              <div className="relative p-1.5 md:p-2.5 bg-gradient-to-br from-primary to-primary/80 rounded-xl md:rounded-2xl shadow-lg">
+                <CalendarIcon className="h-4 w-4 md:h-6 md:w-6 text-primary-foreground" />
               </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
                 Nouvel Événement
               </div>
-              <p className="text-sm font-normal text-muted-foreground mt-1">Créez un rendez-vous ou un événement dans votre calendrier</p>
+              <p className="text-[10px] md:text-sm font-normal text-muted-foreground mt-0.5 md:mt-1">Créez un rendez-vous ou un événement dans votre calendrier</p>
             </div>
           </DialogTitle>
         </DialogHeader>
@@ -363,7 +363,7 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex-1 min-h-0 overflow-y-auto px-6 py-5"
+          className="flex-1 min-h-0 overflow-y-auto px-3 md:px-6 py-3 md:py-5"
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Essential Information Section */}

@@ -83,22 +83,22 @@ export function CalendarView({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/40">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleToday} className="h-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 md:mb-4 pb-2 md:pb-3 border-b border-border/40 gap-2 md:gap-0">
+        <div className="flex items-center justify-between md:justify-start gap-2">
+          <Button variant="outline" size="sm" onClick={handleToday} className="h-8 md:h-9 text-xs md:text-sm px-2 md:px-4">
             Aujourd'hui
           </Button>
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" onClick={handlePrevious} className="h-8 w-8">
-              <ChevronLeft className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={handlePrevious} className="h-8 w-8 md:h-9 md:w-9">
+              <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={handleNext} className="h-8 w-8">
-              <ChevronRight className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={handleNext} className="h-8 w-8 md:h-9 md:w-9">
+              <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
             </Button>
           </div>
         </div>
-        <h2 className="text-lg font-semibold capitalize text-foreground">{getHeaderTitle()}</h2>
-        <div className="w-32" />
+        <h2 className="text-base md:text-lg font-semibold capitalize text-foreground text-center md:text-left">{getHeaderTitle()}</h2>
+        <div className="hidden md:block w-32" />
       </div>
 
       {/* Calendar Grid */}
@@ -154,6 +154,7 @@ function MonthView({
   }
 
   const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const weekDaysMobile = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
   const getEventsForDay = (date: Date) => {
     return events.filter(event => {
@@ -171,12 +172,13 @@ function MonthView({
     <div className="flex-1 flex flex-col">
       {/* Week day headers */}
       <div className="grid grid-cols-7 gap-px bg-border/20 border border-border/40 rounded-t-lg overflow-hidden">
-        {weekDays.map((day) => (
+        {weekDays.map((day, idx) => (
           <div
             key={day}
-            className="bg-gradient-to-b from-muted/50 to-muted/20 p-3 text-center text-xs font-bold text-foreground/70 uppercase tracking-widest"
+            className="bg-gradient-to-b from-muted/50 to-muted/20 p-1.5 md:p-3 text-center text-[10px] md:text-xs font-bold text-foreground/70 uppercase tracking-wider md:tracking-widest"
           >
-            {day}
+            <span className="hidden md:inline">{day}</span>
+            <span className="md:hidden">{weekDaysMobile[idx]}</span>
           </div>
         ))}
       </div>
@@ -197,16 +199,16 @@ function MonthView({
               transition={{ delay: index * 0.005 }}
               onClick={() => onDateClick(day)}
               className={`
-                bg-card p-2.5 min-h-[130px] cursor-pointer
+                bg-card p-1 md:p-2.5 min-h-[70px] md:min-h-[130px] cursor-pointer
                 transition-all duration-200
-                ${isTodayDate ? 'bg-gradient-to-br from-primary/5 to-primary/10 ring-2 ring-primary/20 shadow-md' : ''}
+                ${isTodayDate ? 'bg-gradient-to-br from-primary/5 to-primary/10 ring-1 md:ring-2 ring-primary/20 shadow-md' : ''}
                 ${hasEvents && !isTodayDate ? 'hover:shadow-md hover:bg-accent/40' : ''}
                 ${!isCurrentMonth ? 'opacity-30 bg-muted/20' : ''}
               `}
             >
               <div className="flex flex-col h-full">
                 <div className={`
-                  text-sm font-bold mb-2 w-8 h-8 flex items-center justify-center rounded-lg
+                  text-xs md:text-sm font-bold mb-1 md:mb-2 w-6 h-6 md:w-8 md:h-8 flex items-center justify-center rounded-md md:rounded-lg
                   ${isTodayDate
                     ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg'
                     : 'text-foreground/70 hover:bg-muted/50'
@@ -216,23 +218,52 @@ function MonthView({
                   {format(day, 'd')}
                 </div>
 
-                <div className="space-y-1.5 flex-1 overflow-hidden">
-                  {dayEvents.slice(0, 3).map((event, eventIdx) => (
-                    <div key={event.id} onClick={(e) => {
-                      e.stopPropagation();
-                      onEventClick(event);
-                    }}>
-                      <CalendarEventChip event={event} />
-                    </div>
-                  ))}
+                <div className="space-y-0.5 md:space-y-1.5 flex-1 overflow-hidden">
+                  {/* Mobile: Show dots for events */}
+                  <div className="md:hidden flex flex-wrap gap-1">
+                    {dayEvents.slice(0, 4).map((event) => {
+                      const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
+                      return (
+                        <div
+                          key={event.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEventClick(event);
+                          }}
+                          className={`w-4 h-4 rounded-full ${eventConfig.color} cursor-pointer hover:scale-125 active:scale-110 transition-transform shadow-sm`}
+                          title={event.title}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop: Show event chips */}
+                  <div className="hidden md:block space-y-1.5">
+                    {dayEvents.slice(0, 3).map((event, eventIdx) => (
+                      <div key={event.id} onClick={(e) => {
+                        e.stopPropagation();
+                        onEventClick(event);
+                      }}>
+                        <CalendarEventChip event={event} />
+                      </div>
+                    ))}
+                  </div>
+
                   {dayEvents.length > 3 && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="text-xs text-muted-foreground pl-1.5 font-semibold"
+                      className="text-[10px] md:text-xs text-muted-foreground pl-0.5 md:pl-1.5 font-semibold hidden md:block"
                     >
                       +{dayEvents.length - 3} {dayEvents.length - 3 === 1 ? 'autre' : 'autres'}
                     </motion.div>
+                  )}
+
+                  {/* Mobile: Show count if more than 4 events */}
+                  {dayEvents.length > 4 && (
+                    <div className="md:hidden text-[9px] text-muted-foreground font-semibold mt-0.5">
+                      +{dayEvents.length - 4}
+                    </div>
                   )}
                 </div>
               </div>
@@ -272,7 +303,7 @@ function WeekView({
   };
 
   return (
-    <div className="grid grid-cols-7 gap-2.5 flex-1">
+    <div className="flex gap-2 md:gap-2.5 flex-1 overflow-x-auto pb-2 md:pb-0">
       {weekDays.map((day, dayIdx) => {
         const dayEvents = getEventsForDay(day);
         const isTodayDate = isToday(day);
@@ -285,7 +316,7 @@ function WeekView({
             transition={{ delay: dayIdx * 0.05 }}
             onClick={() => onDateClick(day)}
             className={`
-              flex flex-col bg-card rounded-xl border-2 p-3 cursor-pointer
+              flex flex-col bg-card rounded-xl border-2 p-2 md:p-3 cursor-pointer min-w-[100px] md:min-w-0 flex-1
               transition-all duration-200
               ${isTodayDate
                 ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg'
@@ -294,14 +325,14 @@ function WeekView({
             `}
           >
             <div className={`
-              text-center mb-3 pb-3 border-b-2
+              text-center mb-2 md:mb-3 pb-2 md:pb-3 border-b-2
               ${isTodayDate ? 'border-primary/30' : 'border-border/20'}
             `}>
-              <div className="text-xs font-bold uppercase mb-1.5 text-muted-foreground">
+              <div className="text-[10px] md:text-xs font-bold uppercase mb-1 md:mb-1.5 text-muted-foreground">
                 {format(day, 'EEE', { locale: fr })}
               </div>
               <div className={`
-                text-3xl font-bold inline-flex items-center justify-center w-12 h-12 rounded-xl
+                text-xl md:text-3xl font-bold inline-flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-xl
                 transition-all
                 ${isTodayDate
                   ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg'
@@ -312,9 +343,9 @@ function WeekView({
               </div>
             </div>
 
-            <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
+            <div className="space-y-1.5 md:space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-0.5 md:pr-1">
               {dayEvents.length === 0 ? (
-                <div className="text-xs text-muted-foreground/50 text-center py-4">
+                <div className="text-[10px] md:text-xs text-muted-foreground/50 text-center py-2 md:py-4">
                   Aucun événement
                 </div>
               ) : (
@@ -362,13 +393,13 @@ function DayView({
   };
 
   return (
-    <div className="flex-1 bg-card rounded-xl border border-border/40 overflow-hidden flex flex-col">
+    <div className="flex-1 bg-card rounded-lg md:rounded-xl border border-border/40 overflow-hidden flex flex-col">
       {/* Day header */}
-      <div className="p-6 border-b border-border/40 bg-gradient-to-r from-muted/20 to-muted/10">
-        <h2 className="text-3xl font-bold text-foreground mb-1">
+      <div className="p-3 md:p-6 border-b border-border/40 bg-gradient-to-r from-muted/20 to-muted/10">
+        <h2 className="text-xl md:text-3xl font-bold text-foreground mb-0.5 md:mb-1">
           {format(currentDate, 'EEEE', { locale: fr })}
         </h2>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-sm md:text-lg text-muted-foreground">
           {format(currentDate, 'd MMMM yyyy', { locale: fr })}
         </p>
       </div>
@@ -376,15 +407,15 @@ function DayView({
       {/* Events list */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         {dayEvents.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground p-8">
+          <div className="flex items-center justify-center h-full text-muted-foreground p-4 md:p-8">
             <div className="text-center">
-              <Calendar className="w-16 h-16 mx-auto mb-4 opacity-30" />
-              <p className="text-xl font-medium">Aucun événement pour cette journée</p>
-              <p className="text-base mt-2">Votre agenda est libre!</p>
+              <Calendar className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 opacity-30" />
+              <p className="text-base md:text-xl font-medium">Aucun événement pour cette journée</p>
+              <p className="text-sm md:text-base mt-1 md:mt-2">Votre agenda est libre!</p>
             </div>
           </div>
         ) : (
-          <div className="p-6 space-y-4">
+          <div className="p-3 md:p-6 space-y-2.5 md:space-y-4">
             {dayEvents.map((event, idx) => {
               const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
               const startDate = new Date(event.startDate);
@@ -405,50 +436,50 @@ function DayView({
                   transition={{ delay: idx * 0.1 }}
                   onClick={() => onEventClick(event)}
                   className={`
-                    p-6 rounded-xl border-l-[6px] ${eventConfig.borderColor}
+                    p-3 md:p-6 rounded-lg md:rounded-xl border-l-[4px] md:border-l-[6px] ${eventConfig.borderColor}
                     ${eventConfig.bgLight}
                     backdrop-blur-sm cursor-pointer hover:shadow-xl transition-all duration-200
-                    ${showParticipants ? 'ring-2 ring-primary/30 shadow-md border border-primary/20' : 'shadow-sm hover:shadow-lg'}
+                    ${showParticipants ? 'ring-1 md:ring-2 ring-primary/30 shadow-md border border-primary/20' : 'shadow-sm hover:shadow-lg'}
                     group
                   `}
                 >
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start justify-between mb-2 md:mb-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
                         <div className={`
-                          w-10 h-10 rounded-xl flex items-center justify-center shrink-0
+                          w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center shrink-0
                           ${eventConfig.color} text-white shadow-sm
                         `}>
                           {getEventIcon(event.eventType)}
                         </div>
-                        <h3 className={`font-bold text-xl ${eventConfig.chipText} group-hover:translate-x-1 transition-transform`}>
+                        <h3 className={`font-bold text-sm md:text-xl ${eventConfig.chipText} group-hover:translate-x-1 transition-transform`}>
                           {event.title.replace('[TÂCHE] ', '')}
                         </h3>
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 mt-1 md:mt-2">
                         <EventBadge event={event} size="lg" showIcon={true} />
                       </div>
                     </div>
                   </div>
 
                   {/* Time info */}
-                  <div className="flex items-center gap-4 mb-4 px-12">
-                    <div className="flex items-center gap-2 text-base font-semibold text-muted-foreground">
-                      <Clock className="w-5 h-5" />
+                  <div className="flex items-center gap-2 md:gap-4 mb-2 md:mb-4 px-0 md:px-12">
+                    <div className="flex items-center gap-1.5 md:gap-2 text-xs md:text-base font-semibold text-muted-foreground">
+                      <Clock className="w-4 h-4 md:w-5 md:h-5" />
                       {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
                     </div>
                   </div>
 
                   {/* Description */}
                   {event.description && (
-                    <div className="mb-4 px-12 text-base text-foreground/80">
+                    <div className="mb-2 md:mb-4 px-0 md:px-12 text-xs md:text-base text-foreground/80">
                       {event.description}
                     </div>
                   )}
 
                   {/* Location */}
                   {event.location && (
-                    <div className="mb-4 px-12 flex items-center gap-2 text-base text-muted-foreground">
+                    <div className="mb-2 md:mb-4 px-0 md:px-12 flex items-center gap-1.5 md:gap-2 text-xs md:text-base text-muted-foreground">
                       <span>📍</span>
                       {event.location}
                     </div>
@@ -456,19 +487,19 @@ function DayView({
 
                   {/* Team info - Only for RDV with participants */}
                   {showParticipants && (
-                    <div className="mt-4 px-12 pt-4 border-t border-border/20">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Users className="w-5 h-5 text-primary" />
-                        <span className="text-sm font-semibold text-primary">{totalParticipants} participant{totalParticipants > 1 ? 's' : ''}</span>
+                    <div className="mt-2 md:mt-4 px-0 md:px-12 pt-2 md:pt-4 border-t border-border/20">
+                      <div className="flex items-center gap-1.5 md:gap-2 mb-2 md:mb-3">
+                        <Users className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                        <span className="text-xs md:text-sm font-semibold text-primary">{totalParticipants} participant{totalParticipants > 1 ? 's' : ''}</span>
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-sm font-bold ring-2 ring-background shadow-lg" title={event.assignedToName}>
+                      <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-xs md:text-sm font-bold ring-2 ring-background shadow-lg" title={event.assignedToName}>
                           {event.assignedToName?.charAt(0).toUpperCase() || 'A'}
                         </div>
                         {event.participantDetails?.slice(0, 4).map((participant, pidx) => (
                           <div
                             key={participant.id}
-                            className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold ring-2 ring-background shadow-lg"
+                            className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs md:text-sm font-bold ring-2 ring-background shadow-lg"
                             title={participant.name}
                             style={{ zIndex: 9 - pidx }}
                           >
@@ -476,7 +507,7 @@ function DayView({
                           </div>
                         ))}
                         {event.participants && event.participants.length > 4 && (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white text-sm font-bold ring-2 ring-background shadow-lg text-center">
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white text-xs md:text-sm font-bold ring-2 ring-background shadow-lg text-center">
                             +{event.participants.length - 4}
                           </div>
                         )}

@@ -61,7 +61,7 @@ export function CalendarEventChip({
 
   // Check if event has multiple participants
   const hasParticipants = event.participantDetails && event.participantDetails.length > 0;
-  const totalParticipants = hasParticipants ? event.participantDetails.length + 1 : 1; // +1 for assigned user
+  const totalParticipants = hasParticipants ? (event.participantDetails?.length ?? 0) + 1 : 1; // +1 for assigned user
 
   const getStartTime = () => {
     try {
@@ -112,7 +112,7 @@ export function CalendarEventChip({
       onMouseLeave={() => onHover?.(null)}
       onClick={() => onClick?.(event)}
       className={`
-        group relative cursor-pointer rounded-lg px-3 py-2 transition-all duration-200
+        group relative cursor-pointer rounded-lg px-2 md:px-3 py-1.5 md:py-2 transition-all duration-200
         ${config.chipBg}
         border-l-[4px] ${config.borderColor}
         hover:shadow-lg hover:shadow-${config.borderColor.split('-')[1]}-500/20 hover:scale-[1.02] active:scale-[0.98]
@@ -122,22 +122,22 @@ export function CalendarEventChip({
         ${hasParticipants && showParticipants ? 'border border-primary/20' : 'border border-transparent'}
       `}
     >
-      <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex items-center gap-1.5 md:gap-2.5 min-w-0">
         {/* Icon with improved styling */}
         <div className={`flex-shrink-0 ${config.chipText}`}>
-          <div className={`p-1 rounded-md ${config.color} bg-opacity-15`}>
-            <IconComponent className="h-3.5 w-3.5" strokeWidth={2.5} />
+          <div className={`p-0.5 md:p-1 rounded-md ${config.color} bg-opacity-15`}>
+            <IconComponent className="h-3 w-3 md:h-3.5 md:w-3.5" strokeWidth={2.5} />
           </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0 overflow-hidden">
-          <div className={`text-xs font-bold truncate ${config.chipText} leading-tight`}>
+          <div className={`text-[11px] md:text-xs font-bold truncate ${config.chipText} leading-tight`}>
             {truncateTitle(event.title)}
           </div>
           {getStartTime() && (
-            <div className={`text-[10px] font-medium mt-0.5 opacity-80 ${config.chipText} flex items-center gap-1`}>
-              <Clock className="h-3 w-3 inline" />
+            <div className={`text-[9px] md:text-[10px] font-medium mt-0.5 opacity-80 ${config.chipText} flex items-center gap-0.5 md:gap-1`}>
+              <Clock className="h-2.5 w-2.5 md:h-3 md:w-3 inline" />
               {getStartTime()}
             </div>
           )}
@@ -146,22 +146,22 @@ export function CalendarEventChip({
         {/* Participant Badge - Only for RDV with participants */}
         {showParticipants && hasParticipants && (
           <div className="flex-shrink-0">
-            <div className="flex items-center gap-1 bg-primary/10 rounded-full px-2 py-0.5 border border-primary/20">
-              <div className="flex -space-x-1.5">
+            <div className="flex items-center gap-0.5 md:gap-1 bg-primary/10 rounded-full px-1.5 md:px-2 py-0.5 border border-primary/20">
+              <div className="flex -space-x-1 md:-space-x-1.5">
                 {participantAvatars.map((participant, idx) => (
                   <div
                     key={participant.id}
-                    className="h-5 w-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white border border-white dark:border-gray-800 shadow-sm"
+                    className="h-4 w-4 md:h-5 md:w-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white border border-white dark:border-gray-800 shadow-sm"
                     style={{ zIndex: participantAvatars.length - idx }}
                     title={participant.name}
                   >
-                    <span className="text-[8px] font-bold">
+                    <span className="text-[7px] md:text-[8px] font-bold">
                       {getInitials(participant.name)}
                     </span>
                   </div>
                 ))}
               </div>
-              <span className="text-[10px] font-bold text-primary ml-1">
+              <span className="text-[9px] md:text-[10px] font-bold text-primary ml-0.5 md:ml-1">
                 {totalParticipants}
               </span>
             </div>

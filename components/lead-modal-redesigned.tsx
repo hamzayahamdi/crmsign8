@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CreatableSelect } from "@/components/creatable-select"
 import { Textarea } from "@/components/ui/textarea"
 import type { Lead, LeadPriority, LeadSource, LeadStatus } from "@/types/lead"
 import { AnimatePresence, motion } from "framer-motion"
@@ -415,7 +416,7 @@ export function LeadModalRedesigned({
               onSubmit={handleSubmit}
               className="flex-1 min-h-0 flex flex-col"
             >
-              <div className="flex-1 min-h-0 px-3 py-3 md:px-8 md:py-6 space-y-3 md:space-y-6 overflow-y-auto custom-scrollbar">
+              <div className="flex-1 min-h-0 px-3 py-2 md:px-6 md:py-4 space-y-2.5 md:space-y-4 overflow-y-auto custom-scrollbar">
                 {lead && (
                   <div className="rounded-2xl border border-white/10 bg-linear-to-r from-slate-900/70 via-slate-900/50 to-slate-900/40 p-5 space-y-5 shadow-inner shadow-black/20">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -452,110 +453,112 @@ export function LeadModalRedesigned({
                   </div>
                 )}
 
-                <div className="space-y-6">
-                  <section className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-inner shadow-black/20">
-                    <div className="mb-6 flex items-center justify-between">
+                <div className="space-y-2.5 md:space-y-4">
+                  <section className="rounded-xl md:rounded-2xl border border-white/10 bg-slate-900/60 p-3 md:p-5 shadow-inner shadow-black/20">
+                    <div className="mb-3 md:mb-4 flex items-center justify-between">
                       <h3 className="text-xs md:text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
                         <User className="w-4 h-4" />
                         Informations de contact
                       </h3>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
+                    <div className="grid gap-3 md:gap-4 md:grid-cols-2">
+                      <div className="space-y-1.5 md:space-y-2">
                         <Label htmlFor="nom" className="text-xs md:text-sm text-slate-300">
                           Nom complet *
                         </Label>
                         <div className="relative">
-                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-white z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
                           <Input
                             id="nom"
                             value={formData.nom}
                             onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                            className="pl-10 md:pl-12 h-10 md:h-11 text-sm md:text-base glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
+                            className="pl-9 md:pl-12 h-9 md:h-11 text-sm md:text-base glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
                             placeholder="Ex: Ahmed Benali"
                             required
                           />
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="telephone" className="text-sm text-slate-300">
+                      <div className="space-y-1.5 md:space-y-2">
+                        <Label htmlFor="telephone" className="text-xs md:text-sm text-slate-300">
                           Téléphone *
                         </Label>
                         <div className="relative">
-                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-white z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
                           <Input
                             id="telephone"
                             value={formData.telephone}
                             onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                            className="pl-9 md:pl-10 h-10 md:h-11 text-sm md:text-base glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
+                            className="pl-9 md:pl-10 h-9 md:h-11 text-sm md:text-base glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
                             placeholder="06 XX XX XX XX"
                             required
                           />
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="text-sm text-slate-300">
+                      <div className="space-y-1.5 md:space-y-2">
+                        <Label htmlFor="email" className="text-xs md:text-sm text-slate-300">
                           Email
                         </Label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-white z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
                           <Input
                             id="email"
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
+                            className="pl-9 md:pl-10 h-9 md:h-11 text-sm md:text-base glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
                             placeholder="email@exemple.com"
                           />
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="ville" className="text-sm text-slate-300">
+                      <div className="space-y-1.5 md:space-y-2">
+                        <Label htmlFor="ville" className="text-xs md:text-sm text-slate-300">
                           Ville *
                         </Label>
                         <div className="relative">
-                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400 z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(16,185,129,0.55)]" />
-                          <div className="[&>button]:pl-10">
-                            <Select value={formData.ville} onValueChange={(value) => setFormData({ ...formData, ville: value })}>
-                              <SelectTrigger className="pl-12 glass rounded-xl bg-white/10 border border-white/10 text-white">
-                                <SelectValue placeholder="Sélectionner" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {villes.map((v) => (
-                                  <SelectItem key={v} value={v}>
-                                    {v}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-emerald-400 z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(16,185,129,0.55)]" />
+                          <div className="[&>button]:pl-9 md:[&>button]:pl-10">
+                            <CreatableSelect
+                              value={formData.ville}
+                              onValueChange={(value) => setFormData({ ...formData, ville: value })}
+                              options={villes}
+                              placeholder="Choisir ou créer une ville..."
+                              searchPlaceholder="Rechercher une ville..."
+                              emptyText="Aucune ville trouvée"
+                              onCreateNew={(newCity) => {
+                                if (!villes.includes(newCity)) {
+                                  setVilles([...villes, newCity])
+                                }
+                              }}
+                              className="h-9 md:h-11 pl-9 md:pl-10 glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40"
+                            />
                           </div>
                         </div>
                       </div>
                     </div>
                   </section>
 
-                  <section className="rounded-xl md:rounded-2xl border border-white/10 bg-slate-900/60 p-3 md:p-6 shadow-inner shadow-black/20 space-y-4">
+                  <section className="rounded-xl md:rounded-2xl border border-white/10 bg-slate-900/60 p-3 md:p-6 shadow-inner shadow-black/20 space-y-3 md:space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
+                      <h3 className="text-xs md:text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
                         <Building2 className="w-4 h-4" />
                         Bien & Source
                       </h3>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="typeBien" className="text-sm text-slate-300">
+                    <div className="grid gap-3 md:gap-4 md:grid-cols-2">
+                      <div className="space-y-1.5 md:space-y-2">
+                        <Label htmlFor="typeBien" className="text-xs md:text-sm text-slate-300">
                           Type de bien *
                         </Label>
                         <div className="relative">
-                          <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400 z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(168,85,247,0.55)]" />
-                          <div className="[&>button]:pl-10">
+                          <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-purple-400 z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(168,85,247,0.55)]" />
+                          <div className="[&>button]:pl-9 md:[&>button]:pl-10">
                             <Select value={formData.typeBien} onValueChange={(value) => setFormData({ ...formData, typeBien: value })}>
-                              <SelectTrigger className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white">
+                              <SelectTrigger className="h-9 md:h-11 pl-9 md:pl-10 glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white">
                                 <SelectValue placeholder="Sélectionner" />
                               </SelectTrigger>
                               <SelectContent>
@@ -570,13 +573,13 @@ export function LeadModalRedesigned({
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="source" className="text-sm text-slate-300">
+                      <div className="space-y-1.5 md:space-y-2">
+                        <Label htmlFor="source" className="text-xs md:text-sm text-slate-300">
                           Source *
                         </Label>
                         <div className="relative">
-                          <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-400 z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(59,130,246,0.55)]" />
-                          <div className="[&>button]:pl-10">
+                          <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-blue-400 z-20 pointer-events-none drop-shadow-[0_0_10px_rgba(59,130,246,0.55)]" />
+                          <div className="[&>button]:pl-9 md:[&>button]:pl-10">
                             <Select
                               value={formData.source}
                               onValueChange={(value) => {
@@ -597,7 +600,7 @@ export function LeadModalRedesigned({
                                 })
                               }}
                             >
-                              <SelectTrigger className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white">
+                              <SelectTrigger className="h-9 md:h-11 pl-9 md:pl-10 glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -614,13 +617,13 @@ export function LeadModalRedesigned({
                     </div>
 
                     {formData.source === "magasin" && (
-                      <div className="grid gap-4 rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="magasin" className="text-sm text-slate-200">
+                      <div className="grid gap-3 md:gap-4 rounded-xl border border-blue-500/30 bg-blue-500/5 p-3 md:p-4 md:grid-cols-2">
+                        <div className="space-y-1.5 md:space-y-2">
+                          <Label htmlFor="magasin" className="text-xs md:text-sm text-slate-200">
                             Magasin *
                           </Label>
                           <Select value={formData.magasin} onValueChange={(value) => setFormData({ ...formData, magasin: value })}>
-                            <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
+                            <SelectTrigger className="h-9 md:h-11 glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white">
                               <SelectValue placeholder="Sélectionner" />
                             </SelectTrigger>
                             <SelectContent>
@@ -633,15 +636,15 @@ export function LeadModalRedesigned({
                           </Select>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="commercialMagasin" className="text-sm text-slate-200">
+                        <div className="space-y-1.5 md:space-y-2">
+                          <Label htmlFor="commercialMagasin" className="text-xs md:text-sm text-slate-200">
                             Commercial magasin *
                           </Label>
                           <Input
                             id="commercialMagasin"
                             value={formData.commercialMagasin}
                             onChange={(e) => setFormData({ ...formData, commercialMagasin: e.target.value })}
-                            className="glass rounded-xl bg-white/10 border border-white/10 text-white"
+                            className="h-9 md:h-11 text-sm md:text-base glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white"
                             placeholder="Nom du commercial"
                             required
                           />
@@ -649,15 +652,15 @@ export function LeadModalRedesigned({
                       </div>
                     )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="assignePar" className="text-sm text-slate-300">
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label htmlFor="assignePar" className="text-xs md:text-sm text-slate-300">
                         Assigné à *
                       </Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white z-30 pointer-events-none drop-shadow-[0_0_12px_rgba(255,255,255,0.65)]" />
-                        <div className="[&>button]:pl-10">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-white z-30 pointer-events-none drop-shadow-[0_0_12px_rgba(255,255,255,0.65)]" />
+                        <div className="[&>button]:pl-9 md:[&>button]:pl-10">
                           <Select value={formData.assignePar} onValueChange={(value) => setFormData({ ...formData, assignePar: value })}>
-                            <SelectTrigger className="pl-10 glass rounded-xl bg-white/10 border border-white/10 text-white">
+                            <SelectTrigger className="h-9 md:h-11 pl-9 md:pl-10 glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -673,20 +676,20 @@ export function LeadModalRedesigned({
                     </div>
                   </section>
 
-                  <section className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-inner shadow-black/20 space-y-4">
+                  <section className="rounded-xl md:rounded-2xl border border-white/10 bg-slate-900/60 p-3 md:p-6 shadow-inner shadow-black/20 space-y-3 md:space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
+                      <h3 className="text-xs md:text-sm font-semibold uppercase tracking-wide text-slate-200 flex items-center gap-2">
                         <FileText className="w-4 h-4" />
                         Statut & Notes
                       </h3>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="statut" className="text-sm text-slate-300">
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label htmlFor="statut" className="text-xs md:text-sm text-slate-300">
                         État du lead
                       </Label>
                       <Select value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value as LeadStatus })}>
-                        <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
+                        <SelectTrigger className="h-9 md:h-11 glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -699,15 +702,15 @@ export function LeadModalRedesigned({
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="message" className="text-sm text-slate-300">
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label htmlFor="message" className="text-xs md:text-sm text-slate-300">
                         Notes / Message
                       </Label>
                       <Textarea
                         id="message"
                         value={formData.message}
                         onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                        className="glass rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all min-h-[90px] resize-none"
+                        className="text-sm md:text-base glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all min-h-[70px] md:min-h-[90px] resize-none"
                         placeholder="Informations complémentaires sur le lead..."
                       />
                     </div>

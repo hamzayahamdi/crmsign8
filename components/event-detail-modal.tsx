@@ -145,22 +145,22 @@ export function EventDetailModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl w-full p-0 gap-0 overflow-hidden bg-background border-border shadow-2xl rounded-xl sm:rounded-2xl">
+        <DialogContent className="max-w-2xl w-[95vw] md:w-full p-0 gap-0 overflow-hidden bg-background border-border shadow-2xl rounded-lg md:rounded-xl sm:rounded-2xl">
           {/* Header with Color Strip */}
-          <div className={`h-3 w-full ${eventConfig.color.replace('text-', 'bg-')}`} />
+          <div className={`h-2 md:h-3 w-full ${eventConfig.color.replace('text-', 'bg-')}`} />
 
-          <div className="p-6 sm:p-8 overflow-y-auto max-h-[85vh]">
+          <div className="p-3 md:p-6 sm:p-8 overflow-y-auto max-h-[88vh] md:max-h-[85vh]">
             {/* Title and Actions Header */}
-            <div className="flex items-start justify-between gap-4 mb-6">
-              <div className="space-y-1.5">
-                <DialogTitle className="text-2xl sm:text-3xl font-normal text-foreground leading-tight">
+            <div className="flex items-start justify-between gap-2 md:gap-4 mb-4 md:mb-6">
+              <div className="space-y-1 md:space-y-1.5">
+                <DialogTitle className="text-lg md:text-2xl sm:text-3xl font-normal text-foreground leading-tight">
                   {event.title.replace('[TÂCHE] ', '')}
                 </DialogTitle>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="secondary" className={`font-medium ${eventConfig.chipBg} ${eventConfig.chipText} border-0`}>
+                <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                  <Badge variant="secondary" className={`font-medium text-[10px] md:text-xs ${eventConfig.chipBg} ${eventConfig.chipText} border-0`}>
                     {eventConfig.label}
                   </Badge>
-                  <Badge variant="outline" className="font-normal text-muted-foreground">
+                  <Badge variant="outline" className="font-normal text-[10px] md:text-xs text-muted-foreground">
                     {event.visibility === 'private' && 'Privé'}
                     {event.visibility === 'team' && 'Équipe'}
                     {event.visibility === 'all' && 'Public'}
@@ -168,59 +168,59 @@ export function EventDetailModal({
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-0.5 md:gap-1 shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => onEventEdit(event)}
-                  className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-full"
+                  className="h-8 w-8 md:h-9 md:w-9 text-muted-foreground hover:text-foreground rounded-full"
                   title="Modifier"
                 >
-                  <Edit className="h-5 w-5" />
+                  <Edit className="h-4 w-4 md:h-5 md:w-5" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowDeleteDialog(true)}
-                  className="h-9 w-9 text-muted-foreground hover:text-destructive rounded-full"
+                  className="h-8 w-8 md:h-9 md:w-9 text-muted-foreground hover:text-destructive rounded-full"
                   title="Supprimer"
                 >
-                  <Trash2 className="h-5 w-5" />
+                  <Trash2 className="h-4 w-4 md:h-5 md:w-5" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={onClose}
-                  className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-full"
+                  className="h-8 w-8 md:h-9 md:w-9 text-muted-foreground hover:text-foreground rounded-full"
                   title="Fermer"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4 md:h-5 md:w-5" />
                 </Button>
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* Date & Time */}
-              <div className="flex items-start gap-4">
-                <div className="mt-1 p-2 rounded-lg bg-muted/30">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
+              <div className="flex items-start gap-3 md:gap-4">
+                <div className="mt-0.5 md:mt-1 p-1.5 md:p-2 rounded-lg bg-muted/30">
+                  <Clock className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <div className="text-lg font-medium text-foreground">
+                  <div className="text-sm md:text-lg font-medium text-foreground">
                     {format(new Date(event.startDate), 'EEEE d MMMM yyyy', { locale: fr })}
                   </div>
-                  <div className="text-base text-muted-foreground mt-0.5">
+                  <div className="text-xs md:text-base text-muted-foreground mt-0.5">
                     {format(new Date(event.startDate), 'HH:mm', { locale: fr })} - {format(new Date(event.endDate), 'HH:mm', { locale: fr })}
                   </div>
                   {event.reminderType !== 'none' && (
-                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground bg-muted/20 px-2 py-1 rounded w-fit">
-                      <Bell className="h-3.5 w-3.5" />
+                    <div className="flex items-center gap-1.5 md:gap-2 mt-1.5 md:mt-2 text-xs md:text-sm text-muted-foreground bg-muted/20 px-1.5 md:px-2 py-0.5 md:py-1 rounded w-fit">
+                      <Bell className="h-3 w-3 md:h-3.5 md:w-3.5" />
                       <span>{reminderConfig.label}</span>
                       {hasReminder && (
                         <button
                           onClick={handleCancelReminder}
                           disabled={isCancelingReminder}
-                          className="ml-2 text-xs hover:underline text-muted-foreground hover:text-foreground"
+                          className="ml-1 md:ml-2 text-[10px] md:text-xs hover:underline text-muted-foreground hover:text-foreground"
                         >
                           (Annuler)
                         </button>
@@ -232,17 +232,17 @@ export function EventDetailModal({
 
               {/* Location */}
               {event.location && (
-                <div className="flex items-start gap-4">
-                  <div className="mt-1 p-2 rounded-lg bg-muted/30">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-start gap-3 md:gap-4">
+                  <div className="mt-0.5 md:mt-1 p-1.5 md:p-2 rounded-lg bg-muted/30">
+                    <MapPin className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <div className="text-lg text-foreground">{event.location}</div>
+                    <div className="text-sm md:text-lg text-foreground">{event.location}</div>
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline mt-0.5 block"
+                      className="text-xs md:text-sm text-blue-600 hover:underline mt-0.5 block"
                     >
                       Voir sur la carte
                     </a>
@@ -252,11 +252,11 @@ export function EventDetailModal({
 
               {/* Description */}
               {event.description && (
-                <div className="flex items-start gap-4">
-                  <div className="mt-1 p-2 rounded-lg bg-muted/30">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-start gap-3 md:gap-4">
+                  <div className="mt-0.5 md:mt-1 p-1.5 md:p-2 rounded-lg bg-muted/30">
+                    <FileText className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
                   </div>
-                  <div className="text-base text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                  <div className="text-xs md:text-base text-foreground/90 whitespace-pre-wrap leading-relaxed">
                     {event.description}
                   </div>
                 </div>

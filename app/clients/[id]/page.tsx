@@ -537,24 +537,23 @@ export default function ClientDetailsPage() {
   return (
     <AuthGuard>
       <PageShell>
-        <div className="w-full">
+        <div className="w-full max-w-[100vw] overflow-x-hidden">
           <Header />
 
           {/* Back Button */}
-          <div className="px-8 pt-6">
+          <div className="px-4 md:px-6 lg:px-8 pt-4 md:pt-5 lg:pt-6">
             <Button
               variant="ghost"
               onClick={() => router.push("/clients")}
-              className="group inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] text-slate-300 transition-colors hover:bg-white/[0.08] hover:text-white/90 shadow-lg shadow-black/10"
-            >
-              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+              className="group inline-flex items-center gap-1.5 md:gap-2 rounded-md md:rounded-lg border border-white/10 bg-white/[0.03] text-slate-300 transition-colors hover:bg-white/[0.08] hover:text-white/90 shadow-lg shadow-black/10 text-xs md:text-sm px-2.5 md:px-3 py-1.5 md:py-2">
+              <ArrowLeft className="w-3.5 h-3.5 md:w-4 md:h-4 transition-transform group-hover:-translate-x-0.5" />
               Retour aux clients
             </Button>
           </div>
 
           {/* Upcoming RDV Banner */}
           {client.rendezVous && client.rendezVous.length > 0 && (
-            <div className="px-8 pt-4">
+            <div className="px-4 md:px-6 lg:px-8 pt-3 md:pt-4">
               <UpcomingRdvBanner appointments={client.rendezVous} />
             </div>
           )}
@@ -575,10 +574,19 @@ export default function ClientDetailsPage() {
               <div className="absolute bottom-[-25%] left-16 h-72 w-72 rounded-full bg-purple-600/12 blur-[140px]" />
             </div>
 
-            <div className="relative z-10 px-8 py-6">
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-6">
+            <div className="relative z-10 px-4 md:px-6 lg:px-8 py-4 md:py-5 lg:py-6">
+              <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3 lg:gap-6">
                 {/* Left Column - Main Content (70%) */}
-                <div className="space-y-6 lg:col-span-2">
+                <div className="space-y-4 md:space-y-5 lg:space-y-6 lg:col-span-2">
+                  {/* Quick Actions - Mobile Only (Top Priority) */}
+                  <div className="lg:hidden">
+                    <QuickActionsSidebar
+                      client={client}
+                      onUpdate={handleUpdateClient}
+                      onDelete={handleDeleteClient}
+                    />
+                  </div>
+
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -638,11 +646,12 @@ export default function ClientDetailsPage() {
                 </div>
 
                 {/* Right Column - Sidebar (30%) */}
-                <div className="space-y-6">
+                <div className="space-y-4 md:space-y-5 lg:space-y-6">
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
+                    className="hidden lg:block"
                   >
                     <QuickActionsSidebar
                       client={client}

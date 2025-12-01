@@ -491,4 +491,14 @@
       scrollbar-width: none;
     }
   }
+
+  /* No scrollbar utility for cleaner mobile UI */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
