@@ -440,11 +440,11 @@ export function ClientDetailPanelRedesigned({
   const hasMoreHistory = allHistory.length > 5
 
   // Calculate project summary based on devis
-  const devisList = localClient.devis || []
-  const acceptedDevis = devisList.filter(d => d.statut === "accepte")
-  const totalAccepted = acceptedDevis.reduce((sum, d) => sum + d.montant, 0)
-  const totalPaid = acceptedDevis.filter(d => d.facture_reglee).reduce((sum, d) => sum + d.montant, 0)
-  const progressPercentage = totalAccepted > 0 ? Math.round((totalPaid / totalAccepted) * 100) : 0
+  const devisList = localClient.devis || [];
+  const acceptedDevis = devisList.filter(d => d.statut === "accepte");
+  const totalAccepted = acceptedDevis.reduce((sum, d) => sum + d.montant, 0);
+  const totalPaid = acceptedDevis.filter(d => d.facture_reglee).reduce((sum, d) => sum + d.montant, 0);
+  const progressPercentage = totalAccepted > 0 ? Math.round((totalPaid / totalAccepted) * 100) : 0;
 
   return (
     <AnimatePresence>

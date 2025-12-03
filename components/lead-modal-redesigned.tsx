@@ -87,6 +87,17 @@ const sources: { value: LeadSource; label: string }[] = [
 
 const magasins = ["Casa", "Rabat", "Tanger", "Marrakech", "Bouskoura"]
 
+// Known commerciaux en magasin (for magasin leads)
+const magasinCommercials = [
+  "BOUCHEMAMA LAILA",
+  "AMANE HAMZA",
+  "ABOUTTAIB RANIA",
+  "EL OURI HANANE",
+  "BELHAJ FADOUA",
+  "NAMIRA GHITA",
+  "KAITOUNI IDRISSI ALI",
+]
+
 const calculatePriority = (source: LeadSource): LeadPriority => {
   switch (source) {
     case "magasin":
@@ -139,6 +150,7 @@ export function LeadModalRedesigned({
     priorite: lead?.priorite || ("moyenne" as LeadPriority),
     magasin: lead?.magasin || "",
     commercialMagasin: lead?.commercialMagasin || "",
+    campaignName: lead?.campaignName || "",
     notes: lead?.notes || [],
   }
 
@@ -238,6 +250,7 @@ export function LeadModalRedesigned({
       priorite: "moyenne" as LeadPriority,
       magasin: "",
       commercialMagasin: "",
+      campaignName: "",
       notes: [],
     })
   }
@@ -267,6 +280,7 @@ export function LeadModalRedesigned({
           priorite: lead.priorite || ("moyenne" as LeadPriority),
           magasin: lead.magasin || (currentUserRole === "commercial" ? currentUserMagasin || "" : ""),
           commercialMagasin: lead.commercialMagasin || (currentUserRole === "commercial" ? currentUserName : ""),
+          campaignName: lead.campaignName || "",
           notes: lead.notes || [],
         })
         console.log('[LeadModal] Form data updated for lead:', lead.id)
@@ -618,6 +632,7 @@ export function LeadModalRedesigned({
 
                     {formData.source === "magasin" && (
                       <div className="grid gap-3 md:gap-4 rounded-xl border border-blue-500/30 bg-blue-500/5 p-3 md:p-4 md:grid-cols-2">
+                        {/* Magasin select */}
                         <div className="space-y-1.5 md:space-y-2">
                           <Label htmlFor="magasin" className="text-xs md:text-sm text-slate-200">
                             Magasin *
@@ -636,19 +651,84 @@ export function LeadModalRedesigned({
                           </Select>
                         </div>
 
+                        {/* Commercial magasin select + "Autre" */}
                         <div className="space-y-1.5 md:space-y-2">
                           <Label htmlFor="commercialMagasin" className="text-xs md:text-sm text-slate-200">
                             Commercial magasin *
                           </Label>
-                          <Input
-                            id="commercialMagasin"
-                            value={formData.commercialMagasin}
-                            onChange={(e) => setFormData({ ...formData, commercialMagasin: e.target.value })}
-                            className="h-9 md:h-11 text-sm md:text-base glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white"
-                            placeholder="Nom du commercial"
-                            required
-                          />
+                          <div className="space-y-2">
+                            <Select
+                              value={
+                                formData.commercialMagasin &&
+                                magasinCommercials.includes(formData.commercialMagasin)
+                                  ? formData.commercialMagasin
+                                  : "autre"
+                              }
+                              onValueChange={(value) => {
+                                if (value === "autre") {
+                                  // Keep existing custom value, just switch UI mode
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    commercialMagasin: prev.commercialMagasin && !magasinCommercials.includes(prev.commercialMagasin)
+                                      ? prev.commercialMagasin
+                                      : "",
+                                  }))
+                                } else {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    commercialMagasin: value,
+                                  }))
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="h-9 md:h-11 glass rounded-lg md:rounded-xl bg-white/10 border border-white/10 text-white">
+                                <SelectValue placeholder="Sélectionner un commercial" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {magasinCommercials.map((name) => (
+                                  <SelectItem key={name} value={name}>
+                                    {name}
+                                  </SelectItem>
+                                ))}
+                                <SelectItem value="autre">Autre…</SelectItem>
+                              </SelectContent>
+                            </Select>
+
+                            {/* Custom commercial name when "Autre" is selected or value not in list */}
+                            {(!formData.commercialMagasin ||
+                              !magasinCommercials.includes(formData.commercialMagasin)) && (
+                              <Input
+                                id="commercialMagasin"
+                                value={formData.commercialMagasin}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    commercialMagasin: e.target.value,
+                                  })
+                                }
+                                className="h-9 md:h-11 text-sm md:text-base glass rounded-lg md:rounded-xl bg-white/10 border border-dashed border-blue-300/50 text-white placeholder:text-slate-300/70"
+                                placeholder="Saisir un autre nom de commercial"
+                                required
+                              />
+                            )}
+                          </div>
                         </div>
+                      </div>
+                    )}
+
+                    {formData.source === "tiktok" && (
+                      <div className="mt-3 md:mt-4 rounded-xl border border-fuchsia-500/40 bg-fuchsia-500/10 p-3 md:p-4 space-y-2 md:space-y-3">
+                        <Label htmlFor="campaignName" className="text-xs md:text-sm text-fuchsia-100 flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-fuchsia-300" />
+                          Nom de la campagne TikTok
+                        </Label>
+                        <Input
+                          id="campaignName"
+                          value={formData.campaignName}
+                          onChange={(e) => setFormData({ ...formData, campaignName: e.target.value })}
+                          className="h-9 md:h-11 text-sm md:text-base glass rounded-lg md:rounded-xl bg-black/20 border border-fuchsia-400/40 text-white placeholder:text-fuchsia-200/60 focus:ring-2 focus:ring-fuchsia-400/60 focus:border-fuchsia-400/60 transition-all"
+                          placeholder="Ex: TikTok - Novembre 2025"
+                        />
                       </div>
                     )}
 

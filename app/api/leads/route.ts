@@ -278,10 +278,21 @@ export async function POST(request: NextRequest) {
         campaignName: body.campaignName,
         uploadedAt: uploadedAt,
         createdBy: createdBy,
-        derniereMaj: new Date()
+        derniereMaj: new Date(),
+        // Create an initial note for traceability: who created this lead and from where
+        notes: {
+          create: {
+            content: `Lead créé par ${createdBy || 'Utilisateur'}${body.source ? ` (source: ${body.source})` : ''}`,
+            author: createdBy || user.name || 'Utilisateur'
+          }
+        }
       },
       include: {
-        notes: true
+        notes: {
+          orderBy: {
+            createdAt: 'desc'
+          }
+        }
       }
     })
 

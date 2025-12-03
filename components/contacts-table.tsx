@@ -241,8 +241,12 @@ export function ContactsTable({
         {contacts.map((contact, index) => {
           const opportunities = contact.opportunities || []
 
+          // An opportunity is considered "Gagnée" ONLY when it is explicitly marked as won
+          // or when it has reached the final pipeline stage "gagnee".
+          // NOTE: "acompte_recu" is now treated as an opportunity still "en cours" (in progress),
+          // not as won, because the devis may not yet be accepté.
           const isWon = (o: Opportunity) =>
-            o.statut === 'won' || o.pipelineStage === 'acompte_recu' || o.pipelineStage === 'gagnee'
+            o.statut === 'won' || o.pipelineStage === 'gagnee'
 
           const isOpen = (o: Opportunity) =>
             o.statut === 'open' && !isWon(o)
@@ -353,7 +357,7 @@ export function ContactsTable({
                       )}
                       {opportunityCounts.open > 0 && (
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[10px] font-semibold">
-                          {opportunityCounts.open} Ouvert{opportunityCounts.open > 1 ? 's' : ''}
+                          {opportunityCounts.open} En cours
                         </span>
                       )}
                     </>
@@ -424,8 +428,11 @@ export function ContactsTable({
               {contacts.map((contact, index) => {
                 const opportunities = contact.opportunities || []
 
+                // Same winning logic as mobile view: only explicit "won" status
+                // or final pipeline stage "gagnee" are counted as Gagné.
+                // "acompte_recu" remains an active / in-progress opportunity.
                 const isWon = (o: Opportunity) =>
-                  o.statut === 'won' || o.pipelineStage === 'acompte_recu' || o.pipelineStage === 'gagnee'
+                  o.statut === 'won' || o.pipelineStage === 'gagnee'
 
                 const isOpen = (o: Opportunity) =>
                   o.statut === 'open' && !isWon(o)
@@ -534,7 +541,7 @@ export function ContactsTable({
                             )}
                             {opportunityCounts.open > 0 && (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[10px] font-semibold">
-                                {opportunityCounts.open} Ouvert{opportunityCounts.open > 1 ? 's' : ''}
+                                {opportunityCounts.open} En cours
                               </span>
                             )}
                           </>

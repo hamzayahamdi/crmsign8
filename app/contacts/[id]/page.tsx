@@ -94,7 +94,7 @@ export default function ContactPage() {
     const converted = searchParams?.get('converted')
     if (converted === 'true' && contact) {
       setShowConversionCelebration(true)
-      
+
       // Show celebration notification
       toast.success(`🎉 ${contact.nom} est maintenant un contact !`, {
         description: "Vous pouvez maintenant créer des opportunités et gérer ce contact.",
@@ -117,14 +117,14 @@ export default function ContactPage() {
     const loadArchitects = async () => {
       try {
         const token = localStorage.getItem('token')
-        
+
         // Load architects
         const archRes = await fetch('/api/architects', {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
-        
+
         const map: Record<string, string> = {}
-        
+
         if (archRes.ok) {
           const archData = await archRes.json()
           const architects = archData?.data || archData?.architects || []
@@ -135,7 +135,7 @@ export default function ContactPage() {
             }
           })
         }
-        
+
         // Also load users as fallback
         const usersRes = await fetch('/api/users')
         if (usersRes.ok) {
@@ -277,9 +277,12 @@ export default function ContactPage() {
     ? architectNameMap[contact.architecteAssigne] || contact.architecteAssigne
     : null
 
-  // Helper: Count won opportunities (including acompte_recu - deposit received means won)
-  const wonOpportunitiesCount = contact.opportunities?.filter(o => 
-    o.statut === 'won' || o.pipelineStage === 'acompte_recu' || o.pipelineStage === 'gagnee'
+  // Helper: Count won opportunities.
+  // Business rule: an opportunity is "Gagnée" only when it is explicitly marked as won
+  // or when it has reached the final pipeline stage "gagnee".
+  // The "acompte_recu" stage is treated as an opportunity still in progress.
+  const wonOpportunitiesCount = contact.opportunities?.filter(o =>
+    o.statut === 'won' || o.pipelineStage === 'gagnee'
   ).length || 0
 
   // Helper: Get status badge configuration
@@ -355,13 +358,13 @@ export default function ContactPage() {
                         {[...Array(12)].map((_, i) => (
                           <motion.div
                             key={i}
-                            initial={{ 
-                              opacity: 1, 
+                            initial={{
+                              opacity: 1,
                               scale: 0,
                               x: 0,
                               y: 0,
                             }}
-                            animate={{ 
+                            animate={{
                               opacity: 0,
                               scale: 1.5,
                               x: Math.cos((i * Math.PI * 2) / 12) * 200,
@@ -458,12 +461,11 @@ export default function ContactPage() {
                       {/* Create Opportunity button - Enabled only when status is 'acompte_recu' */}
                       <Button
                         onClick={() => setIsCreateOpportunityModalOpen(true)}
-                        disabled={contact.status !== 'acompte_recu' || contact.status === 'perdu'}
-                        className={`h-10 px-4 rounded-lg font-medium text-sm ${
-                          contact.status === 'acompte_recu' && contact.status !== 'perdu'
-                            ? 'bg-primary hover:bg-primary/90 text-white shadow-[0_12px_40px_-24px_rgba(59,130,246,0.9)]'
-                            : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50'
-                        }`}
+                        disabled={contact.status !== 'acompte_recu'}
+                        className={`h-10 px-4 rounded-lg font-medium text-sm ${contact.status === 'acompte_recu'
+                          ? 'bg-primary hover:bg-primary/90 text-white shadow-[0_12px_40px_-24px_rgba(59,130,246,0.9)]'
+                          : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50'
+                          }`}
                       >
                         <Plus className="w-4 h-4 mr-1.5" />
                         <span className="hidden sm:inline">Créer une Opportunité</span>
@@ -492,41 +494,32 @@ export default function ContactPage() {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="glass rounded-xl px-4 py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(59,130,246,0.6)] hover:shadow-[0_12px_35px_-15px_rgba(59,130,246,0.8)] transition-shadow"
+                    className="glass rounded-xl px-5 py-5 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(59,130,246,0.6)] hover:shadow-[0_12px_35px_-15px_rgba(59,130,246,0.8)] transition-shadow"
                   >
-                    <p className="text-xs text-slate-400 mb-1">Opportunités</p>
-                    <p className="text-2xl font-bold text-white">{contact.opportunities?.length || 0}</p>
+                    <p className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Nombre d'opportunités</p>
+                    <p className="text-3xl font-bold text-white">{contact.opportunities?.length || 0}</p>
                   </motion.div>
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.05 }}
-                    className="glass rounded-xl px-4 py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(34,197,94,0.55)] hover:shadow-[0_12px_35px_-15px_rgba(34,197,94,0.75)] transition-shadow"
+                    className="glass rounded-xl px-5 py-5 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(34,197,94,0.55)] hover:shadow-[0_12px_35px_-15px_rgba(34,197,94,0.75)] transition-shadow"
                   >
-                    <p className="text-xs text-slate-400 mb-1">Gagnées</p>
-                    <p className="text-2xl font-bold text-green-400">{wonOpportunitiesCount}</p>
+                    <p className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Opportunités gagnées</p>
+                    <p className="text-3xl font-bold text-green-400">{wonOpportunitiesCount}</p>
                   </motion.div>
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="glass rounded-xl px-4 py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(59,130,246,0.55)] hover:shadow-[0_12px_35px_-15px_rgba(59,130,246,0.75)] transition-shadow"
+                    className="glass rounded-xl px-5 py-5 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(59,130,246,0.55)] hover:shadow-[0_12px_35px_-15px_rgba(59,130,246,0.75)] transition-shadow"
                   >
-                    <p className="text-xs text-slate-400 mb-1">En cours</p>
-                    <p className="text-2xl font-bold text-blue-400">{contact.opportunities?.filter(o => o.statut === 'open').length || 0}</p>
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                    className="glass rounded-xl px-4 py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(249,115,22,0.55)] hover:shadow-[0_12px_35px_-15px_rgba(249,115,22,0.75)] transition-shadow"
-                  >
-                    <p className="text-xs text-slate-400 mb-1">Timeline</p>
-                    <p className="text-2xl font-bold text-orange-400">{contact.timeline?.length || 0}</p>
+                    <p className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Opportunités en cours</p>
+                    <p className="text-3xl font-bold text-blue-400">{contact.opportunities?.filter(o => o.statut === 'open').length || 0}</p>
                   </motion.div>
                 </div>
               </motion.div>
@@ -579,9 +572,9 @@ export default function ContactPage() {
                   />
                 )}
                 {activeTab === 'timeline' && (
-                  <TimelineTab 
-                    contact={contact} 
-                    userNameMap={architectNameMap} 
+                  <TimelineTab
+                    contact={contact}
+                    userNameMap={architectNameMap}
                     architectNameMap={architectNameMap}
                   />
                 )}
@@ -641,12 +634,12 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
   const [newNoteContent, setNewNoteContent] = useState('')
   const [isSavingNote, setIsSavingNote] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
-  
+
   // Notes editing state
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [notesValue, setNotesValue] = useState('')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
-  
+
   // Display notes from contact
   const displayNotes = typeof contact.notes === 'string' ? contact.notes : ''
 
@@ -703,7 +696,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
 
   // Check if this contact was converted from a lead
   const isConverted = contact.tag === 'converted' || contact.leadId
-  
+
   // Get the converter name
   const getConverterName = () => {
     if (contact.convertedBy) {
@@ -723,7 +716,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
     try {
       setIsSavingNote(true)
       const token = localStorage.getItem('token')
-      
+
       const response = await fetch(`/api/contacts/${contact.id}/notes`, {
         method: 'POST',
         headers: {
@@ -754,7 +747,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
 
     try {
       const token = localStorage.getItem('token')
-      
+
       const response = await fetch(`/api/contacts/${contact.id}/notes?noteId=${noteId}`, {
         method: 'DELETE',
         headers: {
@@ -803,9 +796,9 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
     })
   }
 
-  // Count won opportunities
-  const wonOpportunitiesCount = contact.opportunities?.filter(o => 
-    o.statut === 'won' || o.pipelineStage === 'acompte_recu' || o.pipelineStage === 'gagnee'
+  // Count won opportunities (same rule as header helper above)
+  const wonOpportunitiesCount = contact.opportunities?.filter(o =>
+    o.statut === 'won' || o.pipelineStage === 'gagnee'
   ).length || 0
 
   // Handle saving notes
@@ -813,7 +806,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
     try {
       setIsSavingNotes(true)
       const token = localStorage.getItem('token')
-      
+
       const response = await fetch(`/api/contacts/${contact.id}`, {
         method: 'PATCH',
         headers: {
@@ -875,7 +868,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
             </div>
             Informations
           </h2>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="group relative p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-blue-500/30 transition-all">
               <div className="flex items-center justify-between mb-2">
@@ -903,7 +896,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                 <Phone className="w-3.5 h-3.5 text-green-400" />
                 Téléphone
               </p>
-              <a 
+              <a
                 href={`tel:${contact.telephone}`}
                 className="text-base font-semibold text-green-400 hover:text-green-300 transition-colors flex items-center gap-2 group/link"
               >
@@ -918,7 +911,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                   <Mail className="w-3.5 h-3.5 text-purple-400" />
                   Email
                 </p>
-                <a 
+                <a
                   href={`mailto:${contact.email}`}
                   className="text-base font-semibold text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-2 break-all group/link"
                 >
@@ -1089,18 +1082,17 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
           <div className="space-y-4">
             <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <div className={`w-2 h-2 rounded-full ${
-                  contact.tag === 'client' ? 'bg-green-400 animate-pulse' :
+                <div className={`w-2 h-2 rounded-full ${contact.tag === 'client' ? 'bg-green-400 animate-pulse' :
                   contact.status === 'perdu' ? 'bg-red-400' :
-                  'bg-blue-400'
-                }`} />
+                    'bg-blue-400'
+                  }`} />
                 Statut
               </p>
               <p className="text-sm font-bold text-white capitalize">
                 {contact.tag === 'client' ? 'Client' : contact.status || 'Contact'}
               </p>
             </div>
-            
+
             {isConverted && converterName && (
               <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
@@ -1110,7 +1102,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                 <p className="text-sm font-semibold text-yellow-300">{converterName}</p>
               </div>
             )}
-            
+
             {architectName && (
               <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
@@ -1120,55 +1112,19 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                 <p className="text-sm font-semibold text-purple-300">{architectName}</p>
               </div>
             )}
-            
+
             <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-blue-400" />
-                Créé le
+                Contact créé le
               </p>
-              <p className="text-sm font-semibold text-blue-300">{formatDate(contact.createdAt)}</p>
+              <p className="text-sm font-semibold text-blue-300">{formatDateTime(contact.createdAt)}</p>
             </div>
           </div>
         </motion.div>
 
         {/* Quick Actions */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="glass rounded-2xl border border-slate-600/40 p-6 shadow-lg shadow-slate-900/20"
-        >
-          <h3 className="font-bold text-white mb-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/10 flex items-center justify-center border border-orange-500/30">
-              <Activity className="w-5 h-5 text-orange-400" />
-            </div>
-            Actions
-          </h3>
-          <div className="space-y-2.5">
-            {contact.telephone && (
-              <a
-                href={`tel:${contact.telephone}`}
-                className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-r from-blue-500/10 to-blue-600/5 border border-blue-500/30 hover:from-blue-500/20 hover:to-blue-600/10 hover:border-blue-400/50 hover:shadow-lg hover:shadow-blue-500/20 transition-all group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
-                  <Phone className="w-5 h-5 text-blue-400" />
-                </div>
-                <span className="text-sm font-semibold text-white">Appeler</span>
-              </a>
-            )}
-            {contact.email && (
-              <a
-                href={`mailto:${contact.email}`}
-                className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-r from-purple-500/10 to-purple-600/5 border border-purple-500/30 hover:from-purple-500/20 hover:to-purple-600/10 hover:border-purple-400/50 hover:shadow-lg hover:shadow-purple-500/20 transition-all group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
-                  <Mail className="w-5 h-5 text-purple-400" />
-                </div>
-                <span className="text-sm font-semibold text-white">Envoyer un Email</span>
-              </a>
-            )}
-          </div>
-        </motion.div>
+
       </div>
     </div>
   )
@@ -1198,17 +1154,17 @@ function OpportunitiesTab({ contact, onUpdate, architectNameMap, onCreateOpportu
   )
 }
 
-function TimelineTab({ 
-  contact, 
+function TimelineTab({
+  contact,
   userNameMap,
-  architectNameMap 
-}: { 
-  contact: ContactWithDetails; 
+  architectNameMap
+}: {
+  contact: ContactWithDetails;
   userNameMap: Record<string, string>;
   architectNameMap: Record<string, string>;
 }) {
   return (
-    <ContactEnhancedTimeline 
+    <ContactEnhancedTimeline
       contact={contact}
       userNameMap={userNameMap}
       architectNameMap={architectNameMap}

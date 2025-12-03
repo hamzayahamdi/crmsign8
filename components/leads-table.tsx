@@ -413,7 +413,17 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
           }}
         >
           <table className="w-full table-fixed">
-            <colgroup><col className="w-[18%]" /><col className="w-[10%]" /><col className="w-[12%]" /><col className="w-[16%]" /><col className="w-[12%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[12%]" /></colgroup>
+            <colgroup>
+              <col className="w-[18%]" />
+              <col className="w-[10%]" />
+              <col className="w-[12%]" />
+              <col className="w-[16%]" />
+              <col className="w-[12%]" />
+              <col className="w-[10%]" />
+              <col className="w-[10%]" />
+              <col className="w-[10%]" /> {/* Priorité */}
+              <col className="w-[12%]" />
+            </colgroup>
             <thead className="bg-slate-800/20 border-b border-[#1F2937] sticky top-0 z-10 backdrop-blur-sm">
               <tr>
                 <th
@@ -463,6 +473,9 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
                     <span>Statut</span>
                     {getSortIcon('statut')}
                   </button>
+                </th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
+                  Priorité
                 </th>
                 <th className="px-4 py-4 text-left text-xs font-semibold text-[#9CA3AF]">
                   Durée en lead
@@ -548,6 +561,33 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
                         <Badge className={cn("border text-xs font-medium px-2.5 py-1 whitespace-nowrap", statusInfo.color)}>
                           {statusInfo.icon} {statusInfo.label}
                         </Badge>
+                      </td>
+
+                      {/* Priorité */}
+                      <td className="px-4 py-4">
+                        {(() => {
+                          const pr = priorityConfig[lead.priorite]
+                          return (
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] border font-medium",
+                                pr.color,
+                              )}
+                            >
+                              <span
+                                className={cn(
+                                  "w-1.5 h-1.5 rounded-full",
+                                  lead.priorite === "haute"
+                                    ? "bg-red-400"
+                                    : lead.priorite === "moyenne"
+                                    ? "bg-amber-400"
+                                    : "bg-slate-400",
+                                )}
+                              />
+                              <span>Priorité {pr.label}</span>
+                            </span>
+                          )
+                        })()}
                       </td>
 
                       {/* Durée en lead */}

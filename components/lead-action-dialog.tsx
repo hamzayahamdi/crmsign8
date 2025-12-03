@@ -91,7 +91,7 @@ export function LeadActionDialog({
               </div>
             </Button>
 
-            {/* Edit Lead Button */}
+            {/* Edit / Open Lead Button */}
             <Button
               onClick={handleEdit}
               variant="outline"
@@ -102,8 +102,8 @@ export function LeadActionDialog({
                   <Edit className="w-4 h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-white transition-colors" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="font-semibold text-sm md:text-base">Modifier le lead</p>
-                  <p className="text-[10px] md:text-xs text-gray-400 mt-0.5">Mettre à jour les informations</p>
+                  <p className="font-semibold text-sm md:text-base">Ouvrir le lead</p>
+                  <p className="text-[10px] md:text-xs text-gray-400 mt-0.5">Voir la fiche complète et modifier les informations</p>
                 </div>
               </div>
             </Button>

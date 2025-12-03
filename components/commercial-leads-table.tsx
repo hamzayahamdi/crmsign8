@@ -115,7 +115,7 @@ export function CommercialLeadsTable({ leads, onViewLead }: CommercialLeadsTable
                 Type de bien
               </th>
               <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
-                Magasin
+                Magasin / Commercial
               </th>
               <th className="px-6 py-4 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                 Statut
@@ -152,9 +152,20 @@ export function CommercialLeadsTable({ leads, onViewLead }: CommercialLeadsTable
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex items-center gap-2.5 text-slate-200">
-                    <Building2 className="h-4 w-4 text-indigo-400" />
-                    <span className="text-base font-medium">{lead.magasin || "—"}</span>
+                  <div className="flex flex-col gap-1 text-slate-200">
+                    <div className="flex items-center gap-2.5">
+                      <Building2 className="h-4 w-4 text-indigo-400" />
+                      <span className="text-base font-medium">{lead.magasin || "—"}</span>
+                    </div>
+                    {lead.commercialMagasin && (
+                      <div className="pl-6">
+                        <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] bg-slate-900/40 border border-slate-600/50 text-slate-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          <span className="opacity-80">Commercial:</span>
+                          <span className="font-medium truncate max-w-[160px]">{lead.commercialMagasin}</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4">
@@ -242,9 +253,20 @@ export function CommercialLeadsTable({ leads, onViewLead }: CommercialLeadsTable
                   <Home className="h-4 w-4 text-purple-400 flex-shrink-0" />
                   <span className="text-base font-medium">{lead.typeBien}</span>
                 </div>
-                <div className="flex items-center gap-3 text-slate-200">
-                  <Building2 className="h-4 w-4 text-indigo-400 flex-shrink-0" />
-                  <span className="text-base font-medium">{lead.magasin || "—"}</span>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3 text-slate-200">
+                    <Building2 className="h-4 w-4 text-indigo-400 flex-shrink-0" />
+                    <span className="text-base font-medium">{lead.magasin || "—"}</span>
+                  </div>
+                  {lead.commercialMagasin && (
+                    <div className="pl-7">
+                      <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] bg-slate-900/40 border border-slate-600/50 text-slate-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span className="opacity-80">Commercial:</span>
+                        <span className="font-medium truncate max-w-[160px]">{lead.commercialMagasin}</span>
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 text-slate-200">
                   <Calendar className="h-4 w-4 text-blue-400 flex-shrink-0" />

@@ -222,6 +222,14 @@ export async function PUT(
       updateData.magasin = null
       updateData.commercialMagasin = null
     }
+
+    // Handle TikTok campaign name tracking
+    if (body.source === 'tiktok') {
+      updateData.campaignName = body.campaignName || null
+    } else {
+      // Clear campaign name when source is no longer TikTok to avoid stale data
+      updateData.campaignName = null
+    }
     
     const lead = await prisma.lead.update({
       where: { id: leadId },
