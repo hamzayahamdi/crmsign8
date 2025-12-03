@@ -9,29 +9,29 @@ datasource db {
 }
 
 model Lead {
-  id                  String       @id @default(cuid())
-  nom                 String
-  telephone           String
-  ville               String
-  typeBien            String
-  statut              LeadStatus
-  statutDetaille      String
-  message             String?
-  assignePar          String
-  derniereMaj         DateTime     @default(now())
-  source              LeadSource
-  priorite            LeadPriority
-  magasin             String?
-  commercialMagasin   String?
-  month               String?
-  campaignName        String?      @map("campaign_name")
-  uploadedAt          DateTime?    @map("uploaded_at")
-  convertedAt         DateTime?    @map("converted_at")
-  convertedToContactId String?     @map("converted_to_contact_id") // Link to Contact after conversion
-  notes               LeadNote[]
-  createdBy           String?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  id                   String       @id @default(cuid())
+  nom                  String
+  telephone            String
+  ville                String
+  typeBien             String
+  statutDetaille       String
+  message              String?
+  assignePar           String
+  derniereMaj          DateTime     @default(now())
+  source               LeadSource
+  priorite             LeadPriority
+  magasin              String?
+  commercialMagasin    String?
+  createdBy            String?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  campaignName         String?      @map("campaign_name")
+  month                String?
+  uploadedAt           DateTime?    @map("uploaded_at")
+  convertedAt          DateTime?    @map("converted_at")
+  statut               LeadStatus
+  convertedToContactId String?      @map("converted_to_contact_id")
+  notes                LeadNote[]
 
   @@index([createdAt(sort: Desc)])
   @@index([statut])
@@ -49,10 +49,10 @@ model Lead {
 model LeadNote {
   id        String   @id @default(cuid())
   leadId    String
-  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
   content   String
   author    String
   createdAt DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@index([leadId])
   @@index([createdAt(sort: Desc)])
@@ -65,15 +65,438 @@ model User {
   password  String
   name      String
   role      String   @default("user")
-  phone     String?  // Phone number for SMS notifications
   magasin   String?
-  ville     String?  // City for architect users
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  phone     String?
+  ville     String?
 
   @@index([email])
   @@index([createdAt(sort: Desc)], map: "users_createdat_idx")
   @@map("users")
+}
+
+model Task {
+  id              String       @id @default(cuid())
+  title           String
+  description     String
+  dueDate         DateTime
+  assignedTo      String
+  linkedType      LinkedType
+  linkedId        String
+  linkedName      String?
+  status          TaskStatus
+  reminderEnabled Boolean      @default(false)
+  reminderDays    Int?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  createdBy       String
+  contactId       String?      @map("contact_id")
+  opportunityId   String?      @map("opportunity_id")
+  participants    String[]     @default([])
+  contact         Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  opportunity     Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([assignedTo])
+  @@index([status])
+  @@index([dueDate])
+  @@index([linkedType, linkedId])
+  @@index([contactId])
+  @@index([opportunityId])
+  @@map("tasks")
+}
+
+model Contact {
+  id                String            @id @default(cuid())
+  nom               String
+  telephone         String
+  email             String?
+  ville             String?
+  adresse           String?
+  leadId            String?           @map("lead_id")
+  architecteAssigne String?           @map("architecte_assigne")
+  tag               ContactTag        @default(prospect)
+  notes             String?
+  magasin           String?
+  createdBy         String
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  clientSince       DateTime?         @map("client_since")
+  status            ContactStatus     @default(qualifie)
+  convertedBy       String?           @map("converted_by")
+  appointments      Appointment[]
+  documents         ContactDocument[]
+  payments          ContactPayment[]
+  opportunities     Opportunity[]
+  tasks             Task[]
+  timeline          Timeline[]
+
+  @@index([createdAt(sort: Desc)])
+  @@index([tag])
+  @@index([status])
+  @@index([architecteAssigne])
+  @@index([magasin])
+  @@map("contacts")
+}
+
+model Opportunity {
+  id                  String                   @id @default(cuid())
+  contactId           String                   @map("contact_id")
+  titre               String
+  type                OpportunityType
+  statut              OpportunityStatus
+  budget              Float?
+  description         String?
+  architecteAssigne   String?                  @map("architecte_assigne")
+  dateClotureAttendue DateTime?                @map("date_cloture_attendue")
+  notes               String?
+  createdBy           String
+  createdAt           DateTime                 @default(now()) @map("created_at")
+  updatedAt           DateTime                 @updatedAt @map("updated_at")
+  pipelineStage       OpportunityPipelineStage @default(projet_accepte) @map("pipeline_stage")
+  appointments        Appointment[]
+  contact             Contact                  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  documents           OpportunityDocument[]
+  tasks               Task[]
+  timeline            Timeline[]
+
+  @@index([contactId])
+  @@index([statut])
+  @@index([pipelineStage])
+  @@index([type])
+  @@index([architecteAssigne])
+  @@index([createdAt(sort: Desc)])
+  @@map("opportunities")
+}
+
+model Timeline {
+  id            String            @id @default(cuid())
+  contactId     String?           @map("contact_id")
+  opportunityId String?           @map("opportunity_id")
+  eventType     TimelineEventType
+  title         String
+  description   String?
+  metadata      Json?
+  author        String
+  createdAt     DateTime          @default(now()) @map("created_at")
+  contact       Contact?          @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity?      @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([contactId])
+  @@index([opportunityId])
+  @@index([eventType])
+  @@index([createdAt(sort: Desc)])
+  @@map("timeline")
+}
+
+model ContactDocument {
+  id         String   @id @default(cuid())
+  contactId  String   @map("contact_id")
+  name       String
+  path       String
+  bucket     String
+  type       String
+  size       Int
+  category   String
+  uploadedBy String   @map("uploaded_by")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  contact    Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId])
+  @@index([uploadedAt(sort: Desc)])
+  @@map("contact_documents")
+}
+
+model OpportunityDocument {
+  id            String      @id @default(cuid())
+  opportunityId String      @map("opportunity_id")
+  name          String
+  path          String
+  bucket        String
+  type          String
+  size          Int
+  category      String
+  uploadedBy    String      @map("uploaded_by")
+  uploadedAt    DateTime    @default(now()) @map("uploaded_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId])
+  @@index([uploadedAt(sort: Desc)])
+  @@map("opportunity_documents")
+}
+
+model ContactPayment {
+  id          String   @id @default(cuid())
+  contactId   String   @map("contact_id")
+  montant     Float
+  date        DateTime @default(now())
+  methode     String
+  reference   String?
+  description String?
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId])
+  @@index([date(sort: Desc)])
+  @@map("contact_payments")
+}
+
+model CalendarEvent {
+  id                String          @id @default(cuid())
+  title             String
+  description       String?
+  startDate         DateTime
+  endDate           DateTime
+  eventType         EventType
+  assignedTo        String
+  location          String?
+  reminderType      ReminderType    @default(none)
+  reminderSent      Boolean         @default(false)
+  linkedClientId    String?
+  linkedLeadId      String?
+  linkedArchitectId String?
+  createdBy         String
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  participants      String[]        @default([])
+  visibility        EventVisibility @default(team)
+
+  @@index([startDate(sort: Desc)])
+  @@index([assignedTo])
+  @@index([eventType])
+  @@index([createdBy])
+  @@map("calendar_events")
+}
+
+model Document {
+  id         String   @id @default(cuid())
+  clientId   String   @map("client_id")
+  name       String
+  path       String
+  bucket     String
+  type       String
+  size       Int
+  category   String
+  uploadedBy String   @map("uploaded_by")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([uploadedAt(sort: Desc)])
+  @@map("documents")
+}
+
+model EventReminder {
+  id                 String   @id @default(cuid())
+  eventId            String   @map("event_id")
+  userId             String   @map("user_id")
+  reminderTime       DateTime @map("reminder_time")
+  reminderType       String   @map("reminder_type")
+  notificationSent   Boolean  @default(false) @map("notification_sent")
+  notificationMethod String?  @map("notification_method")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@index([reminderTime])
+  @@index([notificationSent])
+  @@map("event_reminders")
+}
+
+model NotificationPreference {
+  id               String   @id @default(cuid())
+  userId           String   @unique @map("user_id")
+  pushEnabled      Boolean  @default(false) @map("push_enabled")
+  emailEnabled     Boolean  @default(true) @map("email_enabled")
+  pushSubscription Json?    @map("push_subscription")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_preferences")
+}
+
+model Devis {
+  id            String    @id @default(cuid())
+  clientId      String    @map("client_id")
+  title         String
+  montant       Float
+  date          DateTime  @default(now())
+  statut        String    @default("en_attente")
+  factureReglee Boolean   @default(false) @map("facture_reglee")
+  description   String?
+  fichier       String?
+  createdBy     String    @map("created_by")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  validatedAt   DateTime? @map("validated_at")
+  notes         String?
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  client        Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([statut])
+  @@index([date(sort: Desc)])
+  @@index([clientId], map: "idx_devis_client_id")
+  @@index([date(sort: Desc)], map: "idx_devis_date")
+  @@index([statut], map: "idx_devis_statut")
+  @@map("devis")
+}
+
+model Historique {
+  id              String    @id @default(cuid())
+  clientId        String    @map("client_id")
+  date            DateTime  @default(now())
+  type            String
+  description     String
+  auteur          String
+  previousStatus  String?   @map("previous_status")
+  newStatus       String?   @map("new_status")
+  durationInHours Int?      @map("duration_in_hours")
+  timestampStart  DateTime? @map("timestamp_start")
+  timestampEnd    DateTime? @map("timestamp_end")
+  metadata        Json?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([type])
+  @@index([date(sort: Desc)])
+  @@map("historique")
+}
+
+model Appointment {
+  id            String       @id @default(cuid())
+  title         String
+  dateStart     DateTime     @map("date_start")
+  dateEnd       DateTime     @map("date_end")
+  description   String?
+  location      String?
+  locationUrl   String?      @map("location_url")
+  status        String       @default("upcoming")
+  clientId      String?      @map("client_id")
+  clientName    String?      @map("client_name")
+  architecteId  String?      @map("architecte_id")
+  notes         String?
+  createdBy     String       @map("created_by")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  contactId     String?      @map("contact_id")
+  opportunityId String?      @map("opportunity_id")
+  client        Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contact       Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([contactId])
+  @@index([opportunityId])
+  @@index([status])
+  @@index([dateStart(sort: Desc)])
+  @@index([createdBy])
+  @@map("appointments")
+}
+
+model Client {
+  id                 String               @id @default(cuid())
+  nom                String
+  telephone          String
+  ville              String
+  architecteAssigne  String               @map("architecte_assigne")
+  statutProjet       ProjectStatus        @map("statut_projet")
+  derniereMaj        DateTime             @default(now()) @map("derniere_maj")
+  leadId             String?              @map("lead_id")
+  email              String?
+  adresse            String?
+  budget             Float?
+  notes              String?
+  magasin            String?
+  commercialAttribue String?              @map("commercial_attribue")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+  typeProjet         ProjectType          @map("type_projet")
+  leadData           Json?                @map("lead_data")
+  appointments       Appointment[]
+  stageHistory       ClientStageHistory[]
+  devis              Devis[]
+  documents          Document[]
+  historique         Historique[]
+  payments           Payment[]
+
+  @@index([statutProjet])
+  @@index([ville])
+  @@index([architecteAssigne])
+  @@index([magasin])
+  @@index([createdAt(sort: Desc)])
+  @@map("clients")
+}
+
+model ClientStageHistory {
+  id              String    @id @default(cuid())
+  clientId        String    @map("client_id")
+  stageName       String    @map("stage_name")
+  startedAt       DateTime  @map("started_at")
+  endedAt         DateTime? @map("ended_at")
+  durationSeconds Int?      @map("duration_seconds")
+  changedBy       String    @map("changed_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([stageName])
+  @@index([startedAt(sort: Desc)])
+  @@map("client_stage_history")
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  clientId    String   @map("client_id")
+  montant     Float
+  date        DateTime @default(now())
+  methode     String
+  reference   String?
+  description String?
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([date(sort: Desc)])
+  @@map("payments")
+}
+
+model Notification {
+  id         String               @id @default(cuid())
+  userId     String               @map("user_id")
+  type       NotificationType
+  priority   NotificationPriority
+  title      String
+  message    String
+  isRead     Boolean              @default(false) @map("is_read")
+  linkedType String?              @map("linked_type")
+  linkedId   String?              @map("linked_id")
+  linkedName String?              @map("linked_name")
+  metadata   Json?
+  createdBy  String?              @map("created_by")
+  createdAt  DateTime             @default(now()) @map("created_at")
+  readAt     DateTime?            @map("read_at")
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt(sort: Desc)])
+  @@index([type])
+  @@index([priority])
+  @@map("notifications")
 }
 
 enum LeadStatus {
@@ -101,39 +524,6 @@ enum LeadPriority {
   basse
 }
 
-model Task {
-  id              String       @id @default(cuid())
-  title           String
-  description     String
-  dueDate         DateTime
-  assignedTo      String
-  linkedType      LinkedType
-  linkedId        String
-  linkedName      String?
-  status          TaskStatus
-  reminderEnabled Boolean      @default(false)
-  reminderDays    Int?
-  participants    String[]     @default([]) // Array of user IDs who are invited
-  
-  // New relations for Contact/Opportunity support
-  contactId       String?      @map("contact_id")
-  contact         Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  opportunityId   String?      @map("opportunity_id")
-  opportunity     Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  createdBy       String
-
-  @@index([assignedTo])
-  @@index([status])
-  @@index([dueDate])
-  @@index([linkedType, linkedId])
-  @@index([contactId])
-  @@index([opportunityId])
-  @@map("tasks")
-}
-
 enum TaskStatus {
   a_faire
   en_cours
@@ -147,86 +537,19 @@ enum LinkedType {
   opportunity
 }
 
-model Contact {
-  id                  String          @id @default(cuid())
-  nom                 String
-  telephone           String
-  email               String?
-  ville               String?
-  adresse             String?
-  leadId              String?         @map("lead_id") // Original lead if converted
-  architecteAssigne   String?         @map("architecte_assigne")
-  tag                 ContactTag      @default(prospect) // VIP, prospect, converted, client, etc.
-  status              ContactStatus   @default(qualifie) // Workflow status: qualifie → prise_de_besoin → acompte_recu → client
-  clientSince         DateTime?       @map("client_since") // Date when contact became a client (first won opportunity)
-  notes               String?
-  magasin             String?
-  createdBy           String
-  convertedBy         String?         @map("converted_by") // User who converted the lead to contact
-  createdAt           DateTime        @default(now()) @map("created_at")
-  updatedAt           DateTime        @updatedAt @map("updated_at")
-  
-  // Relations
-  opportunities       Opportunity[]
-  tasks               Task[]
-  appointments        Appointment[]
-  documents           ContactDocument[]
-  timeline            Timeline[]
-  payments            ContactPayment[]
-
-  @@index([createdAt(sort: Desc)])
-  @@index([tag])
-  @@index([status])
-  @@index([architecteAssigne])
-  @@index([magasin])
-  @@map("contacts")
-}
-
 enum ContactTag {
   prospect
   vip
   converted
-  client
   archived
+  client
 }
 
 enum ContactStatus {
-  qualifie           // Initial status after lead conversion
-  prise_de_besoin    // After "Prise de besoin" action
-  acompte_recu       // After "Acompte Reçu" action - unlocks opportunity creation
-  perdu              // Contact is lost
-}
-
-model Opportunity {
-  id                  String                    @id @default(cuid())
-  contactId           String                    @map("contact_id")
-  contact             Contact                   @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  titre               String
-  type                OpportunityType
-  statut              OpportunityStatus
-  pipelineStage       OpportunityPipelineStage  @default(projet_accepte) @map("pipeline_stage") // Pipeline tracking - default stage when creating opportunity
-  budget              Float?
-  description         String?
-  architecteAssigne   String?                   @map("architecte_assigne")
-  dateClotureAttendue DateTime?                 @map("date_cloture_attendue")
-  notes               String?
-  createdBy           String
-  createdAt           DateTime                  @default(now()) @map("created_at")
-  updatedAt           DateTime                  @updatedAt @map("updated_at")
-  
-  // Relations
-  tasks               Task[]
-  appointments        Appointment[]
-  documents           OpportunityDocument[]
-  timeline            Timeline[]
-
-  @@index([contactId])
-  @@index([statut])
-  @@index([pipelineStage])
-  @@index([type])
-  @@index([architecteAssigne])
-  @@index([createdAt(sort: Desc)])
-  @@map("opportunities")
+  qualifie
+  prise_de_besoin
+  acompte_recu
+  perdu
 }
 
 enum OpportunityType {
@@ -248,31 +571,11 @@ enum OpportunityStatus {
 }
 
 enum OpportunityPipelineStage {
-  prise_de_besoin  // Prise de besoin (Needs Assessment) - Set via action button in table
-  projet_accepte   // Projet Accepté (Project Accepted) - DEFAULT when creating opportunity
-  acompte_recu     // Acompte Reçu (Deposit Received) - First deposit has been received
-  gagnee           // Gagnée (Won) - Opportunity successfully closed
-  perdue           // Perdue (Lost) - Opportunity lost
-}
-
-model Timeline {
-  id                  String          @id @default(cuid())
-  contactId           String?         @map("contact_id")
-  contact             Contact?        @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  opportunityId       String?         @map("opportunity_id")
-  opportunity         Opportunity?    @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  eventType           TimelineEventType
-  title               String
-  description         String?
-  metadata            Json? // Store additional data like old/new status, architect name, etc.
-  author              String
-  createdAt           DateTime        @default(now()) @map("created_at")
-
-  @@index([contactId])
-  @@index([opportunityId])
-  @@index([eventType])
-  @@index([createdAt(sort: Desc)])
-  @@map("timeline")
+  prise_de_besoin
+  projet_accepte
+  acompte_recu
+  gagnee
+  perdue
 }
 
 enum TimelineEventType {
@@ -291,92 +594,6 @@ enum TimelineEventType {
   note_added
   status_changed
   other
-}
-
-model ContactDocument {
-  id          String   @id @default(cuid())
-  contactId   String   @map("contact_id")
-  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  name        String
-  path        String
-  bucket      String
-  type        String
-  size        Int
-  category    String
-  uploadedBy  String   @map("uploaded_by")
-  uploadedAt  DateTime @default(now()) @map("uploaded_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([contactId])
-  @@index([uploadedAt(sort: Desc)])
-  @@map("contact_documents")
-}
-
-model OpportunityDocument {
-  id              String      @id @default(cuid())
-  opportunityId   String      @map("opportunity_id")
-  opportunity     Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  name            String
-  path            String
-  bucket          String
-  type            String
-  size            Int
-  category        String
-  uploadedBy      String      @map("uploaded_by")
-  uploadedAt      DateTime    @default(now()) @map("uploaded_at")
-  createdAt       DateTime    @default(now()) @map("created_at")
-  updatedAt       DateTime    @updatedAt @map("updated_at")
-
-  @@index([opportunityId])
-  @@index([uploadedAt(sort: Desc)])
-  @@map("opportunity_documents")
-}
-
-model ContactPayment {
-  id          String   @id @default(cuid())
-  contactId   String   @map("contact_id")
-  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  montant     Float
-  date        DateTime @default(now())
-  methode     String   // espece, virement, cheque
-  reference   String?
-  description String?
-  createdBy   String   @map("created_by")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([contactId])
-  @@index([date(sort: Desc)])
-  @@map("contact_payments")
-}
-
-
-model CalendarEvent {
-  id               String       @id @default(cuid())
-  title            String
-  description      String?
-  startDate        DateTime
-  endDate          DateTime
-  eventType        EventType
-  assignedTo       String
-  location         String?
-  reminderType     ReminderType @default(none)
-  reminderSent     Boolean      @default(false)
-  linkedClientId   String?
-  linkedLeadId     String?
-  linkedArchitectId String?
-  participants     String[]     @default([]) // Array of user IDs who are invited
-  visibility       EventVisibility @default(team) // private, team, or all
-  createdBy        String
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-
-  @@index([startDate(sort: Desc)])
-  @@index([assignedTo])
-  @@index([eventType])
-  @@index([createdBy])
-  @@map("calendar_events")
 }
 
 enum EventVisibility {
@@ -400,170 +617,6 @@ enum ReminderType {
   none
 }
 
-model Document {
-  id          String   @id @default(cuid())
-  clientId    String   @map("client_id")
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  name        String
-  path        String
-  bucket      String
-  type        String
-  size        Int
-  category    String
-  uploadedBy  String   @map("uploaded_by")
-  uploadedAt  DateTime @default(now()) @map("uploaded_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([clientId])
-  @@index([uploadedAt(sort: Desc)])
-  @@map("documents")
-}
-
-model EventReminder {
-  id                String   @id @default(cuid())
-  eventId           String   @map("event_id")
-  userId            String   @map("user_id")
-  reminderTime      DateTime @map("reminder_time")
-  reminderType      String   @map("reminder_type")
-  notificationSent  Boolean  @default(false) @map("notification_sent")
-  notificationMethod String? @map("notification_method")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  @@unique([eventId, userId])
-  @@index([eventId])
-  @@index([userId])
-  @@index([reminderTime])
-  @@index([notificationSent])
-  @@map("event_reminders")
-}
-
-model NotificationPreference {
-  id              String   @id @default(cuid())
-  userId          String   @unique @map("user_id")
-  pushEnabled     Boolean  @default(false) @map("push_enabled")
-  emailEnabled    Boolean  @default(true) @map("email_enabled")
-  pushSubscription Json?   @map("push_subscription")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  @@map("notification_preferences")
-}
-
-model Devis {
-  id             String    @id @default(cuid())
-  clientId       String    @map("client_id")
-  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  title          String
-  montant        Float
-  date           DateTime  @default(now())
-  statut         String    @default("en_attente")
-  factureReglee  Boolean   @default(false) @map("facture_reglee")
-  description    String?
-  fichier        String?
-  createdBy      String    @map("created_by")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  validatedAt    DateTime? @map("validated_at")
-  notes          String?
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-
-  @@index([clientId])
-  @@index([statut])
-  @@index([date(sort: Desc)])
-  @@map("devis")
-}
-
-model Historique {
-  id              String    @id @default(cuid())
-  clientId        String    @map("client_id")
-  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  date            DateTime  @default(now())
-  type            String    // note, statut, rdv, document, etc.
-  description     String
-  auteur          String
-  previousStatus  String?   @map("previous_status")
-  newStatus       String?   @map("new_status")
-  durationInHours Int?      @map("duration_in_hours")
-  timestampStart  DateTime? @map("timestamp_start")
-  timestampEnd    DateTime? @map("timestamp_end")
-  metadata        Json?
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-
-  @@index([clientId])
-  @@index([type])
-  @@index([date(sort: Desc)])
-  @@map("historique")
-}
-
-model Appointment {
-  id              String          @id @default(cuid())
-  title           String
-  dateStart       DateTime        @map("date_start")
-  dateEnd         DateTime        @map("date_end")
-  description     String?
-  location        String?
-  locationUrl     String?         @map("location_url")
-  status          String          @default("upcoming") // upcoming, completed, cancelled
-  clientId        String?         @map("client_id")
-  client          Client?         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  contactId       String?         @map("contact_id")
-  contact         Contact?        @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  opportunityId   String?         @map("opportunity_id")
-  opportunity     Opportunity?    @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  clientName      String?         @map("client_name")
-  architecteId    String?         @map("architecte_id")
-  notes           String?
-  createdBy       String          @map("created_by")
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
-
-  @@index([clientId])
-  @@index([contactId])
-  @@index([opportunityId])
-  @@index([status])
-  @@index([dateStart(sort: Desc)])
-  @@index([createdBy])
-  @@map("appointments")
-}
-
-model Client {
-  id                  String               @id @default(cuid())
-  nom                 String
-  telephone           String
-  ville               String
-  typeProjet          ProjectType          @map("type_projet")
-  architecteAssigne   String               @map("architecte_assigne")
-  statutProjet        ProjectStatus        @map("statut_projet")
-  derniereMaj         DateTime             @default(now()) @map("derniere_maj")
-  leadId              String?              @map("lead_id")
-  leadData            Json?                @map("lead_data") // Store complete lead data for restoration
-  email               String?
-  adresse             String?
-  budget              Float?
-  notes               String?
-  magasin             String?
-  commercialAttribue  String?              @map("commercial_attribue")
-  createdAt           DateTime             @default(now()) @map("created_at")
-  updatedAt           DateTime             @updatedAt @map("updated_at")
-  
-  // Relations
-  devis               Devis[]
-  historique          Historique[]
-  appointments        Appointment[]
-  documents           Document[]
-  payments            Payment[]
-  stageHistory        ClientStageHistory[]
-
-  @@index([statutProjet])
-  @@index([ville])
-  @@index([architecteAssigne])
-  @@index([magasin])
-  @@index([createdAt(sort: Desc)])
-  @@map("clients")
-}
-
 enum ProjectType {
   appartement
   villa
@@ -576,7 +629,6 @@ enum ProjectType {
 
 enum ProjectStatus {
   qualifie
-  prise_de_besoin
   acompte_recu
   conception
   devis_negociation
@@ -584,7 +636,7 @@ enum ProjectStatus {
   refuse
   premier_depot
   projet_en_cours
-  chantier // legacy - kept for backward compatibility only
+  chantier
   facture_reglee
   livraison_termine
   nouveau
@@ -596,66 +648,7 @@ enum ProjectStatus {
   termine
   annule
   suspendu
-}
-
-model ClientStageHistory {
-  id              String    @id @default(cuid())
-  clientId        String    @map("client_id")
-  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  stageName       String    @map("stage_name")
-  startedAt       DateTime  @map("started_at")
-  endedAt         DateTime? @map("ended_at")
-  durationSeconds Int?      @map("duration_seconds")
-  changedBy       String    @map("changed_by")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-
-  @@index([clientId])
-  @@index([stageName])
-  @@index([startedAt(sort: Desc)])
-  @@map("client_stage_history")
-}
-
-model Payment {
-  id          String   @id @default(cuid())
-  clientId    String   @map("client_id")
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  montant     Float
-  date        DateTime @default(now())
-  methode     String   // espece, virement, cheque
-  reference   String?
-  description String?
-  createdBy   String   @map("created_by")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([clientId])
-  @@index([date(sort: Desc)])
-  @@map("payments")
-}
-
-model Notification {
-  id          String             @id @default(cuid())
-  userId      String             @map("user_id")
-  type        NotificationType
-  priority    NotificationPriority
-  title       String
-  message     String
-  isRead      Boolean            @default(false) @map("is_read")
-  linkedType  String?            @map("linked_type") // client, lead, appointment, devis, etc.
-  linkedId    String?            @map("linked_id")
-  linkedName  String?            @map("linked_name")
-  metadata    Json?              // Additional contextual data
-  createdBy   String?            @map("created_by")
-  createdAt   DateTime           @default(now()) @map("created_at")
-  readAt      DateTime?          @map("read_at")
-
-  @@index([userId])
-  @@index([isRead])
-  @@index([createdAt(sort: Desc)])
-  @@index([type])
-  @@index([priority])
-  @@map("notifications")
+  prise_de_besoin
 }
 
 enum NotificationType {

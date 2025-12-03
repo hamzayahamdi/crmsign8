@@ -1,174 +1,235 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import type { Client, ProjectStatus } from "@/types/client"
-import { 
-  X, Phone, Mail, MessageCircle, Plus, MapPin, Building2, 
-  User, Calendar, DollarSign, Briefcase, Clock, Copy,
-  FileText, Send, Archive, Check, Sparkles, TrendingUp,
-  FolderOpen, ListTodo, ChevronDown, ChevronUp, Newspaper, Edit, Trash2
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
-import { motion, AnimatePresence } from "framer-motion"
-import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/contexts/auth-context"
-import { hasPermission } from "@/lib/permissions"
-import { AddPaymentModal, type PaymentData } from "@/components/add-payment-modal"
-import { CreateTaskModal, type TaskData } from "@/components/create-task-modal"
-import { DocumentsModal } from "@/components/documents-modal"
-import { StatusChangeConfirmationModal } from "@/components/status-change-confirmation-modal"
-import { PaymentTracker } from "@/components/payment-tracker"
+import { useState, useEffect } from "react";
+import type { Client, ProjectStatus } from "@/types/client";
+import {
+  X,
+  Phone,
+  Mail,
+  MessageCircle,
+  Plus,
+  MapPin,
+  Building2,
+  User,
+  Calendar,
+  DollarSign,
+  Briefcase,
+  Clock,
+  Copy,
+  FileText,
+  Send,
+  Archive,
+  Check,
+  Sparkles,
+  TrendingUp,
+  FolderOpen,
+  ListTodo,
+  ChevronDown,
+  ChevronUp,
+  Newspaper,
+  Edit,
+  Trash2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
+import { hasPermission } from "@/lib/permissions";
+import {
+  AddPaymentModal,
+  type PaymentData,
+} from "@/components/add-payment-modal";
+import { CreateTaskModal, type TaskData } from "@/components/create-task-modal";
+import { DocumentsModal } from "@/components/documents-modal";
+import { StatusChangeConfirmationModal } from "@/components/status-change-confirmation-modal";
+import { PaymentTracker } from "@/components/payment-tracker";
 
 interface ClientDetailPanelProps {
-  client: Client | null
-  isOpen: boolean
-  onClose: () => void
-  onUpdate?: (client: Client) => void
-  onDelete?: (client: Client) => void
+  client: Client | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate?: (client: Client) => void;
+  onDelete?: (client: Client) => void;
 }
 
-  const statusConfig: Record<string, { 
-  label: string
-  progress: number
-  gradient: string
-  glowColor: string
-}> = {
-  nouveau: { 
-    label: "Nouveau projet", 
+const statusConfig: Record<
+  string,
+  {
+    label: string;
+    progress: number;
+    gradient: string;
+    glowColor: string;
+  }
+> = {
+  nouveau: {
+    label: "Nouveau projet",
     progress: 10,
     gradient: "from-green-400 to-green-500",
-    glowColor: "shadow-green-500/20"
+    glowColor: "shadow-green-500/20",
   },
-  acompte_verse: { 
-    label: "Acompte versé", 
+  acompte_verse: {
+    label: "Acompte versé",
     progress: 25,
     gradient: "from-orange-400 to-orange-600",
-    glowColor: "shadow-orange-500/30"
+    glowColor: "shadow-orange-500/30",
   },
-  en_conception: { 
-    label: "En conception", 
+  en_conception: {
+    label: "En conception",
     progress: 40,
     gradient: "from-blue-400 to-blue-600",
-    glowColor: "shadow-blue-500/30"
+    glowColor: "shadow-blue-500/30",
   },
-  en_validation: { 
-    label: "En validation", 
+  en_validation: {
+    label: "En validation",
     progress: 55,
     gradient: "from-amber-400 to-amber-600",
-    glowColor: "shadow-amber-500/30"
+    glowColor: "shadow-amber-500/30",
   },
-  en_chantier: { 
-    label: "En chantier", 
+  en_chantier: {
+    label: "En chantier",
     progress: 65,
     gradient: "from-purple-400 to-purple-600",
-    glowColor: "shadow-purple-500/30"
+    glowColor: "shadow-purple-500/30",
   },
-  livraison: { 
-    label: "Livraison", 
+  livraison: {
+    label: "Livraison",
     progress: 85,
     gradient: "from-teal-400 to-teal-600",
-    glowColor: "shadow-teal-500/30"
+    glowColor: "shadow-teal-500/30",
   },
-  termine: { 
-    label: "Terminé", 
+  termine: {
+    label: "Terminé",
     progress: 100,
     gradient: "from-emerald-400 to-emerald-600",
-    glowColor: "shadow-emerald-500/30"
+    glowColor: "shadow-emerald-500/30",
   },
-  annule: { 
-    label: "Annulé", 
+  annule: {
+    label: "Annulé",
     progress: 0,
     gradient: "from-red-400 to-red-600",
-    glowColor: "shadow-red-500/30"
+    glowColor: "shadow-red-500/30",
   },
-  suspendu: { 
-    label: "Suspendu", 
+  suspendu: {
+    label: "Suspendu",
     progress: 0,
     gradient: "from-slate-400 to-slate-600",
-    glowColor: "shadow-slate-500/30"
+    glowColor: "shadow-slate-500/30",
   },
-}
+};
 
 // Project stage icons and colors - Updated to include all statuses
 const stageConfig = [
   { key: "nouveau", label: "Nouveau", icon: Sparkles, color: "text-green-400" },
-  { key: "acompte_verse", label: "Acompte", icon: DollarSign, color: "text-orange-400" },
-  { key: "en_conception", label: "Conception", icon: Briefcase, color: "text-blue-400" },
-  { key: "en_validation", label: "Validation", icon: FileText, color: "text-amber-400" },
-  { key: "en_chantier", label: "Chantier", icon: Building2, color: "text-purple-400" },
-  { key: "livraison", label: "Livraison", icon: TrendingUp, color: "text-teal-400" },
+  {
+    key: "acompte_verse",
+    label: "Acompte",
+    icon: DollarSign,
+    color: "text-orange-400",
+  },
+  {
+    key: "en_conception",
+    label: "Conception",
+    icon: Briefcase,
+    color: "text-blue-400",
+  },
+  {
+    key: "en_validation",
+    label: "Validation",
+    icon: FileText,
+    color: "text-amber-400",
+  },
+  {
+    key: "en_chantier",
+    label: "Chantier",
+    icon: Building2,
+    color: "text-purple-400",
+  },
+  {
+    key: "livraison",
+    label: "Livraison",
+    icon: TrendingUp,
+    color: "text-teal-400",
+  },
   { key: "termine", label: "Terminé", icon: Check, color: "text-emerald-400" },
-]
+];
 
 export function ClientDetailPanelLuxe({
   client,
   isOpen,
   onClose,
   onUpdate,
-  onDelete
+  onDelete,
 }: ClientDetailPanelProps) {
-  const { toast } = useToast()
-  const { user } = useAuth()
-  const [localClient, setLocalClient] = useState<Client | null>(null)
-  const [newNote, setNewNote] = useState("")
-  const [isAddingNote, setIsAddingNote] = useState(false)
-  const [copiedField, setCopiedField] = useState<string | null>(null)
-  const [showAllNotes, setShowAllNotes] = useState(false)
-  
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [localClient, setLocalClient] = useState<Client | null>(null);
+  const [newNote, setNewNote] = useState("");
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showAllNotes, setShowAllNotes] = useState(false);
+
   // Modal states
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
-  const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false)
-  const [isStatusConfirmModalOpen, setIsStatusConfirmModalOpen] = useState(false)
-  const [isStatusUpdateModalOpen, setIsStatusUpdateModalOpen] = useState(false)
-  const [pendingStatus, setPendingStatus] = useState<ProjectStatus | null>(null)
-  
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false);
+  const [isStatusConfirmModalOpen, setIsStatusConfirmModalOpen] =
+    useState(false);
+  const [isStatusUpdateModalOpen, setIsStatusUpdateModalOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<ProjectStatus | null>(
+    null,
+  );
+
   // Check if user can edit status (Admin or Architecte)
   // Check permissions using centralized permission system
-  const canEditStatus = hasPermission(user?.role, 'clients', 'edit')
-  
+  const canEditStatus = hasPermission(user?.role, "clients", "edit");
+
   // Debug: Log user info to console (helpful for troubleshooting)
   useEffect(() => {
     if (isOpen && user) {
-      console.log('🔐 Auth Debug - Client Detail Panel')
-      console.log('User:', user)
-      console.log('Role:', user.role)
-      console.log('Can edit status:', canEditStatus)
+      console.log("🔐 Auth Debug - Client Detail Panel");
+      console.log("User:", user);
+      console.log("Role:", user.role);
+      console.log("Can edit status:", canEditStatus);
     }
-  }, [user, canEditStatus, isOpen])
+  }, [user, canEditStatus, isOpen]);
 
   useEffect(() => {
     if (client) {
-      setLocalClient(client)
-      setIsAddingNote(false)
+      setLocalClient(client);
+      setIsAddingNote(false);
       // Close all modals when client changes
-      setIsPaymentModalOpen(false)
-      setIsTaskModalOpen(false)
-      setIsDocumentsModalOpen(false)
+      setIsPaymentModalOpen(false);
+      setIsTaskModalOpen(false);
+      setIsDocumentsModalOpen(false);
       //
     }
-  }, [client])
+  }, [client]);
 
-  if (!localClient) return null
+  if (!localClient) return null;
 
-  const statusInfo = statusConfig[localClient.statutProjet as ProjectStatus] ?? statusConfig.nouveau
-  const currentStageIndex = Math.max(0, stageConfig.findIndex(s => s.key === localClient.statutProjet))
-  const nextStage = stageConfig[currentStageIndex + 1]
+  const statusInfo =
+    statusConfig[localClient.statutProjet as ProjectStatus] ??
+    statusConfig.nouveau;
+  const currentStageIndex = Math.max(
+    0,
+    stageConfig.findIndex((s) => s.key === localClient.statutProjet),
+  );
+  const nextStage = stageConfig[currentStageIndex + 1];
 
   const handleAdvanceStatus = () => {
-    if (!nextStage) return
-    handleStatusClick(nextStage.key as ProjectStatus)
-  }
+    if (!nextStage) return;
+    handleStatusClick(nextStage.key as ProjectStatus);
+  };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-  }
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-MA", {
@@ -176,23 +237,23 @@ export function ClientDetailPanelLuxe({
       currency: "MAD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   const handleCopy = (text: string, field: string) => {
-    navigator.clipboard.writeText(text)
-    setCopiedField(field)
-    setTimeout(() => setCopiedField(null), 2000)
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
     toast({
       title: "Copié",
       description: `${field} copié dans le presse-papiers`,
-    })
-  }
+    });
+  };
 
   const handleAddNote = () => {
-    if (!newNote.trim()) return
+    if (!newNote.trim()) return;
 
-    const now = new Date().toISOString()
+    const now = new Date().toISOString();
     const updatedClient = {
       ...localClient,
       historique: [
@@ -201,50 +262,51 @@ export function ClientDetailPanelLuxe({
           date: now,
           type: "note" as const,
           description: newNote,
-          auteur: "Architecte"
+          auteur: "Architecte",
         },
-        ...(localClient.historique || [])
+        ...(localClient.historique || []),
       ],
       derniereMaj: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    };
 
-    setLocalClient(updatedClient)
-    onUpdate?.(updatedClient)
-    setNewNote("")
-    setIsAddingNote(false)
+    setLocalClient(updatedClient);
+    onUpdate?.(updatedClient);
+    setNewNote("");
+    setIsAddingNote(false);
 
     toast({
       title: "Note ajoutée",
       description: "La note a été enregistrée avec succès",
-    })
-  }
+    });
+  };
 
   const handleStatusClick = (newStatus: ProjectStatus) => {
     // Check if user has permission
     if (!canEditStatus) {
       toast({
         title: "Accès refusé",
-        description: "Vous n'avez pas la permission de modifier le statut du projet",
-      })
-      return
+        description:
+          "Vous n'avez pas la permission de modifier le statut du projet",
+      });
+      return;
     }
-    
+
     // Don't allow clicking the same status
     if (newStatus === localClient.statutProjet) {
-      return
+      return;
     }
-    
+
     // Show confirmation modal
-    setPendingStatus(newStatus)
-    setIsStatusConfirmModalOpen(true)
-  }
+    setPendingStatus(newStatus);
+    setIsStatusConfirmModalOpen(true);
+  };
 
   const handleStatusChange = (selectedStatus: ProjectStatus) => {
-    const now = new Date().toISOString()
-    const userName = user?.name || 'Admin'
-    const fromLabel = statusConfig[localClient.statutProjet].label
-    const toLabel = statusConfig[selectedStatus].label
+    const now = new Date().toISOString();
+    const userName = user?.name || "Admin";
+    const fromLabel = statusConfig[localClient.statutProjet].label;
+    const toLabel = statusConfig[selectedStatus].label;
     const updatedClient = {
       ...localClient,
       statutProjet: selectedStatus,
@@ -252,53 +314,53 @@ export function ClientDetailPanelLuxe({
         {
           id: `hist-${Date.now()}`,
           date: now,
-          type: 'statut' as const,
+          type: "statut" as const,
           description: `Statut changé de "${fromLabel}" à "${toLabel}" par ${userName}`,
-          auteur: userName
+          auteur: userName,
         },
-        ...(localClient.historique || [])
+        ...(localClient.historique || []),
       ],
       derniereMaj: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    };
 
-    setLocalClient(updatedClient)
-    onUpdate?.(updatedClient)
-    setIsStatusConfirmModalOpen(false)
-    setPendingStatus(null)
+    setLocalClient(updatedClient);
+    onUpdate?.(updatedClient);
+    setIsStatusConfirmModalOpen(false);
+    setPendingStatus(null);
 
     toast({
       title: "Statut mis à jour",
       description: `Le projet est maintenant à l'étape: ${toLabel}`,
-    })
-  }
+    });
+  };
 
   const handleWhatsApp = () => {
-    const phone = localClient.telephone.replace(/\s/g, '')
-    window.open(`https://wa.me/${phone}`, '_blank')
-  }
+    const phone = localClient.telephone.replace(/\s/g, "");
+    window.open(`https://wa.me/${phone}`, "_blank");
+  };
 
   const handleDeleteClient = () => {
-    if (!onDelete) return
-    
+    if (!onDelete) return;
+
     const confirmDelete = window.confirm(
-      `Êtes-vous sûr de vouloir supprimer le client "${localClient.nom}" ?\n\nCette action supprimera uniquement le client de la table Clients.\nLe lead associé (si existant) sera préservé.`
-    )
-    
+      `Êtes-vous sûr de vouloir supprimer le client "${localClient.nom}" ?\n\nCette action supprimera uniquement le client de la table Clients.\nLe lead associé (si existant) sera préservé.`,
+    );
+
     if (confirmDelete) {
-      onDelete(localClient)
-      onClose()
+      onDelete(localClient);
+      onClose();
     }
-  }
+  };
 
   // Email quick action removed to reduce clutter
 
   const handleAddPayment = (payment: PaymentData) => {
-    const now = new Date().toISOString()
-    const userName = user?.name || 'Admin'
-    
+    const now = new Date().toISOString();
+    const userName = user?.name || "Admin";
+
     // Create payment record
-    const newPayment: import('@/types/client').Payment = {
+    const newPayment: import("@/types/client").Payment = {
       id: `pay-${Date.now()}`,
       amount: payment.amount,
       date: payment.date,
@@ -306,93 +368,96 @@ export function ClientDetailPanelLuxe({
       reference: payment.reference,
       notes: payment.notes,
       createdBy: userName,
-      createdAt: now
-    }
-    
+      createdAt: now,
+    };
+
     const updatedClient = {
       ...localClient,
-      payments: [
-        newPayment,
-        ...(localClient.payments || [])
-      ],
+      payments: [newPayment, ...(localClient.payments || [])],
       historique: [
         {
           id: `hist-${Date.now()}`,
           date: now,
-          type: 'acompte' as const,
-          description: `Acompte reçu: ${formatCurrency(payment.amount)} (${payment.method})${payment.reference ? ` - Réf: ${payment.reference}` : ''}`,
+          type: "acompte" as const,
+          description: `Acompte reçu: ${formatCurrency(payment.amount)} (${payment.method})${payment.reference ? ` - Réf: ${payment.reference}` : ""}`,
           auteur: userName,
-          metadata: { paymentId: newPayment.id }
+          metadata: { paymentId: newPayment.id },
         },
-        ...(localClient.historique || [])
+        ...(localClient.historique || []),
       ],
       derniereMaj: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    };
 
-    setLocalClient(updatedClient)
-    onUpdate?.(updatedClient)
-    setIsPaymentModalOpen(false)
+    setLocalClient(updatedClient);
+    onUpdate?.(updatedClient);
+    setIsPaymentModalOpen(false);
 
     toast({
       title: "Acompte enregistré",
       description: `${formatCurrency(payment.amount)} ajouté avec succès`,
-    })
-  }
+    });
+  };
 
   const handleCreateTask = (task: TaskData) => {
-    const now = new Date().toISOString()
+    const now = new Date().toISOString();
     const updatedClient = {
       ...localClient,
       historique: [
         {
           id: `hist-${Date.now()}`,
           date: now,
-          type: 'tache' as const,
+          type: "tache" as const,
           description: `Tâche créée: ${task.title} (Assigné à ${task.assignedTo})`,
-          auteur: 'Admin'
+          auteur: "Admin",
         },
-        ...(localClient.historique || [])
+        ...(localClient.historique || []),
       ],
       derniereMaj: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    };
 
-    setLocalClient(updatedClient)
-    onUpdate?.(updatedClient)
-    setIsTaskModalOpen(false)
+    setLocalClient(updatedClient);
+    onUpdate?.(updatedClient);
+    setIsTaskModalOpen(false);
 
     toast({
       title: "Tâche créée",
       description: task.title,
-    })
-  }
-
+    });
+  };
 
   // New project creation removed from quick actions
 
   const allNotes = [...(localClient.historique || [])]
-    .filter(h => h.type === 'note')
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  
-  const sortedNotes = showAllNotes ? allNotes : allNotes.slice(0, 5)
-  const hasMoreNotes = allNotes.length > 5
-  
+    .filter((h) => h.type === "note")
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const sortedNotes = showAllNotes ? allNotes : allNotes.slice(0, 5);
+  const hasMoreNotes = allNotes.length > 5;
+
   // Format last updated date
   const formatLastUpdated = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
-    
-    if (diffMins < 1) return 'Il y a quelques instants'
-    if (diffMins < 60) return `Il y a ${diffMins} minute${diffMins > 1 ? 's' : ''}`
-    if (diffHours < 24) return `Il y a ${diffHours} heure${diffHours > 1 ? 's' : ''}`
-    if (diffDays < 7) return `Il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`
-    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
-  }
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Il y a quelques instants";
+    if (diffMins < 60)
+      return `Il y a ${diffMins} minute${diffMins > 1 ? "s" : ""}`;
+    if (diffHours < 24)
+      return `Il y a ${diffHours} heure${diffHours > 1 ? "s" : ""}`;
+    if (diffDays < 7)
+      return `Il y a ${diffDays} jour${diffDays > 1 ? "s" : ""}`;
+    return date.toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
 
   return (
     <AnimatePresence>
@@ -412,7 +477,12 @@ export function ClientDetailPanelLuxe({
             initial={{ x: "100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 35, stiffness: 350, mass: 0.8 }}
+            transition={{
+              type: "spring",
+              damping: 35,
+              stiffness: 350,
+              mass: 0.8,
+            }}
             className="fixed right-0 top-0 h-full w-full md:w-[680px] bg-[#0E1116] shadow-2xl z-50 flex flex-col"
             style={{ fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif" }}
           >
@@ -438,28 +508,37 @@ export function ClientDetailPanelLuxe({
                   <h2 className="text-3xl font-bold text-[#EAEAEA] mb-3 pr-14">
                     {localClient.nom}
                   </h2>
-                  
+
                   {/* Status badge with progress circle */}
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <motion.div
                         animate={{ rotate: 360 }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "linear",
+                        }}
                         className={cn(
                           "absolute inset-0 rounded-full blur-md",
-                          statusInfo.glowColor
+                          statusInfo.glowColor,
                         )}
                       />
-                      <div className={cn(
-                        "relative px-4 py-2 rounded-xl bg-gradient-to-r font-semibold text-sm shadow-lg",
-                        statusInfo.gradient,
-                        "text-white"
-                      )}>
+                      <div
+                        className={cn(
+                          "relative px-4 py-2 rounded-xl bg-gradient-to-r font-semibold text-sm shadow-lg",
+                          statusInfo.gradient,
+                          "text-white",
+                        )}
+                      >
                         {statusInfo.label}
                       </div>
                     </div>
                     <div className="text-sm text-white/50">
-                      <span className="font-medium text-white/70">{statusInfo.progress}%</span> complété
+                      <span className="font-medium text-white/70">
+                        {statusInfo.progress}%
+                      </span>{" "}
+                      complété
                     </div>
                   </div>
                 </motion.div>
@@ -494,90 +573,127 @@ export function ClientDetailPanelLuxe({
                   <div className="absolute top-5 left-0 right-0 h-0.5 bg-white/5">
                     <motion.div
                       initial={{ width: "0%" }}
-                      animate={{ width: `${(currentStageIndex / (stageConfig.length - 1)) * 100}%` }}
+                      animate={{
+                        width: `${(currentStageIndex / (stageConfig.length - 1)) * 100}%`,
+                      }}
                       transition={{ duration: 1, ease: "easeOut" }}
                       className={cn(
                         "h-full bg-gradient-to-r",
-                        statusInfo.gradient
+                        statusInfo.gradient,
                       )}
                     />
                   </div>
 
                   {/* Stages */}
                   {stageConfig.map((stage, index) => {
-                    const Icon = stage.icon
-                    const isCompleted = index < currentStageIndex
-                    const isCurrent = index === currentStageIndex
-                    const isUpcoming = index > currentStageIndex
+                    const Icon = stage.icon;
+                    const isCompleted = index < currentStageIndex;
+                    const isCurrent = index === currentStageIndex;
+                    const isUpcoming = index > currentStageIndex;
 
                     return (
                       <motion.button
                         key={stage.key}
-                        onClick={() => (isCompleted || isCurrent) && canEditStatus && handleStatusClick(stage.key as ProjectStatus)}
+                        onClick={() =>
+                          (isCompleted || isCurrent) &&
+                          canEditStatus &&
+                          handleStatusClick(stage.key as ProjectStatus)
+                        }
                         disabled={isUpcoming || !canEditStatus}
-                        whileHover={(isCompleted || isCurrent) && canEditStatus ? { scale: 1.1 } : {}}
-                        whileTap={(isCompleted || isCurrent) && canEditStatus ? { scale: 0.95 } : {}}
+                        whileHover={
+                          (isCompleted || isCurrent) && canEditStatus
+                            ? { scale: 1.1 }
+                            : {}
+                        }
+                        whileTap={
+                          (isCompleted || isCurrent) && canEditStatus
+                            ? { scale: 0.95 }
+                            : {}
+                        }
                         className={cn(
                           "relative flex flex-col items-center gap-2 group z-10",
-                          (isCompleted || isCurrent) && canEditStatus && "cursor-pointer",
-                          (!canEditStatus || isUpcoming) && "cursor-not-allowed"
+                          (isCompleted || isCurrent) &&
+                            canEditStatus &&
+                            "cursor-pointer",
+                          (!canEditStatus || isUpcoming) &&
+                            "cursor-not-allowed",
                         )}
-                        title={canEditStatus ? 
-                          (isUpcoming ? "Étape future" : "Cliquez pour changer le statut") : 
-                          "Vous n'avez pas la permission de modifier le statut"}
+                        title={
+                          canEditStatus
+                            ? isUpcoming
+                              ? "Étape future"
+                              : "Cliquez pour changer le statut"
+                            : "Vous n'avez pas la permission de modifier le statut"
+                        }
                       >
                         {/* Icon circle */}
-                        <div className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
-                          isCompleted && "bg-gradient-to-br from-white/10 to-white/5 border border-white/20",
-                          isCurrent && cn(
-                            "bg-gradient-to-br shadow-lg",
-                            statusInfo.gradient,
-                            statusInfo.glowColor
-                          ),
-                          isUpcoming && "bg-white/5 border border-white/10",
-                          (isCompleted || isCurrent) && canEditStatus && "group-hover:shadow-xl group-hover:border-white/30"
-                        )}>
+                        <div
+                          className={cn(
+                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
+                            isCompleted &&
+                              "bg-gradient-to-br from-white/10 to-white/5 border border-white/20",
+                            isCurrent &&
+                              cn(
+                                "bg-gradient-to-br shadow-lg",
+                                statusInfo.gradient,
+                                statusInfo.glowColor,
+                              ),
+                            isUpcoming && "bg-white/5 border border-white/10",
+                            (isCompleted || isCurrent) &&
+                              canEditStatus &&
+                              "group-hover:shadow-xl group-hover:border-white/30",
+                          )}
+                        >
                           {isCompleted ? (
                             <Check className="w-5 h-5 text-white/60" />
                           ) : (
-                            <Icon className={cn(
-                              "w-5 h-5",
-                              isCurrent ? "text-white" : "text-white/30"
-                            )} />
+                            <Icon
+                              className={cn(
+                                "w-5 h-5",
+                                isCurrent ? "text-white" : "text-white/30",
+                              )}
+                            />
                           )}
                         </div>
 
                         {/* Label */}
-                        <span className={cn(
-                          "text-xs font-medium transition-colors hidden sm:block",
-                          isCurrent && "text-white/90",
-                          isCompleted && "text-white/50",
-                          isUpcoming && "text-white/30"
-                        )}>
+                        <span
+                          className={cn(
+                            "text-xs font-medium transition-colors hidden sm:block",
+                            isCurrent && "text-white/90",
+                            isCompleted && "text-white/50",
+                            isUpcoming && "text-white/30",
+                          )}
+                        >
                           {stage.label}
                         </span>
 
                         {/* Active glow pulse */}
                         {isCurrent && (
                           <motion.div
-                            animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }}
+                            animate={{
+                              scale: [1, 1.3, 1],
+                              opacity: [0.5, 0.8, 0.5],
+                            }}
                             transition={{ duration: 2, repeat: Infinity }}
                             className={cn(
                               "absolute top-0 w-10 h-10 rounded-xl blur-lg",
-                              statusInfo.glowColor
+                              statusInfo.glowColor,
                             )}
                           />
                         )}
                       </motion.button>
-                    )
+                    );
                   })}
                 </div>
-                
+
                 {/* Last Updated & Progress */}
                 <div className="mt-4 flex items-center justify-between text-xs">
                   <span className="text-white/30">
-                    Dernière mise à jour: <span className="text-white/50">{formatLastUpdated(localClient.derniereMaj)}</span>
+                    Dernière mise à jour:{" "}
+                    <span className="text-white/50">
+                      {formatLastUpdated(localClient.derniereMaj)}
+                    </span>
                   </span>
                   <span className="text-white/40 font-medium">
                     {statusInfo.progress}% complété
@@ -589,7 +705,6 @@ export function ClientDetailPanelLuxe({
             {/* Content */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
               <div className="p-8 space-y-6">
-                
                 {/* Client Info Card */}
                 <motion.div
                   initial={{ y: 20, opacity: 0 }}
@@ -603,7 +718,7 @@ export function ClientDetailPanelLuxe({
                       Informations client
                     </h3>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <InfoRow
                       icon={<MapPin className="w-4 h-4" />}
@@ -614,7 +729,9 @@ export function ClientDetailPanelLuxe({
                       icon={<Phone className="w-4 h-4" />}
                       label="Téléphone"
                       value={localClient.telephone}
-                      onCopy={() => handleCopy(localClient.telephone, "Téléphone")}
+                      onCopy={() =>
+                        handleCopy(localClient.telephone, "Téléphone")
+                      }
                       copied={copiedField === "Téléphone"}
                     />
                     {localClient.email && (
@@ -649,8 +766,8 @@ export function ClientDetailPanelLuxe({
                   </div>
 
                   {/* Payment Tracker */}
-                  <PaymentTracker 
-                    payments={localClient.payments || []} 
+                  <PaymentTracker
+                    payments={localClient.payments || []}
                     budget={localClient.budget}
                     className="mb-6"
                   />
@@ -658,7 +775,9 @@ export function ClientDetailPanelLuxe({
                   {/* Two-column grid */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <div className="text-xs text-white/40">Type de projet</div>
+                      <div className="text-xs text-white/40">
+                        Type de projet
+                      </div>
                       <div className="text-sm font-semibold text-[#EAEAEA] capitalize">
                         {localClient.typeProjet}
                       </div>
@@ -701,7 +820,12 @@ export function ClientDetailPanelLuxe({
                     <div className="grid grid-cols-2 gap-3">
                       <ActionButton
                         icon={<DollarSign className="w-4 h-4" />}
-                        label="Ajouter acompte"
+                        label={
+                          client.statutProjet === "acompte_recu" ||
+                          (client.payments && client.payments.length > 0)
+                            ? "Ajouter nouveau paiement"
+                            : "Ajouter acompte"
+                        }
                         onClick={() => setIsPaymentModalOpen(true)}
                         variant="secondary"
                       />
@@ -750,7 +874,9 @@ export function ClientDetailPanelLuxe({
                         Notes & Historique
                       </h3>
                     </div>
-                    <span className="text-xs text-white/30">{allNotes.length} note{allNotes.length > 1 ? 's' : ''}</span>
+                    <span className="text-xs text-white/30">
+                      {allNotes.length} note{allNotes.length > 1 ? "s" : ""}
+                    </span>
                   </div>
 
                   {/* Add Note Button - Prominent */}
@@ -769,7 +895,11 @@ export function ClientDetailPanelLuxe({
                     {isAddingNote && (
                       <motion.div
                         initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                        animate={{ opacity: 1, height: "auto", marginBottom: 16 }}
+                        animate={{
+                          opacity: 1,
+                          height: "auto",
+                          marginBottom: 16,
+                        }}
                         exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                         className="overflow-hidden"
                       >
@@ -777,7 +907,8 @@ export function ClientDetailPanelLuxe({
                           <Textarea
                             value={newNote}
                             onChange={(e) => setNewNote(e.target.value)}
-                            placeholder="Écrivez votre note ici... (ex: Réunion planifiée, paiement reçu, discussion avec client)" className="mb-3 min-h-[100px] bg-white/5 border-white/10 text-[#EAEAEA] placeholder:text-white/30 focus:border-white/20 rounded-xl resize-none"
+                            placeholder="Écrivez votre note ici... (ex: Réunion planifiée, paiement reçu, discussion avec client)"
+                            className="mb-3 min-h-[100px] bg-white/5 border-white/10 text-[#EAEAEA] placeholder:text-white/30 focus:border-white/20 rounded-xl resize-none"
                           />
                           <div className="flex gap-2">
                             <Button
@@ -789,8 +920,8 @@ export function ClientDetailPanelLuxe({
                             </Button>
                             <Button
                               onClick={() => {
-                                setIsAddingNote(false)
-                                setNewNote("")
+                                setIsAddingNote(false);
+                                setNewNote("");
                               }}
                               className="h-10 px-6 bg-white/5 hover:bg-white/10 text-[#EAEAEA] rounded-xl border border-white/10"
                             >
@@ -801,7 +932,7 @@ export function ClientDetailPanelLuxe({
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  
+
                   {/* Notes List */}
                   {sortedNotes.length > 0 ? (
                     <>
@@ -852,10 +983,8 @@ export function ClientDetailPanelLuxe({
                     </div>
                   )}
                 </motion.div>
-
               </div>
             </div>
-
           </motion.div>
 
           {/* Action Modals */}
@@ -878,7 +1007,7 @@ export function ClientDetailPanelLuxe({
             onClose={() => setIsDocumentsModalOpen(false)}
             client={localClient}
             onDocumentsAdded={(docs) => {
-              const now = new Date().toISOString()
+              const now = new Date().toISOString();
               const updated = {
                 ...localClient,
                 documents: [...(localClient.documents || []), ...docs],
@@ -888,23 +1017,23 @@ export function ClientDetailPanelLuxe({
                   {
                     id: `hist-${Date.now()}`,
                     date: now,
-                    type: 'document' as const,
+                    type: "document" as const,
                     description: `${docs.length} document(s) ajouté(s)`,
-                    auteur: user?.name || 'Utilisateur'
+                    auteur: user?.name || "Utilisateur",
                   },
-                  ...(localClient.historique || [])
-                ]
-              }
-              setLocalClient(updated)
-              onUpdate?.(updated)
+                  ...(localClient.historique || []),
+                ],
+              };
+              setLocalClient(updated);
+              onUpdate?.(updated);
             }}
           />
 
           <StatusChangeConfirmationModal
             isOpen={isStatusConfirmModalOpen}
             onClose={() => {
-              setIsStatusConfirmModalOpen(false)
-              setPendingStatus(null)
+              setIsStatusConfirmModalOpen(false);
+              setPendingStatus(null);
             }}
             onConfirm={handleStatusChange}
             currentStatus={localClient.statutProjet}
@@ -932,8 +1061,12 @@ export function ClientDetailPanelLuxe({
                   {/* Modal Header */}
                   <div className="sticky top-0 bg-gradient-to-br from-slate-900 to-slate-800 border-b border-slate-700/50 px-6 py-4 flex items-center justify-between z-10">
                     <div>
-                      <h3 className="text-xl font-semibold text-white">Modifier l'état du projet</h3>
-                      <p className="text-sm text-slate-400 mt-1">Sélectionnez le nouveau statut pour {localClient.nom}</p>
+                      <h3 className="text-xl font-semibold text-white">
+                        Modifier l'état du projet
+                      </h3>
+                      <p className="text-sm text-slate-400 mt-1">
+                        Sélectionnez le nouveau statut pour {localClient.nom}
+                      </p>
                     </div>
                     <button
                       onClick={() => setIsStatusUpdateModalOpen(false)}
@@ -946,13 +1079,17 @@ export function ClientDetailPanelLuxe({
                   {/* Current Status */}
                   <div className="px-6 py-4 bg-slate-800/50">
                     <p className="text-xs text-slate-400 mb-2">Statut actuel</p>
-                    <div className={cn(
-                      "inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r font-semibold text-sm",
-                      statusInfo.gradient,
-                      "text-white"
-                    )}>
+                    <div
+                      className={cn(
+                        "inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r font-semibold text-sm",
+                        statusInfo.gradient,
+                        "text-white",
+                      )}
+                    >
                       {statusInfo.label}
-                      <span className="text-xs opacity-75">({statusInfo.progress}%)</span>
+                      <span className="text-xs opacity-75">
+                        ({statusInfo.progress}%)
+                      </span>
                     </div>
                   </div>
 
@@ -960,12 +1097,16 @@ export function ClientDetailPanelLuxe({
                   <div className="px-6 py-6 space-y-4">
                     {/* Active Project Statuses */}
                     <div className="space-y-3">
-                      <p className="text-sm font-medium text-slate-300 mb-3">Statuts de progression</p>
+                      <p className="text-sm font-medium text-slate-300 mb-3">
+                        Statuts de progression
+                      </p>
                       {stageConfig.map((stage) => {
-                        const Icon = stage.icon
-                        const stageStatus = statusConfig[stage.key as ProjectStatus]
-                        const isCurrent = stage.key === localClient.statutProjet
-                        
+                        const Icon = stage.icon;
+                        const stageStatus =
+                          statusConfig[stage.key as ProjectStatus];
+                        const isCurrent =
+                          stage.key === localClient.statutProjet;
+
                         return (
                           <motion.button
                             key={stage.key}
@@ -973,39 +1114,45 @@ export function ClientDetailPanelLuxe({
                             whileTap={!isCurrent ? { scale: 0.98 } : {}}
                             onClick={() => {
                               if (!isCurrent) {
-                                setPendingStatus(stage.key as ProjectStatus)
-                                setIsStatusUpdateModalOpen(false)
-                                setIsStatusConfirmModalOpen(true)
+                                setPendingStatus(stage.key as ProjectStatus);
+                                setIsStatusUpdateModalOpen(false);
+                                setIsStatusConfirmModalOpen(true);
                               }
                             }}
                             disabled={isCurrent}
                             className={cn(
                               "w-full p-4 rounded-xl border transition-all flex items-center gap-4",
-                              isCurrent 
-                                ? "bg-slate-800/50 border-slate-700/50 cursor-default opacity-60" 
-                                : "bg-slate-800/30 border-slate-700/30 hover:bg-slate-800/60 hover:border-slate-600/50 cursor-pointer"
+                              isCurrent
+                                ? "bg-slate-800/50 border-slate-700/50 cursor-default opacity-60"
+                                : "bg-slate-800/30 border-slate-700/30 hover:bg-slate-800/60 hover:border-slate-600/50 cursor-pointer",
                             )}
                           >
                             {/* Icon */}
-                            <div className={cn(
-                              "w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br",
-                              stageStatus.gradient,
-                              "shadow-lg"
-                            )}>
+                            <div
+                              className={cn(
+                                "w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br",
+                                stageStatus.gradient,
+                                "shadow-lg",
+                              )}
+                            >
                               <Icon className="w-6 h-6 text-white" />
                             </div>
 
                             {/* Info */}
                             <div className="flex-1 text-left">
                               <div className="flex items-center gap-2">
-                                <p className="font-semibold text-white">{stageStatus.label}</p>
+                                <p className="font-semibold text-white">
+                                  {stageStatus.label}
+                                </p>
                                 {isCurrent && (
                                   <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
                                     Actuel
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm text-slate-400 mt-0.5">{stageStatus.progress}% de progression</p>
+                              <p className="text-sm text-slate-400 mt-0.5">
+                                {stageStatus.progress}% de progression
+                              </p>
                             </div>
 
                             {/* Arrow */}
@@ -1013,21 +1160,25 @@ export function ClientDetailPanelLuxe({
                               <ChevronDown className="w-5 h-5 text-slate-400 rotate-[-90deg]" />
                             )}
                           </motion.button>
-                        )
+                        );
                       })}
                     </div>
 
                     {/* Special Statuses */}
                     <div className="space-y-3 pt-3 border-t border-slate-700/50">
-                      <p className="text-sm font-medium text-slate-300 mb-3">Statuts spéciaux</p>
+                      <p className="text-sm font-medium text-slate-300 mb-3">
+                        Statuts spéciaux
+                      </p>
                       {[
                         { key: "suspendu", label: "Suspendu", icon: Clock },
                         { key: "annule", label: "Annulé", icon: X },
                       ].map((specialStatus) => {
-                        const Icon = specialStatus.icon
-                        const stageStatus = statusConfig[specialStatus.key as ProjectStatus]
-                        const isCurrent = specialStatus.key === localClient.statutProjet
-                        
+                        const Icon = specialStatus.icon;
+                        const stageStatus =
+                          statusConfig[specialStatus.key as ProjectStatus];
+                        const isCurrent =
+                          specialStatus.key === localClient.statutProjet;
+
                         return (
                           <motion.button
                             key={specialStatus.key}
@@ -1035,39 +1186,47 @@ export function ClientDetailPanelLuxe({
                             whileTap={!isCurrent ? { scale: 0.98 } : {}}
                             onClick={() => {
                               if (!isCurrent) {
-                                setPendingStatus(specialStatus.key as ProjectStatus)
-                                setIsStatusUpdateModalOpen(false)
-                                setIsStatusConfirmModalOpen(true)
+                                setPendingStatus(
+                                  specialStatus.key as ProjectStatus,
+                                );
+                                setIsStatusUpdateModalOpen(false);
+                                setIsStatusConfirmModalOpen(true);
                               }
                             }}
                             disabled={isCurrent}
                             className={cn(
                               "w-full p-4 rounded-xl border transition-all flex items-center gap-4",
-                              isCurrent 
-                                ? "bg-slate-800/50 border-slate-700/50 cursor-default opacity-60" 
-                                : "bg-slate-800/30 border-slate-700/30 hover:bg-slate-800/60 hover:border-slate-600/50 cursor-pointer"
+                              isCurrent
+                                ? "bg-slate-800/50 border-slate-700/50 cursor-default opacity-60"
+                                : "bg-slate-800/30 border-slate-700/30 hover:bg-slate-800/60 hover:border-slate-600/50 cursor-pointer",
                             )}
                           >
                             {/* Icon */}
-                            <div className={cn(
-                              "w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br",
-                              stageStatus.gradient,
-                              "shadow-lg"
-                            )}>
+                            <div
+                              className={cn(
+                                "w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br",
+                                stageStatus.gradient,
+                                "shadow-lg",
+                              )}
+                            >
                               <Icon className="w-6 h-6 text-white" />
                             </div>
 
                             {/* Info */}
                             <div className="flex-1 text-left">
                               <div className="flex items-center gap-2">
-                                <p className="font-semibold text-white">{stageStatus.label}</p>
+                                <p className="font-semibold text-white">
+                                  {stageStatus.label}
+                                </p>
                                 {isCurrent && (
                                   <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
                                     Actuel
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm text-slate-400 mt-0.5">Statut spécial</p>
+                              <p className="text-sm text-slate-400 mt-0.5">
+                                Statut spécial
+                              </p>
                             </div>
 
                             {/* Arrow */}
@@ -1075,7 +1234,7 @@ export function ClientDetailPanelLuxe({
                               <ChevronDown className="w-5 h-5 text-slate-400 rotate-[-90deg]" />
                             )}
                           </motion.button>
-                        )
+                        );
                       })}
                     </div>
                   </div>
@@ -1096,7 +1255,7 @@ export function ClientDetailPanelLuxe({
         </>
       )}
     </AnimatePresence>
-  )
+  );
 }
 
 // Helper component for info rows
@@ -1107,11 +1266,11 @@ function InfoRow({
   onCopy,
   copied,
 }: {
-  icon: React.ReactNode
-  label: string
-  value: string
-  onCopy?: () => void
-  copied?: boolean
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  onCopy?: () => void;
+  copied?: boolean;
 }) {
   return (
     <div className="flex items-start gap-3 group">
@@ -1135,7 +1294,7 @@ function InfoRow({
         </motion.button>
       )}
     </div>
-  )
+  );
 }
 
 // Helper component for action buttons
@@ -1146,15 +1305,15 @@ function ActionButton({
   disabled = false,
   variant = "secondary",
   gradient,
-  fullWidth = false
+  fullWidth = false,
 }: {
-  icon: React.ReactNode
-  label: string
-  onClick: () => void
-  disabled?: boolean
-  variant?: "primary" | "secondary" | "danger"
-  gradient?: string
-  fullWidth?: boolean
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  variant?: "primary" | "secondary" | "danger";
+  gradient?: string;
+  fullWidth?: boolean;
 }) {
   return (
     <motion.button
@@ -1165,14 +1324,18 @@ function ActionButton({
       className={cn(
         "h-12 w-full px-4 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 relative overflow-hidden focus:outline-none",
         fullWidth && "col-span-2",
-        variant === "primary" && gradient && `bg-gradient-to-r ${gradient} text-white shadow-lg`,
-        variant === "secondary" && "bg-white/5 hover:bg-white/10 text-[#EAEAEA] border border-white/10",
-        variant === "danger" && "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 hover:border-red-500/50",
-        disabled && "opacity-50 cursor-not-allowed"
+        variant === "primary" &&
+          gradient &&
+          `bg-gradient-to-r ${gradient} text-white shadow-lg`,
+        variant === "secondary" &&
+          "bg-white/5 hover:bg-white/10 text-[#EAEAEA] border border-white/10",
+        variant === "danger" &&
+          "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 hover:border-red-500/50",
+        disabled && "opacity-50 cursor-not-allowed",
       )}
     >
       {icon}
       {label}
     </motion.button>
-  )
+  );
 }

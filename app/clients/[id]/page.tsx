@@ -267,8 +267,9 @@ export default function ClientDetailsPage() {
   const handleUpdateClient = async (updatedClient: Client, skipApiCall = false) => {
     try {
       // Always perform an optimistic local update so UI reflects changes immediately
+      // IMPORTANT: Merge with existing client data to prevent data loss
       console.log('[Client Details] 🔄 Optimistic update - applying local changes')
-      setClient(updatedClient)
+      setClient(prev => prev ? { ...prev, ...updatedClient } : updatedClient)
       updateClientInStore(updatedClient.id, updatedClient)
 
       // If skipApiCall is true, stop here (pure optimistic/local update)

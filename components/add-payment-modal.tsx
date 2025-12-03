@@ -1,67 +1,84 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { X, DollarSign, Calendar, FileText, Check } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { motion, AnimatePresence } from "framer-motion"
-import { cn } from "@/lib/utils"
-import type { Client } from "@/types/client"
+import { useState } from "react";
+import { X, DollarSign, Calendar, FileText, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import type { Client } from "@/types/client";
 
 interface AddPaymentModalProps {
-  isOpen: boolean
-  onClose: () => void
-  client: Client
-  onAddPayment: (payment: PaymentData) => void
+  isOpen: boolean;
+  onClose: () => void;
+  client: Client;
+  onAddPayment: (payment: PaymentData) => void;
 }
 
 export interface PaymentData {
-  amount: number
-  date: string
-  method: string
-  reference?: string
-  notes?: string
+  amount: number;
+  date: string;
+  method: string;
+  reference?: string;
+  notes?: string;
 }
 
 export function AddPaymentModal({
   isOpen,
   onClose,
   client,
-  onAddPayment
+  onAddPayment,
 }: AddPaymentModalProps) {
   const [formData, setFormData] = useState<PaymentData>({
     amount: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString().split("T")[0],
     method: "espece",
     reference: "",
-    notes: ""
-  })
+    notes: "",
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (formData.amount <= 0) return
-    
-    onAddPayment(formData)
-    
+    e.preventDefault();
+    if (formData.amount <= 0) return;
+
+    onAddPayment(formData);
+
     // Reset form
     setFormData({
       amount: 0,
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toISOString().split("T")[0],
       method: "espece",
       reference: "",
-      notes: ""
-    })
-  }
+      notes: "",
+    });
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-MA", {
       style: "currency",
       currency: "MAD",
       minimumFractionDigits: 0,
-    }).format(amount)
-  }
+    }).format(amount);
+  };
+
+  // Helper function to check if client already has an acompte
+  const hasExistingAcompte = () => {
+    const hasAcompteStatus =
+      client.statutProjet === "acompte_recu" ||
+      client.statutProjet === "acompte_verse" ||
+      client.statutProjet === "conception" ||
+      client.statutProjet === "devis_negociation" ||
+      client.statutProjet === "accepte" ||
+      client.statutProjet === "premier_depot" ||
+      client.statutProjet === "projet_en_cours" ||
+      client.statutProjet === "chantier" ||
+      client.statutProjet === "facture_reglee";
+
+    const hasPayments = client.payments && client.payments.length > 0;
+    return hasAcompteStatus || hasPayments;
+  };
 
   return (
     <AnimatePresence>
@@ -91,7 +108,11 @@ export function AddPaymentModal({
                   <DollarSign className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-[#EAEAEA]">Ajouter un acompte</h2>
+                  <h2 className="text-xl font-bold text-[#EAEAEA]">
+                    {hasExistingAcompte()
+                      ? "Ajouter nouveau paiement"
+                      : "Ajouter un acompte"}
+                  </h2>
                   <p className="text-sm text-white/40">{client.nom}</p>
                 </div>
               </div>
@@ -110,13 +131,20 @@ export function AddPaymentModal({
               {/* Amount */}
               <div>
                 <Label className="text-sm font-medium text-white/70 mb-2 block">
-                  Montant de l'acompte *
+                  {hasExistingAcompte()
+                    ? "Montant du paiement *"
+                    : "Montant de l'acompte *"}
                 </Label>
                 <div className="relative">
                   <Input
                     type="number"
                     value={formData.amount || ""}
-                    onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        amount: parseFloat(e.target.value) || 0,
+                      })
+                    }
                     placeholder="0"
                     min="0"
                     step="100"
@@ -144,7 +172,9 @@ export function AddPaymentModal({
                   <Input
                     type="date"
                     value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, date: e.target.value })
+                    }
                     required
                     className="h-12 pl-11 bg-white/5 border-white/10 text-[#EAEAEA] rounded-xl focus:border-orange-500/50"
                   />
@@ -167,12 +197,14 @@ export function AddPaymentModal({
                       type="button"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => setFormData({ ...formData, method: method.value })}
+                      onClick={() =>
+                        setFormData({ ...formData, method: method.value })
+                      }
                       className={cn(
                         "h-11 rounded-xl font-medium text-sm transition-all border",
                         formData.method === method.value
                           ? "bg-orange-500/20 border-orange-500/50 text-orange-400"
-                          : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
+                          : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10",
                       )}
                     >
                       {method.label}
@@ -189,7 +221,9 @@ export function AddPaymentModal({
                 <Input
                   type="text"
                   value={formData.reference}
-                  onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, reference: e.target.value })
+                  }
                   placeholder="N° chèque, référence virement..."
                   className="h-11 bg-white/5 border-white/10 text-[#EAEAEA] rounded-xl focus:border-orange-500/50"
                 />
@@ -202,7 +236,9 @@ export function AddPaymentModal({
                 </Label>
                 <Textarea
                   value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, notes: e.target.value })
+                  }
                   placeholder="Ajouter des notes sur ce paiement..."
                   className="min-h-[80px] bg-white/5 border-white/10 text-[#EAEAEA] rounded-xl focus:border-orange-500/50 resize-none"
                 />
@@ -216,7 +252,9 @@ export function AddPaymentModal({
                   className="flex-1 h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Check className="w-4 h-4 mr-2" />
-                  Enregistrer l'acompte
+                  {hasExistingAcompte()
+                    ? "Enregistrer le paiement"
+                    : "Enregistrer l'acompte"}
                 </Button>
                 <Button
                   type="button"
@@ -231,5 +269,5 @@ export function AddPaymentModal({
         </>
       )}
     </AnimatePresence>
-  )
+  );
 }

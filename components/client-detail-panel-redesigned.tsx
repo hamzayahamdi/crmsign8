@@ -1,33 +1,52 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import type { Client, ProjectStatus } from "@/types/client"
+import { useState, useEffect } from "react";
+import type { Client, ProjectStatus } from "@/types/client";
 import {
-  X, Phone, Mail, MessageCircle, Plus, MapPin, Building2,
-  User, Calendar, DollarSign, Edit, Trash2, FileText,
-  Send, Share2, Paperclip, Clock, ChevronDown, ChevronUp
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
-import { motion, AnimatePresence } from "framer-motion"
-import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/contexts/auth-context"
-import { calculateDurationInHours, getStatusLabel } from "@/lib/timeline-utils"
-import { hasPermission } from "@/lib/permissions"
-import { AddPaymentModal, type PaymentData } from "@/components/add-payment-modal"
-import { CreateTaskModal, type TaskData } from "@/components/create-task-modal"
-import { DocumentsModal } from "@/components/documents-modal"
-import { StatusChangeConfirmationModal } from "@/components/status-change-confirmation-modal"
-import { ProjectStatusStepperEnhanced } from "@/components/project-status-stepper-enhanced"
-import { ProjectStageContent } from "@/components/project-stage-content"
+  X,
+  Phone,
+  Mail,
+  MessageCircle,
+  Plus,
+  MapPin,
+  Building2,
+  User,
+  Calendar,
+  DollarSign,
+  Edit,
+  Trash2,
+  FileText,
+  Send,
+  Share2,
+  Paperclip,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
+import { calculateDurationInHours, getStatusLabel } from "@/lib/timeline-utils";
+import { hasPermission } from "@/lib/permissions";
+import {
+  AddPaymentModal,
+  type PaymentData,
+} from "@/components/add-payment-modal";
+import { CreateTaskModal, type TaskData } from "@/components/create-task-modal";
+import { DocumentsModal } from "@/components/documents-modal";
+import { StatusChangeConfirmationModal } from "@/components/status-change-confirmation-modal";
+import { ProjectStatusStepperEnhanced } from "@/components/project-status-stepper-enhanced";
+import { ProjectStageContent } from "@/components/project-stage-content";
 
 interface ClientDetailPanelRedesignedProps {
-  client: Client | null
-  isOpen: boolean
-  onClose: () => void
-  onUpdate?: (client: Client) => void
-  onDelete?: (client: Client) => void
+  client: Client | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate?: (client: Client) => void;
+  onDelete?: (client: Client) => void;
 }
 
 export function ClientDetailPanelRedesigned({
@@ -35,44 +54,47 @@ export function ClientDetailPanelRedesigned({
   isOpen,
   onClose,
   onUpdate,
-  onDelete
+  onDelete,
 }: ClientDetailPanelRedesignedProps) {
-  const { toast } = useToast()
-  const { user } = useAuth()
-  const [localClient, setLocalClient] = useState<Client | null>(null)
-  const [newNote, setNewNote] = useState("")
-  const [isAddingNote, setIsAddingNote] = useState(false)
-  const [showAllHistory, setShowAllHistory] = useState(false)
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [localClient, setLocalClient] = useState<Client | null>(null);
+  const [newNote, setNewNote] = useState("");
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
   // Modal states
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
-  const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false)
-  const [isStatusConfirmModalOpen, setIsStatusConfirmModalOpen] = useState(false)
-  const [pendingStatus, setPendingStatus] = useState<ProjectStatus | null>(null)
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false);
+  const [isStatusConfirmModalOpen, setIsStatusConfirmModalOpen] =
+    useState(false);
+  const [pendingStatus, setPendingStatus] = useState<ProjectStatus | null>(
+    null,
+  );
 
   // Check if user can edit status (Admin, Operator, Gestionnaire, or Architecte)
-  const canEditStatus = hasPermission(user?.role, 'clients', 'edit')
+  const canEditStatus = hasPermission(user?.role, "clients", "edit");
 
   useEffect(() => {
     if (client) {
-      setLocalClient(client)
-      setIsAddingNote(false)
-      setIsPaymentModalOpen(false)
-      setIsTaskModalOpen(false)
-      setIsDocumentsModalOpen(false)
+      setLocalClient(client);
+      setIsAddingNote(false);
+      setIsPaymentModalOpen(false);
+      setIsTaskModalOpen(false);
+      setIsDocumentsModalOpen(false);
     }
-  }, [client])
+  }, [client]);
 
-  if (!localClient) return null
+  if (!localClient) return null;
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-  }
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-MA", {
@@ -80,14 +102,14 @@ export function ClientDetailPanelRedesigned({
       currency: "MAD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   const handleAddNote = () => {
-    if (!newNote.trim()) return
+    if (!newNote.trim()) return;
 
-    const now = new Date().toISOString()
-    const userName = user?.name || 'Admin'
+    const now = new Date().toISOString();
+    const userName = user?.name || "Admin";
     const updatedClient = {
       ...localClient,
       historique: [
@@ -96,50 +118,53 @@ export function ClientDetailPanelRedesigned({
           date: now,
           type: "note" as const,
           description: newNote,
-          auteur: userName
+          auteur: userName,
         },
-        ...(localClient.historique || [])
+        ...(localClient.historique || []),
       ],
       derniereMaj: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    };
 
-    setLocalClient(updatedClient)
-    onUpdate?.(updatedClient)
-    setNewNote("")
-    setIsAddingNote(false)
+    setLocalClient(updatedClient);
+    onUpdate?.(updatedClient);
+    setNewNote("");
+    setIsAddingNote(false);
 
     toast({
       title: "Note ajoutée",
       description: "La note a été enregistrée avec succès",
-    })
-  }
+    });
+  };
 
   const handleStatusChange = (newStatus: ProjectStatus) => {
     if (!canEditStatus) {
       toast({
         title: "Accès refusé",
-        description: "Vous n'avez pas la permission de modifier le statut du projet",
-        variant: "destructive"
-      })
-      return
+        description:
+          "Vous n'avez pas la permission de modifier le statut du projet",
+        variant: "destructive",
+      });
+      return;
     }
 
-    if (newStatus === localClient.statutProjet) return
+    if (newStatus === localClient.statutProjet) return;
 
-    setPendingStatus(newStatus)
-    setIsStatusConfirmModalOpen(true)
-  }
+    setPendingStatus(newStatus);
+    setIsStatusConfirmModalOpen(true);
+  };
 
   const confirmStatusChange = (selectedStatus: ProjectStatus) => {
-    const now = new Date().toISOString()
-    const userName = user?.name || 'Admin'
+    const now = new Date().toISOString();
+    const userName = user?.name || "Admin";
 
     // Calculate duration in previous status
-    const previousStatus = localClient.statutProjet
-    const lastStatusChange = localClient.historique?.find(h => h.type === 'statut')
-    const timestampStart = lastStatusChange?.date || localClient.createdAt
-    const durationInHours = calculateDurationInHours(timestampStart, now)
+    const previousStatus = localClient.statutProjet;
+    const lastStatusChange = localClient.historique?.find(
+      (h) => h.type === "statut",
+    );
+    const timestampStart = lastStatusChange?.date || localClient.createdAt;
+    const durationInHours = calculateDurationInHours(timestampStart, now);
 
     const updatedClient = {
       ...localClient,
@@ -148,48 +173,47 @@ export function ClientDetailPanelRedesigned({
         {
           id: `hist-${Date.now()}`,
           date: now,
-          type: 'statut' as const,
+          type: "statut" as const,
           description: `Statut changé: ${getStatusLabel(previousStatus)} → ${getStatusLabel(selectedStatus)}`,
           auteur: userName,
           previousStatus,
           newStatus: selectedStatus,
           durationInHours,
           timestampStart,
-          timestampEnd: now
+          timestampEnd: now,
         },
-        ...(localClient.historique || [])
+        ...(localClient.historique || []),
       ],
       derniereMaj: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    };
 
-    setLocalClient(updatedClient)
-    onUpdate?.(updatedClient)
-    setIsStatusConfirmModalOpen(false)
-    setPendingStatus(null)
-
+    setLocalClient(updatedClient);
+    onUpdate?.(updatedClient);
+    setIsStatusConfirmModalOpen(false);
+    setPendingStatus(null);
     toast({
       title: "Statut mis à jour",
       description: `Le projet est maintenant à l'étape: ${getStatusLabel(selectedStatus)}`,
-    })
-  }
+    });
+  };
 
   const handleWhatsApp = () => {
-    const phone = localClient.telephone.replace(/\s/g, '')
-    window.open(`https://wa.me/${phone}`, '_blank')
-  }
+    const phone = localClient.telephone.replace(/\s/g, "");
+    window.open(`https://wa.me/${phone}`, "_blank");
+  };
 
   const handleDeleteClient = () => {
-    if (!onDelete) return
-    onDelete(localClient)
-    onClose()
-  }
+    if (!onDelete) return;
+    onDelete(localClient);
+    onClose();
+  };
 
   const handleAddPayment = (payment: PaymentData) => {
-    const now = new Date().toISOString()
-    const userName = user?.name || 'Admin'
+    const now = new Date().toISOString();
+    const userName = user?.name || "Admin";
 
-    const newPayment: import('@/types/client').Payment = {
+    const newPayment: import("@/types/client").Payment = {
       id: `pay-${Date.now()}`,
       amount: payment.amount,
       date: payment.date,
@@ -197,254 +221,261 @@ export function ClientDetailPanelRedesigned({
       reference: payment.reference,
       notes: payment.notes,
       createdBy: userName,
-      createdAt: now
-    }
+      createdAt: now,
+    };
 
     const updatedClient = {
       ...localClient,
-      payments: [
-        newPayment,
-        ...(localClient.payments || [])
-      ],
+      payments: [newPayment, ...(localClient.payments || [])],
       historique: [
         {
           id: `hist-${Date.now()}`,
           date: now,
-          type: 'acompte' as const,
-          description: `Acompte reçu: ${formatCurrency(payment.amount)} (${payment.method})${payment.reference ? ` - Réf: ${payment.reference}` : ''}`,
+          type: "acompte" as const,
+          description: `Acompte reçu: ${formatCurrency(payment.amount)} (${payment.method})${payment.reference ? ` - Réf: ${payment.reference}` : ""}`,
           auteur: userName,
-          metadata: { paymentId: newPayment.id }
+          metadata: { paymentId: newPayment.id },
         },
-        ...(localClient.historique || [])
+        ...(localClient.historique || []),
       ],
       derniereMaj: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    };
 
-    setLocalClient(updatedClient)
-    onUpdate?.(updatedClient)
-    setIsPaymentModalOpen(false)
+    setLocalClient(updatedClient);
+    onUpdate?.(updatedClient);
+    setIsPaymentModalOpen(false);
 
     toast({
       title: "Acompte enregistré",
       description: `${formatCurrency(payment.amount)} ajouté avec succès`,
-    })
-  }
+    });
+  };
 
   const handleAddTask = (task: TaskData) => {
-    const now = new Date().toISOString()
-    const userName = user?.name || 'Admin'
+    const now = new Date().toISOString();
+    const userName = user?.name || "Admin";
     const updatedClient = {
       ...localClient,
       historique: [
         {
           id: `hist-${Date.now()}`,
           date: now,
-          type: 'tache' as const,
+          type: "tache" as const,
           description: `Tâche créée: ${task.title} (Assigné à ${task.assignedTo})`,
-          auteur: userName
+          auteur: userName,
         },
-        ...(localClient.historique || [])
+        ...(localClient.historique || []),
       ],
       derniereMaj: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    };
 
-    setLocalClient(updatedClient)
-    onUpdate?.(updatedClient)
-    setIsTaskModalOpen(false)
+    setLocalClient(updatedClient);
+    onUpdate?.(updatedClient);
+    setIsTaskModalOpen(false);
 
     toast({
       title: "Tâche créée",
       description: task.title,
-    })
-  }
+    });
+  };
 
   const handleDocumentUpload = (documents: any[]) => {
-    const now = new Date().toISOString()
-    const userName = user?.name || 'Admin'
+    const now = new Date().toISOString();
+    const userName = user?.name || "Admin";
 
     const updatedClient = {
       ...localClient,
-      documents: [
-        ...(localClient.documents || []),
-        ...documents
-      ],
+      documents: [...(localClient.documents || []), ...documents],
       historique: [
         {
           id: `hist-${Date.now()}`,
           date: now,
-          type: 'document' as const,
+          type: "document" as const,
           description: `${documents.length} document(s) ajouté(s)`,
-          auteur: userName
+          auteur: userName,
         },
-        ...(localClient.historique || [])
+        ...(localClient.historique || []),
       ],
       derniereMaj: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    };
 
-    setLocalClient(updatedClient)
-    onUpdate?.(updatedClient)
+    setLocalClient(updatedClient);
+    onUpdate?.(updatedClient);
 
     toast({
       title: "Documents ajoutés",
       description: `${documents.length} document(s) ajouté(s) avec succès`,
-    })
-  }
+    });
+  };
 
   const handleStageAction = (action: string, data?: any) => {
-    const now = new Date().toISOString()
-    const userName = user?.name || 'Admin'
+    const now = new Date().toISOString();
+    const userName = user?.name || "Admin";
 
     switch (action) {
-      case 'add_payment':
-      case 'view_payments':
-      case 'prepare_deposit':
-        setIsPaymentModalOpen(true)
-        break
-      case 'add_note':
-        setIsAddingNote(true)
-        break
-      case 'add_task':
-        setIsTaskModalOpen(true)
-        break
-      case 'view_documents':
-      case 'upload_design':
-      case 'upload_photos':
-      case 'upload_site_photos':
-      case 'view_gallery':
-        setIsDocumentsModalOpen(true)
-        break
-      case 'share_client':
-        if (typeof window !== 'undefined') {
-          const shareUrl = `${window.location.origin}/clients/${localClient.id}`
-          navigator.clipboard.writeText(shareUrl).then(() => {
-            toast({
-              title: "Lien copié",
-              description: "Le lien du projet a été copié dans le presse-papier",
+      case "add_payment":
+      case "view_payments":
+      case "prepare_deposit":
+        setIsPaymentModalOpen(true);
+        break;
+      case "add_note":
+        setIsAddingNote(true);
+        break;
+      case "add_task":
+        setIsTaskModalOpen(true);
+        break;
+      case "view_documents":
+      case "upload_design":
+      case "upload_photos":
+      case "upload_site_photos":
+      case "view_gallery":
+        setIsDocumentsModalOpen(true);
+        break;
+      case "share_client":
+        if (typeof window !== "undefined") {
+          const shareUrl = `${window.location.origin}/clients/${localClient.id}`;
+          navigator.clipboard
+            .writeText(shareUrl)
+            .then(() => {
+              toast({
+                title: "Lien copié",
+                description:
+                  "Le lien du projet a été copié dans le presse-papier",
+              });
             })
-          }).catch(() => {
-            toast({
-              title: "Lien de partage",
-              description: shareUrl,
-            })
-          })
+            .catch(() => {
+              toast({
+                title: "Lien de partage",
+                description: shareUrl,
+              });
+            });
         }
-        break
-      case 'schedule_meeting':
-      case 'schedule_delivery':
+        break;
+      case "schedule_meeting":
+      case "schedule_delivery":
         // Store client context for calendar
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('calendar_client_context', JSON.stringify({
-            clientId: localClient.id,
-            clientName: localClient.nom,
-            action: action === 'schedule_meeting' ? 'meeting' : 'delivery'
-          }))
-          window.location.href = '/calendrier'
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem(
+            "calendar_client_context",
+            JSON.stringify({
+              clientId: localClient.id,
+              clientName: localClient.nom,
+              action: action === "schedule_meeting" ? "meeting" : "delivery",
+            }),
+          );
+          window.location.href = "/calendrier";
         }
         toast({
           title: "Redirection",
           description: "Ouverture du calendrier...",
-        })
-        break
-      case 'edit_client':
+        });
+        break;
+      case "edit_client":
         toast({
           title: "Modification",
           description: "Fonctionnalité de modification à venir",
-        })
-        break
-      case 'start_conception':
-        handleStatusChange('conception')
-        break
-      case 'create_quote':
-      case 'send_quote':
+        });
+        break;
+      case "start_conception":
+        handleStatusChange("conception");
+        break;
+      case "create_quote":
+      case "send_quote":
         toast({
           title: "Devis",
           description: "Fonctionnalité de devis à venir",
-        })
-        break
-      case 'mark_accepted':
-        handleStatusChange('accepte')
-        break
-      case 'mark_refused':
-        handleStatusChange('refuse')
-        break
-      case 'generate_contract':
-      case 'upload_signed':
-        setIsDocumentsModalOpen(true)
+        });
+        break;
+      case "mark_accepted":
+        handleStatusChange("accepte");
+        break;
+      case "mark_refused":
+        handleStatusChange("refuse");
+        break;
+      case "generate_contract":
+      case "upload_signed":
+        setIsDocumentsModalOpen(true);
         toast({
           title: "Contrat",
           description: "Téléchargez le contrat dans la section documents",
-        })
-        break
-      case 'archive':
+        });
+        break;
+      case "archive":
         toast({
           title: "Archivage",
           description: "Fonctionnalité d'archivage à venir",
-        })
-        break
-      case 'new_proposal':
-        setIsAddingNote(true)
+        });
+        break;
+      case "new_proposal":
+        setIsAddingNote(true);
         toast({
           title: "Nouvelle proposition",
-          description: "Ajoutez une note avec les détails de la nouvelle proposition",
-        })
-        break
-      case 'start_project':
-        handleStatusChange('projet_en_cours')
-        break
-      case 'view_timeline':
+          description:
+            "Ajoutez une note avec les détails de la nouvelle proposition",
+        });
+        break;
+      case "start_project":
+        handleStatusChange("projet_en_cours");
+        break;
+      case "view_timeline":
         toast({
           title: "Planning",
           description: "Fonctionnalité de planning à venir",
-        })
-        break
-      case 'update_progress':
-        setIsAddingNote(true)
+        });
+        break;
+      case "update_progress":
+        setIsAddingNote(true);
         toast({
           title: "Mise à jour",
           description: "Ajoutez une note pour documenter l'avancement",
-        })
-        break
-      case 'view_invoice':
-      case 'upload_proof':
-        setIsDocumentsModalOpen(true)
-        break
-      case 'view_summary':
+        });
+        break;
+      case "view_invoice":
+      case "upload_proof":
+        setIsDocumentsModalOpen(true);
+        break;
+      case "view_summary":
         toast({
           title: "Récapitulatif",
           description: "Affichage du récapitulatif du projet",
-        })
-        break
-      case 'add_review':
-      case 'request_testimonial':
-        setIsAddingNote(true)
+        });
+        break;
+      case "add_review":
+      case "request_testimonial":
+        setIsAddingNote(true);
         toast({
           title: "Avis client",
-          description: "Ajoutez une note avec l'avis ou le témoignage du client",
-        })
-        break
+          description:
+            "Ajoutez une note avec l'avis ou le témoignage du client",
+        });
+        break;
       default:
         toast({
           title: "Action",
           description: `Action "${action}" déclenchée`,
-        })
+        });
     }
-  }
+  };
 
-  const allHistory = [...(localClient.historique || [])]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  const allHistory = [...(localClient.historique || [])].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
 
-  const displayedHistory = showAllHistory ? allHistory : allHistory.slice(0, 5)
-  const hasMoreHistory = allHistory.length > 5
+  const displayedHistory = showAllHistory ? allHistory : allHistory.slice(0, 5);
+  const hasMoreHistory = allHistory.length > 5;
 
   // Calculate project summary based on devis
   const devisList = localClient.devis || [];
-  const acceptedDevis = devisList.filter(d => d.statut === "accepte");
+  const acceptedDevis = devisList.filter((d) => d.statut === "accepte");
   const totalAccepted = acceptedDevis.reduce((sum, d) => sum + d.montant, 0);
-  const totalPaid = acceptedDevis.filter(d => d.facture_reglee).reduce((sum, d) => sum + d.montant, 0);
-  const progressPercentage = totalAccepted > 0 ? Math.round((totalPaid / totalAccepted) * 100) : 0;
+  const totalPaid = acceptedDevis
+    .filter((d) => d.facture_reglee)
+    .reduce((sum, d) => sum + d.montant, 0);
+  const progressPercentage =
+    totalAccepted > 0 ? Math.round((totalPaid / totalAccepted) * 100) : 0;
 
   return (
     <AnimatePresence>
@@ -464,7 +495,12 @@ export function ClientDetailPanelRedesigned({
             initial={{ x: "100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 35, stiffness: 350, mass: 0.8 }}
+            transition={{
+              type: "spring",
+              damping: 35,
+              stiffness: 350,
+              mass: 0.8,
+            }}
             className="fixed right-0 top-0 h-full w-full md:w-[800px] lg:w-[900px] bg-[#0D0D12] shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
@@ -509,19 +545,32 @@ export function ClientDetailPanelRedesigned({
                   {/* Quick Stats */}
                   <div className="mt-4 flex flex-wrap gap-3">
                     <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10">
-                      <div className="text-xs text-white/50 mb-0.5">Paiements</div>
-                      <div className="text-lg font-bold text-white">{progressPercentage}%</div>
+                      <div className="text-xs text-white/50 mb-0.5">
+                        Paiements
+                      </div>
+                      <div className="text-lg font-bold text-white">
+                        {progressPercentage}%
+                      </div>
                     </div>
                     {totalAccepted > 0 && (
                       <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10">
-                        <div className="text-xs text-white/50 mb-0.5">Devis acceptés</div>
-                        <div className="text-lg font-bold text-white">{formatCurrency(totalAccepted)}</div>
+                        <div className="text-xs text-white/50 mb-0.5">
+                          Devis acceptés
+                        </div>
+                        <div className="text-lg font-bold text-white">
+                          {formatCurrency(totalAccepted)}
+                        </div>
                       </div>
                     )}
                     <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10">
-                      <div className="text-xs text-white/50 mb-0.5">Dernière MAJ</div>
+                      <div className="text-xs text-white/50 mb-0.5">
+                        Dernière MAJ
+                      </div>
                       <div className="text-sm font-medium text-white">
-                        {new Date(localClient.derniereMaj).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                        {new Date(localClient.derniereMaj).toLocaleDateString(
+                          "fr-FR",
+                          { day: "numeric", month: "short" },
+                        )}
                       </div>
                     </div>
                   </div>
@@ -537,7 +586,9 @@ export function ClientDetailPanelRedesigned({
               >
                 <ProjectStatusStepperEnhanced
                   currentStatus={localClient.statutProjet}
-                  onStatusChange={canEditStatus ? handleStatusChange : undefined}
+                  onStatusChange={
+                    canEditStatus ? handleStatusChange : undefined
+                  }
                   interactive={canEditStatus}
                   lastUpdated={localClient.derniereMaj}
                 />
@@ -579,7 +630,9 @@ export function ClientDetailPanelRedesigned({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Phone className="w-4 h-4 text-white/40" />
-                        <span className="text-sm text-white">{localClient.telephone}</span>
+                        <span className="text-sm text-white">
+                          {localClient.telephone}
+                        </span>
                       </div>
                       <Button
                         size="sm"
@@ -593,13 +646,17 @@ export function ClientDetailPanelRedesigned({
                     {localClient.email && (
                       <div className="flex items-center gap-3">
                         <Mail className="w-4 h-4 text-white/40" />
-                        <span className="text-sm text-white">{localClient.email}</span>
+                        <span className="text-sm text-white">
+                          {localClient.email}
+                        </span>
                       </div>
                     )}
                     {localClient.adresse && (
                       <div className="flex items-center gap-3">
                         <MapPin className="w-4 h-4 text-white/40" />
-                        <span className="text-sm text-white">{localClient.adresse}</span>
+                        <span className="text-sm text-white">
+                          {localClient.adresse}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -638,7 +695,10 @@ export function ClientDetailPanelRedesigned({
                         variant="ghost"
                       >
                         <DollarSign className="w-4 h-4 mr-2" />
-                        Ajouter acompte
+                        {client.statutProjet === "acompte_recu" ||
+                        (client.payments && client.payments.length > 0)
+                          ? "Ajouter nouveau paiement"
+                          : "Ajouter acompte"}
                       </Button>
                       <Button
                         onClick={() => setIsDocumentsModalOpen(true)}
@@ -650,7 +710,10 @@ export function ClientDetailPanelRedesigned({
                       </Button>
                       <Button
                         onClick={() => {
-                          toast({ title: "Partage", description: "Génération du lien de partage..." })
+                          toast({
+                            title: "Partage",
+                            description: "Génération du lien de partage...",
+                          });
                         }}
                         className="w-full justify-start h-10 bg-white/5 hover:bg-white/10 text-white border border-white/10"
                         variant="ghost"
@@ -661,18 +724,19 @@ export function ClientDetailPanelRedesigned({
                     </div>
 
                     {/* Delete button - only visible for Admin and Operator */}
-                    {onDelete && hasPermission(user?.role, 'clients', 'delete') && (
-                      <div className="mt-4 pt-4 border-t border-white/5">
-                        <Button
-                          onClick={handleDeleteClient}
-                          className="w-full justify-start h-10 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
-                          variant="ghost"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Supprimer client
-                        </Button>
-                      </div>
-                    )}
+                    {onDelete &&
+                      hasPermission(user?.role, "clients", "delete") && (
+                        <div className="mt-4 pt-4 border-t border-white/5">
+                          <Button
+                            onClick={handleDeleteClient}
+                            className="w-full justify-start h-10 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                            variant="ghost"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Supprimer client
+                          </Button>
+                        </div>
+                      )}
                   </div>
 
                   {/* Add Note Form */}
@@ -702,8 +766,8 @@ export function ClientDetailPanelRedesigned({
                             </Button>
                             <Button
                               onClick={() => {
-                                setIsAddingNote(false)
-                                setNewNote("")
+                                setIsAddingNote(false);
+                                setNewNote("");
                               }}
                               size="sm"
                               variant="ghost"
@@ -726,7 +790,9 @@ export function ClientDetailPanelRedesigned({
                           Historique
                         </h3>
                       </div>
-                      <span className="text-xs text-white/30">{allHistory.length}</span>
+                      <span className="text-xs text-white/30">
+                        {allHistory.length}
+                      </span>
                     </div>
 
                     {displayedHistory.length > 0 ? (
@@ -740,15 +806,20 @@ export function ClientDetailPanelRedesigned({
                             >
                               <div className="flex items-start gap-2 mb-1.5">
                                 <div className="text-xs text-white/50">
-                                  {new Date(entry.date).toLocaleDateString('fr-FR', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
+                                  {new Date(entry.date).toLocaleDateString(
+                                    "fr-FR",
+                                    {
+                                      day: "numeric",
+                                      month: "short",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    },
+                                  )}
                                 </div>
                                 <div className="text-xs text-white/40">•</div>
-                                <div className="text-xs text-white/60">{entry.auteur}</div>
+                                <div className="text-xs text-white/60">
+                                  {entry.auteur}
+                                </div>
                               </div>
                               <p className="text-sm text-white/80 leading-relaxed">
                                 {entry.description}
@@ -818,7 +889,9 @@ export function ClientDetailPanelRedesigned({
                 animate={{ scale: 1, opacity: 1 }}
                 className="bg-[#171B22] rounded-2xl border border-white/10 p-6 max-w-md w-full"
               >
-                <h3 className="text-xl font-bold text-white mb-2">Confirmer le changement de statut</h3>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  Confirmer le changement de statut
+                </h3>
                 <p className="text-white/60 mb-6">
                   Voulez-vous changer le statut du projet à "{pendingStatus}" ?
                 </p>
@@ -831,8 +904,8 @@ export function ClientDetailPanelRedesigned({
                   </Button>
                   <Button
                     onClick={() => {
-                      setIsStatusConfirmModalOpen(false)
-                      setPendingStatus(null)
+                      setIsStatusConfirmModalOpen(false);
+                      setPendingStatus(null);
                     }}
                     variant="ghost"
                     className="flex-1 bg-white/5 hover:bg-white/10 text-white"
@@ -846,5 +919,5 @@ export function ClientDetailPanelRedesigned({
         </>
       )}
     </AnimatePresence>
-  )
+  );
 }

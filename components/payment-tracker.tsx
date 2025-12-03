@@ -1,38 +1,42 @@
-"use client"
+"use client";
 
-import { DollarSign, Check, Clock } from "lucide-react"
-import { motion } from "framer-motion"
-import { cn } from "@/lib/utils"
-import type { Payment } from "@/types/client"
+import { DollarSign, Check, Clock } from "lucide-react";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import type { Payment } from "@/types/client";
 
 interface PaymentTrackerProps {
-  payments: Payment[]
-  budget?: number
-  className?: string
+  payments: Payment[];
+  budget?: number;
+  className?: string;
 }
 
-export function PaymentTracker({ payments = [], budget, className }: PaymentTrackerProps) {
-  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
-  const paymentCount = payments.length
-  const percentagePaid = budget ? Math.min((totalPaid / budget) * 100, 100) : 0
-  const remaining = budget ? Math.max(budget - totalPaid, 0) : 0
+export function PaymentTracker({
+  payments = [],
+  budget,
+  className,
+}: PaymentTrackerProps) {
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+  const paymentCount = payments.length;
+  const percentagePaid = budget ? Math.min((totalPaid / budget) * 100, 100) : 0;
+  const remaining = budget ? Math.max(budget - totalPaid, 0) : 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-MA", {
       style: "currency",
       currency: "MAD",
       minimumFractionDigits: 0,
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   const getPaymentMethodLabel = (method: string) => {
     const labels = {
       espece: "Espèce",
       virement: "Virement",
-      cheque: "Chèque"
-    }
-    return labels[method as keyof typeof labels] || method
-  }
+      cheque: "Chèque",
+    };
+    return labels[method as keyof typeof labels] || method;
+  };
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -44,13 +48,17 @@ export function PaymentTracker({ payments = [], budget, className }: PaymentTrac
               <DollarSign className="w-4 h-4 text-emerald-400" />
             </div>
             <div>
-              <div className="text-xs text-white/40">Total des acomptes</div>
-              <div className="text-lg font-bold text-emerald-400">{formatCurrency(totalPaid)}</div>
+              <div className="text-xs text-white/40">Total des paiements</div>
+              <div className="text-lg font-bold text-emerald-400">
+                {formatCurrency(totalPaid)}
+              </div>
             </div>
           </div>
           <div className="text-right">
             <div className="text-xs text-white/40">Nombre de paiements</div>
-            <div className="text-lg font-bold text-white/80">{paymentCount}</div>
+            <div className="text-lg font-bold text-white/80">
+              {paymentCount}
+            </div>
           </div>
         </div>
 
@@ -59,7 +67,9 @@ export function PaymentTracker({ payments = [], budget, className }: PaymentTrac
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-white/40">Progression</span>
-              <span className="text-emerald-400 font-medium">{percentagePaid.toFixed(0)}%</span>
+              <span className="text-emerald-400 font-medium">
+                {percentagePaid.toFixed(0)}%
+              </span>
             </div>
             <div className="h-2 bg-white/5 rounded-full overflow-hidden">
               <motion.div
@@ -70,14 +80,18 @@ export function PaymentTracker({ payments = [], budget, className }: PaymentTrac
               />
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-white/30">Restant: {formatCurrency(remaining)}</span>
-              <span className="text-white/30">Budget: {formatCurrency(budget)}</span>
+              <span className="text-white/30">
+                Restant: {formatCurrency(remaining)}
+              </span>
+              <span className="text-white/30">
+                Budget: {formatCurrency(budget)}
+              </span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Payment List */} 
+      {/* Payment List */}
       {paymentCount > 0 && (
         <div className="space-y-2">
           <div className="text-xs font-semibold text-white/40 uppercase tracking-wider px-1">
@@ -107,10 +121,10 @@ export function PaymentTracker({ payments = [], budget, className }: PaymentTrac
                     <div className="flex items-center gap-2 text-xs text-white/30">
                       <Clock className="w-3 h-3" />
                       <span>
-                        {new Date(payment.date).toLocaleDateString('fr-FR', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
+                        {new Date(payment.date).toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
                         })}
                       </span>
                       {payment.reference && (
@@ -127,7 +141,9 @@ export function PaymentTracker({ payments = [], budget, className }: PaymentTrac
                     )}
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="text-xs text-white/30">{payment.createdBy}</div>
+                    <div className="text-xs text-white/30">
+                      {payment.createdBy}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -142,10 +158,10 @@ export function PaymentTracker({ payments = [], budget, className }: PaymentTrac
           <DollarSign className="w-8 h-8 text-white/20 mx-auto mb-2" />
           <p className="text-sm text-white/40">Aucun acompte enregistré</p>
           <p className="text-xs text-white/30 mt-1">
-            Utilisez le bouton "Ajouter acompte" pour enregistrer un paiement
+            Utilisez le bouton "Ajouter paiement" pour enregistrer un paiement
           </p>
         </div>
       )}
     </div>
-  )
+  );
 }

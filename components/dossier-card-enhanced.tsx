@@ -15,8 +15,8 @@ interface DossierCardEnhancedProps {
 
 export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEnhancedProps) {
   const router = useRouter()
-  
-  const statusConfig: Record<ProjectStatus, { 
+
+  const statusConfig: Record<ProjectStatus, {
     label: string
     color: string
     bgColor: string
@@ -167,8 +167,8 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString('fr-FR', { 
-      day: 'numeric', 
+    return date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
       month: 'short',
       year: 'numeric'
     })
@@ -204,9 +204,16 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
-          <h3 className="text-base font-semibold text-white mb-1 truncate group-hover:text-primary transition-colors">
-            {client.nom}
+          {/* Opportunity/Project Name as Main Title */}
+          <h3 className="text-base font-bold text-white mb-1.5 truncate group-hover:text-primary transition-colors">
+            {client.nomProjet || client.nom}
           </h3>
+          {/* Client Name as Secondary Info */}
+          {client.nomProjet && (
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
+              <span className="truncate">Client: {client.nom}</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
             <span className="truncate">{client.typeProjet}</span>

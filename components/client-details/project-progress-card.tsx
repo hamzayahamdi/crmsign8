@@ -12,7 +12,7 @@ import { DocumentsModal } from "@/components/documents-modal"
 
 interface ProjectProgressCardProps {
   client: Client
-  onUpdate: (client: Client) => void
+  onUpdate: (client: Client, skipApiCall?: boolean) => void
 }
 
 interface ActionStep {
@@ -29,7 +29,7 @@ export function ProjectProgressCard({ client, onUpdate }: ProjectProgressCardPro
   const { user } = useAuth()
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false)
-  
+
   // Calculate based on devis instead of budget
   const devisList = client.devis || []
   const acceptedDevis = devisList.filter(d => d.statut === "accepte")
@@ -48,51 +48,93 @@ export function ProjectProgressCard({ client, onUpdate }: ProjectProgressCardPro
     }
   }
 
-  const handleAddPayment = (payment: PaymentData) => {
+  const handleAddPayment = async (payment: PaymentData) => {
     const now = new Date().toISOString()
     const userName = user?.name || 'Admin'
-    
-    const newPayment: import('@/types/client').Payment = {
-      id: `pay-${Date.now()}`,
-      amount: payment.amount,
-      date: payment.date,
-      method: payment.method as "espece" | "virement" | "cheque",
-      reference: payment.reference,
-      notes: payment.notes,
-      createdBy: userName,
-      createdAt: now
-    }
-    
-    const updatedClient = {
-      ...client,
-      payments: [newPayment, ...(client.payments || [])],
-      historique: [
-        {
-          id: `hist-${Date.now()}`,
-          date: now,
-          type: 'acompte' as const,
-          description: `Acompte reçu: ${payment.amount.toLocaleString()} MAD (${payment.method})`,
-          auteur: userName,
-          metadata: { paymentId: newPayment.id }
-        },
-        ...(client.historique || [])
-      ],
-      derniereMaj: now,
-      updatedAt: now
-    }
 
-    onUpdate(updatedClient)
-    setIsPaymentModalOpen(false)
-    toast({
-      title: "Acompte enregistré",
-      description: `${payment.amount.toLocaleString()} MAD ajouté avec succès`,
-    })
+    try {
+      // Determine payment type before API call
+      const hasAcompteStatus =
+        client.statutProjet === "acompte_recu" ||
+        client.statutProjet === "acompte_verse" ||
+        client.statutProjet === "conception" ||
+        client.statutProjet === "devis_negociation" ||
+        client.statutProjet === "accepte" ||
+        client.statutProjet === "premier_depot" ||
+        client.statutProjet === "projet_en_cours" ||
+        client.statutProjet === "chantier" ||
+        client.statutProjet === "facture_reglee"
+
+      const hasPayments = client.payments && client.payments.length > 0
+      const isFirstPayment = !hasAcompteStatus && !hasPayments
+      const paymentType = isFirstPayment ? "acompte" : "paiement"
+      const paymentTypeCapitalized = isFirstPayment ? "Acompte" : "Paiement"
+
+      // Save to database via API
+      const response = await fetch(`/api/clients/${client.id}/payments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          montant: payment.amount,
+          date: payment.date,
+          methode: payment.method,
+          reference: payment.reference || "",
+          description: payment.notes || "",
+          createdBy: userName,
+          paymentType: paymentType,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to add payment")
+      }
+
+      const result = await response.json()
+      console.log("[Add Payment] Payment created in database:", result.data)
+      console.log("[Add Payment] Stage progressed:", result.stageProgressed)
+
+      // Force refresh client data to ensure payments show up
+      const clientResponse = await fetch(`/api/clients/${client.id}`, {
+        credentials: "include",
+      })
+
+      if (clientResponse.ok) {
+        const clientResult = await clientResponse.json()
+        // IMPORTANT: Use skipApiCall=true to prevent cascading updates
+        onUpdate(clientResult.data, true)
+        console.log("[Add Payment] Updated client data:", {
+          statutProjet: clientResult.data.statutProjet,
+          paymentsCount: clientResult.data.payments?.length || 0,
+        })
+      }
+
+      setIsPaymentModalOpen(false)
+
+      // Check if stage was auto-progressed
+      const wasAutoProgressed = result.stageProgressed || false
+
+      toast({
+        title: `${paymentTypeCapitalized} enregistré`,
+        description: wasAutoProgressed
+          ? `${payment.amount.toLocaleString()} MAD ajouté avec succès. Statut changé automatiquement vers "Acompte reçu"."`
+          : `${payment.amount.toLocaleString()} MAD de ${paymentType} ajouté avec succès`,
+      })
+    } catch (error) {
+      console.error("[Add Payment] Error:", error)
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer le paiement. Veuillez réessayer.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleDocumentsAdded = (documents: any[]) => {
     const now = new Date().toISOString()
     const userName = user?.name || 'Admin'
-    
+
     const updatedClient = {
       ...client,
       documents: [...(client.documents || []), ...documents],
@@ -120,7 +162,7 @@ export function ProjectProgressCard({ client, onUpdate }: ProjectProgressCardPro
   const handleStatusChange = (newStatus: ProjectStatus) => {
     const now = new Date().toISOString()
     const userName = user?.name || 'Admin'
-    
+
     const updatedClient = {
       ...client,
       statutProjet: newStatus,
@@ -148,7 +190,7 @@ export function ProjectProgressCard({ client, onUpdate }: ProjectProgressCardPro
   const handleAddNote = (noteText: string) => {
     const now = new Date().toISOString()
     const userName = user?.name || 'Admin'
-    
+
     const updatedClient = {
       ...client,
       historique: [
@@ -164,7 +206,7 @@ export function ProjectProgressCard({ client, onUpdate }: ProjectProgressCardPro
       derniereMaj: now,
       updatedAt: now
     }
-    
+
     onUpdate(updatedClient)
     toast({
       title: "Note ajoutée",
@@ -428,7 +470,7 @@ export function ProjectProgressCard({ client, onUpdate }: ProjectProgressCardPro
           <TrendingUp className="w-4 h-4 text-blue-400" />
           <h3 className="text-sm font-semibold text-white">Actions recommandées</h3>
         </div>
-        
+
         {actionSteps.length > 0 ? (
           <div className="space-y-3">
             {actionSteps.map((step, index) => (

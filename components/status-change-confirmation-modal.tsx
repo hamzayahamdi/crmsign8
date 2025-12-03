@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import type { ProjectStatus } from "@/types/client"
+import type { ProjectStatus } from "@/types/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,15 +10,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 
 interface StatusChangeConfirmationModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onConfirm: (newStatus: ProjectStatus) => void
-  currentStatus: ProjectStatus
-  newStatus: ProjectStatus
-  clientName: string
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (newStatus: ProjectStatus) => void;
+  currentStatus: ProjectStatus;
+  newStatus: ProjectStatus;
+  clientName: string;
 }
 
 const statusLabels: Record<ProjectStatus, string> = {
@@ -31,7 +31,7 @@ const statusLabels: Record<ProjectStatus, string> = {
   termine: "Terminé",
   annule: "Annulé",
   suspendu: "Suspendu",
-}
+};
 
 export function StatusChangeConfirmationModal({
   isOpen,
@@ -42,7 +42,12 @@ export function StatusChangeConfirmationModal({
   clientName,
 }: StatusChangeConfirmationModalProps) {
   return (
-    <AlertDialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
+    <AlertDialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <AlertDialogContent className="glass border-border/40">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-xl">
@@ -50,12 +55,18 @@ export function StatusChangeConfirmationModal({
           </AlertDialogTitle>
           <AlertDialogDescription className="text-base">
             Vous êtes sur le point de changer le statut du projet de
-            <span className="font-semibold text-foreground"> {statusLabels[currentStatus]} </span>
+            <span className="font-semibold text-foreground">
+              {" "}
+              {statusLabels[currentStatus]}{" "}
+            </span>
             à
-            <span className="font-semibold text-foreground"> {statusLabels[newStatus]} </span>
+            <span className="font-semibold text-foreground">
+              {" "}
+              {statusLabels[newStatus]}{" "}
+            </span>
             pour le client
-            <span className="font-semibold text-foreground"> {clientName}</span>.
-            Cette action sera enregistrée dans l'historique.
+            <span className="font-semibold text-foreground"> {clientName}</span>
+            . Cette action sera enregistrée dans l'historique.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -71,5 +82,5 @@ export function StatusChangeConfirmationModal({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  )
+  );
 }
