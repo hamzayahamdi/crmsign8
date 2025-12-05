@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { CommercialAddLeadModal } from "@/components/commercial-add-lead-modal"
 import { CommercialLeadsTable } from "@/components/commercial-leads-table"
-import { LeadModalRedesigned } from "@/components/lead-modal-redesigned"
+import { LeadModalEnhanced } from "@/components/lead-modal-enhanced"
 import { Plus, Building2, TrendingUp, Users, Loader2, Sparkles, Search } from "lucide-react"
 import { toast } from "sonner"
 import { useDebounce } from "@/hooks/use-debounce"
@@ -285,14 +285,13 @@ export default function CommercialDashboard() {
       />
 
       {selectedLead && (
-        <LeadModalRedesigned
+        <LeadModalEnhanced
           lead={selectedLead}
           open={viewModalOpen}
           onOpenChange={setViewModalOpen}
           onSave={handleSaveLead}
           currentUserRole={user.role}
           currentUserName={user.name}
-          currentUserMagasin={user.magasin}
         />
       )}
     </div>
