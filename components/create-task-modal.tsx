@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, ListTodo, Calendar as CalendarIcon, User, Flag, Check } from "lucide-react"
+import { X, ListTodo, Calendar as CalendarIcon, User, Flag, Check, Phone, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -29,6 +29,8 @@ export interface TaskData {
   priority: "low" | "medium" | "high"
   assignedTo: string
   status: "pending"
+  clientId?: string
+  clientName?: string
 }
 
 interface User {
@@ -53,15 +55,30 @@ export function CreateTaskModal({
     dueDate: format(new Date(), "yyyy-MM-dd"),
     priority: "medium",
     assignedTo: client.architecteAssigne,
-    status: "pending"
+    status: "pending",
+    clientId: client.id,
+    clientName: client.nom
   })
 
   // Fetch users on mount
   useEffect(() => {
     if (isOpen) {
       fetchUsers()
+      // Reset form data with client info when modal opens
+      const today = new Date()
+      setSelectedDate(today)
+      setFormData({
+        title: "",
+        description: "",
+        dueDate: format(today, "yyyy-MM-dd"),
+        priority: "medium",
+        assignedTo: client.architecteAssigne,
+        status: "pending",
+        clientId: client.id,
+        clientName: client.nom
+      })
     }
-  }, [isOpen])
+  }, [isOpen, client.id, client.nom, client.architecteAssigne])
 
   const fetchUsers = async () => {
     setIsLoadingUsers(true)
@@ -89,7 +106,7 @@ export function CreateTaskModal({
 
     onCreateTask(formData)
 
-    // Reset form
+    // Reset form but keep client info
     const today = new Date()
     setSelectedDate(today)
     setFormData({
@@ -98,7 +115,9 @@ export function CreateTaskModal({
       dueDate: format(today, "yyyy-MM-dd"),
       priority: "medium",
       assignedTo: client.architecteAssigne,
-      status: "pending"
+      status: "pending",
+      clientId: client.id,
+      clientName: client.nom
     })
   }
 
@@ -144,7 +163,7 @@ export function CreateTaskModal({
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-[#EAEAEA]">Créer une tâche</h2>
-                  <p className="text-sm text-white/40">{client.nom}</p>
+                  <p className="text-sm text-white/40">Nouvelle tâche pour ce client</p>
                 </div>
               </div>
               <motion.button
@@ -156,6 +175,43 @@ export function CreateTaskModal({
                 <X className="w-5 h-5 text-[#EAEAEA]" />
               </motion.button>
             </div>
+
+            {/* Client Info Card - Readonly */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-6 p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                  <User className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-xs font-medium text-blue-400 uppercase tracking-wider">Client assigné</p>
+                    <div className="px-2 py-0.5 rounded-md bg-blue-500/20 border border-blue-500/30">
+                      <span className="text-xs font-semibold text-blue-300">Lecture seule</span>
+                    </div>
+                  </div>
+                  <p className="text-base font-bold text-white mb-0.5">{client.nom}</p>
+                  <div className="flex items-center gap-3 text-xs text-white/60">
+                    {client.telephone && (
+                      <span className="flex items-center gap-1">
+                        <Phone className="w-3 h-3" />
+                        {client.telephone}
+                      </span>
+                    )}
+                    {client.ville && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {client.ville}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -287,6 +343,26 @@ export function CreateTaskModal({
                   ))}
                 </div>
               </div>
+
+              {/* Info Note */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="p-3 rounded-xl bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20"
+              >
+                <div className="flex items-start gap-2">
+                  <div className="w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Check className="w-3 h-3 text-purple-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-purple-300 mb-0.5">Tâche liée automatiquement</p>
+                    <p className="text-xs text-white/60 leading-relaxed">
+                      Cette tâche sera automatiquement associée à <span className="font-semibold text-white">{client.nom}</span> et apparaîtra dans l'historique du client.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
 
               {/* Actions */}
               <div className="flex gap-3 pt-2">

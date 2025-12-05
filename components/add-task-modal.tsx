@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CalendarIcon, Search, CheckCircle2, Clock, CircleDashed, User, Link2, Bell, BellOff } from "lucide-react"
+import { CalendarIcon, Search, CheckCircle2, Clock, CircleDashed, User, Link2, Bell, BellOff, Phone, MapPin } from "lucide-react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import type { Task, TaskStatus, LinkedType } from "@/types/task"
@@ -35,15 +35,18 @@ import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { LeadsService } from "@/lib/leads-service"
 import { useClientStore } from "@/stores/client-store"
+import { toast } from "sonner"
 
 interface AddTaskModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "createdBy">) => void
   editingTask: Task | null
+  preSelectedClient?: { id: string; nom: string; telephone?: string; ville?: string } | null
+  isLoading?: boolean
 }
 
-export function AddTaskModal({ isOpen, onClose, onSave, editingTask }: AddTaskModalProps) {
+export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelectedClient, isLoading = false }: AddTaskModalProps) {
   const { user } = useAuth()
   const [formData, setFormData] = useState({
     title: "",
@@ -120,23 +123,44 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask }: AddTaskMo
         reminderDays: editingTask.reminderDays || 2,
       })
     } else {
+      // If preSelectedClient is provided, auto-select it
+      const linkedType = preSelectedClient ? "client" : "lead"
+      const linkedId = preSelectedClient ? preSelectedClient.id : ""
+      const linkedName = preSelectedClient ? preSelectedClient.nom : ""
+
       setFormData({
         title: "",
         description: "",
-        dueDate: "",
+        dueDate: format(new Date(), "yyyy-MM-dd"),
         assignedTo: user?.name || "",
-        linkedType: "lead",
-        linkedId: "",
-        linkedName: "",
+        linkedType,
+        linkedId,
+        linkedName,
         status: "a_faire",
         reminderEnabled: false,
         reminderDays: 2,
       })
     }
-  }, [editingTask, user, isOpen])
+  }, [editingTask, user, isOpen, preSelectedClient])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validate required fields
+    if (!formData.title.trim()) {
+      toast.error('Le titre est requis')
+      return
+    }
+
+    if (!formData.dueDate) {
+      toast.error('La date d\'échéance est requise')
+      return
+    }
+
+    if (!formData.assignedTo) {
+      toast.error('L\'assignation est requise')
+      return
+    }
 
     // Find the linked item name
     let linkedName = formData.linkedName
@@ -150,9 +174,16 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask }: AddTaskMo
       }
     }
 
+    // Validate date is valid
+    const dueDate = new Date(formData.dueDate)
+    if (isNaN(dueDate.getTime())) {
+      toast.error('Date d\'échéance invalide')
+      return
+    }
+
     onSave({
       ...formData,
-      dueDate: new Date(formData.dueDate).toISOString(),
+      dueDate: dueDate.toISOString(),
       linkedName,
     })
   }
@@ -197,12 +228,46 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask }: AddTaskMo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="glass border-border/40 w-[96vw] !max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="glass border-border/40 w-[96vw] !max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-white">
             {editingTask ? "Modifier la tâche" : "Nouvelle tâche"}
           </DialogTitle>
         </DialogHeader>
+
+        {/* Readonly Client Card - Only show when preSelectedClient is provided */}
+        {preSelectedClient && (
+          <div className="mb-4 p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-xs font-medium text-blue-400 uppercase tracking-wider">Client assigné</p>
+                  <div className="px-2 py-0.5 rounded-md bg-blue-500/20 border border-blue-500/30">
+                    <span className="text-xs font-semibold text-blue-300">Lecture seule</span>
+                  </div>
+                </div>
+                <p className="text-base font-bold text-white mb-0.5">{preSelectedClient.nom}</p>
+                <div className="flex items-center gap-3 text-xs text-white/60">
+                  {preSelectedClient.telephone && (
+                    <span className="flex items-center gap-1">
+                      <Phone className="w-3 h-3" />
+                      {preSelectedClient.telephone}
+                    </span>
+                  )}
+                  {preSelectedClient.ville && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      {preSelectedClient.ville}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           {/* Title */}
@@ -379,100 +444,102 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask }: AddTaskMo
             </div>
           </div>
 
-          {/* Linked Type and Item */}
-          <div className="space-y-2 p-3 rounded-xl bg-slate-900/50 border border-slate-700/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Link2 className="w-4 h-4 text-primary" />
-                <h3 className="text-sm font-semibold text-white">Lier cette tâche à un Lead ou Client</h3>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, linkedType: "lead", linkedId: "", linkedName: "" })}
-                  className={cn(
-                    "px-3 py-1.5 rounded-md border text-xs font-medium transition-all",
-                    formData.linkedType === "lead"
-                      ? "bg-primary/20 border-primary text-primary"
-                      : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:border-slate-500"
-                  )}
-                >
-                  Lead
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, linkedType: "client", linkedId: "", linkedName: "" })}
-                  className={cn(
-                    "px-3 py-1.5 rounded-md border text-xs font-medium transition-all",
-                    formData.linkedType === "client"
-                      ? "bg-primary/20 border-primary text-primary"
-                      : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:border-slate-500"
-                  )}
-                >
-                  Client
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-white text-xs">
-                Sélectionner {formData.linkedType === "lead" ? "le lead" : "le client"} <span className="text-red-400">*</span>
-              </Label>
-              <Popover open={linkedSearchOpen} onOpenChange={setLinkedSearchOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
+          {/* Linked Type and Item - Only show when NO preSelectedClient */}
+          {!preSelectedClient && (
+            <div className="space-y-2 p-3 rounded-xl bg-slate-900/50 border border-slate-700/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Link2 className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-white">Lier cette tâche à un Lead ou Client</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, linkedType: "lead", linkedId: "", linkedName: "" })}
                     className={cn(
-                      "h-9 w-full justify-between bg-slate-800/50 border-slate-600/50 text-white hover:bg-slate-700/50 hover:text-white text-sm",
-                      !formData.linkedId && "text-slate-400"
+                      "px-3 py-1.5 rounded-md border text-xs font-medium transition-all",
+                      formData.linkedType === "lead"
+                        ? "bg-primary/20 border-primary text-primary"
+                        : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:border-slate-500"
                     )}
                   >
-                    {formData.linkedId 
-                      ? getLinkedOptions().find(opt => opt.id === formData.linkedId)?.name 
-                      : `Rechercher un ${formData.linkedType === "lead" ? "lead" : "client"}...`
-                    }
-                    <Search className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[520px] max-w-[90vw] p-0 glass border-border/40">
-                  <Command className="bg-transparent">
-                    <CommandInput 
-                      placeholder={`Rechercher par nom, téléphone, ville...`} 
-                      className="text-white"
-                    />
-                    <CommandList>
-                      <CommandEmpty className="text-slate-400 py-6 text-center text-sm">
-                        {isClientsLoading && formData.linkedType === 'client' ? 'Chargement des clients...' : `Aucun ${formData.linkedType === 'lead' ? 'lead' : 'client'} trouvé.`}
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {getLinkedOptions().map((option) => (
-                          <CommandItem
-                            key={option.id}
-                            value={option.name}
-                            onSelect={() => {
-                              setFormData({ ...formData, linkedId: option.id, linkedName: option.name })
-                              setLinkedSearchOpen(false)
-                            }}
-                            className="text-white hover:bg-slate-700/50 cursor-pointer"
-                          >
-                            <User className="mr-2 h-4 w-4" />
-                            <span className="flex-1 truncate">{option.name}</span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {formData.linkedId && (
-                <p className="text-xs text-green-400 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  {formData.linkedType === "lead" ? "Lead" : "Client"} sélectionné
-                </p>
-              )}
+                    Lead
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, linkedType: "client", linkedId: "", linkedName: "" })}
+                    className={cn(
+                      "px-3 py-1.5 rounded-md border text-xs font-medium transition-all",
+                      formData.linkedType === "client"
+                        ? "bg-primary/20 border-primary text-primary"
+                        : "bg-slate-800/50 border-slate-600/50 text-slate-300 hover:border-slate-500"
+                    )}
+                  >
+                    Client
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-white text-xs">
+                  Sélectionner {formData.linkedType === "lead" ? "le lead" : "le client"} <span className="text-red-400">*</span>
+                </Label>
+                <Popover open={linkedSearchOpen} onOpenChange={setLinkedSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className={cn(
+                        "h-9 w-full justify-between bg-slate-800/50 border-slate-600/50 text-white hover:bg-slate-700/50 hover:text-white text-sm",
+                        !formData.linkedId && "text-slate-400"
+                      )}
+                    >
+                      {formData.linkedId
+                        ? getLinkedOptions().find(opt => opt.id === formData.linkedId)?.name
+                        : `Rechercher un ${formData.linkedType === "lead" ? "lead" : "client"}...`
+                      }
+                      <Search className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[520px] max-w-[90vw] p-0 glass border-border/40">
+                    <Command className="bg-transparent">
+                      <CommandInput
+                        placeholder={`Rechercher par nom, téléphone, ville...`}
+                        className="text-white"
+                      />
+                      <CommandList>
+                        <CommandEmpty className="text-slate-400 py-6 text-center text-sm">
+                          {isClientsLoading && formData.linkedType === 'client' ? 'Chargement des clients...' : `Aucun ${formData.linkedType === 'lead' ? 'lead' : 'client'} trouvé.`}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {getLinkedOptions().map((option) => (
+                            <CommandItem
+                              key={option.id}
+                              value={option.name}
+                              onSelect={() => {
+                                setFormData({ ...formData, linkedId: option.id, linkedName: option.name })
+                                setLinkedSearchOpen(false)
+                              }}
+                              className="text-white hover:bg-slate-700/50 cursor-pointer"
+                            >
+                              <User className="mr-2 h-4 w-4" />
+                              <span className="flex-1 truncate">{option.name}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {formData.linkedId && (
+                  <p className="text-xs text-green-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    {formData.linkedType === "lead" ? "Lead" : "Client"} sélectionné
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Reminder */}
           <div className="space-y-3 p-4 rounded-xl bg-gradient-to-br from-slate-800/40 to-slate-800/20 border border-slate-600/40">
@@ -542,9 +609,17 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask }: AddTaskMo
             </Button>
             <Button
               type="submit"
-              className="bg-primary hover:bg-primary/90 text-white h-9 text-sm"
+              disabled={isLoading}
+              className="bg-primary hover:bg-primary/90 text-white h-9 text-sm min-w-[100px]"
             >
-              {editingTask ? "Mettre à jour" : "Créer la tâche"}
+              {isLoading ? (
+                <>
+                  <CircleDashed className="mr-2 h-4 w-4 animate-spin" />
+                  Création...
+                </>
+              ) : (
+                editingTask ? "Mettre à jour" : "Créer la tâche"
+              )}
             </Button>
           </div>
         </form>

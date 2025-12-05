@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DollarSign,
   CheckCircle,
@@ -55,6 +55,17 @@ export function FinancementDocumentsUnified({
   const [activeTab, setActiveTab] = useState<"devis" | "paiements">("devis");
   const devisList = client.devis || [];
   const paymentsList = client.payments || [];
+
+  // Debug: Log when devis changes
+  useEffect(() => {
+    console.log('[FinancementDocumentsUnified] Client data updated:', {
+      clientId: client.id,
+      devisCount: devisList.length,
+      paymentsCount: paymentsList.length,
+      historiqueCount: client.historique?.length || 0,
+      devisList: devisList.map(d => ({ id: d.id, title: d.title, statut: d.statut }))
+    })
+  }, [client.id, devisList.length, paymentsList.length])
 
   // Calculate financial metrics
   const acceptedDevis = devisList.filter((d) => d.statut === "accepte");

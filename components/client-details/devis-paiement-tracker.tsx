@@ -35,6 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { calculatePaymentMetrics, formatCurrency } from "@/lib/payment-calculations";
 
 interface DevisPaiementTrackerProps {
   client: Client;
@@ -49,15 +50,12 @@ export function DevisPaiementTracker({
   const [updatingDevisId, setUpdatingDevisId] = useState<string | null>(null);
   const devisList = client.devis || [];
 
-  // Calculate financial metrics
+  // Use the new payment calculation utility
+  const paymentMetrics = calculatePaymentMetrics(client);
+
+  // Legacy calculations for compatibility
   const acceptedDevis = devisList.filter((d) => d.statut === "accepte");
   const refusedDevis = devisList.filter((d) => d.statut === "refuse");
-  const totalAccepted = acceptedDevis.reduce((sum, d) => sum + d.montant, 0);
-  const totalPaid = acceptedDevis
-    .filter((d) => d.facture_reglee)
-    .reduce((sum, d) => sum + d.montant, 0);
-  const progress =
-    totalAccepted > 0 ? Math.round((totalPaid / totalAccepted) * 100) : 0;
 
   // Check if all devis are refused
   const allRefused =
@@ -70,14 +68,6 @@ export function DevisPaiementTracker({
   const allPaid =
     acceptedDevis.length > 0 && acceptedDevis.every((d) => d.facture_reglee);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-MA", {
-      style: "currency",
-      currency: "MAD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const handleMarkPaid = async (devisId: string) => {
     const devis = client.devis?.find((d) => d.id === devisId);
@@ -285,7 +275,7 @@ export function DevisPaiementTracker({
   }>({ open: false });
 
   const paymentsList = client.payments || [];
-  const totalPayments = paymentsList.reduce((sum, p) => sum + p.amount, 0);
+
 
   const getPaymentMethodIcon = (method: string) => {
     switch (method) {
@@ -352,11 +342,11 @@ export function DevisPaiementTracker({
                 className={cn(
                   "p-3 rounded-lg border transition-all hover:border-white/20 relative",
                   devis.statut === "accepte" &&
-                    "border-green-500/30 bg-green-500/5",
+                  "border-green-500/30 bg-green-500/5",
                   devis.statut === "refuse" && "border-red-500/30 bg-red-500/5",
                   devis.statut === "en_attente" && "border-white/10 bg-white/5",
                   updatingDevisId === devis.id &&
-                    "opacity-60 pointer-events-none",
+                  "opacity-60 pointer-events-none",
                 )}
               >
                 {/* Loading overlay */}
@@ -477,7 +467,7 @@ export function DevisPaiementTracker({
             <div className="flex items-center gap-2 px-2.5 py-1 bg-green-500/10 border border-green-500/20 rounded-lg">
               <DollarSign className="w-3.5 h-3.5 text-green-400" />
               <span className="text-xs font-semibold text-green-400">
-                {formatCurrency(totalPayments)}
+                {formatCurrency(paymentMetrics.totalPayments)}
               </span>
             </div>
           )}

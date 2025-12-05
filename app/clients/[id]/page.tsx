@@ -55,6 +55,8 @@ export default function ClientDetailsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRdvModalOpen, setIsRdvModalOpen] = useState(false)
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [isCreatingTask, setIsCreatingTask] = useState(false)
 
   useEffect(() => {
     // Fetch full client data from API (includes devis, historique, etc.)
@@ -62,7 +64,8 @@ export default function ClientDetailsPage() {
       try {
         setIsLoading(true)
         const response = await fetch(`/api/clients/${clientId}`, {
-          credentials: 'include'
+          credentials: 'include',
+          cache: 'no-store'
         })
 
         if (!response.ok) {
@@ -266,14 +269,35 @@ export default function ClientDetailsPage() {
 
   const handleUpdateClient = async (updatedClient: Client, skipApiCall = false) => {
     try {
-      // Always perform an optimistic local update so UI reflects changes immediately
-      // IMPORTANT: Merge with existing client data to prevent data loss
-      console.log('[Client Details] 🔄 Optimistic update - applying local changes')
-      setClient(prev => prev ? { ...prev, ...updatedClient } : updatedClient)
-      updateClientInStore(updatedClient.id, updatedClient)
+      console.log('[Client Details] 🔄 Updating client...', {
+        clientId: updatedClient.id,
+        skipApiCall,
+        hasDevis: !!updatedClient.devis,
+        devisCount: updatedClient.devis?.length || 0,
+        hasHistorique: !!updatedClient.historique,
+        historiqueCount: updatedClient.historique?.length || 0,
+      })
+
+      // CRITICAL: If we have complete fresh data from the server (with devis, historique, etc.),
+      // replace the entire state instead of merging to prevent data loss
+      const hasFreshData = updatedClient.devis !== undefined ||
+        updatedClient.historique !== undefined ||
+        updatedClient.payments !== undefined
+
+      if (hasFreshData) {
+        console.log('[Client Details] ✅ Received fresh data from server, replacing entire state')
+        setClient(updatedClient)
+        updateClientInStore(updatedClient.id, updatedClient)
+      } else {
+        // Only merge if we're updating specific fields (not full refresh)
+        console.log('[Client Details] 🔄 Merging partial update with existing data')
+        setClient(prev => prev ? { ...prev, ...updatedClient } : updatedClient)
+        updateClientInStore(updatedClient.id, updatedClient)
+      }
 
       // If skipApiCall is true, stop here (pure optimistic/local update)
       if (skipApiCall) {
+        console.log('[Client Details] ⏭️ Skipping API call (local update only)')
         return
       }
 
@@ -419,17 +443,75 @@ export default function ClientDetailsPage() {
       const appointmentResult = await appointmentResponse.json()
       console.log('[Add RDV] ✅ Appointment created in database:', appointmentResult.data)
 
-      // 3. Re-fetch client data to get updated appointments
+      // 3. Notify architect assigned to this client
+      if (client.architecteAssigne && client.architecteAssigne !== user?.name) {
+        try {
+          console.log('[Add RDV] Notifying assigned architect:', client.architecteAssigne)
+
+          // Find architect user by name
+          const usersResponse = await fetch('/api/auth/users', {
+            credentials: 'include'
+          })
+
+          if (usersResponse.ok) {
+            const users = await usersResponse.json()
+            const architect = users.find((u: any) => u.name === client.architecteAssigne)
+
+            if (architect?.id) {
+              const rdvDate = new Date(rdv.dateStart).toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+
+              // Send notification via notification creator (which includes WhatsApp)
+              await fetch('/api/notifications', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                  userId: architect.id,
+                  type: 'rdv_created',
+                  priority: 'high',
+                  title: `Nouveau RDV pour ${client.nom}`,
+                  message: `${user?.name || 'Un utilisateur'} a créé un RDV "${rdv.title}" pour votre client ${client.nom} le ${rdvDate}`,
+                  linkedType: 'client',
+                  linkedId: client.id,
+                  linkedName: client.nom,
+                  metadata: {
+                    rdvTitle: rdv.title,
+                    rdvDate: rdv.dateStart,
+                    location: rdv.location,
+                    createdBy: user?.name
+                  }
+                })
+              })
+
+              console.log('[Add RDV] ✅ Architect notification sent')
+            }
+          }
+        } catch (notifyError) {
+          console.error('[Add RDV] Error notifying architect:', notifyError)
+          // Don't fail the RDV creation if notification fails
+        }
+      }
+
+      // 4. Re-fetch client data to get updated appointments
       const clientResponse = await fetch(`/api/clients/${client.id}`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       })
 
       if (clientResponse.ok) {
         const clientResult = await clientResponse.json()
         setClient(clientResult.data)
+        setRefreshTrigger(prev => prev + 1)
       }
 
-      setIsRdvModalOpen(false)
+      // setIsRdvModalOpen(false) - Handled by the modal itself after success
 
       toast({
         title: "RDV créé",
@@ -447,6 +529,7 @@ export default function ClientDetailsPage() {
 
   const handleSaveTask = async (taskData: Omit<import('@/types/task').Task, "id" | "createdAt" | "updatedAt" | "createdBy">) => {
     try {
+      setIsCreatingTask(true)
       const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -468,14 +551,71 @@ export default function ClientDetailsPage() {
       const result = await response.json()
       console.log('[Add Task] ✅ Task created in database:', result.data)
 
+      // Notify architect assigned to this client
+      if (client?.architecteAssigne && client.architecteAssigne !== user?.name) {
+        try {
+          console.log('[Add Task] Notifying assigned architect:', client.architecteAssigne)
+
+          // Find architect user by name
+          const usersResponse = await fetch('/api/auth/users', {
+            credentials: 'include'
+          })
+
+          if (usersResponse.ok) {
+            const users = await usersResponse.json()
+            const architect = users.find((u: any) => u.name === client.architecteAssigne)
+
+            if (architect?.id) {
+              const dueDate = new Date(taskData.dueDate).toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+              })
+
+              // Send notification via notification creator (which includes WhatsApp)
+              await fetch('/api/notifications', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                  userId: architect.id,
+                  type: 'task_assigned',
+                  priority: 'high',
+                  title: `Nouvelle tâche pour ${client.nom}`,
+                  message: `${user?.name || 'Un utilisateur'} a créé une tâche "${taskData.title}" pour votre client ${client.nom}. Échéance: ${dueDate}`,
+                  linkedType: 'client',
+                  linkedId: client.id,
+                  linkedName: client.nom,
+                  metadata: {
+                    taskTitle: taskData.title,
+                    taskId: result.data?.id,
+                    dueDate: taskData.dueDate,
+                    assignedTo: taskData.assignedTo,
+                    createdBy: user?.name
+                  }
+                })
+              })
+
+              console.log('[Add Task] ✅ Architect notification sent')
+            }
+          }
+        } catch (notifyError) {
+          console.error('[Add Task] Error notifying architect:', notifyError)
+          // Don't fail the task creation if notification fails
+        }
+      }
+
       // Re-fetch client data to get updated tasks/historique
       const clientResponse = await fetch(`/api/clients/${client?.id}`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store'
       })
 
       if (clientResponse.ok) {
         const clientResult = await clientResponse.json()
         setClient(clientResult.data)
+        setRefreshTrigger(prev => prev + 1)
       }
 
       setIsTaskModalOpen(false)
@@ -490,6 +630,8 @@ export default function ClientDetailsPage() {
         description: "Impossible de créer la tâche. Veuillez réessayer.",
         variant: "destructive"
       })
+    } finally {
+      setIsCreatingTask(false)
     }
   }
 
@@ -631,6 +773,7 @@ export default function ClientDetailsPage() {
                       onUpdate={handleUpdateClient}
                       onAddTask={() => setIsTaskModalOpen(true)}
                       onAddRdv={() => setIsRdvModalOpen(true)}
+                      refreshTrigger={refreshTrigger}
                     />
                   </motion.div>
 
@@ -695,6 +838,13 @@ export default function ClientDetailsPage() {
               onClose={() => setIsTaskModalOpen(false)}
               onSave={handleSaveTask}
               editingTask={null}
+              preSelectedClient={{
+                id: client.id,
+                nom: client.nom,
+                telephone: client.telephone,
+                ville: client.ville
+              }}
+              isLoading={isCreatingTask}
             />
           )}
         </div>

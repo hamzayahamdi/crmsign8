@@ -46,14 +46,6 @@ export async function POST(
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const now = new Date().toISOString();
 
-    // Simple approach: Just create a stage history record without foreign key
-    // We'll use a custom table or modify the approach
-
-    console.log("[POST /stage] Creating stage history entry...");
-
-    // Generate a simple ID
-    const historyId = `stage_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
     // Get current status for better historique description
     let currentStatusForHistory = null;
     if (clientId.includes("-")) {
@@ -76,6 +68,179 @@ export async function POST(
         .single();
       currentStatusForHistory = clientData?.statut_projet;
     }
+
+    // IMPORTANT: Create/update the client record FIRST to satisfy foreign key constraint
+    console.log("[POST /stage] Updating client status...");
+
+    if (clientId.includes("-")) {
+      // For composite IDs (opportunity-based clients), update both opportunities table AND create/update client record
+      console.log("[POST /stage] Updating opportunity-based client...");
+      const [contactId, opportunityId] = clientId.split("-");
+
+      console.log("[POST /stage] Using imported Prisma instance");
+
+      try {
+        console.log("[POST /stage] Fetching contact and opportunity data...");
+
+        // Get contact and opportunity data
+        const contact = await prisma.contact.findUnique({
+          where: { id: contactId },
+          include: {
+            opportunities: {
+              where: { id: opportunityId },
+            },
+          },
+        });
+
+        if (!contact) {
+          console.error("[POST /stage] Contact not found:", contactId);
+          return NextResponse.json(
+            { error: "Contact introuvable" },
+            { status: 404 },
+          );
+        }
+
+        if (!contact.opportunities || contact.opportunities.length === 0) {
+          console.error("[POST /stage] Opportunity not found:", opportunityId);
+          return NextResponse.json(
+            { error: "Opportunité introuvable" },
+            { status: 404 },
+          );
+        }
+
+        const opportunity = contact.opportunities[0];
+        console.log(
+          "[POST /stage] Found opportunity with current pipeline stage:",
+          opportunity.pipelineStage,
+        );
+
+        // Map project status to pipeline stage (using valid enum values)
+        let pipelineStage = "prise_de_besoin";
+        if (newStage === "prise_de_besoin") pipelineStage = "prise_de_besoin";
+        if (newStage === "acompte_recu") pipelineStage = "projet_accepte";
+        if (newStage === "conception") pipelineStage = "acompte_recu";
+        if (newStage === "devis_negociation") pipelineStage = "acompte_recu";
+        if (newStage === "accepte") pipelineStage = "gagnee";
+        if (newStage === "refuse") pipelineStage = "perdue";
+        if (newStage === "premier_depot") pipelineStage = "gagnee";
+        if (newStage === "projet_en_cours") pipelineStage = "gagnee";
+        if (newStage === "chantier") pipelineStage = "gagnee";
+        if (newStage === "facture_reglee") pipelineStage = "gagnee";
+        if (newStage === "livraison_termine") pipelineStage = "gagnee";
+
+        console.log("[POST /stage] Mapping:", newStage, "→", pipelineStage);
+
+        // Update opportunity pipeline stage
+        console.log("[POST /stage] Updating opportunity pipeline stage...");
+        const updatedOpportunity = await prisma.opportunity.update({
+          where: { id: opportunityId },
+          data: {
+            pipelineStage: pipelineStage,
+            updatedAt: new Date(now),
+          },
+        });
+        console.log(
+          "[POST /stage] ✅ Opportunity pipeline stage updated from",
+          opportunity.pipelineStage,
+          "to",
+          updatedOpportunity.pipelineStage,
+        );
+
+        // CRITICAL: Create/update client record BEFORE creating historique entry
+        // This ensures the foreign key constraint is satisfied
+        const typeMap = {
+          villa: "villa",
+          appartement: "appartement",
+          magasin: "magasin",
+          bureau: "bureau",
+          riad: "riad",
+          studio: "studio",
+          renovation: "autre",
+          autre: "autre",
+        };
+
+        console.log("[POST /stage] Creating/updating client record...");
+        const { error: upsertError } = await supabase.from("clients").upsert({
+          id: clientId,
+          nom: contact.nom || "Client",
+          telephone: contact.telephone || "",
+          ville: contact.ville || "",
+          architecte_assigne:
+            opportunity.architecteAssigne || contact.architecteAssigne || "",
+          statut_projet: newStage,
+          type_projet: typeMap[opportunity.type] || "autre",
+          derniere_maj: now,
+          email: contact.email,
+          adresse: contact.adresse,
+          budget: opportunity.budget || 0,
+          lead_id: contact.leadId,
+          commercial_attribue: contact.createdBy,
+          created_at: now,
+          updated_at: now,
+        });
+
+        if (upsertError) {
+          console.error("[POST /stage] Client upsert failed:", upsertError);
+          return NextResponse.json(
+            {
+              error: "Erreur lors de la création du client",
+              details: upsertError.message,
+            },
+            { status: 500 },
+          );
+        } else {
+          console.log("[POST /stage] ✅ Client record created/updated");
+        }
+      } catch (opportunityError) {
+        console.error(
+          "[POST /stage] ❌ Critical error in opportunity update:",
+          opportunityError,
+        );
+        console.error("[POST /stage] Error details:", {
+          message: opportunityError.message,
+          code: opportunityError.code,
+          stack: opportunityError.stack,
+        });
+
+        return NextResponse.json(
+          {
+            error: "Erreur lors de la mise à jour de l'opportunité",
+            details: opportunityError.message,
+          },
+          { status: 500 },
+        );
+      }
+    } else {
+      // For regular client IDs, update the clients table
+      console.log("[POST /stage] Updating clients table...");
+      const { error: updateError } = await supabase
+        .from("clients")
+        .update({
+          statut_projet: newStage,
+          derniere_maj: now,
+          updated_at: now,
+        })
+        .eq("id", clientId);
+
+      if (updateError) {
+        console.error("[POST /stage] Clients update failed:", updateError);
+        return NextResponse.json(
+          {
+            error: "Erreur lors de la mise à jour du client",
+            details: updateError.message,
+          },
+          { status: 500 },
+        );
+      } else {
+        console.log("[POST /stage] ✅ Clients table updated");
+      }
+    }
+
+    // NOW create the historique entry (after client record exists)
+    console.log("[POST /stage] Creating stage history entry...");
+
+    // Generate a simple ID
+    const historyId = `stage_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Create descriptive status change message
     const statusLabels = {
@@ -161,159 +326,6 @@ export async function POST(
         "[POST /stage] ✅ Verified historique entry:",
         verifyHistorique,
       );
-    }
-
-    // Always try to update the client status in the appropriate table
-    console.log("[POST /stage] Updating client status...");
-
-    if (clientId.includes("-")) {
-      // For composite IDs (opportunity-based clients), update both opportunities table AND create/update client record
-      console.log("[POST /stage] Updating opportunity-based client...");
-      const [contactId, opportunityId] = clientId.split("-");
-
-      console.log("[POST /stage] Using imported Prisma instance");
-
-      try {
-        console.log("[POST /stage] Fetching contact and opportunity data...");
-
-        // Get contact and opportunity data
-        const contact = await prisma.contact.findUnique({
-          where: { id: contactId },
-          include: {
-            opportunities: {
-              where: { id: opportunityId },
-            },
-          },
-        });
-
-        if (!contact) {
-          console.error("[POST /stage] Contact not found:", contactId);
-          return NextResponse.json(
-            { error: "Contact introuvable" },
-            { status: 404 },
-          );
-        }
-
-        if (!contact.opportunities || contact.opportunities.length === 0) {
-          console.error("[POST /stage] Opportunity not found:", opportunityId);
-          return NextResponse.json(
-            { error: "Opportunité introuvable" },
-            { status: 404 },
-          );
-        }
-
-        const opportunity = contact.opportunities[0];
-        console.log(
-          "[POST /stage] Found opportunity with current pipeline stage:",
-          opportunity.pipelineStage,
-        );
-
-        // Map project status to pipeline stage (using valid enum values)
-        let pipelineStage = "prise_de_besoin";
-        if (newStage === "prise_de_besoin") pipelineStage = "prise_de_besoin";
-        if (newStage === "acompte_recu") pipelineStage = "projet_accepte";
-        if (newStage === "conception") pipelineStage = "acompte_recu";
-        if (newStage === "devis_negociation") pipelineStage = "acompte_recu";
-        if (newStage === "accepte") pipelineStage = "gagnee";
-        if (newStage === "refuse") pipelineStage = "perdue";
-        if (newStage === "premier_depot") pipelineStage = "gagnee";
-        if (newStage === "projet_en_cours") pipelineStage = "gagnee";
-        if (newStage === "chantier") pipelineStage = "gagnee";
-        if (newStage === "facture_reglee") pipelineStage = "gagnee";
-        if (newStage === "livraison_termine") pipelineStage = "gagnee";
-
-        console.log("[POST /stage] Mapping:", newStage, "→", pipelineStage);
-
-        // Update opportunity pipeline stage
-        console.log("[POST /stage] Updating opportunity pipeline stage...");
-        const updatedOpportunity = await prisma.opportunity.update({
-          where: { id: opportunityId },
-          data: {
-            pipelineStage: pipelineStage,
-            updatedAt: new Date(now),
-          },
-        });
-        console.log(
-          "[POST /stage] ✅ Opportunity pipeline stage updated from",
-          opportunity.pipelineStage,
-          "to",
-          updatedOpportunity.pipelineStage,
-        );
-
-        // Also create/update a client record so status persists
-        const typeMap = {
-          villa: "villa",
-          appartement: "appartement",
-          magasin: "magasin",
-          bureau: "bureau",
-          riad: "riad",
-          studio: "studio",
-          renovation: "autre",
-          autre: "autre",
-        };
-
-        console.log("[POST /stage] Creating/updating client record...");
-        const { error: upsertError } = await supabase.from("clients").upsert({
-          id: clientId,
-          nom: contact.nom || "Client",
-          telephone: contact.telephone || "",
-          ville: contact.ville || "",
-          architecte_assigne:
-            opportunity.architecteAssigne || contact.architecteAssigne || "",
-          statut_projet: newStage,
-          type_projet: typeMap[opportunity.type] || "autre",
-          derniere_maj: now,
-          email: contact.email,
-          adresse: contact.adresse,
-          budget: opportunity.budget || 0,
-          lead_id: contact.leadId,
-          commercial_attribue: contact.createdBy,
-          created_at: now,
-          updated_at: now,
-        });
-
-        if (upsertError) {
-          console.error("[POST /stage] Client upsert failed:", upsertError);
-        } else {
-          console.log("[POST /stage] ✅ Client record created/updated");
-        }
-      } catch (opportunityError) {
-        console.error(
-          "[POST /stage] ❌ Critical error in opportunity update:",
-          opportunityError,
-        );
-        console.error("[POST /stage] Error details:", {
-          message: opportunityError.message,
-          code: opportunityError.code,
-          stack: opportunityError.stack,
-        });
-
-        return NextResponse.json(
-          {
-            error: "Erreur lors de la mise à jour de l'opportunité",
-            details: opportunityError.message,
-          },
-          { status: 500 },
-        );
-      }
-    } else {
-      // For regular client IDs, update the clients table
-      console.log("[POST /stage] Updating clients table...");
-      const { error: updateError } = await supabase
-        .from("clients")
-        .update({
-          statut_projet: newStage,
-          derniere_maj: now,
-          updated_at: now,
-        })
-        .eq("id", clientId);
-
-      if (updateError) {
-        console.error("[POST /stage] Clients update failed:", updateError);
-        // Continue anyway - historique was created
-      } else {
-        console.log("[POST /stage] ✅ Clients table updated");
-      }
     }
 
     console.log("[POST /stage] ===== SUCCESS =====");

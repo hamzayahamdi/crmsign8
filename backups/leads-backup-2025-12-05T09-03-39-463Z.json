@@ -1,0 +1,5435 @@
+[
+  {
+    "id": "cmikm3g1h005xujxgv4oyntvr",
+    "nom": "Keltouma naseh",
+    "telephone": "0782894139",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: finition et ameublement, renovation",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:15:28.314Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm3gt10062ujxg9sn4tvna",
+    "nom": "Sakina",
+    "telephone": "0613907899",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: gros oeuvres termines /finition et ameublement",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:29.305Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm3hk50067ujxg6fm9hb59",
+    "nom": "Hanan Farhan",
+    "telephone": "0661634646",
+    "ville": "HD swalm",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:30.277Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm3itw006gujxgymot9zwc",
+    "nom": "Berrada karim",
+    "telephone": "0660777978",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Rénovation, aménagement et ameublement d’un studio",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:15:31.925Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm3jkt006lujxgpwmplatm",
+    "nom": "Hind",
+    "telephone": "0771000002",
+    "ville": "Martil",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 27/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-26T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:32.893Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm3l5p006uujxgp477d2sv",
+    "nom": "Mansoiri.  Larbi",
+    "telephone": "0661091319",
+    "ville": "Marrakech M",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:34.939Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm3mem0073ujxgmxriehnx",
+    "nom": "Fadwa begguar",
+    "telephone": "0679875973",
+    "ville": "Kénitra",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 28/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-27T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Elle a demandé à être appelée entre midi et deux",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:36.558Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm3nni007cujxgjxx0xboc",
+    "nom": "Fatima zahra berradi",
+    "telephone": "0661498742",
+    "ville": "Temara",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Renovation + Ameublement.",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:15:38.173Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm3oec007hujxge82ah9ua",
+    "nom": "Raghd dakhel",
+    "telephone": "0664040127",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: juste une cuisine",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:39.189Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm3p7k007mujxgts7afbpy",
+    "nom": "Houda",
+    "telephone": "0662242913",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 28/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-27T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: apres 17 h",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:40.262Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm3qij007vujxgjc9c3o3u",
+    "nom": "Ahmed",
+    "telephone": "0700952194",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: rénover son salon et utiliser le verre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:41.887Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm3r9r0080ujxg1cezvwoe",
+    "nom": "Benameur laila",
+    "telephone": "0662794998",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:42.868Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm3skf0089ujxgpwva55iu",
+    "nom": "Hassan Hasan",
+    "telephone": "0661206921",
+    "ville": "Agadir",
+    "notes": [
+      {
+        "content": "📝 Note: veut une modélisation 3D",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:44.548Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm3t2g008cujxglvial4dk",
+    "nom": "Khalid",
+    "telephone": "0606629629",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: 2 villas et veut les transformer en restaurant .réaménagement et d’ameublement",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:15:45.198Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm3ttf008hujxgnlhrdwo0",
+    "nom": "Simon LIMANI",
+    "telephone": "0661193064",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Elle va en discuter avec son mari, car elle n’est au courant de rien et n’a rempli aucun formulaire.",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:46.162Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:46.162Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm3w6h008sujxgh0bpe75z",
+    "nom": "Ragragui slimane",
+    "telephone": "0661146689",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 28/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-27T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:49.231Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm3xf70091ujxg2fl0389r",
+    "nom": "Dounia Kettani",
+    "telephone": "0662012781",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:50.837Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm3ynx009aujxgyfxnjy6q",
+    "nom": "Hanane",
+    "telephone": "0661421950",
+    "ville": "Eljadida",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Elle va me rappeler",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:52.450Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm3zwn009jujxgbey9xyas",
+    "nom": "Ghizlane",
+    "telephone": "0615161728",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": null
+  },
+  {
+    "id": "cmikm40nf009oujxgorhp13ao",
+    "nom": "Amine Benjaafar amine",
+    "telephone": "0661185481",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:55.320Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm424c009xujxg1600trs2",
+    "nom": "Zorgui abdelylah",
+    "telephone": "0661221478",
+    "ville": "Mansouria",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il a juste besoin de l'ameublement",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:56.928Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:56.928Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm43o000a8ujxgf9dqjppp",
+    "nom": "Faical",
+    "telephone": "0662875068",
+    "ville": "Deroua",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Personne agée qui n'est pas faisal",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:58.928Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm44es00adujxgk1n1iita",
+    "nom": "Tata Ahmed tata",
+    "telephone": "0661045934",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Premier appel effectué le 11/05/2025",
+        "author": "Système Import",
+        "createdAt": "2025-05-11T00:00:00.000Z"
+      },
+      {
+        "content": "📞 Premier appel effectué le 11/05/2025",
+        "author": "admin",
+        "createdAt": "2025-05-11T00:00:00.000Z"
+      },
+      {
+        "content": "📝 Note de campagne Oct–Nov 202: Il veut qu'on lui envoyer une plaquette avec nos info pour quil nous recontacte",
+        "author": "admin",
+        "createdAt": "2025-11-11T15:48:38.559Z"
+      },
+      {
+        "content": "📝 Note de campagne TikTok Leads Import – Octobre/Novembre 2025: Il veut qu'on lui envoyer une plaquette avec nos info pour quil nous recontacte",
+        "author": "Système Import",
+        "createdAt": "2025-11-11T16:04:15.448Z"
+      },
+      {
+        "content": "📞 Troisième appel: 28/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-27T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: I va me contacter début janvier pour  quelques travaux dans sa villa et ameublement",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:59.895Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:59.895Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm46n000auujxgsd48j1d9",
+    "nom": "Mouti Mohamed",
+    "telephone": "0664790768",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 28/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-27T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm47dr00azujxgfkmxx432",
+    "nom": "taoufiq Ait hmitti",
+    "telephone": "0661084011",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:03.750Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm48mk00b8ujxgixl98rtp",
+    "nom": "Widiane Boufeloussen",
+    "telephone": "0716749753",
+    "ville": "Kenitra",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Sanae",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: C’est un immeuble R+2. Elle souhaite rénover l’appartement du 2ᵉ étage : travaux de finition et aménagement de la cuisine.",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:16:05.356Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm49vh00bhujxgv2a390bz",
+    "nom": "Khalil",
+    "telephone": "0679727987",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Karima",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Projet de réagencement du RDC et 1 er étage d'une maison de R+3 qui appartienne à ces parents ( Platrerie,carrelage,élécricité,plamberie , peinture ....) .Ses parents, étant âgés, nécessitent une gestion de projet particulièrement efficace et rapide, car leur patience est limitée.",
+        "author": "Karima",
+        "createdAt": "2025-11-29T18:16:06.977Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm4ame00bmujxgdv3mv3v0",
+    "nom": "NAJOUA  elmoulat",
+    "telephone": "0611346660",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Karima",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: La cliente souhaite réaliserdes rénovations dans son Dupluex (peinture, carrelage, sanitaires etc)\nLa cliente veut une idée de budget et a besoin de sorganiser car elle habite dans son duplex - vise l'été pour le début des travaux",
+        "author": "Karima",
+        "createdAt": "2025-11-29T18:16:07.948Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm4bdl00brujxggiijt9ep",
+    "nom": "Issam Mellouk",
+    "telephone": "0661489502",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Amina",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Le projet porte sur la finition et l'ameublement complets d'une villa neuve encore à l'état de semi-fini, située  Ville Verte.",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:16:08.924Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm4c4g00bwujxgqdpfzu4d",
+    "nom": "Naoual qembasse",
+    "telephone": "0607655718",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Israe",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Apt refaire la peinture, carrelage cuisine, casser un mur",
+        "author": "Israe",
+        "createdAt": "2025-11-29T18:16:09.892Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm4cva00c1ujxg0ivz2hjh",
+    "nom": "Imane Azzaoi",
+    "telephone": "0661898268",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Israe",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: La propriétaire souhaite transformer son appartement locatif en résidence secondaire (Carrelage, parquet, double vitrage, peinture, ameublement).",
+        "author": "Israe",
+        "createdAt": "2025-11-29T18:16:10.858Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm4dm600c6ujxg2g0nfyyv",
+    "nom": "Said",
+    "telephone": "0642486268",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Amina",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il dispose d’un appartement pour lequel il souhaite réaliser des travaux de finition, notamment  la menuiserie , faux plafonds,le revêtement mural et l’ameublement. L’étendue des travaux dépendra de l’offre qui lui sera proposée.",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:16:11.829Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:16:11.829Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm4f4300chujxg1wijsgvt",
+    "nom": "El ani fahd",
+    "telephone": "0662058685",
+    "ville": "Khouribga",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm4few00ciujxg5gydt8mw",
+    "nom": "GUENNANI ABDELHADI",
+    "telephone": "0667873608",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": null
+  },
+  {
+    "id": "cmikm4fwy00clujxg32xjxyuj",
+    "nom": "Najoua  Benhammadi",
+    "telephone": "0664292401",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Amina",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: La propriétaire souhaite transformer son appartement locatif en résidence secondaire . Elle a besoin d'un coup de rafraichissement pour son appartement et refaire la cuisine  cliente un peu rétissante .",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:16:14.802Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm4gnv00cqujxgatrbxcbc",
+    "nom": "Said Elmadhi",
+    "telephone": "0661187246",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Karima",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: La construction d'une villa de plain-pied est à l'étape du gros œuvre. Le client, qui a déjà son architecte pour la structure, fait appele à nous pour gérer toutes les finitions (revêtements, habillage, etc.) et l'ameublement complet",
+        "author": "Karima",
+        "createdAt": "2025-11-29T18:16:15.775Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm4hex00cvujxgy18wdh3j",
+    "nom": "Hanane Hanane",
+    "telephone": "0606666665",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Quelques travaux dans la cuisine",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:16.747Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm4i5t00d0ujxgocmmpj05",
+    "nom": "Hakima lakbir",
+    "telephone": "0661537082",
+    "ville": "Fes",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm4ieo00d1ujxglfumjlb2",
+    "nom": "Fadwa chakir",
+    "telephone": "0688888101",
+    "ville": "Bouznika",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:18.047Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm4jnw00daujxg4rrdb9sz",
+    "nom": "BENHAMMOU",
+    "telephone": "0661423258",
+    "ville": "Berrechid",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il veut construire une villa style traditionnel",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:19.663Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:19.663Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm4l5v00dlujxg3farp0aa",
+    "nom": "Lazrak",
+    "telephone": "0611564420",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Cuisine,Peinture de la villa",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:21.603Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:21.603Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm4men00duujxgisi1fi4b",
+    "nom": "Mouradi hafid",
+    "telephone": "0643687947",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Karima",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: ameublement+ habillage",
+        "author": "Karima",
+        "createdAt": "2025-11-29T18:16:23.219Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm4n5m00dzujxgeuyixlj1",
+    "nom": "Adlouni",
+    "telephone": "0661201060",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:24.189Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm4o5g00e6ujxgoorzh1zj",
+    "nom": "marwani",
+    "telephone": "0668579857",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Karima",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: La cliente recherche un architecte d'intérieur pour un projet d'aménagement complet (finitions, habillage, plâtrerie, ameublement). Cependant, elle est encore indécise sur le style désiré et, plus important encore, très préoccupée par le budget, d'où son besoin urgent d'obtenir une grille tarifaire détaillée avant de s'engager.",
+        "author": "Karima",
+        "createdAt": "2025-11-29T18:16:25.490Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm4owt00ebujxgcr1d0kj5",
+    "nom": "Badr Elouadghiri",
+    "telephone": "0661140666",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 28/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-27T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:26.463Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm4q5h00ekujxgixwcauup",
+    "nom": "Sanaa Boukouty",
+    "telephone": "0662896926",
+    "ville": "Nouaceur",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Amina",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Rénovation d'un appartement +cuisine",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:16:28.072Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:16:28.072Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm4rga00etujxgycno3rrb",
+    "nom": "Imane",
+    "telephone": "0691629834",
+    "ville": "Mohamadia",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Cuisine",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:29.757Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm4s7c00eyujxgk9t6keo6",
+    "nom": "Imane ouaziz",
+    "telephone": "0661061365",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 11/05/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-05-10T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Petits travaux de cuisine",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:30.733Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm4syk00f3ujxgw42mo5ld",
+    "nom": "Mohamed Douch",
+    "telephone": "661585742+212",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 07/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Décoration, ameublement de l’ensemble de l’appartement et installation d’une pergola.",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:16:31.712Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm4tpg00f8ujxg9uw5y0l1",
+    "nom": "Bouissam mounir",
+    "telephone": "0661170567",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 07/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Peinture , électricité et  ameublement",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:16:32.676Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:16:32.676Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm4uyk00fhujxgt1tb7il6",
+    "nom": "Hicham",
+    "telephone": "0676863432",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il a vendu son appartement",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:34.305Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:34.305Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm4w7r00fqujxghgr6zq03",
+    "nom": "Ilham",
+    "telephone": "0660149348",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Problème d’infiltration d’eau au niveau d’un mur.",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:35.934Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:35.934Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm4xh700fzujxggg3h0131",
+    "nom": "Benslimane islam  Benslimane",
+    "telephone": "0662426172",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 07/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 10/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 28/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-27T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il veut refaire son appartement de 136 m2 à Dar Bouazza",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:16:37.562Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:16:37.562Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm4yzd00gaujxgwopp2eah",
+    "nom": "Daoudi Mohamed",
+    "telephone": "0661185308",
+    "ville": "Kenitra",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 07/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il possède une villa sous-sol + R+1 à aménager, nécessitant des travaux de finition complets ainsi que l’ameublement intégral.",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:16:39.515Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm4zqa00gfujxgl4zr4twm",
+    "nom": "Boukhenaif Hassan",
+    "telephone": "0661481780",
+    "ville": "Mohammedia",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il a vendu l’appartement pour lequel il nous avait contactés et est actuellement à la recherche d’un nouveau bien.",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:40.486Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm50hi00gkujxg7eifxxed",
+    "nom": "Karim Houti",
+    "telephone": "0626974350",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Premier appel effectué le 07/11/2025",
+        "author": "admin",
+        "createdAt": "2025-11-07T00:00:00.000Z"
+      },
+      {
+        "content": "📞 Premier appel effectué le 07/11/2025",
+        "author": "Système Import",
+        "createdAt": "2025-11-07T00:00:00.000Z"
+      },
+      {
+        "content": "📝 Note de campagne Oct–Nov 202: \"Promoteur déjà engagé avec un prestataire",
+        "author": "admin",
+        "createdAt": "2025-11-11T15:49:28.993Z"
+      },
+      {
+        "content": "📝 Note de campagne TikTok Leads Import – Octobre/Novembre 2025: Promoteur déjà engagé avec un prestataire, mais intéressé : il a un appartement à Casablanca et souhaite voir nos réalisations et nos pages, puis échanger sur WhatsApp.",
+        "author": "Système Import",
+        "createdAt": "2025-11-11T16:05:02.798Z"
+      },
+      {
+        "content": "📝 Note: Promoteur déjà engagé avec un prestataire, mais intéressé : il a un appartement à Casablanca et souhaite voir nos réalisations et nos pages, puis échanger sur WhatsApp.",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:41.467Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:41.467Z"
+      }
+    ],
+    "statutDetaille": "à suivre",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm52hd00gzujxg7xval2h4",
+    "nom": "Maryam Hidara Hidara",
+    "telephone": "0661219783",
+    "ville": "Laayoune",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm531200h2ujxglyc1hfk4",
+    "nom": "Mehdi borj zamzam",
+    "telephone": "0669527851",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 07/11/2025",
+        "author": "Israe",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il possède un immeuble R+3 destiné à un appart-hôtel, avec 16 appartements par niveau. Il sollicite en urgence Signature 8 pour réaliser les travaux de finition et assurer l’ameublement complet.",
+        "author": "Israe",
+        "createdAt": "2025-11-29T18:16:44.758Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm53rw00h7ujxgztx52lkq",
+    "nom": "Kacem benabderrazik/ Ghilane Malika",
+    "telephone": "661378515+212660740223",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 07/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Duplex à meubler entièrement, avec décoration, habillages muraux, dressing et menuiserie à réaliser.",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:16:45.727Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm54is00hcujxgdpnp28vd",
+    "nom": "Chemaou dounia",
+    "telephone": "0777340660",
+    "ville": "Sala el jadida",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Une petite modification dans la chambre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:46.699Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:46.699Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm55iw00hjujxg9hxlpr7c",
+    "nom": "Belaassal jamila",
+    "telephone": "0670864719",
+    "ville": "Eljadida",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Salle de bain",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:48.003Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm56s300hsujxgnp66wg5q",
+    "nom": "Beaila Mostafa",
+    "telephone": "0661515188",
+    "ville": "Nouaceur",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 07/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il dispose d’une villa et souhaite compléter divers travaux de finition : habillages muraux, placards, dressing et cuisine. Il recherche également une solution pour l’ameublement intégral de sa villa.",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:16:49.623Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm57j900hxujxg8sajzynm",
+    "nom": "Amina Ridouani",
+    "telephone": "0666541336",
+    "ville": "Tit Mellil",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": null
+  },
+  {
+    "id": "cmikm581400i0ujxgi1ykwvk2",
+    "nom": "Amine Sakhi",
+    "telephone": "0661708239",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il était occupé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:51.241Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:51.241Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm59iv00ibujxgjraa9o65",
+    "nom": "Elwali Sbai",
+    "telephone": "0661253346",
+    "ville": "Laayoune",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: un prestataire de services",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:53.177Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm5a9q00igujxgu58qjqm0",
+    "nom": "Hôtel Les Jardins de Ouarzazate",
+    "telephone": "0631023206",
+    "ville": "Ouarzazate",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": null
+  },
+  {
+    "id": "cmikm5ars00ijujxgmf66pm7b",
+    "nom": "LAHRACH",
+    "telephone": "0661133570",
+    "ville": "Ouarzazate",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm5b0q00ikujxg51jtoeoa",
+    "nom": "M. Karim.",
+    "telephone": "0671814546",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Un appartement situé près du lycée Lyautey nécessitant des travaux de finition ainsi qu’un aménagement complet.",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:16:55.118Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm5bry00ipujxg7u5eane5",
+    "nom": "Mab Abderrahim",
+    "telephone": "0657831799",
+    "ville": "Sale",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Travaux de finitions d'un appartement de 90 m2 (Peinture , cuisine , carrelage ...)",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:16:56.094Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm5cit00iuujxgwej9w2hc",
+    "nom": "Mounir",
+    "telephone": "0616454585",
+    "ville": "Fes",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm5crr00ivujxgneio547s",
+    "nom": "Nadia",
+    "telephone": "0664923298",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Projet en arret",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:57.386Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:57.386Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm5e9t00j6ujxgha2gheld",
+    "nom": "Nihal Akel",
+    "telephone": "3360567566",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📝 Note: Num de Tél incomplet",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:16:59.332Z"
+      }
+    ],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm5etq00j9ujxgoi6by02s",
+    "nom": "Reda Sabir",
+    "telephone": "0661430854",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 17/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Travaux de finition et menuiserie",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:17:00.052Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm5fvf00jgujxgvx7qrhss",
+    "nom": "Riad Moirad",
+    "telephone": "0644290109",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: le projet en arret",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:01.405Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": null
+  },
+  {
+    "id": "cmikm5gve00jnujxg17107c9x",
+    "nom": "Sara FTOUH",
+    "telephone": "0663512621",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:02.702Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm5i4800jwujxgk2jrfdrr",
+    "nom": "Ziad Fathi",
+    "telephone": "0665886000",
+    "ville": "Mansouria",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 17/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Un appartement semi fini ( électricité , plombrie , menuiserie, cuisine, carrelage, marbre , faux plafond etc.",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:17:04.314Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm2ean0000ujxghypie5po",
+    "nom": "Ahmed",
+    "telephone": "0661225886",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Ain Sba3 - Terrasse - cuisines - maybe d'autre apt",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:14:39.456Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm2f3v0005ujxgx6ayrlgs",
+    "nom": "Driss MARZAK",
+    "telephone": "0661153063",
+    "ville": "Temara",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Son ami a un appartement à rénover ; il va lui transmettre mon numéro pour qu’il me contacte directement.",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:14:40.456Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm2g4x000cujxgau18f9fq",
+    "nom": "Bouchaib",
+    "telephone": "0661677837",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": null
+  },
+  {
+    "id": "cmikm2gnf000fujxgxdas1mkf",
+    "nom": "Loubna Bourrousse",
+    "telephone": "0600935002",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:14:42.449Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm2hx7000oujxge8mnuua2",
+    "nom": "Lalami khadija",
+    "telephone": "0668267942",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Elle cherche à acheter un appartement",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:14:44.098Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm2j80000vujxgcx17jq63",
+    "nom": "Barcouch Nadia",
+    "telephone": "0631421692",
+    "ville": "Casablanca Dar bouaza",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Cuisine",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:14:45.790Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm2jzs0010ujxgqu2f7hu2",
+    "nom": "Alaoui M",
+    "telephone": "0661414255",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Rénovation d'un ancien appartement",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:14:46.783Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm2l0e0017ujxgq0cj39df",
+    "nom": "siham elattari",
+    "telephone": "0619439186",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: R+3 avec magasins RDC et apt a letage , deja construit, besoin de finition interieur et exterieur",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:14:48.105Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm2lrv001cujxgkz6zgq4g",
+    "nom": "Asma el aachraoui",
+    "telephone": "0667788276",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Cest pour sa soeur elle va nous rappeler",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:14:49.100Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm2mjd001hujxg67zrhta4",
+    "nom": "Chrif",
+    "telephone": "0661918973",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: petite villa a oulfa reamennagement finition et amueblement il connait bien sketch",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:14:50.088Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm2nay001mujxgaezbjwyf",
+    "nom": "Elbassim afifa",
+    "telephone": "0667057225",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Aménagement d'un appartement de 95 m 2. modification dans la cuisine pour agrandir le séjour et salon .( Carrelage , faux plafond, parquet , peinture ...)",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:14:51.092Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm2ol1001vujxgtau0h538",
+    "nom": "Taha",
+    "telephone": "0660925344",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il m’a précisé qu’il s’agissait d’une confusion de numéro et qu’il n’avait pas de projet d’aménagement.",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:14:52.735Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm2pnh0022ujxga2knq9qe",
+    "nom": "Benmoussa Meriem",
+    "telephone": "0661244640",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Renouvellement dune cuisine",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:14:54.116Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm2qer0027ujxguc6ocmt9",
+    "nom": "Benrabah Meriem",
+    "telephone": "0661642458",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Israe",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: FINITION ET RENOVATION",
+        "author": "Israe",
+        "createdAt": "2025-11-29T18:14:55.108Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm2r6e002cujxgo8rw1q7f",
+    "nom": "Fatiha salim",
+    "telephone": "0712635756",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm2roo002fujxghuw7ufpu",
+    "nom": "Najou",
+    "telephone": "0673897231",
+    "ville": "Tamesna",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Rénovation d’une villa : faux plafonds, cuisine, salle de bain, habillages muraux et ameublement.",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:14:56.753Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm2spn002mujxgr7balfo6",
+    "nom": "hamza el kouhen",
+    "telephone": "0661301441",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: il attent toujours la réception du terrain pour commencer la construction de sa villa",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:14:58.084Z"
+      }
+    ],
+    "statutDetaille": "à suivre",
+    "message": null
+  },
+  {
+    "id": "cmikm2tqj002tujxgd49lugjy",
+    "nom": "Tarik",
+    "telephone": "0780808800",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:14:59.416Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm2v0d0032ujxgck3vd38w",
+    "nom": "mohamed kouhen",
+    "telephone": "0665101319",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: sindibad ; peinture interne et extern portes   ;finition rkham hemmam beldi cuisine  a rennover , pas dameublement",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:15:01.060Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm2vrq0037ujxgcl48uv1h",
+    "nom": "Lamar Lamar",
+    "telephone": "0660449375",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: FINITION et AMEUBLEMENT ;",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:15:02.045Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm2wiz003cujxg274xu8wd",
+    "nom": "Atiqua Benhsain",
+    "telephone": "0661629617",
+    "ville": "Sale",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: renovation et finition seulement",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:15:03.030Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm2xag003hujxg6g2rozqv",
+    "nom": "Mam/ Un homme/",
+    "telephone": "0661693519",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: finition sallon et cuisine",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:15:04.022Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm2y28003mujxgh354y0bk",
+    "nom": "Maryam Etebae",
+    "telephone": "0626270097",
+    "ville": "Fés",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm2yku003pujxglp38lnrc",
+    "nom": "kaoutar el mouileh",
+    "telephone": "0652652072",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: R+3 :finition et ameublement en urgence",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:15:05.686Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm2zck003uujxggt3ebxsk",
+    "nom": "Mahdi",
+    "telephone": "0658363359",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm300t003xujxgi03bwauc",
+    "nom": "Karim",
+    "telephone": "0679827330",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Petits travaux dans un logement social",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:07.628Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm31600044ujxgxntronhl",
+    "nom": "Hassan Bouhouch",
+    "telephone": "0661254330",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 04/11/2025",
+        "author": "Israe",
+        "createdAt": "2025-11-03T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Israe",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Travaux de finition et ameublement .Il demande de connaitre les prix avant de commencer",
+        "author": "Israe",
+        "createdAt": "2025-11-29T18:15:09.244Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm32de004bujxg62tfltis",
+    "nom": "عسول فآطمة Aa",
+    "telephone": "0661133144",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: finition sallon et sejour ; cuisine",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:15:10.604Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm3351004gujxgkr3ioiy4",
+    "nom": "Hassan boudalal",
+    "telephone": "0600394209",
+    "ville": "Temara",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: finition +ameublement /PHASE ENDUIT/ son ami il a une villa d’environ 600 m² et il serait  intéressé par un accompagnement pour l’aménagement et la décoration",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:15:11.599Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm33wn004lujxgsbtgq3s6",
+    "nom": "Karim Rahmoune",
+    "telephone": "0600623421",
+    "ville": "Kenitra",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 07/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-06T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il veut moderniser l’appartement dans lequel il vit : carrelage de la salle de bain, quelques travaux dans le salon, peinture et ameublement.",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:15:12.587Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm34x5004sujxgp8agzkh2",
+    "nom": "Jamal",
+    "telephone": "0653383137",
+    "ville": "Benslimane",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm356g004tujxg0ew0rzro",
+    "nom": "maryam",
+    "telephone": "1.00004632",
+    "ville": "bouznika",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: la  cliente cherche un architecte pour construire sa villa elle m’a dit qu’il allait garder notre numéro, et qu’une fois la construction terminée, il nous contactera pour la partie aménagement et finition.",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:14.238Z"
+      }
+    ],
+    "statutDetaille": "à suivre",
+    "message": null
+  },
+  {
+    "id": "cmikm35y0004yujxg7tzegtj5",
+    "nom": "Mohammed Achraf",
+    "telephone": "0662121129",
+    "ville": "Safi",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 10/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-09T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il s’agit d’un appartement situé au 2ᵉ étage, avec une terrasse à aménager pour créer un duplex. Le projet nécessite des travaux de finition ainsi que l’ajout d’un escalier pour relier les deux niveaux.",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:15.237Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:15.237Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm379j0057ujxg9p41224q",
+    "nom": "Samira",
+    "telephone": "0646560929",
+    "ville": "Sttat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: finition complet seulement",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:15:20.380Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm3ap0005cujxgh070nio1",
+    "nom": "SADOUK OMAR",
+    "telephone": "0661918331",
+    "ville": "TANTAN",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm3b7c005fujxgy74ru0n9",
+    "nom": "Madame hidaya",
+    "telephone": "0662196959",
+    "ville": "Marakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": null
+  },
+  {
+    "id": "cmikm3bpo005iujxgnjwg43wl",
+    "nom": "El kabbouri",
+    "telephone": "0661945781",
+    "ville": "Béni mellal",
+    "notes": [],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm3bz6005jujxg7pxecs5g",
+    "nom": "Yacoubi hamid",
+    "telephone": "0662049529",
+    "ville": "Agadir",
+    "notes": [
+      {
+        "content": "📝 Note: Hors périmettre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:23.130Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm3cw9005mujxg016m0efu",
+    "nom": "Hafsa bou",
+    "telephone": "971522239410",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📝 Note: Il s'agit d'un salon de coiffure",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:24.486Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm3dng005pujxgzw8wenh0",
+    "nom": "Youssef",
+    "telephone": "0661680753",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 03/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-02T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: gros oeuvres termies ;hotel a ain diab ;besoin dune finition et ameublement les chambres ,restaux",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:15:25.496Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm3ewv005uujxg5ghh2e2c",
+    "nom": "Lele Lam",
+    "telephone": "00971544951718",
+    "ville": "Abu dhabi",
+    "notes": [
+      {
+        "content": "📝 Note: Hors périmettre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:15:26.955Z"
+      }
+    ],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm5j4800k3ujxg3jtzx83l",
+    "nom": "Morad",
+    "telephone": "0661841212",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 17/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il a besoin d'éffectuer des travaux de finition dans une parapharmacie de 50 m2 à Bernoussi",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:17:05.612Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:17:05.612Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm5kd300kcujxgj1k936j7",
+    "nom": "Dihazi Fatiha",
+    "telephone": "0641338858",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Karima",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Ameublement de 3 chambres et 2 salons",
+        "author": "Karima",
+        "createdAt": "2025-11-29T18:17:07.226Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm5l3w00khujxgf1do6ahz",
+    "nom": "Hanane Ahmed",
+    "telephone": "0661136406",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:08.190Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm5m3w00koujxg7qna27yd",
+    "nom": "Ameur Mehdi",
+    "telephone": "0661696969",
+    "ville": "Kenitra",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Toujours boite vocal",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:09.484Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:09.484Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm5nlw00kzujxg5r449u92",
+    "nom": "Hajar Abraoui",
+    "telephone": "0696535938",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: L’immeuble n’est pas encore construit. Elle nous recontactera une fois les gros œuvres achevés.",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:11.430Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm5ocw00l4ujxgvpbic8xu",
+    "nom": "Chiguer Hicham",
+    "telephone": "0664199469",
+    "ville": "Sala el Jadida",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 17/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il veut refaire son appartement de 80 m2 ( Il veut tout changer )",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:17:12.404Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm5pcr00lbujxg78rnxngy",
+    "nom": "Gigi",
+    "telephone": "0661491197",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Transformer une chambre en dressing room",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:13.690Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm5q3j00lgujxg10f16ng5",
+    "nom": "AUDAL Boughaba",
+    "telephone": "0661066612",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Travaux de finition d'un appartement à Hay Riad",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:17:14.657Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm5qw700llujxg3qqtemg4",
+    "nom": "Soufiane",
+    "telephone": "0661813682",
+    "ville": "Nouaceur",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Modification d'une chambre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:15.686Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm5rn000lqujxgo63u3lm0",
+    "nom": "Youssef Jouti",
+    "telephone": "0600030055",
+    "ville": "Had Soualem",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 21/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:16.652Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm5sw000lzujxgqnq1a0gc",
+    "nom": "Latifa Farou",
+    "telephone": "0669990663",
+    "ville": "Meknes",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Le projet se situe hors périmètre, et les travaux à réaliser sont de petite envergure.",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:18.276Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm5tn200m4ujxgr3jjwqsp",
+    "nom": "Hassan B",
+    "telephone": "0671652830",
+    "ville": "Temara",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Le client m’a indiqué qu’il souhaite uniquement un devis pour l’habillage de 65 m² de façade en bois d’origan. Il reste toutefois très réticent à l’idée de faire intervenir un architecte.",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:19.250Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm5udz00m9ujxgfcm0q7yd",
+    "nom": "Fatima",
+    "telephone": "0661890226",
+    "ville": "Sala al Jadida",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Cuisine dans une petite villa",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:20.217Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm5v4v00meujxguc1s3fyp",
+    "nom": "Sanae El Mamoune",
+    "telephone": "0615652082",
+    "ville": "Kenitra",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm5vms00mhujxgd12l6tau",
+    "nom": "Amrani",
+    "telephone": "0661428158",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il veut refaire son appartement .Il sera disponible à partir du 19/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:17:21.836Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm5wdv00mmujxgm09uq9ov",
+    "nom": "Hanane",
+    "telephone": "0660714984",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Karima",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Décoration et ameublement",
+        "author": "Karima",
+        "createdAt": "2025-11-29T18:17:22.806Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm5x4w00mrujxg5dilrkel",
+    "nom": "Qabil Othman",
+    "telephone": "0622550012",
+    "ville": "Safi",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm5xn100muujxgpzmldofv",
+    "nom": "Bouchta",
+    "telephone": "0605522246",
+    "ville": "Oued zem",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: hors périmètre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:24.432Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:24.432Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm5ymy00n1ujxgtuo91arv",
+    "nom": "Fatiha",
+    "telephone": "0662129189",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Travaux de finition pour un magasin de 19 m2 avec mezzanine",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:25.730Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm5ze100n6ujxgaan6d3nd",
+    "nom": "Rababe el ouidani",
+    "telephone": "0674715088",
+    "ville": "Sala al jadida",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Travaux de finition et aménagement d'un salon de beauté de 67 m2",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:17:26.701Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm605600nbujxg9vkwky72",
+    "nom": "Said said",
+    "telephone": "0707188330",
+    "ville": "Khouribga",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 14/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-13T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: hors périmètre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:27.676Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": null
+  },
+  {
+    "id": "cmikm60wi00ngujxgk1881u4d",
+    "nom": "Benamain Yassir",
+    "telephone": "33766461930",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 20/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-19T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 27/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-26T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:28.659Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm61wh00nnujxggi8epcll",
+    "nom": "Ryahi",
+    "telephone": "0661628539",
+    "ville": "Safi",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm625f00noujxg0m3tuu9k",
+    "nom": "Simohamed Elbacha",
+    "telephone": "0664177121",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 19/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il a une villa veut la rénover + une extension semi finie",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:17:30.277Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:17:30.277Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm63fx00nxujxgvj14gczh",
+    "nom": "Bahhar Abdelmajid",
+    "telephone": "0661572980",
+    "ville": "Safi",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm63p100nyujxggbulm7or",
+    "nom": "Mohamed Brahimi",
+    "telephone": "0661401238",
+    "ville": "Oujda",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm63y600nzujxg4ab0ieft",
+    "nom": "Norddine Louali",
+    "telephone": "0661280969",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Construction sur terrain nu",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:32.614Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:32.614Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm64yg00o6ujxgul59fm1t",
+    "nom": "SANY. T",
+    "telephone": "0671133215",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il préfere visiter le showroom en premier pour etre rassuré (Localisation et message envoyé)",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:33.915Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:33.915Z"
+      }
+    ],
+    "statutDetaille": "nouveau",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm65y700odujxgqc89564a",
+    "nom": "Boudhad Khalila",
+    "telephone": "0664336055",
+    "ville": "Essaouira",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm667800oeujxgz2wues5h",
+    "nom": "Mme Nazha Amjahdi",
+    "telephone": "0660366038",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Elle cherche à faire une rénovation complète de la villa (intérieur, cuisine, menuiserie, murs et décoration).",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:17:35.527Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm66y600ojujxgc8fzfiva",
+    "nom": "بردي يوسف",
+    "telephone": "0665890857",
+    "ville": "مدبونة",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm677500okujxgyh5sghwb",
+    "nom": "Abj",
+    "telephone": "0629304231",
+    "ville": "Agdir",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm67g800olujxgyflb6qef",
+    "nom": "Hakim Allou",
+    "telephone": "0662044059",
+    "ville": "Agadir",
+    "notes": [
+      {
+        "content": "📝 Note: Travaux de finition",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:37.147Z"
+      }
+    ],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm67y800ooujxga4gt0swy",
+    "nom": "Essaydi Ilham",
+    "telephone": "0678303076",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📝 Note: Salle de Bain et peinture",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:37.819Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm68gw00orujxgj473o28z",
+    "nom": "Driss",
+    "telephone": "0661317758",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il a un apprt de 180 m2 à Agdal il a besoin des travaux de finitions ( Platre , menuiserie carrelage , peinture ...)",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:17:38.464Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm697m00owujxgao0p1bc0",
+    "nom": "Hana",
+    "telephone": "0661777499",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 19/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 21/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Elle a un bugdet de 110 000 dhs pour retaper son appartement (changement de carrelage ,faux plafont , peinture  , SDB )",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:17:39.434Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:17:39.434Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm6apn00p7ujxgon0ihy2m",
+    "nom": "sabri ibn",
+    "telephone": "0714973736",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Carrelage d'un local de 910 m2 et décoration",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:41.374Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6bpl00peujxgqnu7zuwq",
+    "nom": "Khadija",
+    "telephone": "0665280692",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm6byn00pfujxg92d7pei0",
+    "nom": "Azoulay david",
+    "telephone": "0632512085",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il s'agit d'un appartement ancien de 200 m2 QU Racine nécessitant une rénovation complète pour une modernisation totale. ( Rendre Apprt AirBnb ).",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:17:42.996Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6cpr00pkujxgcr1kfrcr",
+    "nom": "Lachraf amine",
+    "telephone": "0661138920",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il s'agit d'un appartement ancien nécessitant une rénovation complète pour une modernisation totale.",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:17:43.972Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6dgq00ppujxge00titb6",
+    "nom": "Imane Bousslama",
+    "telephone": "0662778431",
+    "ville": "Mohammedia",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Changement de 3 salles de bain un salon une chambre ( Faux plafond , peinture et habillage mural ...)",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:17:44.943Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6e9i00puujxgg6lbhlca",
+    "nom": "Siham",
+    "telephone": "0678725085",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 19/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: La cliente souhaite entreprendre une rénovation complète de l'espace, comprenant :\nLa démolition partielle de la salle de bain afin d'intégrer l'espace récupéré à la chambre attenante et en faire un dressing L'extension du coin repas et son ouverture sur la grande terrasse pour créer un espace de vie unique et ouvert (salon/salle à manger/terrasse).\nL'ameublement et l'aménagement intérieur de ces nouveaux espaces.",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:17:45.983Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6f9h00q1ujxgu6cp7frc",
+    "nom": "Amal othman",
+    "telephone": "0609896515",
+    "ville": "Mohammedia",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Juste la peiture de son appartement",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:47.271Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:47.271Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm6g9d00q8ujxgrn6474rd",
+    "nom": "morad sajid",
+    "telephone": "0660895913",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Villa en cours de construction",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:48.563Z"
+      }
+    ],
+    "statutDetaille": "à suivre",
+    "message": null
+  },
+  {
+    "id": "cmikm6h0d00qdujxgdzodaw03",
+    "nom": "Abdelatif",
+    "telephone": "0666593119",
+    "ville": "Marrakech",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm6h9d00qeujxguy22m792",
+    "nom": "Jamila",
+    "telephone": "0642446006",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Petits travaux",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:49.857Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm6i0900qjujxggfjku0o7",
+    "nom": "Bourhane Cadi",
+    "telephone": "0649879347",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Petits travaux dans la cuisine",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:50.827Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm6ir700qoujxgj98z8lf4",
+    "nom": "Achamsi Mounaim",
+    "telephone": "0665467448",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il veur refaire le salon+séjour et cuisine ( habillage mural , carrelage , faux plafand électricité )",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:17:51.798Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6ji500qtujxg9fwhgu0e",
+    "nom": "Lamya",
+    "telephone": "0619773006",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Un petit dressing ou placard",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:52.766Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm6k9500qyujxghks3olh1",
+    "nom": "Younes",
+    "telephone": "0675366211",
+    "ville": "Essaouira",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm6ki300qzujxgqq0qbp6y",
+    "nom": "Lalami Fatima zahra",
+    "telephone": "0660829558",
+    "ville": "Sale",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Elle veut transformer une SDB en dressing et rfaire une deuxième SDB",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:54.059Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:54.059Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm6lqz00r8ujxgwrtn8gh7",
+    "nom": "Idriss Belahcen",
+    "telephone": "0661470933",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Travaux d'aménagement complet d'un restaurant  de 280 m2 . Le client est en déplacement il sera de retour  vers le 8 décembre",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:17:55.683Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6mi000rdujxgvfehl24e",
+    "nom": "Khalid Khalid",
+    "telephone": "0664711586",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Villa pas encore construite",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:56.650Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm6n9300riujxgmfjq2f3b",
+    "nom": "Salaheddine",
+    "telephone": "0661294913",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:57.626Z"
+      },
+      {
+        "content": "📝 Note: Il a signé avec un autre prestataire",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:17:57.626Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm6oi500rrujxgylkynva9",
+    "nom": "Ali dafach",
+    "telephone": "0669498600",
+    "ville": "Marrakech",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm6or400rsujxgxhcqcvkj",
+    "nom": "Aicha",
+    "telephone": "0663119856",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Karima",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Elle dispose d’une villa semi-finie et aura donc besoin de travaux de finition, ainsi que de la menuiserie , la cuisine et de l’habillage mural.",
+        "author": "Karima",
+        "createdAt": "2025-11-29T18:17:59.571Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6pi600rxujxgrzopmh87",
+    "nom": "El hakouni",
+    "telephone": "33603241330",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 20/11/2025",
+        "author": "Israe",
+        "createdAt": "2025-11-19T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il a un appartement de 85 m2 et veut tout refaire carrelage , faux plafond , cuisine salle de bain , .... il sera disponible demain après midi . Disponible pour appel sur wats",
+        "author": "Israe",
+        "createdAt": "2025-11-29T18:18:00.553Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6qb200s2ujxgjzkkcbuw",
+    "nom": "Zitour Atika",
+    "telephone": "0668608888",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 17/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-16T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Elle possède une villa qu’elle souhaite moderniser, avec l’ajout d’habillages muraux et la possibilité d’intégrer un ascenseur.",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:18:01.588Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6r2100s7ujxgwo68oitz",
+    "nom": "Noura",
+    "telephone": "0668702834",
+    "ville": "Khemisset",
+    "notes": [
+      {
+        "content": "📞 Deuxième appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Premier appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 27/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-26T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:02.558Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm6sb400sgujxgyaj86inp",
+    "nom": "Youssef Albachir",
+    "telephone": "0661743750",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Deuxième appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 21/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:04.180Z"
+      },
+      {
+        "content": "📞 Premier appel: 19/11/2026",
+        "author": "Mohamed",
+        "createdAt": "2026-11-18T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm6tk700spujxgui49dkvb",
+    "nom": "Abderrahim",
+    "telephone": "0666455628",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 19/11/2025",
+        "author": "Israe",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il a un appartement de 80 m2 qui veut le moderniser + refaire la cuisine et salle de bain",
+        "author": "Israe",
+        "createdAt": "2025-11-29T18:18:05.802Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6ub600suujxgpk1t79mg",
+    "nom": "Abderrazak",
+    "telephone": "0665152658",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 19/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Rénovation d'une clinique. Le client ne pas donner beaucoup de détails",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:18:06.774Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6v2100szujxgtu4bp6ic",
+    "nom": "G mostafa",
+    "telephone": "0601605221",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Deuxième appel: 19/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Premier appel: 19/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Travaux de finition pour une villa à Ain Sbaa",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:18:07.737Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6w2700t6ujxg454s58c4",
+    "nom": "Ghandouri Youssef",
+    "telephone": "0664932700",
+    "ville": "Settat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:09.041Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm6wt300tbujxg19knqb3d",
+    "nom": "Jaouad harda",
+    "telephone": "067851962t",
+    "ville": "Benslimane",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm6x2500tcujxgpq47bp6r",
+    "nom": "Hicham CHERQUAOUI",
+    "telephone": "0690998665",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 19/11/2025",
+        "author": "Karima",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Le client était occupé mais il m'a dit qu'il a besoin des travaux de finition aménagement et ameublement",
+        "author": "Karima",
+        "createdAt": "2025-11-29T18:18:10.333Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6xt100thujxg2dpm5ze0",
+    "nom": "El ouafa Mohammed",
+    "telephone": "0661436887",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 19/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il a besoin de l'ameublement",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:18:11.301Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6yk700tmujxgddvo1gat",
+    "nom": "Bouzalgui mohamed",
+    "telephone": "0663358488",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 19/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Projet de modernisation d'une maison: besoin en décoration et mobilier.",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:18:12.278Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm6zb100trujxge21904qb",
+    "nom": "Karim",
+    "telephone": "‪+447716242238‬",
+    "ville": "Meknes",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm6zjx00tsujxgeh2xb1cp",
+    "nom": "Mr aɓddeljalil",
+    "telephone": "0674047542",
+    "ville": "Casa  palmier",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il n'a pas Wts",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:13.564Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": null
+  },
+  {
+    "id": "cmikm70ap00txujxgyskw4eyy",
+    "nom": "Latmani saida",
+    "telephone": "0645593958",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 19/11/2025",
+        "author": "Israe",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: La cliente souhaite avant tout une nouvelle décoration d'appartement qui s'harmonise avec son mobilier existant. Elle reste cependant ouverte à l'idée d'une refonte totale (décoration et ameublement) si une proposition de valeur attrayante lui est présentée.",
+        "author": "Israe",
+        "createdAt": "2025-11-29T18:18:14.531Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm711k00u2ujxg7xaeyhkk",
+    "nom": "Hicham",
+    "telephone": "0661102275",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 19/11/2025",
+        "author": "Karima",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il veut faire quelques modification dans la cuisine  + habillage mural + carrelage + peinture et ameublement",
+        "author": "Karima",
+        "createdAt": "2025-11-29T18:18:15.499Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm71u800u7ujxgqp3a3qwz",
+    "nom": "EL JEBARI AMAL",
+    "telephone": "0616789230",
+    "ville": "Sale",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 21/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 27/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-26T23:00:00.000Z"
+      },
+      {
+        "content": "✉️ Message WhatsApp envoyé",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:16.529Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": "Oui"
+  },
+  {
+    "id": "cmikm732y00ugujxg0ft60rna",
+    "nom": "MAJID MINA",
+    "telephone": "0663637765",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Une cuisine",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:18.142Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm73tu00ulujxg7g3orqcf",
+    "nom": "Eljoussain ikoubaan",
+    "telephone": "0619044389",
+    "ville": "Ksar sghir",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 20/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-19T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Hors périmètre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:19.112Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm74kr00uqujxgy20px4xs",
+    "nom": "Mounir",
+    "telephone": "0648839364",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 20/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-19T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm752r00utujxg62e13hna",
+    "nom": "Maziane",
+    "telephone": "0607933638",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 20/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-19T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm75ks00uwujxgm2n17v8o",
+    "nom": "Ouassi Abdallah",
+    "telephone": "0661330113",
+    "ville": "Safi",
+    "notes": [
+      {
+        "content": "📝 Note: Hors périmètre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:21.376Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm762r00uzujxg4nh3oi81",
+    "nom": "Khadija",
+    "telephone": "0650252126",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 20/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-19T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Cuisine et salle de bain",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:22.020Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm76tk00v4ujxgx89lx7bo",
+    "nom": "Drouan Khalid",
+    "telephone": "0661469835",
+    "ville": "Nouaceur",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 20/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-19T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 21/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Refaire tout le sous sol de la villa et le premier étage .(travaux de finition et ameublement",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:18:22.985Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm77ta00vbujxgsz1dllnd",
+    "nom": "Tourkzi Khalid",
+    "telephone": "0661390444",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 20/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-19T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Peinture et séparation en aluminium",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:24.282Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm78kh00vgujxgzaftlbft",
+    "nom": "Sana",
+    "telephone": "0626272627",
+    "ville": "Appartement",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 20/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-19T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm792l00vjujxgc1n1au3z",
+    "nom": "BENKARIM",
+    "telephone": "0661193211",
+    "ville": "Appartement",
+    "notes": [
+      {
+        "content": "📝 Note: Ameublement et décoration",
+        "author": "Karima",
+        "createdAt": "2025-11-29T18:18:25.903Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm79kl00vmujxg1ua2f7o1",
+    "nom": "Hayat Fadel",
+    "telephone": "0675022542",
+    "ville": "Appartement",
+    "notes": [
+      {
+        "content": "📝 Note: En cours de finalisation de projet il va me rappeler pour en discuter d'avantage",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:26.557Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm7a2r00vpujxgk1agc1ku",
+    "nom": "Imane",
+    "telephone": "0661898268",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 20/11/2025",
+        "author": "Israe",
+        "createdAt": "2025-11-19T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Changement de carrelage de toute l'appartement + peinture + salle de bain + moulures",
+        "author": "Israe",
+        "createdAt": "2025-11-29T18:18:27.207Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm7atq00vuujxgk2x7nhda",
+    "nom": "mustapha bcp",
+    "telephone": "0661571869",
+    "ville": "Tiflet",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm7b2o00vvujxg5fi7584h",
+    "nom": "Abdeljabar Elatar",
+    "telephone": "0661768258",
+    "ville": "Sidi Allal Tazi",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Un appartement semi fini (travaux de finition....)",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:18:28.498Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm7btn00w0ujxgf97ym4v1",
+    "nom": "JADE",
+    "telephone": "0661471755",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il envisage des travaux de modernisation pour son appartement de 98 m² à Gauthier. L'objectif est de le mettre au goût du jour en remplaçant le carrelage et en installant de nouveaux faux-plafonds.",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:18:29.468Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm7ckr00w5ujxgv6kz8zur",
+    "nom": "Samir el",
+    "telephone": "0664848382",
+    "ville": "Fes",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm7ctw00w6ujxgvxg19w9c",
+    "nom": "TAZI HAJAR",
+    "telephone": "0661990177",
+    "ville": "Meknes",
+    "notes": [],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm7d3300w7ujxgtpbv65o4",
+    "nom": "chakir darife",
+    "telephone": "0615505138",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 27/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-26T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 28/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-27T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Un appartement semi fini de 180 m2 (travaux de finition..)",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:18:31.110Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": null
+  },
+  {
+    "id": "cmikm7ee100wgujxgl1vpl38l",
+    "nom": "Ghanem",
+    "telephone": "0661112353",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 27/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-26T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 28/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-27T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": null
+  },
+  {
+    "id": "cmikm7fe400wnujxg3o28yi3n",
+    "nom": "SAAD",
+    "telephone": "0661187225",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Le plateau de bureau de 120 m² est en cours de livraison (85 % d'achèvement). Le client voudra anticiper les travaux de finition vu qu'il va le recevoir à l'état brut .",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:18:34.094Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm7g5400wsujxgwe6q59pe",
+    "nom": "MOUHCINE Mohamed",
+    "telephone": "0661524888",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Ameublement et décoration de tout l'appartement",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:18:35.067Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm7gw500wxujxgi1yijxrx",
+    "nom": "Rachid Souiri",
+    "telephone": "0690029122",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il a besoin juste de l'ameublement et décoration",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:18:36.038Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm7hn300x2ujxgmd3v7j5g",
+    "nom": "Ilham إلهام",
+    "telephone": "6661119274",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Elle veut juste meubler un salon",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:37.023Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm7ief00x7ujxg0nuk1t4j",
+    "nom": "Mouna Alaoui",
+    "telephone": "0661227025",
+    "ville": "Sale",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Juste la peinture",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:37.993Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm7j5800xcujxg0qog66x1",
+    "nom": "Soufiane",
+    "telephone": "0653957090",
+    "ville": "oui",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm7jn700xfujxg7xtptor0",
+    "nom": "Grini El hassan",
+    "telephone": "0666905900",
+    "ville": "Temara",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il a un appartement de 74 m2 il veut le refaire pour y habiter",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:18:39.605Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm7ke300xkujxgy016fawg",
+    "nom": "Simo",
+    "telephone": "0661318905",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il a besoin de l'ameublement de la villa",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:18:40.571Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm7l4t00xpujxgw9vtmrkv",
+    "nom": "Bajlile mjid",
+    "telephone": "0661344089",
+    "ville": "Agadir",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Hors périmètre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:41.533Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm7lvk00xuujxgufzs7jtq",
+    "nom": "Ouhmimid mhamed",
+    "telephone": "0665275060",
+    "ville": "Marrakech",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 21/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-20T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Une chambre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:42.502Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm7mmr00xzujxgkjpvgf9p",
+    "nom": "Ibrahimi Mohamed",
+    "telephone": "0661261003",
+    "ville": "Nador",
+    "notes": [
+      {
+        "content": "📝 Note: Hors périmètre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:43.475Z"
+      },
+      {
+        "content": "📞 Premier appel: 21/11/2026",
+        "author": "Mohamed",
+        "createdAt": "2026-11-20T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm7ndi00y4ujxgp2mitm3c",
+    "nom": "Nokrou Hatim",
+    "telephone": "0660148300",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 27/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-26T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": null
+  },
+  {
+    "id": "cmikm7o4n00y9ujxg4latw031",
+    "nom": "Riffi laila",
+    "telephone": "0660001952",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 27/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-26T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm7ovt00yeujxgm2nxoplf",
+    "nom": "Aziz",
+    "telephone": "0661392602",
+    "ville": "El Jadida",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": null
+  },
+  {
+    "id": "cmikm7pfl00yhujxgh96rfmjs",
+    "nom": "محسن الزارعي",
+    "telephone": "0780537255",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm7pxi00ykujxgh5q8gq1e",
+    "nom": "Hafid Razouq",
+    "telephone": "0600026662",
+    "ville": "Agadir",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Hors périmètre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:47.754Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm7qok00ypujxg1y6zhkh6",
+    "nom": "Bobot Latifa",
+    "telephone": "0677180179",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Travaux de finition pour un appartement 120 m2 et une terrasse de 29 m2  ( carrelage peinture faux plafond habillage menuiserie et ameublement...)",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:18:48.729Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm7rfo00yuujxg2e6l9bcz",
+    "nom": "Ismail",
+    "telephone": "0661176351",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Non intéressé",
+    "message": null
+  },
+  {
+    "id": "cmikm7rxn00yxujxgfdlryv4t",
+    "nom": "Mouline Hamza",
+    "telephone": "0661104505",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Un ancien appartement de 170 m2 entièrement à refaire ( Faux plafond , carrelage , des modifications dans les chambres peinture ....) En cas de non réponse du client merci de lui envoyer un SMS via Wts .",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:18:50.350Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm7sok00z2ujxgmck7vg90",
+    "nom": "Mahdouch Abdennasser",
+    "telephone": "0661107976",
+    "ville": "Fes",
+    "notes": [
+      {
+        "content": "📝 Note: Hors périmètre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:51.321Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm7t6l00z5ujxggg55afbn",
+    "nom": "Abdelkarim Abdelkarim",
+    "telephone": "0663203825",
+    "ville": "Nadorين الأيوبي الناضور",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 27/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-26T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": null
+  },
+  {
+    "id": "cmikm7txl00zaujxgziscg6ra",
+    "nom": "El Amrani ahmed",
+    "telephone": "0620142888",
+    "ville": "Meknes",
+    "notes": [
+      {
+        "content": "📝 Note: Hors périmètre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:52.938Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm7ufk00zdujxgb34uvm2k",
+    "nom": "Btissame GOURJA",
+    "telephone": "0617212034",
+    "ville": "Mohammedia",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Parquet pour chambres",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:53.591Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm7v6l00ziujxgamyynkcx",
+    "nom": "Azzizi lahsen",
+    "telephone": "0669153333",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Amina",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il souhaite consulter l’avis d’un architecte avant de se décider pour la rénovation du salon européen, du séjour, de la salle à manger ainsi que pour la reprise de la peinture de la villa.",
+        "author": "Amina",
+        "createdAt": "2025-11-29T18:18:54.565Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm7vxw00znujxgx5hu7d7a",
+    "nom": "Ali",
+    "telephone": "0720034901",
+    "ville": "Mohamedia",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il veut rénover sa villa (carrelage , faud plafond , Peinture , SDB , Cuisine, façade extérieur .....)",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:18:55.540Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm7woq00zsujxgo2q3owa3",
+    "nom": "Tayeb  ch",
+    "telephone": "0661531464",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm7x6q00zvujxg5hduzht5",
+    "nom": "Touria Meziane",
+    "telephone": "0660153424",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm7xom00zyujxg47zx9z93",
+    "nom": "MAHFOUD Jamal جمال محفــــوظ",
+    "telephone": "0661098717",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Deuxième appel: 19/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-18T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Troisième appel: 27/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-26T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Toujours Boite vocal",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:18:57.802Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": null
+  },
+  {
+    "id": "cmikm7yxh0107ujxgpc9ci8x9",
+    "nom": "Soukaina",
+    "telephone": "0623296405",
+    "ville": "Tanger",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm7zfe010aujxgfq3qt3tj",
+    "nom": "Slaoui Houda",
+    "telephone": "0661227229",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: SDB",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:19:00.066Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm806h010fujxgic6ki161",
+    "nom": "Jamal EL ALLAM",
+    "telephone": "0661487077",
+    "ville": "Fes",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Hors périmètre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:19:01.038Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm80xf010kujxg0dyu07xj",
+    "nom": "Meriem elfarouqy",
+    "telephone": "0663071820",
+    "ville": "Youssoufia",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Hors périmètre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:19:02.010Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm81qa010pujxgfua6msoi",
+    "nom": "Mostafa",
+    "telephone": "0666891391",
+    "ville": "Temara",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Il veut tout refaire dans un appartement de 138 m2",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:19:03.043Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm82h7010uujxglikrq01s",
+    "nom": "Hind alouma",
+    "telephone": "0677882112",
+    "ville": "Rabat",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Sanae",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Une villa semi finie SS/R+1 ( Travaux de finitions , carrelage , éléctricité , peinture , revetement mural , menuiserie ........)",
+        "author": "Sanae",
+        "createdAt": "2025-11-29T18:19:04.012Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm838d010zujxg7a14av5a",
+    "nom": "Idrissi Abdelilah",
+    "telephone": "0696693684",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "à recontacter",
+    "message": null
+  },
+  {
+    "id": "cmikm83qd0112ujxgq9m2qq3z",
+    "nom": "Jad Koumachi",
+    "telephone": "0600525951",
+    "ville": "Khenifra",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 24/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-23T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Hors périmètre",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:19:05.639Z"
+      }
+    ],
+    "statutDetaille": "Refusé",
+    "message": null
+  },
+  {
+    "id": "cmikm84hh0117ujxgg3w4xoxl",
+    "nom": "Mohamed talal",
+    "telephone": "0700870579",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 25/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-24T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: Numéro érroné",
+        "author": "Mohamed",
+        "createdAt": "2025-11-29T18:19:06.619Z"
+      }
+    ],
+    "statutDetaille": "nouveau",
+    "message": null
+  },
+  {
+    "id": "cmikm858c011cujxgtrv7jx2r",
+    "nom": "Siham Moudnib  Siham Moudnib",
+    "telephone": "0625230721",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 25/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-24T23:00:00.000Z"
+      },
+      {
+        "content": "📞 Deuxième appel: 27/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-26T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": null
+  },
+  {
+    "id": "cmikm85zh011hujxgr7kypyqp",
+    "nom": "Bennis Mohamed",
+    "telephone": "0674912222",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 25/11/2025",
+        "author": "Hiba",
+        "createdAt": "2025-11-24T23:00:00.000Z"
+      },
+      {
+        "content": "📝 Note: C'est un lead instagram a un appart de 176 m2 veut  entièrement refaire la cuisine , la salle de bain et ameublement .",
+        "author": "Hiba",
+        "createdAt": "2025-11-29T18:19:08.561Z"
+      }
+    ],
+    "statutDetaille": "Qualifié",
+    "message": null
+  },
+  {
+    "id": "cmikm86qj011mujxg2jqnpi4b",
+    "nom": "Tazi adil",
+    "telephone": "0661151351",
+    "ville": "Casablanca",
+    "notes": [
+      {
+        "content": "📞 Premier appel: 27/11/2025",
+        "author": "Mohamed",
+        "createdAt": "2025-11-26T23:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "Sans réponse",
+    "message": null
+  },
+  {
+    "id": "cmimw87o10000l5040ot5871z",
+    "nom": "Bennis Mohamed",
+    "telephone": "0674912222",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "",
+    "message": "C'est un lead instagram a un appart de 176 m2 veut  entièrement refaire la cuisine , la salle de bain et ameublement ."
+  },
+  {
+    "id": "cmimwozqe0000ii04477vophq",
+    "nom": "Khadija beidech",
+    "telephone": "0642305252",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cmimwra8y0001ii04itdg1c9a",
+    "nom": "Soraya bouqallal",
+    "telephone": "0661847529",
+    "ville": "Marrakech",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cmimwwlb20002ii04o7ce9m8j",
+    "nom": "Tarik Eddarissi ",
+    "telephone": "0661192258",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cminb9kru0000l504i5hohxi8",
+    "nom": "Tazi adil",
+    "telephone": "0661151351",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cminbawza0000jx0433fljn6k",
+    "nom": "Tarik EDDARISSI ",
+    "telephone": "0661192258",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cminbbqu00001jx04zm6w1iii",
+    "nom": "Namir fz ",
+    "telephone": "0662055492",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cminbcqhx0002jx042c99n7g8",
+    "nom": "Taha",
+    "telephone": "0661218315",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cminbgmo70003jx04kwmffnl3",
+    "nom": "El OUADNASSI abdellatif ",
+    "telephone": "0667091691",
+    "ville": "Marrakech",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cminbhpvm0004jx04t2lvsf0j",
+    "nom": "Basma alba",
+    "telephone": "0666608682",
+    "ville": "Tanger",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cminbimb90005jx044m8ibn56",
+    "nom": "Abdelali",
+    "telephone": "0667166841",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cminbj9pl0006jx04kvj8mjd8",
+    "nom": "yassir",
+    "telephone": "0661796336",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cminbrouq0000l404kx7f7o8t",
+    "nom": "Ali ",
+    "telephone": "0672081071",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cminbuezo0001l4041pnxnlag",
+    "nom": "Iliass saidi",
+    "telephone": "0661342744",
+    "ville": "Casablanca",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cminbv54c0002l404dezi10ry",
+    "nom": "Zakaria Roumani",
+    "telephone": "971 527339535",
+    "ville": "Marrakech",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cmhuriha500eoujkgb08v4ywy",
+    "nom": "Chemaou dounia",
+    "telephone": "0777340660",
+    "ville": "Sala el jadida",
+    "notes": [
+      {
+        "content": "📞 Premier appel effectué le 07/11/2025",
+        "author": "Système Import",
+        "createdAt": "2025-11-07T00:00:00.000Z"
+      },
+      {
+        "content": "📝 Une petite modification dans la chambre",
+        "author": "Système Import",
+        "createdAt": "2025-11-11T16:05:07.581Z"
+      }
+    ],
+    "statutDetaille": "🔄 Lead restauré après suppression du client - À requalifier",
+    "message": "Une petite modification dans la chambre"
+  },
+  {
+    "id": "cmhuriibc00etujkgpt8r3t1g",
+    "nom": "Belaassal jamila",
+    "telephone": "0670864719",
+    "ville": "Eljadida",
+    "notes": [
+      {
+        "content": "📞 Premier appel effectué le 10/11/2025",
+        "author": "Système Import",
+        "createdAt": "2025-11-10T00:00:00.000Z"
+      }
+    ],
+    "statutDetaille": "🔄 Lead restauré après suppression du client - À requalifier",
+    "message": ""
+  },
+  {
+    "id": "cmiorcaa20000l504tlyeljrf",
+    "nom": "test test",
+    "telephone": "0636939179",
+    "ville": "Rabat",
+    "notes": [],
+    "statutDetaille": "",
+    "message": ""
+  },
+  {
+    "id": "cmipr6k980003ujew8o6maxpv",
+    "nom": "Issam Aboulfadl",
+    "telephone": "0636939179",
+    "ville": "taza",
+    "notes": [
+      {
+        "content": "Lead créé par admin (source: magasin)",
+        "author": "admin",
+        "createdAt": "2025-12-03T08:36:42.380Z"
+      }
+    ],
+    "statutDetaille": "",
+    "message": null
+  }
+]

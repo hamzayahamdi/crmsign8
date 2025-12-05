@@ -16,15 +16,17 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import type { Client, Devis } from "@/types/client"
 import { syncClientStatusFrom } from "@/lib/client-sync"
+import { useToast } from "@/hooks/use-toast"
 
 interface AddDevisModalProps {
   isOpen: boolean
   onClose: () => void
   client: Client
-  onSave: (client: Client) => void
+  onSave: (client: Client, skipApiCall?: boolean) => void
 }
 
 export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModalProps) {
+  const { toast } = useToast()
   const [formData, setFormData] = useState({
     title: "",
     montant: "",
@@ -61,40 +63,53 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
       const result = await response.json()
       console.log('[Add Devis] ✅ Devis created in database:', result.data)
 
-      // Transform API response from snake_case to camelCase
-      const newDevis: Devis = {
-        id: result.data.id,
-        title: result.data.title,
-        montant: result.data.montant,
-        date: result.data.date,
-        statut: result.data.statut,
-        facture_reglee: result.data.facture_reglee || false,
-        description: result.data.description,
-        fichier: result.data.fichier,
-        createdBy: result.data.created_by || "Utilisateur",
-        createdAt: result.data.created_at,
-        validatedAt: result.data.validated_at,
-        notes: result.data.notes
+      // CRITICAL: Wait a moment for database to fully commit
+      await new Promise(resolve => setTimeout(resolve, 150))
+
+      // Force refresh client data to ensure devis shows up immediately
+      const clientResponse = await fetch(`/api/clients/${client.id}`, {
+        credentials: 'include',
+      })
+
+      if (clientResponse.ok) {
+        const clientResult = await clientResponse.json()
+        console.log('[Add Devis] 📊 Fresh client data from server:', {
+          clientId: clientResult.data.id,
+          statutProjet: clientResult.data.statutProjet,
+          devisCount: clientResult.data.devis?.length || 0,
+          paymentsCount: clientResult.data.payments?.length || 0,
+          historiqueCount: clientResult.data.historique?.length || 0,
+        })
+
+        // CRITICAL: Pass the complete fresh client data from server
+        // Use skipApiCall=true to prevent the parent from making another API call
+        // that would overwrite our fresh data
+        onSave(clientResult.data, true)
+
+        // Show success toast
+        toast({
+          title: "Devis créé avec succès",
+          description: `Le devis "${formData.title}" a été ajouté`,
+        })
+      } else {
+        console.error('[Add Devis] Failed to fetch updated client data')
+        // Fallback: just close modal and let user refresh
+        toast({
+          title: "Devis créé",
+          description: "Veuillez rafraîchir la page pour voir le devis",
+          variant: "default",
+        })
       }
 
-      const updatedClient = {
-        ...client,
-        devis: [...(client.devis || []), newDevis],
-        derniereMaj: new Date().toISOString()
-      }
-
-      onSave(updatedClient)
-      
-      // Dispatch event to refresh client data from server (ensures UI stays in sync)
-      window.dispatchEvent(new CustomEvent('devis-updated', {
-        detail: { clientId: client.id }
-      }))
-      
       setFormData({ title: "", montant: "", description: "", statut: "en_attente" })
       onClose()
     } catch (error: any) {
       console.error('[Add Devis] Error creating devis:', error)
-      alert(`Erreur: ${error.message || 'Impossible de créer le devis. Veuillez réessayer.'}`)
+      toast({
+        title: "Erreur",
+        description: error.message || 'Impossible de créer le devis. Veuillez réessayer.',
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -169,7 +184,7 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
                   required
                   value={formData.montant}
                   onChange={(e) => setFormData({ ...formData, montant: e.target.value })}
-                  placeholder="Ex: 2500000"
+                  placeholder="Ex: 25000"
                   className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
                 />
               </div>

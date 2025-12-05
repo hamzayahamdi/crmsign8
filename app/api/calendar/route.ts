@@ -288,8 +288,14 @@ export async function POST(request: NextRequest) {
     });
 
     // Create notifications for participants and assigned user
+    // IMPORTANT: Include assignedTo even if they're the creator
     const notificationRecipients = new Set([assignedTo, ...participants]);
-    notificationRecipients.delete(user.userId); // Don't notify the creator
+
+    // Only exclude creator if they're NOT the assigned user
+    // This ensures the organizer/assigned user always gets notified
+    if (user.userId !== assignedTo) {
+      notificationRecipients.delete(user.userId);
+    }
 
     const notificationPromises = Array.from(notificationRecipients).map((recipientId) =>
       prisma.notification.create({
@@ -314,9 +320,9 @@ export async function POST(request: NextRequest) {
 
     await Promise.all(notificationPromises);
 
-    // Send WhatsApp notifications to participants
+    // Send WhatsApp notifications to participants AND assigned user
     try {
-      // Get all participants with phone numbers
+      // Get all recipients (assigned user + participants) with phone numbers
       const participantUsers = await prisma.user.findMany({
         where: {
           id: { in: Array.from(notificationRecipients) },
@@ -325,7 +331,7 @@ export async function POST(request: NextRequest) {
         select: { id: true, name: true, phone: true }
       });
 
-      console.log(`[Calendar] Sending WhatsApp to ${participantUsers.length} participants`);
+      console.log(`[Calendar] Sending WhatsApp to ${participantUsers.length} recipients (including assigned user)`);
 
       // Format date and time for WhatsApp message
       const eventDate = new Date(startDate);
@@ -346,12 +352,13 @@ export async function POST(request: NextRequest) {
       if (!ULTRA_INSTANCE_ID || !ULTRA_TOKEN) {
         console.error('[Calendar] UltraMSG credentials not configured');
       } else {
-        // Send WhatsApp notification to each participant
+        // Send WhatsApp notification to each recipient
         const whatsappPromises = participantUsers.map(async (participant) => {
           try {
-            const message = `📅 *Nouveau Rendez-vous Confirmé*\n\n` +
+            const isOrganizer = participant.id === assignedTo;
+            const message = `📅 *Nouveau Rendez-vous ${isOrganizer ? 'Créé' : 'Confirmé'}*\n\n` +
               `Bonjour ${participant.name.split(' ')[0]},\n` +
-              `Un nouveau rendez-vous a été ajouté à votre agenda.\n\n` +
+              `${isOrganizer ? 'Vous avez créé un nouveau rendez-vous.' : 'Un nouveau rendez-vous a été ajouté à votre agenda.'}\n\n` +
               `📌 *${title}*\n` +
               `───────────────\n` +
               `📆 *Date :* ${finalDate}\n` +
@@ -360,9 +367,8 @@ export async function POST(request: NextRequest) {
               `${description ? `📝 *Détails :* ${description}\n` : ''}` +
               `\n🔗 *Voir dans l'agenda :*\n` +
               `${calendarLink}\n\n` +
-              `💡 *Action requise :*\n` +
-              `Merci de confirmer votre présence.\n\n` +
-              `_Organisé par ${creator?.name || 'Signature8'}_`;
+              `${isOrganizer ? `💡 *Rappel :*\nN'oubliez pas de confirmer ce rendez-vous.\n\n` : `💡 *Action requise :*\nMerci de confirmer votre présence.\n\n`}` +
+              `_${isOrganizer ? 'Créé par vous' : `Organisé par ${creator?.name || 'Signature8'}`}_`;
 
             // Send via UltraMSG
             const ultraResponse = await fetch(
@@ -403,13 +409,14 @@ export async function POST(request: NextRequest) {
                   startDate,
                   endDate,
                   location: location || null,
-                  creatorName: creator?.name
+                  creatorName: creator?.name,
+                  isOrganizer
                 }
               }
             });
 
             if (ultraResult.sent === 'true' || ultraResult.sent === true) {
-              console.log(`[Calendar] ✅ WhatsApp sent successfully to ${participant.name} (${participant.phone})`);
+              console.log(`[Calendar] ✅ WhatsApp sent successfully to ${participant.name} (${participant.phone})${isOrganizer ? ' [ORGANIZER]' : ''}`);
             } else {
               console.error(`[Calendar] ❌ WhatsApp failed for ${participant.name}:`, ultraResult);
             }

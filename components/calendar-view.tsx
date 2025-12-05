@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react';
 import { CalendarEventWithDetails } from '@/types/calendar';
 import { EVENT_TYPE_CONFIG } from '@/types/calendar';
 import { EventBadge } from '@/components/event-badge';
-import { CalendarEventChip } from '@/components/calendar-event-chip';
 import {
   format,
   startOfMonth,
@@ -129,6 +128,7 @@ export function CalendarView({
   );
 }
 
+
 // Month View Component
 function MonthView({
   events,
@@ -145,6 +145,7 @@ function MonthView({
   const monthEnd = endOfMonth(monthStart);
   const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
   const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const [selectedDayEvents, setSelectedDayEvents] = useState<{ date: Date; events: CalendarEventWithDetails[] } | null>(null);
 
   const days = [];
   let day = startDate;
@@ -153,8 +154,7 @@ function MonthView({
     day = addDays(day, 1);
   }
 
-  const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-  const weekDaysMobile = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  const weekDays = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
   const getEventsForDay = (date: Date) => {
     return events.filter(event => {
@@ -165,115 +165,211 @@ function MonthView({
 
       return isWithinInterval(dayStart, { start: eventStart, end: eventEnd }) ||
         isWithinInterval(dayEnd, { start: eventStart, end: eventEnd });
-    });
+    }).sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  };
+
+  const handleShowMore = (date: Date, dayEvents: CalendarEventWithDetails[], e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedDayEvents({ date, events: dayEvents });
   };
 
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Week day headers */}
-      <div className="grid grid-cols-7 gap-px bg-border/20 border border-border/40 rounded-t-lg overflow-hidden">
-        {weekDays.map((day, idx) => (
-          <div
-            key={day}
-            className="bg-gradient-to-b from-muted/50 to-muted/20 p-1.5 md:p-3 text-center text-[10px] md:text-xs font-bold text-foreground/70 uppercase tracking-wider md:tracking-widest"
-          >
-            <span className="hidden md:inline">{day}</span>
-            <span className="md:hidden">{weekDaysMobile[idx]}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-px bg-border/20 border border-border/40 rounded-b-lg overflow-hidden flex-1">
-        {days.map((day, index) => {
-          const dayEvents = getEventsForDay(day);
-          const isCurrentMonth = isSameMonth(day, currentDate);
-          const isTodayDate = isToday(day);
-          const hasEvents = dayEvents.length > 0;
-
-          return (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.005 }}
-              onClick={() => onDateClick(day)}
-              className={`
-                bg-card p-1 md:p-2.5 min-h-[70px] md:min-h-[130px] cursor-pointer
-                transition-all duration-200
-                ${isTodayDate ? 'bg-gradient-to-br from-primary/5 to-primary/10 ring-1 md:ring-2 ring-primary/20 shadow-md' : ''}
-                ${hasEvents && !isTodayDate ? 'hover:shadow-md hover:bg-accent/40' : ''}
-                ${!isCurrentMonth ? 'opacity-30 bg-muted/20' : ''}
-              `}
+    <>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Week day headers - Google Calendar style */}
+        <div className="grid grid-cols-7 border-b border-border/30">
+          {weekDays.map((day) => (
+            <div
+              key={day}
+              className="py-2.5 text-center text-[11px] font-medium text-muted-foreground uppercase tracking-wide"
             >
-              <div className="flex flex-col h-full">
-                <div className={`
-                  text-xs md:text-sm font-bold mb-1 md:mb-2 w-6 h-6 md:w-8 md:h-8 flex items-center justify-center rounded-md md:rounded-lg
-                  ${isTodayDate
-                    ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg'
-                    : 'text-foreground/70 hover:bg-muted/50'
-                  }
-                  transition-colors
-                `}>
-                  {format(day, 'd')}
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar grid - Clean Google style */}
+        <div className="grid grid-cols-7 flex-1 border-l border-t border-border/20">
+          {days.map((day, index) => {
+            const dayEvents = getEventsForDay(day);
+            const isCurrentMonth = isSameMonth(day, currentDate);
+            const isTodayDate = isToday(day);
+            const hasEvents = dayEvents.length > 0;
+
+            return (
+              <div
+                key={index}
+                onClick={() => onDateClick(day)}
+                className={`
+                  relative border-r border-b border-border/20 p-2 min-h-[120px] cursor-pointer
+                  transition-colors duration-150
+                  ${!isCurrentMonth ? 'bg-muted/10' : 'bg-background'}
+                  ${isTodayDate ? 'bg-blue-50/50 dark:bg-blue-950/20' : ''}
+                  hover:bg-accent/30
+                `}
+              >
+                {/* Date number - Google Calendar style */}
+                <div className="flex items-center justify-center mb-2">
+                  <div className={`
+                    text-sm font-normal w-7 h-7 flex items-center justify-center rounded-full
+                    ${isTodayDate
+                      ? 'bg-blue-600 text-white font-medium'
+                      : isCurrentMonth
+                        ? 'text-foreground'
+                        : 'text-muted-foreground/40'
+                    }
+                  `}>
+                    {format(day, 'd')}
+                  </div>
                 </div>
 
-                <div className="space-y-0.5 md:space-y-1.5 flex-1 overflow-hidden">
-                  {/* Mobile: Show dots for events */}
-                  <div className="md:hidden flex flex-wrap gap-1">
-                    {dayEvents.slice(0, 4).map((event) => {
-                      const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
-                      return (
-                        <div
-                          key={event.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEventClick(event);
-                          }}
-                          className={`w-4 h-4 rounded-full ${eventConfig.color} cursor-pointer hover:scale-125 active:scale-110 transition-transform shadow-sm`}
-                          title={event.title}
-                        />
-                      );
-                    })}
-                  </div>
+                {/* Events list - Clean and readable */}
+                <div className="space-y-1 overflow-hidden">
+                  {dayEvents.slice(0, 3).map((event) => {
+                    const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
+                    const startTime = format(new Date(event.startDate), 'HH:mm');
+                    const cleanTitle = event.title.replace(/^\[TÂCHE\]\s*/, '');
 
-                  {/* Desktop: Show event chips */}
-                  <div className="hidden md:block space-y-1.5">
-                    {dayEvents.slice(0, 3).map((event, eventIdx) => (
-                      <div key={event.id} onClick={(e) => {
-                        e.stopPropagation();
-                        onEventClick(event);
-                      }}>
-                        <CalendarEventChip event={event} />
+                    return (
+                      <div
+                        key={event.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEventClick(event);
+                        }}
+                        className={`
+                          group px-2 py-1 rounded text-[11px] leading-snug
+                          cursor-pointer transition-all duration-150
+                          ${eventConfig.chipBg}
+                          border-l-2 ${eventConfig.borderColor}
+                          hover:shadow-sm hover:scale-[1.02]
+                        `}
+                      >
+                        <div className={`font-medium ${eventConfig.chipText} truncate`}>
+                          <span className="font-semibold">{startTime}</span> {cleanTitle}
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
 
+                  {/* More events indicator - clickable */}
                   {dayEvents.length > 3 && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-[10px] md:text-xs text-muted-foreground pl-0.5 md:pl-1.5 font-semibold hidden md:block"
+                    <div
+                      onClick={(e) => handleShowMore(day, dayEvents, e)}
+                      className="text-[10px] text-blue-600 dark:text-blue-400 font-medium px-2 py-1 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded cursor-pointer transition-colors"
                     >
-                      +{dayEvents.length - 3} {dayEvents.length - 3 === 1 ? 'autre' : 'autres'}
-                    </motion.div>
-                  )}
-
-                  {/* Mobile: Show count if more than 4 events */}
-                  {dayEvents.length > 4 && (
-                    <div className="md:hidden text-[9px] text-muted-foreground font-semibold mt-0.5">
-                      +{dayEvents.length - 4}
+                      +{dayEvents.length - 3} plus
                     </div>
                   )}
                 </div>
               </div>
-            </motion.div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+
+      {/* Day Events Modal */}
+      {selectedDayEvents && (
+        <DayEventsModal
+          date={selectedDayEvents.date}
+          events={selectedDayEvents.events}
+          onClose={() => setSelectedDayEvents(null)}
+          onEventClick={onEventClick}
+        />
+      )}
+    </>
   );
 }
+
+
+// Day Events Modal Component
+function DayEventsModal({
+  date,
+  events,
+  onClose,
+  onEventClick
+}: {
+  date: Date;
+  events: CalendarEventWithDetails[];
+  onClose: () => void;
+  onEventClick: (event: CalendarEventWithDetails) => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-background rounded-xl border border-border/40 shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden"
+      >
+        {/* Header */}
+        <div className="p-4 border-b border-border/20 bg-muted/10">
+          <h3 className="text-lg font-semibold text-foreground">
+            {format(date, 'EEEE d MMMM yyyy', { locale: fr })}
+          </h3>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {events.length} événement{events.length > 1 ? 's' : ''}
+          </p>
+        </div>
+
+        {/* Events list */}
+        <div className="p-4 space-y-2 overflow-y-auto max-h-[calc(80vh-100px)]">
+          {events.map((event) => {
+            const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
+            const startTime = format(new Date(event.startDate), 'HH:mm');
+            const endTime = format(new Date(event.endDate), 'HH:mm');
+            const cleanTitle = event.title.replace(/^\[TÂCHE\]\s*/, '');
+
+            return (
+              <div
+                key={event.id}
+                onClick={() => {
+                  onEventClick(event);
+                  onClose();
+                }}
+                className={`
+                  p-3 rounded-lg cursor-pointer transition-all duration-150
+                  ${eventConfig.chipBg}
+                  border-l-4 ${eventConfig.borderColor}
+                  hover:shadow-md hover:scale-[1.01]
+                `}
+              >
+                <div className={`text-sm font-semibold ${eventConfig.chipText} mb-1`}>
+                  {cleanTitle}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{startTime} - {endTime}</span>
+                </div>
+                {event.location && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                    <span>📍</span>
+                    <span>{event.location}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Close button */}
+        <div className="p-4 border-t border-border/20 bg-muted/10">
+          <Button onClick={onClose} variant="outline" className="w-full">
+            Fermer
+          </Button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 
 // Week View Component
 function WeekView({
@@ -299,72 +395,86 @@ function WeekView({
 
       return isWithinInterval(dayStart, { start: eventStart, end: eventEnd }) ||
         isWithinInterval(dayEnd, { start: eventStart, end: eventEnd });
-    });
+    }).sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
   };
 
   return (
-    <div className="flex gap-2 md:gap-2.5 flex-1 overflow-x-auto pb-2 md:pb-0">
-      {weekDays.map((day, dayIdx) => {
+    <div className="flex gap-1 flex-1 overflow-x-auto">
+      {weekDays.map((day) => {
         const dayEvents = getEventsForDay(day);
         const isTodayDate = isToday(day);
 
         return (
-          <motion.div
+          <div
             key={day.toString()}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: dayIdx * 0.05 }}
             onClick={() => onDateClick(day)}
             className={`
-              flex flex-col bg-card rounded-xl border-2 p-2 md:p-3 cursor-pointer min-w-[100px] md:min-w-0 flex-1
-              transition-all duration-200
-              ${isTodayDate
-                ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg'
-                : 'border-border/40 hover:border-primary/30 hover:shadow-md'
-              }
+              flex flex-col flex-1 min-w-[140px] border border-border/20 rounded-lg
+              cursor-pointer transition-colors duration-150
+              ${isTodayDate ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800' : 'bg-background hover:bg-accent/20'}
             `}
           >
+            {/* Day header */}
             <div className={`
-              text-center mb-2 md:mb-3 pb-2 md:pb-3 border-b-2
-              ${isTodayDate ? 'border-primary/30' : 'border-border/20'}
+              text-center py-2 border-b border-border/20
+              ${isTodayDate ? 'bg-blue-100/50 dark:bg-blue-900/30' : ''}
             `}>
-              <div className="text-[10px] md:text-xs font-bold uppercase mb-1 md:mb-1.5 text-muted-foreground">
+              <div className="text-[10px] font-medium uppercase text-muted-foreground mb-1">
                 {format(day, 'EEE', { locale: fr })}
               </div>
               <div className={`
-                text-xl md:text-3xl font-bold inline-flex items-center justify-center w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-xl
-                transition-all
-                ${isTodayDate
-                  ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg'
-                  : 'text-foreground hover:bg-muted/50'
-                }
+                text-2xl font-normal inline-flex items-center justify-center w-10 h-10 rounded-full
+                ${isTodayDate ? 'bg-blue-600 text-white font-medium' : 'text-foreground'}
               `}>
                 {format(day, 'd')}
               </div>
             </div>
 
-            <div className="space-y-1.5 md:space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-0.5 md:pr-1">
+            {/* Events list */}
+            <div className="flex-1 p-2 space-y-1 overflow-y-auto">
               {dayEvents.length === 0 ? (
-                <div className="text-[10px] md:text-xs text-muted-foreground/50 text-center py-2 md:py-4">
+                <div className="text-[10px] text-muted-foreground/50 text-center py-4">
                   Aucun événement
                 </div>
               ) : (
-                dayEvents.map((event, eventIdx) => (
-                  <div key={event.id} onClick={(e) => {
-                    e.stopPropagation();
-                    onEventClick(event);
-                  }}>
-                    <CalendarEventChip event={event} />
-                  </div>
-                ))
+                dayEvents.map((event) => {
+                  const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
+                  const startTime = format(new Date(event.startDate), 'HH:mm');
+                  const cleanTitle = event.title.replace(/^\[TÂCHE\]\s*/, '');
+
+                  return (
+                    <div
+                      key={event.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEventClick(event);
+                      }}
+                      className={`
+                        px-2 py-1.5 rounded text-[10px] leading-tight
+                        cursor-pointer transition-all duration-150
+                        ${eventConfig.chipBg}
+                        border-l-2 ${eventConfig.borderColor}
+                        hover:shadow-md hover:scale-[1.02]
+                      `}
+                    >
+                      <div className={`font-semibold ${eventConfig.chipText} mb-0.5`}>
+                        {startTime}
+                      </div>
+                      <div className={`font-medium ${eventConfig.chipText} line-clamp-2`}>
+                        {cleanTitle}
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
-          </motion.div>
+          </div>
         );
       })}
     </div>
   );
 }
+
 
 // Day View Component
 function DayView({
@@ -382,139 +492,82 @@ function DayView({
     new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
   );
 
-  const getEventIcon = (eventType: string) => {
-    const iconMap: Record<string, React.ReactNode> = {
-      rendez_vous: <Clock className="w-5 h-5" />,
-      suivi_projet: <CheckSquare className="w-5 h-5" />,
-      appel_reunion: <Phone className="w-5 h-5" />,
-      urgent: <AlertCircle className="w-5 h-5" />
-    };
-    return iconMap[eventType] || null;
-  };
-
   return (
-    <div className="flex-1 bg-card rounded-lg md:rounded-xl border border-border/40 overflow-hidden flex flex-col">
-      {/* Day header */}
-      <div className="p-3 md:p-6 border-b border-border/40 bg-gradient-to-r from-muted/20 to-muted/10">
-        <h2 className="text-xl md:text-3xl font-bold text-foreground mb-0.5 md:mb-1">
+    <div className="flex-1 bg-background rounded-lg border border-border/20 overflow-hidden flex flex-col">
+      {/* Day header - Google Calendar style */}
+      <div className="p-4 border-b border-border/20 bg-muted/10">
+        <h2 className="text-2xl font-normal text-foreground mb-0.5">
           {format(currentDate, 'EEEE', { locale: fr })}
         </h2>
-        <p className="text-sm md:text-lg text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {format(currentDate, 'd MMMM yyyy', { locale: fr })}
         </p>
       </div>
 
       {/* Events list */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 overflow-y-auto">
         {dayEvents.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground p-4 md:p-8">
+          <div className="flex items-center justify-center h-full text-muted-foreground p-8">
             <div className="text-center">
-              <Calendar className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 opacity-30" />
-              <p className="text-base md:text-xl font-medium">Aucun événement pour cette journée</p>
-              <p className="text-sm md:text-base mt-1 md:mt-2">Votre agenda est libre!</p>
+              <Calendar className="w-12 h-12 mx-auto mb-3 opacity-20" />
+              <p className="text-base font-medium">Aucun événement pour cette journée</p>
+              <p className="text-sm mt-1">Votre agenda est libre!</p>
             </div>
           </div>
         ) : (
-          <div className="p-3 md:p-6 space-y-2.5 md:space-y-4">
-            {dayEvents.map((event, idx) => {
+          <div className="p-4 space-y-2">
+            {dayEvents.map((event) => {
               const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
               const startDate = new Date(event.startDate);
               const endDate = new Date(event.endDate);
-              // Only show participants for RDV types, NOT for tasks
-              const isTaskType = eventConfig.category === 'TASKS' ||
-                event.eventType === 'tache' ||
-                event.eventType === 'suivi_projet';
-              const hasParticipants = event.participants && event.participants.length > 0;
-              const showParticipants = !isTaskType && hasParticipants;
-              const totalParticipants = hasParticipants ? event.participants.length + 1 : 1;
+              const cleanTitle = event.title.replace(/^\[TÂCHE\]\s*/, '');
 
               return (
-                <motion.div
+                <div
                   key={event.id}
-                  initial={{ opacity: 0, x: -20, y: 10 }}
-                  animate={{ opacity: 1, x: 0, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
                   onClick={() => onEventClick(event)}
                   className={`
-                    p-3 md:p-6 rounded-lg md:rounded-xl border-l-[4px] md:border-l-[6px] ${eventConfig.borderColor}
-                    ${eventConfig.bgLight}
-                    backdrop-blur-sm cursor-pointer hover:shadow-xl transition-all duration-200
-                    ${showParticipants ? 'ring-1 md:ring-2 ring-primary/30 shadow-md border border-primary/20' : 'shadow-sm hover:shadow-lg'}
-                    group
+                    p-3 rounded-lg cursor-pointer transition-all duration-150
+                    ${eventConfig.chipBg}
+                    border-l-4 ${eventConfig.borderColor}
+                    hover:shadow-md hover:scale-[1.01]
                   `}
                 >
-                  <div className="flex items-start justify-between mb-2 md:mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
-                        <div className={`
-                          w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center shrink-0
-                          ${eventConfig.color} text-white shadow-sm
-                        `}>
-                          {getEventIcon(event.eventType)}
-                        </div>
-                        <h3 className={`font-bold text-sm md:text-xl ${eventConfig.chipText} group-hover:translate-x-1 transition-transform`}>
-                          {event.title.replace('[TÂCHE] ', '')}
-                        </h3>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1 md:mt-2">
-                        <EventBadge event={event} size="lg" showIcon={true} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Time info */}
-                  <div className="flex items-center gap-2 md:gap-4 mb-2 md:mb-4 px-0 md:px-12">
-                    <div className="flex items-center gap-1.5 md:gap-2 text-xs md:text-base font-semibold text-muted-foreground">
-                      <Clock className="w-4 h-4 md:w-5 md:h-5" />
+                  <div className="flex items-start gap-3">
+                    {/* Time */}
+                    <div className="text-xs font-medium text-muted-foreground min-w-[80px]">
                       {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')}
                     </div>
-                  </div>
 
-                  {/* Description */}
-                  {event.description && (
-                    <div className="mb-2 md:mb-4 px-0 md:px-12 text-xs md:text-base text-foreground/80">
-                      {event.description}
-                    </div>
-                  )}
-
-                  {/* Location */}
-                  {event.location && (
-                    <div className="mb-2 md:mb-4 px-0 md:px-12 flex items-center gap-1.5 md:gap-2 text-xs md:text-base text-muted-foreground">
-                      <span>📍</span>
-                      {event.location}
-                    </div>
-                  )}
-
-                  {/* Team info - Only for RDV with participants */}
-                  {showParticipants && (
-                    <div className="mt-2 md:mt-4 px-0 md:px-12 pt-2 md:pt-4 border-t border-border/20">
-                      <div className="flex items-center gap-1.5 md:gap-2 mb-2 md:mb-3">
-                        <Users className="w-4 h-4 md:w-5 md:h-5 text-primary" />
-                        <span className="text-xs md:text-sm font-semibold text-primary">{totalParticipants} participant{totalParticipants > 1 ? 's' : ''}</span>
+                    {/* Event details */}
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-sm font-medium ${eventConfig.chipText} mb-1`}>
+                        {cleanTitle}
                       </div>
-                      <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
-                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-xs md:text-sm font-bold ring-2 ring-background shadow-lg" title={event.assignedToName}>
-                          {event.assignedToName?.charAt(0).toUpperCase() || 'A'}
+
+                      {event.description && (
+                        <div className="text-xs text-foreground/70 line-clamp-2 mb-1">
+                          {event.description}
                         </div>
-                        {event.participantDetails?.slice(0, 4).map((participant, pidx) => (
-                          <div
-                            key={participant.id}
-                            className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs md:text-sm font-bold ring-2 ring-background shadow-lg"
-                            title={participant.name}
-                            style={{ zIndex: 9 - pidx }}
-                          >
-                            {participant.name.charAt(0).toUpperCase()}
-                          </div>
-                        ))}
-                        {event.participants && event.participants.length > 4 && (
-                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white text-xs md:text-sm font-bold ring-2 ring-background shadow-lg text-center">
-                            +{event.participants.length - 4}
-                          </div>
-                        )}
-                      </div>
+                      )}
+
+                      {event.location && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <span>📍</span>
+                          {event.location}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </motion.div>
+
+                    {/* Event type badge */}
+                    <div className={`
+                      px-2 py-1 rounded text-[10px] font-medium
+                      ${eventConfig.chipBg} ${eventConfig.chipText}
+                    `}>
+                      {eventConfig.label}
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>

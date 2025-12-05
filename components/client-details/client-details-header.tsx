@@ -17,6 +17,7 @@ import { updateClientStage } from "@/lib/client-stage-service";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
+import { calculatePaymentMetrics, formatCurrency as formatCurrencyUtil } from "@/lib/payment-calculations";
 
 interface ClientDetailsHeaderProps {
   client: Client;
@@ -39,15 +40,9 @@ export function ClientDetailsHeader({
     });
   }, [client]);
 
-  // Calculate based on devis instead of budget
-  const devisList = client.devis || [];
-  const acceptedDevis = devisList.filter((d) => d.statut === "accepte");
-  const totalAccepted = acceptedDevis.reduce((sum, d) => sum + d.montant, 0);
-  const totalPaid = acceptedDevis
-    .filter((d) => d.facture_reglee)
-    .reduce((sum, d) => sum + d.montant, 0);
-  const progressPercentage =
-    totalAccepted > 0 ? Math.round((totalPaid / totalAccepted) * 100) : 0;
+  // Calculate payment metrics using the new utility
+  const paymentMetrics = calculatePaymentMetrics(client);
+  const progressPercentage = paymentMetrics.paymentPercentage;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-MA", {
@@ -200,16 +195,16 @@ export function ClientDetailsHeader({
             </div>
           </div>
 
-          {totalAccepted > 0 && (
+          {paymentMetrics.totalBudget > 0 && (
             <div className="bg-white/5 border border-white/10 rounded-lg md:rounded-2xl px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4 min-w-0 lg:min-w-[160px]">
               <div className="flex items-center gap-1.5 md:gap-2 lg:gap-2.5 mb-1 md:mb-1">
                 <DollarSign className="w-3.5 h-3.5 md:w-4 md:h-4 lg:w-5 lg:h-5 text-green-400 shrink-0" />
                 <span className="text-[10px] md:text-xs lg:text-sm text-white/50 truncate">
-                  Devis acceptés
+                  {paymentMetrics.budgetSource === 'project_budget' ? 'Budget total' : 'Devis acceptés'}
                 </span>
               </div>
               <div className="text-sm md:text-lg lg:text-2xl font-bold text-white truncate">
-                {formatCurrency(totalAccepted)}
+                {formatCurrencyUtil(paymentMetrics.totalBudget)}
               </div>
             </div>
           )}

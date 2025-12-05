@@ -21,7 +21,7 @@ export function ClientKanbanCard({ client, onClick, isNewlyAdded }: ClientKanban
     transform,
     transition,
     isDragging,
-  } = useSortable({ 
+  } = useSortable({
     id: client.id,
     transition: {
       duration: 200,
@@ -32,24 +32,24 @@ export function ClientKanbanCard({ client, onClick, isNewlyAdded }: ClientKanban
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0 : 1, // Completely hide when dragging to prevent duplicate visual
   }
 
   const formatRelativeDate = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
-    
+
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const compareDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-    
+
     const diffTime = today.getTime() - compareDate.getTime()
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    
+
     if (diffDays === 0) return "Aujourd'hui"
     if (diffDays === 1) return "Hier"
     if (diffDays > 0 && diffDays < 7) return `Il y a ${diffDays}j`
     if (diffDays < 0 && diffDays > -2) return "Aujourd'hui"
-    
+
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: 'short'
@@ -82,10 +82,19 @@ export function ClientKanbanCard({ client, onClick, isNewlyAdded }: ClientKanban
       style={style}
       {...attributes}
       {...listeners}
-      onClick={() => !isDragging && onClick(client)}
+      onClick={(e) => {
+        // Prevent click if dragging
+        if (isDragging) {
+          e.preventDefault()
+          e.stopPropagation()
+          return
+        }
+        onClick(client)
+      }}
       className={cn(
-        "bg-[#171B22] border border-white/10 rounded-xl p-4 cursor-grab active:cursor-grabbing hover:bg-[#1C2128] hover:border-white/20 hover:shadow-xl transition-all duration-200",
-        isDragging && "opacity-50 shadow-2xl border-2 border-blue-500/60 scale-105 rotate-2",
+        "bg-[#171B22] border border-white/10 rounded-xl p-4 transition-all duration-200",
+        !isDragging && "cursor-grab hover:bg-[#1C2128] hover:border-white/20 hover:shadow-xl",
+        isDragging && "cursor-grabbing pointer-events-none",
         isNewlyAdded && "ring-2 ring-blue-500/50 animate-pulse"
       )}
     >

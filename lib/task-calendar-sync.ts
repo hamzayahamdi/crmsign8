@@ -33,7 +33,7 @@ export async function createTaskWithEvent(
     const user = await prisma.user.findFirst({
       where: { name: input.assignedTo }
     })
-    
+
     if (!user) {
       return {
         success: false,
@@ -51,7 +51,7 @@ export async function createTaskWithEvent(
         creatorId = creator.id
       }
     }
-    
+
     // If creator not found or is "Système", use the first admin as fallback
     if (!creatorId) {
       const firstAdmin = await prisma.user.findFirst({
@@ -119,6 +119,32 @@ export async function createTaskWithEvent(
     const event = await prisma.calendarEvent.create({
       data: eventData
     })
+
+    // Create reminder if enabled
+    if (input.reminderEnabled && input.reminderDays && input.reminderDays > 0) {
+      try {
+        // Calculate reminder time: X days before the due date
+        const reminderTime = new Date(input.dueDate)
+        reminderTime.setDate(reminderTime.getDate() - input.reminderDays)
+
+        // Create reminder for the assigned user
+        await prisma.$executeRaw`
+          INSERT INTO event_reminders (id, event_id, user_id, reminder_time, reminder_type, notification_sent, created_at, updated_at)
+          VALUES (gen_random_uuid(), ${event.id}, ${user.id}, ${reminderTime}, 'custom', false, NOW(), NOW())
+          ON CONFLICT (event_id, user_id) 
+          DO UPDATE SET 
+            reminder_time = ${reminderTime},
+            reminder_type = 'custom',
+            notification_sent = false,
+            updated_at = NOW()
+        `
+
+        console.log(`[task-calendar-sync] Created reminder for task "${input.title}" - will notify ${input.reminderDays} days before due date (${reminderTime.toISOString()})`)
+      } catch (reminderError) {
+        console.error('[task-calendar-sync] Failed to create reminder, but task and event were created successfully:', reminderError)
+        // Don't fail the entire operation if reminder creation fails
+      }
+    }
 
     return {
       success: true,

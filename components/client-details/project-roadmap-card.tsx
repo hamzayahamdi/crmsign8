@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, CheckCircle2, Clock, Lock, Route, Plus, AlertCircle, FileText, DollarSign, Package, Hammer, Receipt, Truck, Sparkles, Coins, Info } from "lucide-react"
+import { Calendar, CheckCircle2, Clock, Lock, Route, Plus, AlertCircle, FileText, DollarSign, Package, Hammer, Receipt, Truck, Sparkles, Coins, Info, MapPin } from "lucide-react"
 import type { Client, ProjectStatus } from "@/types/client"
 import type { Task } from "@/types/task"
 import { Button } from "@/components/ui/button"
@@ -10,14 +10,14 @@ import { useAuth } from "@/contexts/auth-context"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getDevisStatusSummary } from "@/lib/devis-status-logic"
 import { cn } from "@/lib/utils"
-import { 
-  formatDuration, 
+import {
+  formatDuration,
   formatDurationDetailed,
-  calculateDuration, 
+  calculateDuration,
   formatStageUpdateDate,
   formatDateRange,
   formatDateCompact,
-  type StageHistoryEntry 
+  type StageHistoryEntry
 } from "@/lib/stage-duration-utils"
 import { useStageHistory } from "@/hooks/use-stage-history"
 
@@ -26,6 +26,7 @@ interface ProjectRoadmapCardProps {
   onUpdate: (client: Client) => void
   onAddTask?: () => void
   onAddRdv?: () => void
+  refreshTrigger?: number
 }
 
 interface RoadmapStage {
@@ -51,7 +52,7 @@ const ROADMAP_STAGES: RoadmapStage[] = [
   { id: "suspendu", label: "Suspendu", icon: "⏸️", order: 97 }, // Terminal state
 ]
 
-export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: ProjectRoadmapCardProps) {
+export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refreshTrigger = 0 }: ProjectRoadmapCardProps) {
   const { toast } = useToast()
   const { user } = useAuth()
   const [clientTasks, setClientTasks] = useState<Task[]>([])
@@ -119,9 +120,11 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
           const result = await response.json()
           const allTasks = result.data || result
           if (Array.isArray(allTasks)) {
-            const filtered = allTasks.filter(
-              (task: Task) => task.linkedType === 'client' && task.linkedId === client.id && task.status !== 'termine'
-            )
+            const filtered = allTasks
+              .filter(
+                (task: Task) => task.linkedType === 'client' && task.linkedId === client.id && task.status !== 'termine'
+              )
+              .sort((a: Task, b: Task) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             setClientTasks(filtered)
           } else {
             console.error('Tasks API returned non-array:', result)
@@ -139,7 +142,7 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
       }
     }
     fetchTasks()
-  }, [client.id])
+  }, [client.id, client.updatedAt, refreshTrigger]) // Re-fetch when client is updated or trigger changes
 
   // Update live durations every 30 seconds for active stage
   useEffect(() => {
@@ -160,10 +163,10 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
   // Get current stage order
   const currentStage = ROADMAP_STAGES.find(s => s.id === client.statutProjet)
   const currentStageOrder = currentStage?.order || 1
-  
+
   // Check if current status is a terminal state
   const isTerminalStatus = ['refuse', 'annule', 'suspendu', 'livraison_termine'].includes(client.statutProjet)
-  
+
   console.log('[ProjectRoadmap] Current status:', {
     statutProjet: client.statutProjet,
     foundStage: currentStage ? 'YES' : 'NO',
@@ -182,31 +185,31 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
       if (isTerminalStatus) return 'terminal'
       return 'in_progress'
     }
-    
+
     // For terminal statuses (refuse, annule, suspendu), only show them if they're current
     if (stage.order >= 97) {
       return 'pending' // Hide terminal stages unless they're active
     }
-    
+
     // If the project is in a terminal state, all stages after the last completed stage are unreachable
     if (isTerminalStatus) {
       // Find the last completed stage before the terminal status
       const terminalStageIndex = ROADMAP_STAGES.findIndex(s => s.id === client.statutProjet)
       const currentStageIndex = ROADMAP_STAGES.findIndex(s => s.id === stage.id)
-      
+
       // If this stage comes after the terminal stage in the normal flow, it's unreachable
       if (currentStageIndex > terminalStageIndex && stage.order < 97) {
         return 'unreachable'
       }
-      
+
       // Stages before the terminal stage that were completed
       if (stage.order < currentStageOrder && stage.order < 97) {
         return 'completed'
       }
-      
+
       return 'pending'
     }
-    
+
     // Normal progression logic (when not in terminal state)
     if (stage.order < currentStageOrder) return 'completed'
     return 'pending'
@@ -215,12 +218,12 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
   // Get stage duration from history (Updated: 2025-11-07 - Added fallback to historique)
   const getStageDuration = (stageId: ProjectStatus): string | null => {
     console.log('[getStageDuration] Checking stage:', stageId, 'History count:', stageHistory.length)
-    
+
     const stageEntry = stageHistory.find(h => h.stageName === stageId)
     console.log('[getStageDuration] Found entry for', stageId, ':', stageEntry ? 'YES' : 'NO')
-    
+
     const status = getStageStatus(ROADMAP_STAGES.find(s => s.id === stageId)!)
-    
+
     // If no history entry exists
     if (!stageEntry) {
       // For the current active stage, show duration since client creation/update
@@ -229,7 +232,7 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
         const duration = calculateDuration(referenceDate)
         return formatDurationDetailed(duration)
       }
-      
+
       // For completed stages without stage history, try to get duration from client historique
       if (status === 'completed') {
         const historyEntry = client.historique?.find(
@@ -241,7 +244,7 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
           return formatDurationDetailed(durationSeconds)
         }
       }
-      
+
       return null
     }
 
@@ -284,13 +287,13 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
   const getStageDateRange = (stageId: ProjectStatus): string | null => {
     const stageEntry = stageHistory.find(h => h.stageName === stageId)
     const status = getStageStatus(ROADMAP_STAGES.find(s => s.id === stageId)!)
-    
+
     // If no history entry exists but it's the current stage
     if (!stageEntry && status === 'in_progress' && stageId === client.statutProjet) {
       const referenceDate = client.updatedAt || client.createdAt
       return formatDateRange(referenceDate, null)
     }
-    
+
     if (!stageEntry) return null
 
     return formatDateRange(stageEntry.startedAt, stageEntry.endedAt)
@@ -303,9 +306,14 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
     return <Lock className="w-4 h-4" />
   }
 
-  // Get upcoming appointments
+  // Get upcoming appointments (including all of today)
   const upcomingAppointments = (client.rendezVous || [])
-    .filter(rdv => new Date(rdv.dateStart) >= new Date())
+    .filter(rdv => {
+      const rdvDate = new Date(rdv.dateStart)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      return rdvDate >= today
+    })
     .sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime())
     .slice(0, 3)
 
@@ -319,15 +327,22 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
     if (diffDays === 0) return "Aujourd'hui"
     if (diffDays === 1) return "Demain"
     if (diffDays < 7) return `Dans ${diffDays}j`
-    
+
     return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
   }
 
   // Format time
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('fr-FR', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    // Ensure we treat the date as UTC if no timezone info is present
+    // This fixes issues where Supabase/Postgres might return a timestamp without Z
+    let dateStr = dateString
+    if (!dateStr.endsWith('Z') && !dateStr.includes('+') && !dateStr.includes('-')) {
+      dateStr += 'Z'
+    }
+
+    return new Date(dateStr).toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit'
     })
   }
 
@@ -351,14 +366,11 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
         {/* Left Column - Project Roadmap */}
         <div className="flex flex-col">
+          {/* Roadmap Toggle - No Title */}
           <button
             onClick={() => setIsRoadmapCollapsed(!isRoadmapCollapsed)}
-            className="flex items-center justify-between mb-3 hover:opacity-80 transition-opacity"
+            className="flex items-center justify-end mb-2 hover:opacity-80 transition-opacity"
           >
-            <h3 className="text-xs font-semibold text-white/80 flex items-center gap-1.5 uppercase tracking-wide">
-              <Route className="w-3.5 h-3.5 text-blue-400" />
-              Feuille de Route
-            </h3>
             {isRoadmapCollapsed ? (
               <Plus className="w-4 h-4 text-white/40" />
             ) : (
@@ -369,143 +381,143 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
           {/* Roadmap Timeline */}
           {!isRoadmapCollapsed && (
             <div className="space-y-1.5">
-            {ROADMAP_STAGES.map((stage, index) => {
-              const status = getStageStatus(stage)
-              const isLast = index === ROADMAP_STAGES.length - 1
-              
-              // Hide terminal stages unless they're the current status
-              if (stage.order >= 97 && stage.id !== client.statutProjet) {
-                return null
-              }
+              {ROADMAP_STAGES.map((stage, index) => {
+                const status = getStageStatus(stage)
+                const isLast = index === ROADMAP_STAGES.length - 1
 
-              return (
-                <div key={stage.id} className="relative">
-                  <div
-                    className={cn(
-                      "flex items-center gap-2 p-2 rounded-lg transition-all",
-                      status === 'completed' && "bg-green-500/10 border border-green-500/20",
-                      status === 'in_progress' && "bg-blue-500/10 border border-blue-500/30 ring-1 ring-blue-500/20",
-                      status === 'terminal' && "bg-red-500/10 border border-red-500/30 ring-1 ring-red-500/20",
-                      status === 'unreachable' && "bg-gray-500/5 border border-gray-500/20 opacity-60",
-                      status === 'pending' && "bg-white/5 border border-white/10"
-                    )}
-                  >
-                    {/* Icon */}
+                // Hide terminal stages unless they're the current status
+                if (stage.order >= 97 && stage.id !== client.statutProjet) {
+                  return null
+                }
+
+                return (
+                  <div key={stage.id} className="relative">
                     <div
                       className={cn(
-                        "w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all text-sm",
-                        status === 'completed' && "bg-green-500/20",
-                        status === 'in_progress' && "bg-blue-500/20 animate-pulse",
-                        status === 'terminal' && "bg-red-500/20",
-                        status === 'unreachable' && "bg-gray-500/15 opacity-50",
-                        status === 'pending' && "bg-white/10 opacity-50"
+                        "flex items-center gap-2 p-2 rounded-lg transition-all",
+                        status === 'completed' && "bg-green-500/10 border border-green-500/20",
+                        status === 'in_progress' && "bg-blue-500/10 border border-blue-500/30 ring-1 ring-blue-500/20",
+                        status === 'terminal' && "bg-red-500/10 border border-red-500/30 ring-1 ring-red-500/20",
+                        status === 'unreachable' && "bg-gray-500/5 border border-gray-500/20 opacity-60",
+                        status === 'pending' && "bg-white/5 border border-white/10"
                       )}
                     >
-                      {stage.icon}
-                    </div>
-
-                    {/* Label and Duration */}
-                    <div className="flex-1 min-w-0">
-                      {/* Stage Label */}
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={cn(
-                            "text-[11px] font-medium",
-                            status === 'completed' && "text-green-400",
-                            status === 'in_progress' && "text-blue-400 font-semibold",
-                            status === 'terminal' && "text-red-400 font-semibold",
-                            status === 'unreachable' && "text-gray-400/50 line-through",
-                            status === 'pending' && "text-white/40"
-                          )}
-                        >
-                          {stage.label}
-                        </span>
-                        {/* Show devis summary for devis_negociation stage */}
-                        {stage.id === 'devis_negociation' && devisSummary.total > 0 && (
-                          <span className="text-[9px] text-white/50">
-                            ({devisSummary.total} devis)
-                          </span>
+                      {/* Icon */}
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all text-sm",
+                          status === 'completed' && "bg-green-500/20",
+                          status === 'in_progress' && "bg-blue-500/20 animate-pulse",
+                          status === 'terminal' && "bg-red-500/20",
+                          status === 'unreachable' && "bg-gray-500/15 opacity-50",
+                          status === 'pending' && "bg-white/10 opacity-50"
                         )}
+                      >
+                        {stage.icon}
                       </div>
-                      
-                      {/* Duration and Date on Same Line - Compact */}
-                      {getStageDuration(stage.id) && (
-                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                          {/* Duration */}
-                          <div className="flex items-center gap-0.5">
-                            <Clock className={cn(
-                              "w-2.5 h-2.5",
-                              status === 'completed' && "text-emerald-400/60",
-                              status === 'in_progress' && "text-sky-400",
-                              status === 'terminal' && "text-red-400",
-                              status === 'unreachable' && "text-gray-400/40",
-                              status === 'pending' && "text-white/30"
-                            )} />
-                            <span className={cn(
-                              "text-[10px] font-semibold",
-                              status === 'completed' && "text-emerald-300/80",
-                              status === 'in_progress' && "text-sky-300",
-                              status === 'terminal' && "text-red-300",
-                              status === 'unreachable' && "text-gray-400/40",
+
+                      {/* Label and Duration */}
+                      <div className="flex-1 min-w-0">
+                        {/* Stage Label */}
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "text-[11px] font-medium",
+                              status === 'completed' && "text-green-400",
+                              status === 'in_progress' && "text-blue-400 font-semibold",
+                              status === 'terminal' && "text-red-400 font-semibold",
+                              status === 'unreachable' && "text-gray-400/50 line-through",
                               status === 'pending' && "text-white/40"
-                            )}>
-                              {getStageDuration(stage.id)}
-                            </span>
-                          </div>
-                          
-                          {/* Separator */}
-                          {getStageDateRange(stage.id) && (
-                            <span className="text-white/20 text-[10px]">•</span>
-                          )}
-                          
-                          {/* Date Range */}
-                          {getStageDateRange(stage.id) && (
-                            <div className="flex items-center gap-0.5">
-                              <Calendar className="w-2.5 h-2.5 text-white/30" />
-                              <span className="text-[9px] text-white/50">
-                                {getStageDateRange(stage.id)}
-                              </span>
-                            </div>
-                          )}
-                          
-                          {/* Status Badges - Inline */}
-                          {status === 'in_progress' && (
-                            <span className="text-[8px] px-1 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium animate-pulse">
-                              ACTIF
-                            </span>
-                          )}
-                          {status === 'terminal' && (
-                            <span className="text-[8px] px-1 py-0.5 rounded-full bg-red-500/20 text-red-300 font-medium">
-                              TERMINAL
+                            )}
+                          >
+                            {stage.label}
+                          </span>
+                          {/* Show devis summary for devis_negociation stage */}
+                          {stage.id === 'devis_negociation' && devisSummary.total > 0 && (
+                            <span className="text-[9px] text-white/50">
+                              ({devisSummary.total} devis)
                             </span>
                           )}
                         </div>
+
+                        {/* Duration and Date on Same Line - Compact */}
+                        {getStageDuration(stage.id) && (
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            {/* Duration */}
+                            <div className="flex items-center gap-0.5">
+                              <Clock className={cn(
+                                "w-2.5 h-2.5",
+                                status === 'completed' && "text-emerald-400/60",
+                                status === 'in_progress' && "text-sky-400",
+                                status === 'terminal' && "text-red-400",
+                                status === 'unreachable' && "text-gray-400/40",
+                                status === 'pending' && "text-white/30"
+                              )} />
+                              <span className={cn(
+                                "text-[10px] font-semibold",
+                                status === 'completed' && "text-emerald-300/80",
+                                status === 'in_progress' && "text-sky-300",
+                                status === 'terminal' && "text-red-300",
+                                status === 'unreachable' && "text-gray-400/40",
+                                status === 'pending' && "text-white/40"
+                              )}>
+                                {getStageDuration(stage.id)}
+                              </span>
+                            </div>
+
+                            {/* Separator */}
+                            {getStageDateRange(stage.id) && (
+                              <span className="text-white/20 text-[10px]">•</span>
+                            )}
+
+                            {/* Date Range */}
+                            {getStageDateRange(stage.id) && (
+                              <div className="flex items-center gap-0.5">
+                                <Calendar className="w-2.5 h-2.5 text-white/30" />
+                                <span className="text-[9px] text-white/50">
+                                  {getStageDateRange(stage.id)}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Status Badges - Inline */}
+                            {status === 'in_progress' && (
+                              <span className="text-[8px] px-1 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium animate-pulse">
+                                ACTIF
+                              </span>
+                            )}
+                            {status === 'terminal' && (
+                              <span className="text-[8px] px-1 py-0.5 rounded-full bg-red-500/20 text-red-300 font-medium">
+                                TERMINAL
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Status Icon/Badge - Compact */}
+                      {status === 'unreachable' && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-500/15 text-gray-400/50 font-medium">
+                          Non atteint
+                        </span>
+                      )}
+                      {status === 'completed' && (
+                        <span className="text-xs text-green-400/70">✓</span>
                       )}
                     </div>
 
-                    {/* Status Icon/Badge - Compact */}
-                    {status === 'unreachable' && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-500/15 text-gray-400/50 font-medium">
-                        Non atteint
-                      </span>
-                    )}
-                    {status === 'completed' && (
-                      <span className="text-xs text-green-400/70">✓</span>
+                    {/* Connector Line */}
+                    {!isLast && (
+                      <div
+                        className={cn(
+                          "w-0.5 h-1 ml-3 transition-all",
+                          status === 'completed' ? "bg-green-500/30" : "bg-white/10"
+                        )}
+                      />
                     )}
                   </div>
-
-                  {/* Connector Line */}
-                  {!isLast && (
-                    <div
-                      className={cn(
-                        "w-0.5 h-1 ml-3 transition-all",
-                        status === 'completed' ? "bg-green-500/30" : "bg-white/10"
-                      )}
-                    />
-                  )}
-                </div>
-              )
-            })}
+                )
+              })}
             </div>
           )}
         </div>
@@ -529,187 +541,190 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
             </button>
             {!isActionsCollapsed && (
               <div className="flex gap-1.5">
-              {onAddTask && (
-                <Button
-                  onClick={onAddTask}
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 px-2 text-[10px] text-white/60 hover:text-white hover:bg-white/10"
-                >
-                  <Plus className="w-3 h-3 mr-0.5" />
-                  Tâche
-                </Button>
-              )}
-              {onAddRdv && (
-                <Button
-                  onClick={onAddRdv}
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 px-2 text-[10px] text-white/60 hover:text-white hover:bg-white/10"
-                >
-                  <Plus className="w-3 h-3 mr-0.5" />
-                  RDV
-                </Button>
-              )}
+                {onAddTask && (
+                  <Button
+                    onClick={onAddTask}
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-[10px] text-white/60 hover:text-white hover:bg-white/10"
+                  >
+                    <Plus className="w-3 h-3 mr-0.5" />
+                    Tâche
+                  </Button>
+                )}
+                {onAddRdv && (
+                  <Button
+                    onClick={onAddRdv}
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-[10px] text-white/60 hover:text-white hover:bg-white/10"
+                  >
+                    <Plus className="w-3 h-3 mr-0.5" />
+                    RDV
+                  </Button>
+                )}
               </div>
             )}
           </div>
 
           {!isActionsCollapsed && (
             <div className="space-y-2">
-            {/* Upcoming Appointments */}
-            {upcomingAppointments.length > 0 && (
-              <div className="space-y-1.5">
-                {upcomingAppointments.map(rdv => (
-                  <div
-                    key={rdv.id}
-                    className={cn(
-                      "p-2.5 rounded-lg border transition-all",
-                      isUrgent(rdv.dateStart)
-                        ? "bg-orange-500/10 border-orange-500/30"
-                        : "bg-white/5 border-white/10"
-                    )}
-                  >
-                    <div className="flex items-start gap-2.5">
-                      <div
-                        className={cn(
-                          "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
-                          isUrgent(rdv.dateStart)
-                            ? "bg-orange-500/20 text-orange-400"
-                            : "bg-purple-500/20 text-purple-400"
-                        )}
-                      >
-                        <Calendar className="w-3.5 h-3.5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-semibold text-white mb-0.5 truncate">
-                          {rdv.title}
-                        </h4>
+              {/* Upcoming Appointments */}
+              {upcomingAppointments.length > 0 && (
+                <div className="space-y-1.5">
+                  {upcomingAppointments.map(rdv => (
+                    <div
+                      key={rdv.id}
+                      className={cn(
+                        "p-3 rounded-lg border transition-all",
+                        isUrgent(rdv.dateStart)
+                          ? "bg-gradient-to-br from-orange-500/15 to-orange-500/5 border-orange-500/30"
+                          : "bg-gradient-to-br from-purple-500/15 to-purple-500/5 border-purple-500/30"
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
                         <div
                           className={cn(
-                            "flex items-center gap-1.5 text-[10px]",
-                            isUrgent(rdv.dateStart) ? "text-orange-300" : "text-purple-300"
+                            "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                            isUrgent(rdv.dateStart)
+                              ? "bg-orange-500/20 text-orange-400"
+                              : "bg-purple-500/20 text-purple-400"
                           )}
                         >
-                          <span>{formatDate(rdv.dateStart)}</span>
-                          <span>•</span>
-                          <span>{formatTime(rdv.dateStart)}</span>
+                          <Calendar className="w-4 h-4" />
                         </div>
-                        {rdv.location && (
-                          <p className="text-[10px] text-white/40 mt-0.5 truncate">
-                            📍 {rdv.location}
-                          </p>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-white mb-1 truncate">
+                            {rdv.title}
+                          </h4>
+                          <div
+                            className={cn(
+                              "flex items-center gap-2 text-xs",
+                              isUrgent(rdv.dateStart) ? "text-orange-300" : "text-purple-300"
+                            )}
+                          >
+                            <span className="font-medium">{formatDate(rdv.dateStart)}</span>
+                            <span className="text-white/30">•</span>
+                            <span>{formatTime(rdv.dateStart)}</span>
+                          </div>
+                          {rdv.location && (
+                            <p className="text-xs text-white/50 mt-1 truncate flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {rdv.location}
+                            </p>
+                          )}
+                        </div>
+                        {isUrgent(rdv.dateStart) && (
+                          <AlertCircle className="w-3.5 h-3.5 text-orange-400 shrink-0" />
                         )}
                       </div>
-                      {isUrgent(rdv.dateStart) && (
-                        <AlertCircle className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
 
-            {/* Upcoming Tasks */}
-            {!isLoadingTasks && clientTasks.length > 0 && (
-              <div className="space-y-1.5">
-                {clientTasks.slice(0, 3).map(task => (
-                  <div
-                    key={task.id}
-                    className={cn(
-                      "p-2.5 rounded-lg border transition-all",
-                      isUrgent(task.dueDate)
-                        ? "bg-red-500/10 border-red-500/30"
-                        : "bg-white/5 border-white/10"
-                    )}
-                  >
-                    <div className="flex items-start gap-2.5">
-                      <div
-                        className={cn(
-                          "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
-                          task.status === 'en_cours'
-                            ? "bg-blue-500/20 text-blue-400"
-                            : isUrgent(task.dueDate)
-                            ? "bg-red-500/20 text-red-400"
-                            : "bg-white/10 text-white/60"
-                        )}
-                      >
-                        {task.status === 'en_cours' ? (
-                          <Clock className="w-3.5 h-3.5" />
-                        ) : (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-semibold text-white mb-0.5 truncate">
-                          {task.title}
-                        </h4>
+              {/* Upcoming Tasks */}
+              {!isLoadingTasks && clientTasks.length > 0 && (
+                <div className="space-y-1.5">
+                  {clientTasks.slice(0, 3).map(task => (
+                    <div
+                      key={task.id}
+                      className={cn(
+                        "p-3 rounded-lg border transition-all",
+                        isUrgent(task.dueDate)
+                          ? "bg-gradient-to-br from-red-500/15 to-red-500/5 border-red-500/30"
+                          : task.status === 'en_cours'
+                            ? "bg-gradient-to-br from-blue-500/15 to-blue-500/5 border-blue-500/30"
+                            : "bg-gradient-to-br from-slate-500/10 to-slate-500/5 border-slate-500/20"
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
                         <div
                           className={cn(
-                            "flex items-center gap-1.5 text-[10px]",
-                            task.status === 'en_cours' ? "text-sky-300" : isUrgent(task.dueDate) ? "text-red-300" : "text-white/70"
+                            "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                            task.status === 'en_cours'
+                              ? "bg-blue-500/20 text-blue-400"
+                              : isUrgent(task.dueDate)
+                                ? "bg-red-500/20 text-red-400"
+                                : "bg-slate-500/20 text-slate-400"
                           )}
                         >
-                          <span>Échéance: {formatDate(task.dueDate)}</span>
-                          {task.assignedTo && (
-                            <>
-                              <span>•</span>
-                              <span className="truncate">{task.assignedTo}</span>
-                            </>
+                          {task.status === 'en_cours' ? (
+                            <Clock className="w-4 h-4" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4" />
                           )}
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-white mb-1 truncate">
+                            {task.title}
+                          </h4>
+                          <div
+                            className={cn(
+                              "flex items-center gap-2 text-xs",
+                              task.status === 'en_cours' ? "text-blue-300" : isUrgent(task.dueDate) ? "text-red-300" : "text-slate-300"
+                            )}
+                          >
+                            <span className="font-medium">Échéance: {formatDate(task.dueDate)}</span>
+                            {task.assignedTo && (
+                              <>
+                                <span className="text-white/30">•</span>
+                                <span className="truncate">{task.assignedTo}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        {isUrgent(task.dueDate) && (
+                          <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                        )}
                       </div>
-                      {isUrgent(task.dueDate) && (
-                        <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                      )}
                     </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Empty State */}
+              {upcomingAppointments.length === 0 && clientTasks.length === 0 && !isLoadingTasks && (
+                <div className="p-4 bg-white/5 border border-white/10 rounded-lg text-center">
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-2">
+                    <Calendar className="w-5 h-5 text-white/40" />
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* Empty State */}
-            {upcomingAppointments.length === 0 && clientTasks.length === 0 && !isLoadingTasks && (
-              <div className="p-4 bg-white/5 border border-white/10 rounded-lg text-center">
-                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-2">
-                  <Calendar className="w-5 h-5 text-white/40" />
+                  <p className="text-xs text-white/50 mb-2">
+                    Aucune action ou RDV planifié
+                  </p>
+                  <div className="flex gap-1.5 justify-center">
+                    {onAddTask && (
+                      <Button
+                        onClick={onAddTask}
+                        size="sm"
+                        variant="outline"
+                        className="border-white/20 text-white hover:bg-white/10"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Créer une tâche
+                      </Button>
+                    )}
+                    {onAddRdv && (
+                      <Button
+                        onClick={onAddRdv}
+                        size="sm"
+                        variant="outline"
+                        className="border-white/20 text-white hover:bg-white/10"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Planifier RDV
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs text-white/50 mb-2">
-                  Aucune action ou RDV planifié
-                </p>
-                <div className="flex gap-1.5 justify-center">
-                  {onAddTask && (
-                    <Button
-                      onClick={onAddTask}
-                      size="sm"
-                      variant="outline"
-                      className="border-white/20 text-white hover:bg-white/10"
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Créer une tâche
-                    </Button>
-                  )}
-                  {onAddRdv && (
-                    <Button
-                      onClick={onAddRdv}
-                      size="sm"
-                      variant="outline"
-                      className="border-white/20 text-white hover:bg-white/10"
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Planifier RDV
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Loading State */}
-            {isLoadingTasks && (
-              <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-center">
-                <p className="text-xs text-white/50">Chargement...</p>
-              </div>
-            )}
+              {/* Loading State */}
+              {isLoadingTasks && (
+                <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-center">
+                  <p className="text-xs text-white/50">Chargement...</p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -717,3 +732,4 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv }: Pr
     </div>
   )
 }
+

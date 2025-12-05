@@ -18,6 +18,8 @@ export async function GET(
         name: true,
         role: true,
         magasin: true,
+        phone: true,
+        ville: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -68,12 +70,15 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { email, password, name } = body
+    const { email, password, name, phone, ville } = body
 
     const updateData: any = {}
-    
+
     if (email) updateData.email = email.toLowerCase()
     if (name) updateData.name = name
+    if (phone) updateData.phone = phone
+    if (ville) updateData.ville = ville
+
     if (typeof body.role === 'string' && ALLOWED_ROLES.has(body.role)) {
       updateData.role = body.role
     }
@@ -106,6 +111,8 @@ export async function PATCH(
         name: true,
         role: true,
         magasin: true,
+        phone: true,
+        ville: true,
         createdAt: true,
         updatedAt: true,
       }

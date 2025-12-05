@@ -36,7 +36,7 @@ export async function GET(
       select: { id: true, name: true, email: true, role: true },
     });
     const userNameMap: Record<string, string> = {};
-    allUsers.forEach((user) => {
+    allUsers.forEach((user: { id: string; name: string; email: string; role: string }) => {
       userNameMap[user.id] = user.name;
     });
 
@@ -288,7 +288,7 @@ export async function GET(
             .order("date", { ascending: false });
 
           // Transform timeline to historique format and map user IDs to names
-          const transformedTimeline = timelineEntries.map((entry) => {
+          const transformedTimeline = timelineEntries.map((entry: any) => {
             let authorName = "Système";
             if (entry.author) {
               // Map user ID to name
@@ -348,24 +348,14 @@ export async function GET(
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
           );
 
-          // Fetch appointments for this contact/opportunity
-          const oppAppointments = await prisma.appointment.findMany({
-            where: {
-              OR: [{ contactId: contactId }, { opportunityId: opportunityId }],
-            },
-            orderBy: { dateStart: "desc" },
-          });
+          // Fetch appointments for this client from Supabase (uses client_id)
+          const { data: oppAppointments } = await supabase
+            .from('appointments')
+            .select('*')
+            .eq('client_id', clientId)
+            .order('date_start', { ascending: false });
 
-          appointments = oppAppointments.map((apt) => ({
-            id: apt.id,
-            title: apt.title,
-            date_start: apt.dateStart.toISOString(),
-            date_end: apt.dateEnd.toISOString(),
-            description: apt.description,
-            location: apt.location,
-            status: apt.status,
-            notes: apt.notes,
-          }));
+          appointments = oppAppointments || [];
         } catch (error) {
           console.error(
             "[GET /api/clients/[id]] Error fetching opportunity data:",
@@ -383,8 +373,25 @@ export async function GET(
 
       payments = paymentsData || [];
 
-      devis = [];
-      documents = [];
+      // CRITICAL FIX: Fetch devis for opportunity-based clients from Supabase
+      const { data: devisData } = await supabase
+        .from("devis")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("date", { ascending: false });
+
+      devis = devisData || [];
+      console.log(`[GET /api/clients/[id]] Fetched ${devis.length} devis for opportunity client ${clientId}`);
+
+      // Fetch documents for opportunity-based clients from Supabase
+      const { data: docsData } = await supabase
+        .from("documents")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("uploaded_at", { ascending: false });
+
+      documents = docsData || [];
+
       currentStage = null;
     }
 
@@ -502,7 +509,11 @@ export async function GET(
           type: "note";
           description: string;
           auteur: string;
-          metadata: Record<string, any>;
+          metadata: {
+            source: string;
+            leadNoteId: any;
+            leadId: any;
+          };
         } => Boolean(entry),
       )
       .map((entry) => {
@@ -607,19 +618,19 @@ export async function GET(
       // Traceability metadata
       metadata: isOpportunityClient
         ? {
-            contactId: contactId,
-            opportunityId: opportunityId,
-            source: "opportunity",
-            createdBy:
-              client.commercial_attribue || client.commercialAttribue || "",
-            createdAt: client.created_at || client.createdAt,
-          }
+          contactId: contactId,
+          opportunityId: opportunityId,
+          source: "opportunity",
+          createdBy:
+            client.commercial_attribue || client.commercialAttribue || "",
+          createdAt: client.created_at || client.createdAt,
+        }
         : {
-            source: "legacy_client",
-            createdBy:
-              client.commercial_attribue || client.commercialAttribue || "",
-            createdAt: client.created_at || client.createdAt,
-          },
+          source: "legacy_client",
+          createdBy:
+            client.commercial_attribue || client.commercialAttribue || "",
+          createdAt: client.created_at || client.createdAt,
+        },
       historique: combinedHistorique,
       rendezVous:
         appointments?.map((a) => ({
@@ -959,10 +970,10 @@ export async function DELETE(
           : "Client supprimé avec succès",
         restoredLead: restoredLead
           ? {
-              id: restoredLead.id,
-              nom: restoredLead.nom,
-              statut: restoredLead.statut,
-            }
+            id: restoredLead.id,
+            nom: restoredLead.nom,
+            statut: restoredLead.statut,
+          }
           : null,
       });
     }

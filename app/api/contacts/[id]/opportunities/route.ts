@@ -35,11 +35,12 @@ export async function POST(
 
     const { id: contactId } = await params;
     const body = await request.json();
-    const { titre, type, budget, description, architecteAssigne, dateClotureAttendue } = body;
+    let { titre, type, budget, description, architecteAssigne, dateClotureAttendue } = body;
 
-    if (!titre || !type) {
+    // Validate required fields
+    if (!type) {
       return NextResponse.json(
-        { error: 'titre and type are required' },
+        { error: 'type is required' },
         { status: 400 }
       );
     }
@@ -53,6 +54,26 @@ export async function POST(
     if (!contact) {
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
     }
+
+    // CRITICAL: Ensure titre is never empty - generate default if not provided
+    if (!titre || !titre.trim()) {
+      const typeLabels: Record<string, string> = {
+        villa: 'Villa',
+        appartement: 'Appartement',
+        magasin: 'Magasin',
+        bureau: 'Bureau',
+        riad: 'Riad',
+        studio: 'Studio',
+        renovation: 'Rénovation',
+        autre: 'Autre'
+      };
+      const typeLabel = typeLabels[type] || 'Projet';
+      const suffix = contact.ville || contact.nom;
+      titre = `${typeLabel}${suffix ? ` - ${suffix}` : ''}`;
+      console.log('[Create Opportunity] Auto-generated title:', titre);
+    }
+
+    console.log('[Create Opportunity] Creating opportunity:', { titre, type, contactId });
 
     // Verify user exists
     const user = await prisma.user.findUnique({

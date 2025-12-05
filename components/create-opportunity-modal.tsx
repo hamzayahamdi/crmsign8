@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, User, Phone, MapPin, Home, Tag, Users, Loader2, Sparkles, ArrowRight, FileText, DollarSign } from "lucide-react"
+import { X, User, Phone, MapPin, Home, Users, Loader2, Sparkles, ArrowRight, Coins } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -55,8 +55,20 @@ export function CreateOpportunityModal({
       if (contact.architecteAssigne) {
         setArchitectId(contact.architecteAssigne)
       }
+
+      // Auto-populate title with default if empty
+      if (!nomOportunite.trim()) {
+        setNomOportunite(defaultTitle(propertyType))
+      }
     }
   }, [isOpen, contact])
+
+  // Update title when property type changes
+  useEffect(() => {
+    if (isOpen && !nomOportunite.trim()) {
+      setNomOportunite(defaultTitle(propertyType))
+    }
+  }, [propertyType, isOpen])
 
   const fetchArchitects = async () => {
     try {
@@ -161,9 +173,11 @@ export function CreateOpportunityModal({
         return
       }
 
-      // Build payload
+      // Build payload - ENSURE titre is never empty
       const titre = nomOportunite.trim() || defaultTitle(propertyType)
       const type = propertyType
+
+      console.log('[CreateOpportunity] Creating opportunity with title:', titre)
 
       const response = await fetch(`/api/contacts/${contact.id}/opportunities`, {
         method: "POST",
@@ -221,62 +235,58 @@ export function CreateOpportunityModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-neutral-950/70 backdrop-blur-2xl z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
           />
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl z-50 bg-neutral-900/95 backdrop-blur-2xl border border-white/10 text-white"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.2 }}
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl max-h-[90vh] bg-slate-900 rounded-2xl shadow-2xl z-50 flex flex-col border border-slate-700/50 overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
             {/* Close Button */}
-            <motion.button
-              whileHover={{ scale: 1.1, rotate: 90 }}
-              whileTap={{ scale: 0.9 }}
+            <button
               onClick={onClose}
-              className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/15 border border-white/10 flex items-center justify-center transition-colors z-10"
+              className="absolute top-5 right-5 w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center transition-colors z-10"
             >
               <X className="w-5 h-5 text-white" />
-            </motion.button>
+            </button>
 
-            <div className="p-8 sm:p-10 relative">
+            {/* Scrollable content */}
+            <div className="overflow-y-auto flex-1 p-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-800">
               {/* HEADER */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-8"
-              >
-                <h1 className="text-3xl font-bold text-white mb-2">
-                  Créer une nouvelle opportunité
-                </h1>
-                <p className="text-gray-400 text-sm">
+              <div className="mb-8">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-5 h-5 text-white" />
+                  </div>
+                  <h1 className="text-2xl font-bold text-white">
+                    Créer une nouvelle opportunité
+                  </h1>
+                </div>
+                <p className="text-slate-400 text-sm">
                   Informations liées au contact & assignation à un architecte
                 </p>
-              </motion.div>
+              </div>
 
-              <form onSubmit={handleSubmit} className="space-y-8">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 {/* CONTACT INFORMATION SECTION - READ ONLY */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <h2 className="text-sm font-semibold text-slate-200 uppercase tracking-wide mb-4">
+                <div>
+                  <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <div className="w-1 h-3 bg-blue-500 rounded-full" />
                     Informations du contact (Lecture seule)
                   </h2>
-                  <div className="rounded-2xl p-6 border border-white/10 bg-white/5 shadow-inner opacity-80">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  <div className="rounded-xl p-5 border border-slate-700 bg-slate-800/50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Nom complet */}
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <User className="w-5 h-5 text-blue-400" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                          <User className="w-4 h-4 text-blue-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1">
+                          <p className="text-xs text-slate-500 uppercase tracking-wide">
                             Nom complet
                           </p>
                           <p className="text-sm font-medium text-white truncate">
@@ -286,12 +296,12 @@ export function CreateOpportunityModal({
                       </div>
 
                       {/* Téléphone */}
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Phone className="w-5 h-5 text-green-400" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                          <Phone className="w-4 h-4 text-green-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1">
+                          <p className="text-xs text-slate-500 uppercase tracking-wide">
                             Téléphone
                           </p>
                           <p className="text-sm font-medium text-white truncate">
@@ -302,12 +312,12 @@ export function CreateOpportunityModal({
 
                       {/* Ville */}
                       {contact.ville && (
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <MapPin className="w-5 h-5 text-purple-400" />
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                            <MapPin className="w-4 h-4 text-purple-400" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1">
+                            <p className="text-xs text-slate-500 uppercase tracking-wide">
                               Ville
                             </p>
                             <p className="text-sm font-medium text-white truncate">
@@ -317,13 +327,13 @@ export function CreateOpportunityModal({
                         </div>
                       )}
 
-                      {/* Type de bien - from lead */}
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Home className="w-5 h-5 text-red-400" />
+                      {/* Type de bien */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                          <Home className="w-4 h-4 text-red-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1">
+                          <p className="text-xs text-slate-500 uppercase tracking-wide">
                             Type de bien
                           </p>
                           <p className="text-sm font-medium text-white truncate">
@@ -333,101 +343,87 @@ export function CreateOpportunityModal({
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
 
                 {/* OPPORTUNITY FIELDS SECTION */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                >
-                  <h2 className="text-sm font-semibold text-slate-200 uppercase tracking-wide mb-4">
+                <div>
+                  <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <div className="w-1 h-3 bg-blue-500 rounded-full" />
                     Détails de l'opportunité
                   </h2>
-                  <div className="space-y-5">
+                  <div className="space-y-4">
                     {/* Nom de l'opportunité */}
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-200 flex items-center gap-2">
-                        Nom de l'opportunité
-                        <span className="text-xs text-slate-400">(optionnel)</span>
+                      <Label className="text-sm font-medium text-slate-300">
+                        Nom de l'opportunité{" "}
+                        <span className="text-xs text-slate-500">(un titre par défaut sera généré si vide)</span>
                       </Label>
                       <Input
                         type="text"
                         value={nomOportunite}
                         onChange={(e) => setNomOportunite(e.target.value)}
-                        placeholder="Ex: Rénovation villa - Casablanca"
-                        className="h-11 bg-white/10 border border-white/10 text-white placeholder:text-slate-400 rounded-xl focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        placeholder={defaultTitle(propertyType)}
+                        className="h-11 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
 
                     {/* Description - REQUIRED */}
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-200 flex items-center gap-2">
-                        Description
-                        <span className="text-xs text-red-400">* (Requis)</span>
+                      <Label className="text-sm font-medium text-slate-300">
+                        Description <span className="text-red-400">* (Requis)</span>
                       </Label>
                       <Textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         placeholder="Détails du projet, besoins spécifiques..."
-                        className="min-h-[100px] bg-white/10 border border-white/10 text-white placeholder:text-slate-400 rounded-xl focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="min-h-[100px] bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
                       />
                     </div>
 
                     {/* Montant Estimé - REQUIRED */}
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-200 flex items-center gap-2">
-                        Montant Estimé (MAD)
-                        <span className="text-xs text-red-400">* (Requis)</span>
+                      <Label className="text-sm font-medium text-slate-300">
+                        Montant Estimé (MAD) <span className="text-red-400">* (Requis)</span>
                       </Label>
                       <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
+                          <Coins className="w-5 h-5 text-amber-500" />
+                          <span className="text-sm font-semibold text-slate-400">MAD</span>
+                        </div>
                         <Input
                           type="number"
                           value={montantEstime}
                           onChange={(e) => setMontantEstime(e.target.value)}
                           placeholder="0.00"
-                          className="h-11 pl-10 bg-white/10 border border-white/10 text-white placeholder:text-slate-400 rounded-xl focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                          className="h-12 pl-20 pr-4 bg-slate-800 border-slate-700 text-white text-base placeholder:text-slate-500 rounded-lg focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                         />
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
 
                 {/* ARCHITECT ASSIGNMENT SECTION */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <h2 className="text-sm font-semibold text-slate-200 uppercase tracking-wide mb-4">
+                <div>
+                  <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <div className="w-1 h-3 bg-blue-500 rounded-full" />
                     Attribuer un architecte
                   </h2>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <Button
-                        type="button"
-                        onClick={() => setArchitectDialogOpen(true)}
-                        className="h-11 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-medium shadow-sm"
-                      >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Choisir un architecte
-                      </Button>
-                      {architectId && (
-                        <span className="text-xs text-green-400">Architecte sélectionné</span>
-                      )}
-                    </div>
+                  <div className="space-y-3">
+                    <Button
+                      type="button"
+                      onClick={() => setArchitectDialogOpen(true)}
+                      className="h-11 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Choisir un architecte
+                    </Button>
 
                     {/* Selected architect preview */}
                     {selectedArchitect && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center flex-shrink-0">
-                            <span className="text-base font-bold text-white">
+                      <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-bold text-blue-300">
                               {(selectedArchitect.prenom || selectedArchitect.nom).charAt(0).toUpperCase()}
                             </span>
                           </div>
@@ -435,38 +431,30 @@ export function CreateOpportunityModal({
                             <p className="text-sm font-semibold text-white">
                               {selectedArchitect.prenom} {selectedArchitect.nom}
                             </p>
-                            <p className="text-xs text-gray-300">
+                            <p className="text-xs text-slate-400">
                               {selectedArchitect.specialite}
                             </p>
-                            {selectedArchitect.email && (
-                              <p className="text-xs text-gray-400 truncate">{selectedArchitect.email}</p>
-                            )}
                           </div>
                           <Users className="w-5 h-5 text-blue-400 flex-shrink-0" />
                         </div>
-                      </motion.div>
+                      </div>
                     )}
 
                     {!architectId && (
-                      <p className="text-xs text-red-400 font-medium">
+                      <p className="text-xs text-red-400">
                         L'assignation à un architecte est obligatoire
                       </p>
                     )}
                   </div>
-                </motion.div>
+                </div>
 
                 {/* CTA BUTTONS */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
-                  className="flex gap-3 pt-6 border-t border-white/10"
-                >
+                <div className="flex gap-3 pt-4 border-t border-slate-700">
                   <Button
                     type="button"
                     onClick={onClose}
                     disabled={submitting}
-                    className="flex-1 h-11 bg-white/10 hover:bg-white/15 text-white font-medium rounded-xl transition-all border border-white/10"
+                    className="flex-1 h-11 bg-slate-800 hover:bg-slate-700 text-white rounded-lg border border-slate-700"
                   >
                     Annuler
                   </Button>
@@ -474,9 +462,9 @@ export function CreateOpportunityModal({
                     type="submit"
                     disabled={submitting || !architectId || !description || !montantEstime}
                     className={cn(
-                      "flex-1 h-11 font-medium rounded-xl transition-all shadow-lg",
+                      "flex-1 h-11 rounded-lg transition-all",
                       submitting || !architectId || !description || !montantEstime
-                        ? "bg-white/10 text-slate-400 cursor-not-allowed border border-white/10"
+                        ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
                         : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
                     )}
                   >
@@ -486,13 +474,16 @@ export function CreateOpportunityModal({
                         Création...
                       </div>
                     ) : (
-                      <span className="inline-flex items-center">Créer l'opportunité <ArrowRight className="w-4 h-4 ml-2" /></span>
+                      <span className="inline-flex items-center">
+                        Créer l'opportunité <ArrowRight className="w-4 h-4 ml-2" />
+                      </span>
                     )}
                   </Button>
-                </motion.div>
+                </div>
               </form>
             </div>
-            {/* Architect selection command palette */}
+
+            {/* Architect selection dialog */}
             <ArchitectSelectionDialog
               open={architectDialogOpen}
               onOpenChange={setArchitectDialogOpen}

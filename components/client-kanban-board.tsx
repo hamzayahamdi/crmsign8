@@ -38,86 +38,86 @@ interface ClientKanbanBoardProps {
 }
 
 // 11-stage pipeline matching Client Details Page timeline
-const columns: { 
+const columns: {
   status: ProjectStatus
   label: string
   color: string
   gradient: string
 }[] = [
-  { 
-    status: "qualifie", 
-    label: "Qualifié", 
-    color: "blue",
-    gradient: "from-blue-400 to-blue-500"
-  },
-  { 
-    status: "prise_de_besoin", 
-    label: "Prise de besoin", 
-    color: "sky",
-    gradient: "from-sky-400 to-sky-500"
-  },
-  { 
-    status: "acompte_recu", 
-    label: "Acompte reçu", 
-    color: "green",
-    gradient: "from-green-400 to-green-500"
-  },
-  { 
-    status: "conception", 
-    label: "Conception", 
-    color: "purple",
-    gradient: "from-purple-400 to-purple-500"
-  },
-  { 
-    status: "devis_negociation", 
-    label: "Devis/Négociation", 
-    color: "yellow",
-    gradient: "from-yellow-400 to-yellow-500"
-  },
-  { 
-    status: "accepte", 
-    label: "Accepté", 
-    color: "emerald",
-    gradient: "from-emerald-400 to-emerald-500"
-  },
-  { 
-    status: "refuse", 
-    label: "Refusé", 
-    color: "red",
-    gradient: "from-red-400 to-red-500"
-  },
-  { 
-    status: "premier_depot", 
-    label: "1er Dépôt", 
-    color: "cyan",
-    gradient: "from-cyan-400 to-cyan-500"
-  },
-  { 
-    status: "projet_en_cours", 
-    label: "Projet en cours", 
-    color: "indigo",
-    gradient: "from-indigo-400 to-indigo-500"
-  },
-  { 
-    status: "facture_reglee", 
-    label: "Facture réglée", 
-    color: "green",
-    gradient: "from-green-500 to-green-600"
-  },
-  { 
-    status: "livraison_termine", 
-    label: "Livraison & Terminé", 
-    color: "amber",
-    gradient: "from-amber-400 to-amber-500"
-  },
-]
+    {
+      status: "qualifie",
+      label: "Qualifié",
+      color: "blue",
+      gradient: "from-blue-400 to-blue-500"
+    },
+    {
+      status: "prise_de_besoin",
+      label: "Prise de besoin",
+      color: "sky",
+      gradient: "from-sky-400 to-sky-500"
+    },
+    {
+      status: "acompte_recu",
+      label: "Acompte reçu",
+      color: "green",
+      gradient: "from-green-400 to-green-500"
+    },
+    {
+      status: "conception",
+      label: "Conception",
+      color: "purple",
+      gradient: "from-purple-400 to-purple-500"
+    },
+    {
+      status: "devis_negociation",
+      label: "Devis/Négociation",
+      color: "yellow",
+      gradient: "from-yellow-400 to-yellow-500"
+    },
+    {
+      status: "accepte",
+      label: "Accepté",
+      color: "emerald",
+      gradient: "from-emerald-400 to-emerald-500"
+    },
+    {
+      status: "refuse",
+      label: "Refusé",
+      color: "red",
+      gradient: "from-red-400 to-red-500"
+    },
+    {
+      status: "premier_depot",
+      label: "1er Dépôt",
+      color: "cyan",
+      gradient: "from-cyan-400 to-cyan-500"
+    },
+    {
+      status: "projet_en_cours",
+      label: "Projet en cours",
+      color: "indigo",
+      gradient: "from-indigo-400 to-indigo-500"
+    },
+    {
+      status: "facture_reglee",
+      label: "Facture réglée",
+      color: "green",
+      gradient: "from-green-500 to-green-600"
+    },
+    {
+      status: "livraison_termine",
+      label: "Livraison & Terminé",
+      color: "amber",
+      gradient: "from-amber-400 to-amber-500"
+    },
+  ]
 
-export function ClientKanbanBoard({ 
-  clients, 
-  onClientClick, 
+export function ClientKanbanBoard({
+  clients,
+  onClientClick,
   onUpdateClient,
   searchQuery = "",
-  filters 
+  filters
 }: ClientKanbanBoardProps) {
   const { user } = useAuth()
   const [activeClient, setActiveClient] = useState<Client | null>(null)
@@ -129,18 +129,18 @@ export function ClientKanbanBoard({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Optimal distance to prevent accidental drags
+        distance: 10, // Require 10px movement to start drag (more intentional)
       },
     }),
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 10,
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 200,
-        tolerance: 8,
+        delay: 250, // Longer delay for touch to prevent accidental drags
+        tolerance: 10,
       },
     })
   )
@@ -152,13 +152,13 @@ export function ClientKanbanBoard({
     if (pointerCollisions.length > 0) {
       return pointerCollisions
     }
-    
+
     // Then try rectangle intersection
     const rectCollisions = rectIntersection(args)
     if (rectCollisions.length > 0) {
       return rectCollisions
     }
-    
+
     // Finally, use closest center as fallback
     return closestCenter(args)
   }
@@ -197,7 +197,7 @@ export function ClientKanbanBoard({
     const target = e.currentTarget
     const scrollLeft = target.scrollLeft
     const maxScroll = target.scrollWidth - target.clientWidth
-    
+
     if (scrollLeft <= 10) {
       setScrollPosition('start')
     } else if (scrollLeft >= maxScroll - 10) {
@@ -223,7 +223,8 @@ export function ClientKanbanBoard({
       chantier: "projet_en_cours",
       facture_reglee: "facture_reglee",
       livraison_termine: "livraison_termine",
-      
+      perdu: "refuse",
+
       // Legacy status mapping for backward compatibility
       nouveau: "qualifie",
       acompte_verse: "acompte_recu",
@@ -235,7 +236,7 @@ export function ClientKanbanBoard({
       annule: "refuse",
       suspendu: "refuse",
     }
-    
+
     return filteredClients.filter(client => {
       const mappedStatus = statusMapping[client.statutProjet]
       return mappedStatus === status
@@ -256,12 +257,12 @@ export function ClientKanbanBoard({
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
-    
+
     console.log('[Kanban] 🎯 Drag ended', { activeId: active.id, overId: over?.id })
-    
+
     // Clear active client immediately
     setActiveClient(null)
-    
+
     if (!over) {
       console.log('[Kanban] ⚠️ No drop target detected')
       return
@@ -339,7 +340,7 @@ export function ClientKanbanBoard({
     }
 
     console.log(`[Kanban] ⚡ Applying optimistic update`)
-    
+
     // Apply optimistic update to UI
     onUpdateClient(optimisticClient)
 
@@ -374,12 +375,12 @@ export function ClientKanbanBoard({
       const result = await response.json()
       console.log(`[Kanban] ✅ Database updated successfully`)
       console.log(`[Kanban] 📊 Result:`, result)
-      
+
       // Check if devis were synced
       if (result.devisSynced && result.devisUpdatedCount > 0) {
         console.log(`[Kanban] 📋 ${result.devisUpdatedCount} devis auto-synced to match project status`)
       }
-      
+
       // Show success toast
       const statusLabels: Record<ProjectStatus, string> = {
         qualifie: "Qualifié",
@@ -394,6 +395,7 @@ export function ClientKanbanBoard({
         chantier: "Projet en cours",
         facture_reglee: "Facture réglée",
         livraison_termine: "Livraison & Terminé",
+        perdu: "Perdu",
         // Legacy
         nouveau: "Nouveau projet",
         acompte_verse: "Acompte versé",
@@ -405,12 +407,12 @@ export function ClientKanbanBoard({
         annule: "Annulé",
         suspendu: "Suspendu"
       }
-      
+
       // Enhanced toast with devis sync info
       const toastDescription = result.devisSynced && result.devisUpdatedCount > 0
         ? `${draggedClient.nom} → ${statusLabels[targetStatus]}\n📋 ${result.devisUpdatedCount} devis ${targetStatus === 'accepte' ? 'accepté(s)' : 'refusé(s)'} automatiquement`
         : `${draggedClient.nom} → ${statusLabels[targetStatus]}`
-      
+
       toast.success("✅ Projet déplacé", {
         description: toastDescription,
         duration: result.devisSynced ? 5000 : 3000
@@ -419,11 +421,11 @@ export function ClientKanbanBoard({
     } catch (error) {
       console.error('[Kanban] ❌ Failed to update stage:', error)
       console.log(`[Kanban] 🔄 Rolling back to original status: ${originalStatus}`)
-      
+
       // ROLLBACK: Revert to original client state
       onUpdateClient(originalClient)
       console.log(`[Kanban] ✅ Rollback complete`)
-      
+
       toast.error(error instanceof Error ? error.message : "Impossible de déplacer le projet. Veuillez réessayer.", {
         duration: 5000
       })
@@ -446,6 +448,7 @@ export function ClientKanbanBoard({
       chantier: "Projet en cours",
       facture_reglee: "Facture réglée",
       livraison_termine: "Livraison & Terminé",
+      perdu: "Perdu",
       // Legacy
       nouveau: "Nouveau projet",
       acompte_verse: "Acompte versé",
@@ -473,7 +476,7 @@ export function ClientKanbanBoard({
           <span className="text-sm text-blue-300 font-medium">Mise à jour...</span>
         </div>
       )}
- 
+
       <DndContext
         sensors={sensors}
         collisionDetection={customCollisionDetection}
@@ -482,7 +485,7 @@ export function ClientKanbanBoard({
         onDragCancel={handleDragCancel}
       >
         {/* Kanban Grid - 11 Columns Horizontal Scroll (contained) */}
-        <div 
+        <div
           className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 pr-2 kanban-scroll"
           onScroll={handleScroll}
         >
@@ -500,12 +503,15 @@ export function ClientKanbanBoard({
           ))}
         </div>
 
-        <DragOverlay dropAnimation={null}>
+        <DragOverlay dropAnimation={{
+          duration: 200,
+          easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+        }}>
           {activeClient ? (
-            <div className="rotate-2 scale-105 opacity-90 shadow-2xl">
+            <div className="rotate-3 scale-110 opacity-95 shadow-2xl ring-2 ring-blue-500/50">
               <ClientKanbanCard
                 client={activeClient}
-                onClick={() => {}}
+                onClick={() => { }}
               />
             </div>
           ) : null}

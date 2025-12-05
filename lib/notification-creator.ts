@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { sendWhatsAppNotification } from './sendWhatsAppNotification';
 
 const prisma = new PrismaClient();
 
@@ -85,7 +86,7 @@ export async function notifyRdvCreated(params: {
   location?: string;
   createdBy: string;
 }) {
-  return createNotification({
+  const notification = await createNotification({
     userId: params.userId,
     type: 'rdv_created',
     priority: 'high',
@@ -100,6 +101,49 @@ export async function notifyRdvCreated(params: {
     },
     createdBy: params.createdBy,
   });
+
+  // Send WhatsApp notification
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: params.userId },
+      select: { phone: true, name: true }
+    });
+
+    if (user?.phone) {
+      const whatsappMessage = `📅 *Nouveau Rendez-vous Assigné*\n\n` +
+        `Bonjour ${user.name.split(' ')[0]},\n\n` +
+        `Un nouveau rendez-vous a été créé pour vous.\n\n` +
+        `👤 *Client :* ${params.clientName}\n` +
+        `📆 *Date :* ${params.appointmentDate}\n` +
+        `${params.location ? `📍 *Lieu :* ${params.location}\n` : ''}` +
+        `\n_Créé par ${params.createdBy}_`;
+
+      await sendWhatsAppNotification({
+        userId: params.userId,
+        phone: user.phone,
+        title: 'Nouveau RDV assigné',
+        message: whatsappMessage,
+        type: 'rdv_created',
+        priority: 'high',
+        linkedType: 'client',
+        linkedId: params.clientId,
+        linkedName: params.clientName,
+        metadata: {
+          appointmentDate: params.appointmentDate,
+          location: params.location,
+        }
+      });
+
+      console.log(`[NotificationCreator] WhatsApp sent for RDV to ${user.name}`);
+    } else {
+      console.log(`[NotificationCreator] No phone number for user ${params.userId}, skipping WhatsApp`);
+    }
+  } catch (error) {
+    console.error('[NotificationCreator] Error sending WhatsApp for RDV:', error);
+    // Don't fail the notification creation if WhatsApp fails
+  }
+
+  return notification;
 }
 
 /**
@@ -219,7 +263,7 @@ export async function notifyTaskAssigned(params: {
   linkedName?: string;
   createdBy: string;
 }) {
-  return createNotification({
+  const notification = await createNotification({
     userId: params.userId,
     type: 'task_assigned',
     priority: 'high',
@@ -233,6 +277,57 @@ export async function notifyTaskAssigned(params: {
     },
     createdBy: params.createdBy,
   });
+
+  // Send WhatsApp notification
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: params.userId },
+      select: { phone: true, name: true }
+    });
+
+    if (user?.phone) {
+      const formattedDueDate = new Date(params.dueDate).toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+
+      const whatsappMessage = `✅ *Nouvelle Tâche Assignée*\n\n` +
+        `Bonjour ${user.name.split(' ')[0]},\n\n` +
+        `Une nouvelle tâche vous a été assignée.\n\n` +
+        `📋 *Tâche :* ${params.taskTitle}\n` +
+        `📅 *Échéance :* ${formattedDueDate}\n` +
+        `${params.linkedName ? `🔗 *Lié à :* ${params.linkedName}\n` : ''}` +
+        `\n💡 *Action requise :*\n` +
+        `Merci de compléter cette tâche avant la date d'échéance.\n\n` +
+        `_Créé par ${params.createdBy}_`;
+
+      await sendWhatsAppNotification({
+        userId: params.userId,
+        phone: user.phone,
+        title: 'Nouvelle tâche assignée',
+        message: whatsappMessage,
+        type: 'task_assigned',
+        priority: 'high',
+        linkedType: 'task',
+        linkedId: params.taskId,
+        linkedName: params.linkedName,
+        metadata: {
+          dueDate: params.dueDate,
+        }
+      });
+
+      console.log(`[NotificationCreator] WhatsApp sent for task to ${user.name}`);
+    } else {
+      console.log(`[NotificationCreator] No phone number for user ${params.userId}, skipping WhatsApp`);
+    }
+  } catch (error) {
+    console.error('[NotificationCreator] Error sending WhatsApp for task:', error);
+    // Don't fail the notification creation if WhatsApp fails
+  }
+
+  return notification;
 }
 
 /**

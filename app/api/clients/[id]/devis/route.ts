@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
+import { cookies } from 'next/headers'
 
 // Generate CUID-like ID
 function generateCuid(): string {
@@ -22,6 +23,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    const cookieStore = await cookies()
+    const authCookie = cookieStore.get('token')
+
+    if (!authCookie) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
+
     const resolvedParams = await Promise.resolve(params)
     const clientId = resolvedParams.id
 
@@ -61,6 +69,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    const cookieStore = await cookies()
+    const authCookie = cookieStore.get('token')
+
+    if (!authCookie) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
+
     const resolvedParams = await Promise.resolve(params)
     const clientId = resolvedParams.id
     const body = await request.json()
@@ -88,7 +103,7 @@ export async function POST(
     // 2. Insert new devis into devis table
     const now = new Date().toISOString()
     const devisId = generateCuid() // Generate unique ID
-    
+
     const { data: newDevis, error: insertError } = await supabase
       .from('devis')
       .insert({
@@ -130,7 +145,7 @@ export async function POST(
     // 4. Check if we need to auto-update project status for newly created devis
     let stageProgressed = false
     let newStage = null
-    
+
     if (body.statut === 'accepte') {
       // If creating an accepted devis, ensure we're at least at "accepte" stage
       const { data: clientData } = await supabase
@@ -138,13 +153,13 @@ export async function POST(
         .select('statut_projet')
         .eq('id', clientId)
         .single()
-      
+
       // Include 'refuse' to allow recovery from refused state
       const earlyStages = ['qualifie', 'acompte_recu', 'conception', 'devis_negociation', 'refuse']
-      
+
       if (clientData && earlyStages.includes(clientData.statut_projet)) {
         console.log('[Add Devis] Accepted devis created, auto-progressing to "accepte" stage')
-        
+
         // Get current stage from history
         const { data: currentStageHistory } = await supabase
           .from('client_stage_history')
@@ -154,13 +169,13 @@ export async function POST(
           .order('started_at', { ascending: false })
           .limit(1)
           .single()
-        
+
         // Close current stage
         if (currentStageHistory) {
           const startedAt = new Date(currentStageHistory.started_at || now)
           const endedAt = new Date(now)
           const durationSeconds = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000)
-          
+
           await supabase
             .from('client_stage_history')
             .update({
@@ -171,11 +186,11 @@ export async function POST(
             .eq('client_id', clientId)
             .is('ended_at', null)
         }
-        
+
         // Create new stage entry for "accepte"
         const crypto = require('crypto')
         const stageId = crypto.randomUUID()
-        
+
         await supabase
           .from('client_stage_history')
           .insert({
@@ -189,7 +204,7 @@ export async function POST(
             created_at: now,
             updated_at: now
           })
-        
+
         // Update client's statut_projet
         await supabase
           .from('clients')
@@ -199,7 +214,7 @@ export async function POST(
             updated_at: now
           })
           .eq('id', clientId)
-        
+
         // Add to historique with devis info
         const devisTitle = body.title || `Devis n°${devisId.slice(-6)}`
         await supabase
@@ -217,7 +232,7 @@ export async function POST(
             created_at: now,
             updated_at: now
           })
-        
+
         stageProgressed = true
         newStage = 'accepte'
         console.log('[Add Devis] ✅ Stage auto-progressed to "accepte"')
@@ -247,6 +262,13 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    const cookieStore = await cookies()
+    const authCookie = cookieStore.get('token')
+
+    if (!authCookie) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
+
     const resolvedParams = await Promise.resolve(params)
     const clientId = resolvedParams.id
     const body = await request.json()
@@ -311,19 +333,19 @@ export async function PATCH(
     // 4. Check if we need to auto-update project status based on devis changes
     let stageProgressed = false
     let newStage = null
-    
+
     if (updates.statut === 'refuse') {
       // Check if ALL devis for this client are now refused
       const { data: allDevis } = await supabase
         .from('devis')
         .select('statut')
         .eq('client_id', clientId)
-      
+
       const allRefused = allDevis && allDevis.length > 0 && allDevis.every(d => d.statut === 'refuse')
-      
+
       if (allRefused) {
         console.log('[Update Devis] All devis refused, auto-progressing to "refuse" stage')
-        
+
         // Get current stage from history
         const { data: currentStageHistory } = await supabase
           .from('client_stage_history')
@@ -333,13 +355,13 @@ export async function PATCH(
           .order('started_at', { ascending: false })
           .limit(1)
           .single()
-        
+
         // Close current stage if it exists
         if (currentStageHistory) {
           const startedAt = new Date(currentStageHistory.started_at || now)
           const endedAt = new Date(now)
           const durationSeconds = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000)
-          
+
           await supabase
             .from('client_stage_history')
             .update({
@@ -350,11 +372,11 @@ export async function PATCH(
             .eq('client_id', clientId)
             .is('ended_at', null)
         }
-        
+
         // Create new stage entry for "refuse"
         const crypto = require('crypto')
         const stageId = crypto.randomUUID()
-        
+
         await supabase
           .from('client_stage_history')
           .insert({
@@ -368,7 +390,7 @@ export async function PATCH(
             created_at: now,
             updated_at: now
           })
-        
+
         // Update client's statut_projet
         await supabase
           .from('clients')
@@ -378,7 +400,7 @@ export async function PATCH(
             updated_at: now
           })
           .eq('id', clientId)
-        
+
         // Add to historique with devis info
         const devisTitle = updatedDevis.title || `Devis n°${devisId.slice(-6)}`
         await supabase
@@ -396,7 +418,7 @@ export async function PATCH(
             created_at: now,
             updated_at: now
           })
-        
+
         stageProgressed = true
         newStage = 'refuse'
         console.log('[Update Devis] ✅ Stage auto-progressed to "refuse"')
@@ -408,17 +430,17 @@ export async function PATCH(
         .select('statut_projet')
         .eq('id', clientId)
         .single()
-      
+
       console.log('[Update Devis] 🔍 Checking if stage should progress...')
       console.log('[Update Devis] Current project stage:', clientData?.statut_projet)
       console.log('[Update Devis] Devis being accepted:', devisId)
-      
+
       // Include 'refuse' to allow recovery from refused state
       const earlyStages = ['qualifie', 'acompte_recu', 'conception', 'devis_negociation', 'refuse']
-      
+
       if (clientData && earlyStages.includes(clientData.statut_projet)) {
         console.log('[Update Devis] ✅ Stage qualifies for progression! Moving to "accepte" stage')
-        
+
         // Get current stage from history
         const { data: currentStageHistory } = await supabase
           .from('client_stage_history')
@@ -428,13 +450,13 @@ export async function PATCH(
           .order('started_at', { ascending: false })
           .limit(1)
           .single()
-        
+
         // Close current stage
         if (currentStageHistory) {
           const startedAt = new Date(currentStageHistory.started_at || now)
           const endedAt = new Date(now)
           const durationSeconds = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000)
-          
+
           await supabase
             .from('client_stage_history')
             .update({
@@ -445,11 +467,11 @@ export async function PATCH(
             .eq('client_id', clientId)
             .is('ended_at', null)
         }
-        
+
         // Create new stage entry for "accepte"
         const crypto = require('crypto')
         const stageId = crypto.randomUUID()
-        
+
         await supabase
           .from('client_stage_history')
           .insert({
@@ -463,7 +485,7 @@ export async function PATCH(
             created_at: now,
             updated_at: now
           })
-        
+
         // Update client's statut_projet
         await supabase
           .from('clients')
@@ -473,7 +495,7 @@ export async function PATCH(
             updated_at: now
           })
           .eq('id', clientId)
-        
+
         // Add to historique with devis info
         const devisTitle = updatedDevis.title || `Devis n°${devisId.slice(-6)}`
         await supabase
@@ -491,7 +513,7 @@ export async function PATCH(
             created_at: now,
             updated_at: now
           })
-        
+
         stageProgressed = true
         newStage = 'accepte'
         console.log('[Update Devis] ✅ Stage auto-progressed to "accepte"')
@@ -545,6 +567,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    const cookieStore = await cookies()
+    const authCookie = cookieStore.get('token')
+
+    if (!authCookie) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
+
     const resolvedParams = await Promise.resolve(params)
     const clientId = resolvedParams.id
     const { searchParams } = new URL(request.url)

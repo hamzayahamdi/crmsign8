@@ -1,18 +1,18 @@
 "use client"
 
 import { useState } from "react"
-import { 
-  Clock, MessageSquare, Phone, FileText, CheckCircle, DollarSign, 
+import {
+  Clock, MessageSquare, Phone, FileText, CheckCircle, DollarSign,
   Calendar, MapPin, ExternalLink, Filter, Plus, ChevronDown, ChevronUp,
   TrendingUp, User, History
 } from "lucide-react"
 import type { Client, ClientHistoryEntry, Appointment } from "@/types/client"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
-import { 
-  formatRelativeTime, 
-  formatDuration, 
-  getStatusLabel, 
+import {
+  formatRelativeTime,
+  formatDuration,
+  getStatusLabel,
   groupHistoryByDate,
   getAppointmentStatusColor,
   isUpcomingAppointment
@@ -28,8 +28,8 @@ interface EnhancedTimelineProps {
 
 type FilterType = "all" | "statuts" | "rdv" | "notes" | "fichiers"
 
-export function EnhancedTimeline({ 
-  client, 
+export function EnhancedTimeline({
+  client,
   onAddRdv,
   showFilters = true,
   maxItems = 20
@@ -84,12 +84,12 @@ export function EnhancedTimeline({
   const groupSystemUpdates = (events: any[]) => {
     const grouped: any[] = []
     let systemUpdateGroup: any[] = []
-    
+
     events.forEach((event, index) => {
-      const isSystemUpdate = event.type === 'statut' && 
-        (event.auteur === 'Système' || event.auteur === 'Système (auto)' || 
-         event.description?.includes('automatiquement'))
-      
+      const isSystemUpdate = event.type === 'statut' &&
+        (event.auteur === 'Système' || event.auteur === 'Système (auto)' ||
+          event.description?.includes('automatiquement'))
+
       if (isSystemUpdate) {
         systemUpdateGroup.push(event)
       } else {
@@ -112,7 +112,7 @@ export function EnhancedTimeline({
         grouped.push(event)
       }
     })
-    
+
     // Handle remaining system updates
     if (systemUpdateGroup.length > 0) {
       if (systemUpdateGroup.length === 1) {
@@ -128,7 +128,7 @@ export function EnhancedTimeline({
         })
       }
     }
-    
+
     return grouped
   }
 
@@ -157,19 +157,19 @@ export function EnhancedTimeline({
 
   const getIconColor = (type: ClientHistoryEntry['type']) => {
     const colorMap = {
-      note: "text-blue-400 bg-blue-500/20 border-blue-500/30",
-      appel: "text-green-400 bg-green-500/20 border-green-500/30",
-      whatsapp: "text-green-400 bg-green-500/20 border-green-500/30",
-      modification: "text-purple-400 bg-purple-500/20 border-purple-500/30",
-      statut: "text-indigo-400 bg-indigo-500/20 border-indigo-500/30",
-      document: "text-cyan-400 bg-cyan-500/20 border-cyan-500/30",
-      "rendez-vous": "text-pink-400 bg-pink-500/20 border-pink-500/30",
-      rdv: "text-pink-400 bg-pink-500/20 border-pink-500/30",
-      devis: "text-yellow-400 bg-yellow-500/20 border-yellow-500/30",
-      validation: "text-emerald-400 bg-emerald-500/20 border-emerald-500/30",
-      acompte: "text-green-400 bg-green-500/20 border-green-500/30",
-      tache: "text-blue-400 bg-blue-500/20 border-blue-500/30",
-      projet: "text-purple-400 bg-purple-500/20 border-purple-500/30",
+      note: "text-blue-400 bg-gradient-to-br from-blue-500/20 to-blue-500/5 border-blue-500/30",
+      appel: "text-green-400 bg-gradient-to-br from-green-500/20 to-green-500/5 border-green-500/30",
+      whatsapp: "text-green-400 bg-gradient-to-br from-green-500/20 to-green-500/5 border-green-500/30",
+      modification: "text-purple-400 bg-gradient-to-br from-purple-500/20 to-purple-500/5 border-purple-500/30",
+      statut: "text-indigo-400 bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 border-indigo-500/30",
+      document: "text-cyan-400 bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 border-cyan-500/30",
+      "rendez-vous": "text-purple-400 bg-gradient-to-br from-purple-500/20 to-purple-500/5 border-purple-500/30",
+      rdv: "text-purple-400 bg-gradient-to-br from-purple-500/20 to-purple-500/5 border-purple-500/30",
+      devis: "text-yellow-400 bg-gradient-to-br from-yellow-500/20 to-yellow-500/5 border-yellow-500/30",
+      validation: "text-emerald-400 bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border-emerald-500/30",
+      acompte: "text-green-400 bg-gradient-to-br from-green-500/20 to-green-500/5 border-green-500/30",
+      tache: "text-blue-400 bg-gradient-to-br from-blue-500/20 to-blue-500/5 border-blue-500/30",
+      projet: "text-purple-400 bg-gradient-to-br from-purple-500/20 to-purple-500/5 border-purple-500/30",
     }
     return colorMap[type] || "text-white/60 bg-white/10 border-white/20"
   }
@@ -180,12 +180,14 @@ export function EnhancedTimeline({
 
     return (
       <div className={cn(
-        "mt-2 p-3 rounded-lg border",
-        isUpcoming ? "bg-blue-500/5 border-blue-500/20" : "bg-white/5 border-white/10"
+        "mt-2 p-3 rounded-lg border transition-all",
+        isUpcoming
+          ? "bg-gradient-to-br from-purple-500/15 to-purple-500/5 border-purple-500/30"
+          : "bg-white/5 border-white/10"
       )}>
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-blue-400" />
+            <Calendar className="w-4 h-4 text-purple-400" />
             <span className="text-sm font-medium text-white">{rdv.title}</span>
           </div>
           <span className={cn(
@@ -195,7 +197,7 @@ export function EnhancedTimeline({
             {rdv.status === "upcoming" ? "À venir" : rdv.status === "completed" ? "Terminé" : "Annulé"}
           </span>
         </div>
-        
+
         <div className="space-y-1.5 text-xs text-white/70">
           <div className="flex items-center gap-2">
             <Clock className="w-3.5 h-3.5" />
@@ -208,15 +210,15 @@ export function EnhancedTimeline({
               })}
             </span>
           </div>
-          
+
           {rdv.location && (
             <div className="flex items-center gap-2">
               <MapPin className="w-3.5 h-3.5" />
               <span>{rdv.location}</span>
               {rdv.locationUrl && (
-                <a 
-                  href={rdv.locationUrl} 
-                  target="_blank" 
+                <a
+                  href={rdv.locationUrl}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-400 hover:text-blue-300 transition-colors"
                 >
@@ -225,7 +227,7 @@ export function EnhancedTimeline({
               )}
             </div>
           )}
-          
+
           {rdv.notes && (
             <div className="mt-2 text-white/60 italic">
               🗒 {rdv.notes}
@@ -266,7 +268,7 @@ export function EnhancedTimeline({
             </span>
           </div>
         </div>
-        
+
         {/* Duration Info - Compact */}
         {entry.durationInHours !== undefined && entry.durationInHours > 0 && (
           <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-white/5 text-[10px]">
@@ -290,7 +292,7 @@ export function EnhancedTimeline({
           </h3>
           <p className="text-xs text-white/50">{filteredEvents.length} événement{filteredEvents.length > 1 ? 's' : ''}</p>
         </div>
-        
+
         {onAddRdv && (
           <Button
             onClick={onAddRdv}
@@ -357,7 +359,7 @@ export function EnhancedTimeline({
                   if (event.type === 'system-group') {
                     const isExpanded = expandedGroups.has(event.id)
                     const groupEvents = event.events || []
-                    
+
                     return (
                       <motion.div
                         key={event.id}
@@ -397,7 +399,7 @@ export function EnhancedTimeline({
                                 )}
                               </div>
                             </div>
-                            
+
                             <p className="text-sm text-white/80 leading-relaxed">
                               {event.description}
                             </p>
@@ -465,7 +467,7 @@ export function EnhancedTimeline({
                             </span>
                           </div>
                         </div>
-                        
+
                         <p className="text-sm text-white/80 leading-relaxed">
                           {event.description}
                         </p>

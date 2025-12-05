@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       const token = authCookie.value
       const decoded = verify(token, JWT_SECRET) as any
       const userId = decoded.userId
-      
+
       user = await prisma.user.findUnique({
         where: { id: userId },
         select: { id: true, role: true, name: true }
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
         { architecteAssigne: user.name }
       ]
     }
-    
+
     const clients = await prisma.client.findMany({
       where: legacyClientWhere,
       orderBy: { createdAt: 'desc' }
@@ -73,15 +73,15 @@ export async function GET(request: NextRequest) {
       select: { id: true, name: true }
     })
     const architectNameMap: Record<string, string> = {}
-    architects.forEach(arch => {
+    architects.forEach((arch: { id: string; name: string }) => {
       architectNameMap[arch.id] = arch.name
       // Also map by lowercase name for case-insensitive matching
       architectNameMap[arch.name.toLowerCase()] = arch.name
     })
     console.log(`[Client API] ✅ Loaded ${architects.length} architects for name mapping`)
     if (architects.length > 0) {
-      console.log(`[Client API] Architect IDs: ${architects.map(a => a.id).join(', ')}`)
-      console.log(`[Client API] Architect Names: ${architects.map(a => a.name).join(', ')}`)
+      console.log(`[Client API] Architect IDs: ${architects.map((a: { id: string; name: string }) => a.id).join(', ')}`)
+      console.log(`[Client API] Architect Names: ${architects.map((a: { id: string; name: string }) => a.name).join(', ')}`)
     }
 
     // 3. Fetch Contacts that are Clients (Unified model)
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     const contactWhere: any = {
       tag: 'client' // Always filter for clients
     }
-    
+
     if (user?.role?.toLowerCase() === 'architect' && user.name) {
       // Architect sees contacts where:
       // 1. Tagged as 'client' AND
@@ -114,9 +114,9 @@ export async function GET(request: NextRequest) {
         }
       ]
     }
-    
+
     console.log('[Client API] Contact filter:', JSON.stringify(contactWhere, null, 2))
-    
+
     const contactClients = await prisma.contact.findMany({
       where: contactWhere,
       include: { opportunities: true },
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
     })
 
     // 4. Map Contacts to Client interface - CREATE ONE ROW PER OPPORTUNITY
-    const mappedContacts = contactClients.flatMap(c => {
+    const mappedContacts = contactClients.flatMap((c: any) => {
       // If contact has no opportunities, create one entry for the contact
       // BUT: Only include if architect is assigned to this contact (for architect role)
       if (!c.opportunities || c.opportunities.length === 0) {
@@ -135,9 +135,9 @@ export async function GET(request: NextRequest) {
             return [] // Skip this contact if not assigned to architect
           }
         }
-        
+
         console.log(`[Client API] Contact ${c.nom} has NO opportunities`)
-        
+
         // Get architect name from ID or name
         const architectValue = c.architecteAssigne || ''
         let architectName = ''
@@ -190,16 +190,16 @@ export async function GET(request: NextRequest) {
       let opportunitiesToShow = c.opportunities
       if (user?.role?.toLowerCase() === 'architect' && user.name) {
         opportunitiesToShow = c.opportunities.filter(
-          opp => opp.architecteAssigne === user.id || opp.architecteAssigne === user.name
+          (opp: any) => opp.architecteAssigne === user.id || opp.architecteAssigne === user.name
         )
       }
-      
+
       // If no opportunities match after filtering, return empty array
       if (opportunitiesToShow.length === 0) {
         return []
       }
-      
-      return opportunitiesToShow.map(opp => {
+
+      return opportunitiesToShow.map((opp: any) => {
         console.log(`[Client API] Contact ${c.nom} -> Opportunity: "${opp.titre}" (budget: ${opp.budget})`)
 
         // Map Status from opportunity pipeline stage - Show actual pipeline stages
@@ -273,7 +273,7 @@ export async function GET(request: NextRequest) {
     })
 
     // 5. Map legacy clients to include nomProjet field (empty for legacy) and map architect names
-    const mappedLegacyClients = clients.map(c => {
+    const mappedLegacyClients = clients.map((c: any) => {
       // Get architect name from ID or name
       const architectValue = c.architecteAssigne || ''
       let architectName = ''
@@ -309,8 +309,8 @@ export async function GET(request: NextRequest) {
     })
 
     // 6. Merge lists (exclude opportunity-based clients if the contact also exists as legacy client)
-    const legacyClientIds = new Set(clients.map(c => c.id))
-    const uniqueMappedContacts = mappedContacts.filter(c => {
+    const legacyClientIds = new Set(clients.map((c: any) => c.id))
+    const uniqueMappedContacts = mappedContacts.filter((c: any) => {
       // Check if this contact exists as a legacy client (by contactId)
       return !legacyClientIds.has(c.contactId || '')
     })
@@ -318,7 +318,7 @@ export async function GET(request: NextRequest) {
     const allClients = [...mappedLegacyClients, ...uniqueMappedContacts]
 
     // Sort by createdAt desc
-    allClients.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    allClients.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
     const roleInfo = user?.role ? ` (Role: ${user.role})` : ''
     console.log(`[GET /api/clients] ✅ Fetched ${allClients.length} clients (${clients.length} legacy, ${uniqueMappedContacts.length} contacts)${roleInfo}`)
