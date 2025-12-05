@@ -421,7 +421,7 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
               <col className="w-[12%]" />
               <col className="w-[10%]" />
               <col className="w-[10%]" />
-              <col className="w-[10%]" /> {/* Priorité */}
+              <col className="w-[10%]" />
               <col className="w-[12%]" />
             </colgroup>
             <thead className="bg-slate-800/20 border-b border-[#1F2937] sticky top-0 z-10 backdrop-blur-sm">
@@ -580,8 +580,8 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
                                   lead.priorite === "haute"
                                     ? "bg-red-400"
                                     : lead.priorite === "moyenne"
-                                    ? "bg-amber-400"
-                                    : "bg-slate-400",
+                                      ? "bg-amber-400"
+                                      : "bg-slate-400",
                                 )}
                               />
                               <span>Priorité {pr.label}</span>

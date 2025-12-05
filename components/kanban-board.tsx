@@ -20,7 +20,7 @@ import {
   pointerWithin,
 } from "@dnd-kit/core"
 import { LeadCard } from "@/components/lead-card"
-import { LeadModalRedesigned as LeadModal } from "@/components/lead-modal-redesigned"
+import { LeadModalEnhanced as LeadModal } from "@/components/lead-modal-enhanced"
 import { LeadsTable } from "@/components/leads-table"
 import { LeadNotesPanel } from "@/components/lead-notes-panel"
 import { ArchitectSelectionDialog } from "@/components/architect-selection-dialog-improved"

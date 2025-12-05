@@ -103,11 +103,11 @@ const calculatePriority = (source: LeadSource): LeadPriority => {
   }
 }
 
-export function LeadModal({ 
-  open, 
-  onOpenChange, 
-  lead, 
-  onSave, 
+export function LeadModal({
+  open,
+  onOpenChange,
+  lead,
+  onSave,
   onDelete,
   onConvertToClient,
   onMarkAsNotInterested,
@@ -156,16 +156,16 @@ export function LeadModal({
               .map((u: any) => (u.name || '').trim())
               .filter((n: string) => n)
           ))
-          
+
           // Find Mohamed as the default gestionnaire de projet
-          const mohamedUser = users.find((u: any) => 
-            (u.name || '').toLowerCase().includes('mohamed') && 
+          const mohamedUser = users.find((u: any) =>
+            (u.name || '').toLowerCase().includes('mohamed') &&
             (u.role || '').toLowerCase() === 'gestionnaire'
           )
-          
+
           const defaultAssignee = mohamedUser?.name || list[0] || 'Mohamed'
           setArchitects(list.length ? list : ['Mohamed'])
-          
+
           // Set Mohamed as default for new leads
           if (!lead) {
             setFormData((prev) => ({ ...prev, assignePar: defaultAssignee }))
@@ -228,7 +228,7 @@ export function LeadModal({
     if (open && !lead) {
       resetForm()
       // ensure Mohamed or first available gestionnaire is the default assignee
-      const defaultAssignee = architects.find((name: string) => 
+      const defaultAssignee = architects.find((name: string) =>
         name.toLowerCase().includes('mohamed')
       ) || architects[0] || 'Mohamed'
       setFormData((prev) => ({ ...prev, assignePar: defaultAssignee }))
@@ -420,14 +420,13 @@ export function LeadModal({
               Priorité du lead (calculée automatiquement)
             </Label>
             <div className="flex items-center space-x-2">
-              <div className={`px-3 py-2 rounded-lg border text-sm font-medium ${
-                formData.priorite === 'haute' ? 'bg-green-500/20 text-green-400 border-green-500/40' :
-                formData.priorite === 'moyenne' ? 'bg-orange-500/20 text-orange-400 border-orange-500/40' :
-                'bg-gray-500/20 text-gray-400 border-gray-500/40'
-              }`}>
+              <div className={`px-3 py-2 rounded-lg border text-sm font-medium ${formData.priorite === 'haute' ? 'bg-green-500/20 text-green-400 border-green-500/40' :
+                  formData.priorite === 'moyenne' ? 'bg-orange-500/20 text-orange-400 border-orange-500/40' :
+                    'bg-gray-500/20 text-gray-400 border-gray-500/40'
+                }`}>
                 {formData.priorite === 'haute' ? 'Priorité Haute' :
-                 formData.priorite === 'moyenne' ? 'Priorité Moyenne' :
-                 'Priorité Basse'}
+                  formData.priorite === 'moyenne' ? 'Priorité Moyenne' :
+                    'Priorité Basse'}
               </div>
               <span className="text-sm text-muted-foreground">
                 Basée sur: {sources.find(s => s.value === formData.source)?.label}

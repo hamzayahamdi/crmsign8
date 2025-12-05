@@ -97,16 +97,16 @@ export function CreatableSelect({
           disabled={disabled}
           type="button"
           className={cn(
-            "w-full justify-between border border-white/10 glass bg-white/10 text-white hover:bg-white/15 hover:border-primary/40 transition-all duration-200",
-            !value && "text-muted-foreground",
-            open && "border-primary/40 ring-2 ring-primary/20",
+            "w-full h-11 justify-between border border-white/10 bg-[#252b3d] text-white hover:bg-[#2a3142] hover:border-blue-500/50 transition-all duration-200 font-light px-3",
+            !value && "text-gray-500",
+            open && "border-blue-500/50 ring-2 ring-blue-500/20",
             className
           )}
         >
-          <span className="truncate text-left font-normal">
+          <span className="truncate text-left font-light flex-1 mr-2">
             {value || placeholder}
           </span>
-          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {value && !disabled && (
               <div
                 className="h-4 w-4 shrink-0 opacity-70 hover:opacity-100 transition-opacity cursor-pointer"

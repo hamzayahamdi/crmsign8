@@ -12,7 +12,7 @@ export async function GET(
   try {
     const resolvedParams = await Promise.resolve(params)
     const leadId = resolvedParams.id
-    
+
     // Verify JWT for role-based access
     const authHeader = request.headers.get('authorization')
     let user: { name: string; role: string; magasin?: string } | null = null
@@ -25,7 +25,7 @@ export async function GET(
         user = null
       }
     }
-    
+
     const lead = await prisma.lead.findUnique({
       where: { id: leadId },
       include: {
@@ -36,14 +36,14 @@ export async function GET(
         }
       }
     })
-    
+
     if (!lead) {
       return NextResponse.json(
         { error: 'Lead not found' },
         { status: 404 }
       )
     }
-    
+
     // If architect, ensure the lead is assigned to them (case-insensitive)
     if (user?.role === 'architect' && (lead.assignePar || '').trim().toLowerCase() !== (user.name || '').trim().toLowerCase()) {
       return NextResponse.json(
@@ -51,13 +51,13 @@ export async function GET(
         { status: 403 }
       )
     }
-    
+
     return NextResponse.json(lead)
   } catch (error) {
     console.error('Error fetching lead:', error)
     return NextResponse.json(
       { error: 'Failed to fetch lead' },
-        { status: 500 }
+      { status: 500 }
     )
   }
 }
@@ -87,17 +87,20 @@ export async function PUT(
     } catch (_) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
-    
+
     // Load existing lead for permission checks
     const existing = await prisma.lead.findUnique({ where: { id: leadId } })
     if (!existing) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
     }
-    
+
     // Architects: can only update if assigned to them; cannot change assignment
     if (user?.role === 'architect') {
-      if (existing.assignePar !== user.name) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      const existingAssignee = (existing.assignePar || '').trim().toLowerCase()
+      const userName = (user.name || '').trim().toLowerCase()
+      if (existingAssignee !== userName) {
+        console.log(`[Lead Update] Permission denied: Lead assigned to "${existing.assignePar}" but user is "${user.name}"`)
+        return NextResponse.json({ error: 'Forbidden: You can only update leads assigned to you' }, { status: 403 })
       }
     }
     // Commercial: can only update their own leads
@@ -114,20 +117,20 @@ export async function PUT(
         return NextResponse.json({ error: 'Forbidden: You can only update leads in your magasin or created by you' }, { status: 403 })
       }
     }
-    // Admin and operator can update any lead; others forbidden
-    if (user && !['admin','operator','architect','commercial','magasiner'].includes(user.role)) {
+    // Admin, operator, and gestionnaire can update any lead; others forbidden
+    if (user && !['admin', 'operator', 'gestionnaire', 'architect', 'commercial', 'magasiner'].includes(user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    
+
     // Handle converted lead status change - undo conversion if status changes from "qualifie"
     if (existing.statut === 'qualifie' && body.statut !== 'qualifie') {
       console.log(`[Lead Update] Lead ${leadId} status changed from 'qualifie' to '${body.statut}'. Undoing conversion...`)
-      
+
       // Find and unlink the associated client
       const associatedClient = await prisma.client.findFirst({
         where: { leadId: leadId }
       })
-      
+
       if (associatedClient) {
         await prisma.client.update({
           where: { id: associatedClient.id },
@@ -138,27 +141,27 @@ export async function PUT(
         console.log(`[Lead Update] ⚠️ No associated client found for lead ${leadId}`)
       }
     }
-    
+
     // Handle convertedAt timestamp based on status changes
     let convertedAtUpdate: Date | null | undefined = undefined
-    
+
     // Set convertedAt when status changes to 'qualifie', 'non_interesse', or 'refuse'
-    if ((body.statut === 'qualifie' || body.statut === 'non_interesse' || body.statut === 'refuse') && 
-        existing.statut !== 'qualifie' && existing.statut !== 'non_interesse' && existing.statut !== 'refuse') {
+    if ((body.statut === 'qualifie' || body.statut === 'non_interesse' || body.statut === 'refuse') &&
+      existing.statut !== 'qualifie' && existing.statut !== 'non_interesse' && existing.statut !== 'refuse') {
       convertedAtUpdate = new Date()
       console.log(`[Lead Update] Setting convertedAt timestamp for lead ${leadId}`)
     }
-    
+
     // Clear convertedAt when status changes back from 'qualifie', 'non_interesse', or 'refuse'
     if ((existing.statut === 'qualifie' || existing.statut === 'non_interesse' || existing.statut === 'refuse') &&
-        body.statut !== 'qualifie' && body.statut !== 'non_interesse' && body.statut !== 'refuse') {
+      body.statut !== 'qualifie' && body.statut !== 'non_interesse' && body.statut !== 'refuse') {
       convertedAtUpdate = null
       console.log(`[Lead Update] Clearing convertedAt timestamp for lead ${leadId}`)
     }
-    
-    // Canonicalize assignePar if admin/operator is changing it
+
+    // Canonicalize assignePar if admin/operator/gestionnaire is changing it
     let nextAssignePar: string | undefined = undefined
-    const canChangeAssignment = user && (user.role === 'admin' || user.role === 'operator')
+    const canChangeAssignment = user && (user.role === 'admin' || user.role === 'operator' || user.role === 'gestionnaire')
     if (canChangeAssignment && typeof body.assignePar === 'string' && body.assignePar.trim()) {
       const raw = (body.assignePar || '').trim()
       const norm = (s: string) => s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
@@ -207,12 +210,12 @@ export async function PUT(
       priorite: body.priorite,
       derniereMaj: new Date(body.derniereMaj || new Date())
     }
-    
+
     // Add convertedAt if it needs to be updated
     if (convertedAtUpdate !== undefined) {
       updateData.convertedAt = convertedAtUpdate
     }
-    
+
     // Only include magasin fields if source is magasin
     if (body.source === 'magasin') {
       updateData.magasin = body.magasin || null
@@ -230,7 +233,7 @@ export async function PUT(
       // Clear campaign name when source is no longer TikTok to avoid stale data
       updateData.campaignName = null
     }
-    
+
     const lead = await prisma.lead.update({
       where: { id: leadId },
       data: updateData,
@@ -242,7 +245,7 @@ export async function PUT(
         }
       }
     })
-    
+
     return NextResponse.json(lead)
   } catch (error) {
     console.error('Error updating lead:', error)
@@ -263,14 +266,14 @@ export async function DELETE(
   try {
     const resolvedParams = await Promise.resolve(params)
     const leadId = resolvedParams.id
-    
+
     if (!leadId) {
       return NextResponse.json(
         { error: 'Lead ID is required' },
         { status: 400 }
       )
     }
-    
+
     // Verify JWT and check delete permissions
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -291,8 +294,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
     }
 
-    // Permission: admin/operator always allowed
-    if (user && (user.role === 'admin' || user.role === 'operator')) {
+    // Permission: admin/operator/gestionnaire always allowed
+    if (user && (user.role === 'admin' || user.role === 'operator' || user.role === 'gestionnaire')) {
       // allowed
     } else if (user && user.role === 'magasiner') {
       const sameCreator = existing.createdBy === user.name || existing.commercialMagasin === user.name
@@ -310,10 +313,10 @@ export async function DELETE(
 
     // Delete the lead from database
     await prisma.lead.delete({ where: { id: leadId } })
-    
+
     console.log(`[Delete Lead] Lead ${leadId} deleted successfully`)
-    
-    return NextResponse.json({ 
+
+    return NextResponse.json({
       success: true,
       leadId: leadId,
       message: 'Lead supprimé avec succès'
