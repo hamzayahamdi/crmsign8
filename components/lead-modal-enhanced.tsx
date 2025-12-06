@@ -366,8 +366,7 @@ export function LeadModalEnhanced({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
                 showCloseButton={false}
-                containerClassName="items-center"
-                className="!w-fit !max-w-[95vw] lg:!max-w-fit bg-[#1a1f2e] border border-white/10 max-h-[90vh] overflow-hidden p-0 shadow-2xl flex flex-col"
+                className="!w-fit !max-w-[95vw] lg:!max-w-fit bg-[#1a1f2e] border border-white/10 max-h-[85vh] overflow-hidden p-0 shadow-2xl flex flex-col"
             >
                 {/* Close Button - Enhanced with Red Background */}
                 <button
@@ -383,11 +382,11 @@ export function LeadModalEnhanced({
                     {/* Left Panel - Form */}
                     <div className="flex-1 lg:min-w-[580px] flex flex-col">
                         {/* Header - Fixed */}
-                        <div className="p-4 lg:p-6 lg:pb-4">
+                        <div className="px-6 pt-5 pb-3">
                             <DialogHeader className="mb-0">
                                 <div className="flex items-center justify-between">
-                                    <DialogTitle className="text-2xl font-light text-white">
-                                        {lead ? "Modifier le Lead" : "Créer un lead"}
+                                    <DialogTitle className="text-2xl font-bold text-white">
+                                        {lead ? "Modifier Lead" : "Créer Lead"}
                                     </DialogTitle>
                                     <Badge className={cn("px-3 py-1 text-xs font-medium border", priorityColor)}>
                                         ↑ Priorité {formData.priorite === 'haute' ? 'Haute' : formData.priorite === 'moyenne' ? 'Moyenne' : 'Basse'}
@@ -397,8 +396,8 @@ export function LeadModalEnhanced({
                         </div>
 
                         {/* Scrollable Form Content */}
-                        <div className="flex-1 overflow-y-auto px-4 lg:px-6">
-                            <form onSubmit={handleSubmit} className="space-y-5 pb-4">
+                        <div className="flex-1 overflow-y-auto px-6">
+                            <form onSubmit={handleSubmit} className="space-y-4 pb-4">
                                 {/* Nom complet */}
                                 <div className="space-y-2">
                                     <Label htmlFor="nom" className="text-sm font-light text-gray-300">
@@ -515,29 +514,29 @@ export function LeadModalEnhanced({
                                 </div>
 
                                 {/* Statut détaillé */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="statutDetaille" className="text-sm font-light text-gray-300">
-                                        Statut détaillé
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="statutDetaille" className="text-xs font-medium text-gray-400">
+                                        Statut détaillé <span className="text-gray-500 font-normal">(optionnel)</span>
                                     </Label>
                                     <Textarea
                                         id="statutDetaille"
                                         value={formData.statutDetaille}
                                         onChange={(e) => setFormData({ ...formData, statutDetaille: e.target.value })}
-                                        className="bg-[#252b3d] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/50 min-h-[70px] resize-none font-light text-sm"
+                                        className="bg-[#252b3d] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/50 min-h-[60px] resize-none font-light text-sm"
                                         placeholder="Détails du statut..."
                                     />
                                 </div>
 
                                 {/* Message */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="message" className="text-sm font-light text-gray-300">
-                                        Message
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="message" className="text-xs font-medium text-gray-400">
+                                        Message <span className="text-gray-500 font-normal">(optionnel)</span>
                                     </Label>
                                     <Textarea
                                         id="message"
                                         value={formData.message}
                                         onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                                        className="bg-[#252b3d] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/50 min-h-[90px] resize-none font-light text-sm"
+                                        className="bg-[#252b3d] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/50 min-h-[60px] resize-none font-light text-sm"
                                         placeholder="Message du lead..."
                                     />
                                 </div>
@@ -789,7 +788,7 @@ export function LeadModalEnhanced({
                 </div>
 
                 {/* Footer Buttons - Fixed at Bottom of Modal, Full Width */}
-                <div className="border-t border-white/10 p-4 lg:p-6 bg-[#1a1f2e] flex items-center justify-between gap-3">
+                <div className="border-t border-white/10 px-6 py-4 bg-[#1a1f2e] flex items-center justify-between gap-3">
                     {/* Left: Delete Button (only when editing) */}
                     {lead && onDelete ? (
                         <AlertDialog>

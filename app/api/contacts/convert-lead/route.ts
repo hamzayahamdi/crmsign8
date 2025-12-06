@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     // 4.5 Determine architect assignment
     let architecteName: string | undefined = undefined;
     let finalArchitectId: string | undefined = architectId;
-    
+
     if (architectId) {
       // If architectId is explicitly provided, use it
       const architect = await prisma.user.findUnique({ where: { id: architectId } });
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     } else if (lead.assignePar && lead.assignePar !== "Non assigné") {
       // If no architectId provided, automatically assign to the lead's assignee (gestionnaire de projet)
       architecteName = lead.assignePar;
-      
+
       // Find the user ID for notification purposes
       const assignedUser = await prisma.user.findFirst({
         where: {
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
           }
         }
       });
-      
+
       if (assignedUser) {
         finalArchitectId = assignedUser.id;
       }
@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
         tag: 'converted',
         notes: lead.message || undefined,
         magasin: lead.magasin,
+        leadStatus: lead.statut, // Preserve the original lead status
         createdBy: userId,
         convertedBy: userId, // Track who converted the lead
       },
@@ -152,14 +153,14 @@ export async function POST(request: NextRequest) {
       timelineEntries.push(architectEvent);
     }
 
-    // 9. Update lead to mark as converted
-    await prisma.lead.update({
+    // 9. Delete the lead from the database (since it's now a contact)
+    // Note: We delete the lead notes first due to foreign key constraints
+    await prisma.leadNote.deleteMany({
+      where: { leadId: lead.id },
+    });
+
+    await prisma.lead.delete({
       where: { id: lead.id },
-      data: {
-        convertedAt: new Date(),
-        convertedToContactId: contact.id,
-        statut: 'qualifie',
-      },
     });
 
     // 10. Create notification for the assigned gestionnaire/architect
@@ -229,7 +230,7 @@ export async function GET(request: NextRequest) {
 
     if (lead.convertedToContactId) {
       return NextResponse.json(
-        { 
+        {
           error: 'Lead already converted',
           convertedContactId: lead.convertedToContactId,
         },

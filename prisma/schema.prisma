@@ -123,6 +123,7 @@ model Contact {
   updatedAt         DateTime          @updatedAt @map("updated_at")
   clientSince       DateTime?         @map("client_since")
   status            ContactStatus     @default(qualifie)
+  leadStatus        LeadStatus?       @map("lead_status")
   convertedBy       String?           @map("converted_by")
   appointments      Appointment[]
   documents         ContactDocument[]
@@ -134,6 +135,7 @@ model Contact {
   @@index([createdAt(sort: Desc)])
   @@index([tag])
   @@index([status])
+  @@index([leadStatus])
   @@index([architecteAssigne])
   @@index([magasin])
   @@map("contacts")

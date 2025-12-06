@@ -9,6 +9,7 @@ export type ContactTag = 'prospect' | 'vip' | 'converted' | 'client' | 'archived
 
 export type ContactStatus = 'qualifie' | 'prise_de_besoin' | 'acompte_recu' | 'perdu';
 
+export type LeadStatus = 'nouveau' | 'a_recontacter' | 'sans_reponse' | 'non_interesse' | 'qualifie' | 'refuse';
 
 export interface Contact {
   id: string;
@@ -21,6 +22,7 @@ export interface Contact {
   architecteAssigne?: string | null;
   tag: ContactTag;
   status: ContactStatus;
+  leadStatus?: LeadStatus | null;
   clientSince?: Date | null;
   notes?: string | null;
   magasin?: string | null;

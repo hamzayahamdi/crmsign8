@@ -54,7 +54,9 @@ export default function ContactsPage() {
   const router = useRouter()
   const { user } = useAuth()
   const isAdmin = user?.role?.toLowerCase() === 'admin'
+  const isGestionnaire = user?.role?.toLowerCase() === 'gestionnaire'
   const isArchitect = user?.role?.toLowerCase() === 'architect'
+  const canManageContacts = isAdmin || isGestionnaire // Admin and Gestionnaire can edit/delete
 
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
@@ -201,6 +203,11 @@ export default function ContactsPage() {
       toast.error('Erreur lors de la suppression du contact')
       setContactToDelete(null)
     }
+  }
+
+  const handleLeadStatusUpdate = async () => {
+    // Reload contacts to get updated lead status
+    await loadContacts(page)
   }
 
   // Calculate statistics - ONLY what's needed
@@ -520,8 +527,9 @@ export default function ContactsPage() {
             <ContactsTable
               contacts={contacts}
               onRowClick={handleContactClick}
-              onEditContact={isAdmin ? handleEditContact : undefined}
-              onDeleteContact={isAdmin ? handleDeleteContact : undefined}
+              onEditContact={canManageContacts ? handleEditContact : undefined}
+              onDeleteContact={canManageContacts ? handleDeleteContact : undefined}
+              onLeadStatusUpdate={handleLeadStatusUpdate}
               isLoading={loading}
             />
 
