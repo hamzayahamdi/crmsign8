@@ -89,11 +89,13 @@ export function ClientsListMobile({ clients, onClientClick, onDeleteClient, sear
 
   return (
     <div className="space-y-3 p-4">
-      {items.map((c) => {
+      {items.map((c, index) => {
         const st = statutConfig[c.statutProjet] || { label: c.statutProjet, color: "bg-gray-500/20 text-gray-400 border-gray-500/40" }
+        // Use a combination of id and index to ensure unique keys, even if there are duplicate IDs
+        const uniqueKey = `${c.id}-${index}-${c.nomProjet || c.nom || ''}`
         return (
           <div
-            key={c.id}
+            key={uniqueKey}
             onClick={() => onClientClick(c)}
             className="w-full text-left glass rounded-xl border border-slate-600/30 p-4 hover:border-primary/40 hover:bg-primary/5 transition-colors group relative cursor-pointer"
           >

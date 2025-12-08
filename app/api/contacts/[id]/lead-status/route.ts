@@ -88,17 +88,37 @@ export async function PATCH(
 
         console.log('✅ Contact found:', contact.nom);
         const previousStatus = contact.leadStatus;
-        console.log('📊 Previous status:', previousStatus, '→ New status:', leadStatus);
+        const previousContactStatus = contact.status;
+        console.log('📊 Previous leadStatus:', previousStatus, '→ New leadStatus:', leadStatus);
+        console.log('📊 Previous contact status:', previousContactStatus);
 
-        // 5. Update contact lead status
+        // 5. Prepare update data - sync status field when leadStatus changes
+        const updateData: any = {
+            leadStatus: leadStatus,
+        };
+
+        // Sync contact status field based on leadStatus for traceability
+        // When leadStatus is "refuse", set status to "perdu"
+        // When leadStatus changes from "refuse" to something else, reset status to "qualifie" if it was "perdu"
+        if (leadStatus === 'refuse') {
+            updateData.status = 'perdu';
+            console.log('🔄 Syncing contact status to "perdu" because leadStatus is "refuse"');
+        } else if (previousStatus === 'refuse' && previousContactStatus === 'perdu') {
+            // If changing from "refuse" to another status, reset to "qualifie"
+            updateData.status = 'qualifie';
+            console.log('🔄 Resetting contact status to "qualifie" because leadStatus changed from "refuse"');
+        }
+
+        // 5. Update contact lead status and status
         const updatedContact = await prisma.contact.update({
             where: { id: contactId },
-            data: {
-                leadStatus: leadStatus,
-            },
+            data: updateData,
         });
 
         console.log('✅ Contact updated successfully');
+        if (updateData.status) {
+            console.log(`✅ Contact status also updated to "${updateData.status}"`);
+        }
 
         // 5.1. ALSO UPDATE THE ORIGINAL LEAD (for traceability across pages)
         if (contact.leadId) {
@@ -117,15 +137,21 @@ export async function PATCH(
         }
 
         // 6. Create timeline entry for status change
+        const statusChangeDescription = updateData.status
+            ? `Statut Lead changé de "${previousStatus || 'aucun'}" à "${leadStatus}" et statut Contact changé de "${previousContactStatus}" à "${updateData.status}" par ${user.name}`
+            : `Statut Lead changé de "${previousStatus || 'aucun'}" à "${leadStatus}" par ${user.name}`;
+
         await prisma.timeline.create({
             data: {
                 contactId: contact.id,
                 eventType: 'status_changed',
                 title: 'Statut Lead modifié',
-                description: `Statut Lead changé de "${previousStatus || 'aucun'}" à "${leadStatus}" par ${user.name}`,
+                description: statusChangeDescription,
                 metadata: {
                     previousLeadStatus: previousStatus,
                     newLeadStatus: leadStatus,
+                    previousContactStatus: previousContactStatus,
+                    newContactStatus: updateData.status || previousContactStatus,
                     changedByUserId: userId,
                     changedByUserName: user.name,
                 },

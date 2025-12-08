@@ -125,18 +125,18 @@ export function ClientDetailsHeader({
   };
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8 w-full max-w-full overflow-hidden">
+    <div className="px-3 md:px-4 lg:px-6 py-2 md:py-3 w-full max-w-full overflow-hidden">
       {/* Top Row - Opportunity Name & Key Info */}
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5 md:mb-8 w-full">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-2.5 mb-3 w-full">
         <div className="flex-1 min-w-0 w-full">
           {/* Main Heading - Opportunity/Project Name */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2 md:mb-3">
-            <h1 className="text-xl md:text-3xl lg:text-4xl font-bold text-white leading-tight truncate">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2.5 mb-1.5">
+            <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-white leading-tight truncate">
               {client.nomProjet || client.nom}
             </h1>
             <Badge
               className={cn(
-                "text-xs md:text-base font-semibold w-fit px-2 py-0.5 md:px-3 md:py-1.5 shrink-0",
+                "text-[10px] md:text-xs font-semibold w-fit px-1.5 py-0.5 shrink-0",
                 statusInfo.className,
               )}
             >
@@ -145,34 +145,34 @@ export function ClientDetailsHeader({
           </div>
 
           {/* Client Name - Secondary Position */}
-          <div className="flex items-center gap-2 mb-3 md:mb-4">
-            <User className="w-4 h-4 md:w-5 md:h-5 text-white/60 shrink-0" />
-            <span className="text-sm md:text-lg font-medium text-white/80 truncate">
+          <div className="flex items-center gap-1.5 mb-2">
+            <User className="w-3 h-3 text-white/60 shrink-0" />
+            <span className="text-xs md:text-sm font-medium text-white/80 truncate">
               Client: <span className="text-white/90">{client.nom}</span>
             </span>
           </div>
 
           {/* Project Details */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 md:gap-4 lg:gap-5 text-xs md:text-base text-white/70 w-full">
-            <div className="flex items-center gap-1.5 md:gap-2.5 shrink-0">
-              <MapPin className="w-3.5 h-3.5 md:w-5 md:h-5 shrink-0" />
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] md:text-xs text-white/70 w-full">
+            <div className="flex items-center gap-1 shrink-0">
+              <MapPin className="w-3 h-3 shrink-0" />
               <span className="truncate max-w-[120px] md:max-w-none">
                 {client.ville}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 md:gap-2.5 shrink-0">
-              <Building2 className="w-3.5 h-3.5 md:w-5 md:h-5 shrink-0" />
+            <div className="flex items-center gap-1 shrink-0">
+              <Building2 className="w-3 h-3 shrink-0" />
               <span>{client.typeProjet}</span>
             </div>
-            <div className="flex items-center gap-1.5 md:gap-2.5 shrink-0">
-              <User className="w-3.5 h-3.5 md:w-5 md:h-5 shrink-0" />
+            <div className="flex items-center gap-1 shrink-0">
+              <User className="w-3 h-3 shrink-0" />
               <span className="truncate max-w-[140px] md:max-w-[220px]">
                 Architecte: {client.architecteAssigne || "Non assigné"}
               </span>
             </div>
             {client.magasin && (
-              <div className="flex items-center gap-1.5 md:gap-2.5 shrink-0">
-                <div className="w-1.5 h-1.5 md:w-3 md:h-3 rounded-full bg-blue-400 shrink-0" />
+              <div className="flex items-center gap-1 shrink-0">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
                 <span className="font-medium text-blue-400 truncate max-w-[100px] md:max-w-none">
                   Magasin: {client.magasin}
                 </span>
@@ -182,41 +182,41 @@ export function ClientDetailsHeader({
         </div>
 
         {/* Stats Cards - Compact Grid on Mobile */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex gap-2 md:gap-4 w-full lg:w-auto">
-          <div className="bg-white/5 border border-white/10 rounded-lg md:rounded-2xl px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4 min-w-0 lg:min-w-[140px]">
-            <div className="flex items-center gap-1.5 md:gap-2 lg:gap-2.5 mb-1 md:mb-1">
-              <TrendingUp className="w-3.5 h-3.5 md:w-4 md:h-4 lg:w-5 lg:h-5 text-blue-400 shrink-0" />
-              <span className="text-[10px] md:text-xs lg:text-sm text-white/50 truncate">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex gap-1.5 md:gap-2 w-full lg:w-auto">
+          <div className="bg-white/5 border border-white/10 rounded-lg px-2.5 md:px-3 py-2 min-w-0 lg:min-w-[120px]">
+            <div className="flex items-center gap-1 mb-0.5">
+              <TrendingUp className="w-3 h-3 md:w-3.5 md:h-3.5 text-blue-400 shrink-0" />
+              <span className="text-[10px] text-white/50 truncate">
                 Paiements
               </span>
             </div>
-            <div className="text-lg md:text-xl lg:text-3xl font-bold text-white truncate">
+            <div className="text-base md:text-lg font-bold text-white truncate">
               {progressPercentage}%
             </div>
           </div>
 
           {paymentMetrics.totalBudget > 0 && (
-            <div className="bg-white/5 border border-white/10 rounded-lg md:rounded-2xl px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4 min-w-0 lg:min-w-[160px]">
-              <div className="flex items-center gap-1.5 md:gap-2 lg:gap-2.5 mb-1 md:mb-1">
-                <DollarSign className="w-3.5 h-3.5 md:w-4 md:h-4 lg:w-5 lg:h-5 text-green-400 shrink-0" />
-                <span className="text-[10px] md:text-xs lg:text-sm text-white/50 truncate">
+            <div className="bg-white/5 border border-white/10 rounded-lg px-2.5 md:px-3 py-2 min-w-0 lg:min-w-[140px]">
+              <div className="flex items-center gap-1 mb-0.5">
+                <DollarSign className="w-3 h-3 md:w-3.5 md:h-3.5 text-green-400 shrink-0" />
+                <span className="text-[10px] text-white/50 truncate">
                   {paymentMetrics.budgetSource === 'project_budget' ? 'Budget total' : 'Devis acceptés'}
                 </span>
               </div>
-              <div className="text-sm md:text-lg lg:text-2xl font-bold text-white truncate">
+              <div className="text-xs md:text-sm font-bold text-white truncate">
                 {formatCurrencyUtil(paymentMetrics.totalBudget)}
               </div>
             </div>
           )}
 
-          <div className="bg-white/5 border border-white/10 rounded-lg md:rounded-2xl px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4 min-w-0 lg:min-w-[160px] col-span-2 sm:col-span-1">
-            <div className="flex items-center gap-1.5 md:gap-2 lg:gap-2.5 mb-1 md:mb-1">
-              <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 lg:w-5 lg:h-5 text-purple-400 shrink-0" />
-              <span className="text-[10px] md:text-xs lg:text-sm text-white/50 truncate">
+          <div className="bg-white/5 border border-white/10 rounded-lg px-2.5 md:px-3 py-2 min-w-0 lg:min-w-[140px] col-span-2 sm:col-span-1">
+            <div className="flex items-center gap-1 mb-0.5">
+              <Clock className="w-3 h-3 md:w-3.5 md:h-3.5 text-purple-400 shrink-0" />
+              <span className="text-[10px] text-white/50 truncate">
                 Dernière MAJ
               </span>
             </div>
-            <div className="text-xs md:text-sm lg:text-base font-medium text-white truncate">
+            <div className="text-[11px] md:text-xs font-medium text-white truncate">
               {formatDate(client.derniereMaj)}
             </div>
           </div>

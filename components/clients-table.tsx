@@ -183,11 +183,11 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
       )}
 
       {/* Table Header */}
-      <div className="bg-slate-800/30 px-6 py-3 border-b border-slate-200/10">
+      <div className="bg-slate-800/30 px-3 py-2 border-b border-slate-200/10">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-white">Liste des Clients</h3>
-            <p className="text-[11px] text-muted-foreground">
+            <h3 className="text-xs font-semibold text-white">Liste des Clients</h3>
+            <p className="text-[10px] text-muted-foreground">
               {sortedClients.length} client{sortedClients.length > 1 ? 's' : ''}
             </p>
           </div>
@@ -208,61 +208,61 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
           </colgroup>
           <thead className="bg-slate-800/20 border-b border-slate-200/10">
             <tr>
-              <th className="px-6 py-2.5 text-left">
+              <th className="px-3 py-2 text-left">
                 <button
                   onClick={() => handleSort('nomProjet')}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
+                  className="flex items-center gap-1 text-[10px] font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
                 >
                   Nom de projet
                   {getSortIcon('nomProjet')}
                 </button>
               </th>
-              <th className="px-4 py-2.5 text-left">
+              <th className="px-3 py-2 text-left">
                 <button
                   onClick={() => handleSort('budget')}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
+                  className="flex items-center gap-1 text-[10px] font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
                 >
                   Montant
                   {getSortIcon('budget')}
                 </button>
               </th>
-              <th className="px-4 py-2.5 text-left">
+              <th className="px-3 py-2 text-left">
                 <button
                   onClick={() => handleSort('statutProjet')}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
+                  className="flex items-center gap-1 text-[10px] font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
                 >
                   Statut
                   {getSortIcon('statutProjet')}
                 </button>
               </th>
-              <th className="px-4 py-2.5 text-left">
+              <th className="px-3 py-2 text-left">
                 <button
                   onClick={() => handleSort('typeProjet')}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
+                  className="flex items-center gap-1 text-[10px] font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
                 >
                   Type de projet
                   {getSortIcon('typeProjet')}
                 </button>
               </th>
-              <th className="px-4 py-2.5 text-left">
+              <th className="px-3 py-2 text-left">
                 <button
                   onClick={() => handleSort('architecteAssigne')}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
+                  className="flex items-center gap-1 text-[10px] font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
                 >
                   Architecte
                   {getSortIcon('architecteAssigne')}
                 </button>
               </th>
-              <th className="px-4 py-2.5 text-left">
+              <th className="px-3 py-2 text-left">
                 <button
                   onClick={() => handleSort('ville')}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
+                  className="flex items-center gap-1 text-[10px] font-semibold text-slate-300 uppercase tracking-wider hover:text-white transition-colors"
                 >
                   Ville
                   {getSortIcon('ville')}
                 </button>
               </th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
+              <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-300 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -284,105 +284,105 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
                   onClick={() => onClientClick(client)}
                 >
                   {/* Nom de projet (Opportunity Title) */}
-                  <td className="px-6 py-3">
+                  <td className="px-3 py-2">
                     <div className="flex flex-col gap-0.5">
                       {client.nomProjet ? (
                         <>
                           <p className="text-xs font-semibold text-white truncate">
                             {client.nomProjet}
                           </p>
-                          <p className="text-[11px] text-slate-400 truncate">{client.nom}</p>
+                          <p className="text-[10px] text-slate-400 truncate">{client.nom}</p>
                         </>
                       ) : (
                         <>
                           <p className="text-xs font-medium text-slate-400 truncate">
                             {client.nom}
                           </p>
-                          <p className="text-[11px] text-slate-500 italic">Pas d'opportunité</p>
+                          <p className="text-[10px] text-slate-500 italic">Pas d'opportunité</p>
                         </>
                       )}
                     </div>
                   </td>
 
                   {/* Montant/Budget */}
-                  <td className="px-4 py-3">
-                    <span className="text-xs font-semibold text-emerald-400">
+                  <td className="px-3 py-2">
+                    <span className="text-[11px] font-semibold text-emerald-400">
                       {client.budget ? `${client.budget.toLocaleString()} DH` : '-'}
                     </span>
                   </td>
 
                   {/* Statut */}
-                  <td className="px-4 py-3">
-                    <Badge className={cn("border text-[11px] font-medium px-2 py-0.5", statutInfo.color)}>
+                  <td className="px-3 py-2">
+                    <Badge className={cn("border text-[10px] font-medium px-1.5 py-0.5", statutInfo.color)}>
                       {statutInfo.label}
                     </Badge>
                   </td>
 
                   {/* Type de projet */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1">
                       <Building2 className="w-3 h-3 text-slate-400" />
-                      <span className="text-xs text-slate-300">{formatProjectType(client.typeProjet)}</span>
+                      <span className="text-[11px] text-slate-300">{formatProjectType(client.typeProjet)}</span>
                     </div>
                   </td>
 
                   {/* Architecte */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1">
                       <User className="w-3 h-3 text-slate-400" />
-                      <span className="text-xs text-slate-300">{client.architecteAssigne}</span>
+                      <span className="text-[11px] text-slate-300">{client.architecteAssigne}</span>
                     </div>
                   </td>
 
                   {/* Ville */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1">
                       <MapPin className="w-3 h-3 text-slate-400" />
-                      <span className="text-xs text-slate-300">{client.ville}</span>
+                      <span className="text-[11px] text-slate-300">{client.ville}</span>
                     </div>
                   </td>
 
                   {/* Actions */}
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2">
                     <div className="flex items-center gap-0.5">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 hover:bg-blue-500/20 hover:text-blue-400 transition-colors"
+                        className="h-6 w-6 p-0 hover:bg-blue-500/20 hover:text-blue-400 transition-colors"
                         onClick={(e) => {
                           e.stopPropagation()
                           onClientClick(client)
                         }}
                         title="Voir les détails"
                       >
-                        <Eye className="w-3.5 h-3.5" />
+                        <Eye className="w-3 h-3" />
                       </Button>
                       {onEditClient && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 hover:bg-orange-500/20 hover:text-orange-400 transition-colors"
+                          className="h-6 w-6 p-0 hover:bg-orange-500/20 hover:text-orange-400 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation()
                             onEditClient(client)
                           }}
                           title="Modifier le client"
                         >
-                          <Edit2 className="w-3.5 h-3.5" />
+                          <Edit2 className="w-3 h-3" />
                         </Button>
                       )}
                       {onDeleteClient && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 hover:bg-red-500/20 hover:text-red-400 transition-colors"
+                          className="h-6 w-6 p-0 hover:bg-red-500/20 hover:text-red-400 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation()
                             onDeleteClient(client)
                           }}
                           title="Supprimer le client"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3 h-3" />
                         </Button>
                       )}
                     </div>

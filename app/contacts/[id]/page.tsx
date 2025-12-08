@@ -27,7 +27,8 @@ import {
   ExternalLink,
   History,
   Activity,
-  Trash2
+  Trash2,
+  ChevronDown
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -35,7 +36,7 @@ import { Sidebar } from '@/components/sidebar'
 import { Header } from '@/components/header'
 import { AuthGuard } from '@/components/auth-guard'
 import { useAuth } from '@/contexts/auth-context'
-import { Contact, Opportunity, Timeline, ContactWithDetails, ContactStatus } from '@/types/contact'
+import { Contact, Opportunity, Timeline, ContactWithDetails, ContactStatus, LeadStatus } from '@/types/contact'
 import { toast } from 'sonner'
 import {
   DropdownMenu,
@@ -767,6 +768,10 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
   const [notesValue, setNotesValue] = useState('')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
 
+  // Status change state
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+  const [openStatusDropdown, setOpenStatusDropdown] = useState(false)
+
   // Display notes from contact
   const displayNotes = typeof contact.notes === 'string' ? contact.notes : ''
 
@@ -988,6 +993,107 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
         month: 'short',
         year: noteDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
       })
+    }
+  }
+
+  // Lead status helpers
+  const getLeadStatusLabel = (status: LeadStatus) => {
+    const labels: Record<LeadStatus, string> = {
+      'nouveau': 'Nouveau',
+      'a_recontacter': 'À recontacter',
+      'sans_reponse': 'Sans réponse',
+      'non_interesse': 'Non intéressé',
+      'qualifie': 'Qualifié',
+      'refuse': 'Refusé',
+    }
+    return labels[status] || status
+  }
+
+  const getLeadStatusBadge = (status: LeadStatus | null | undefined) => {
+    if (!status) return null
+
+    const badges: Record<LeadStatus, { label: string, className: string }> = {
+      'nouveau': {
+        label: 'Nouveau',
+        className: 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+      },
+      'a_recontacter': {
+        label: 'À recontacter',
+        className: 'bg-orange-500/20 text-orange-300 border-orange-500/30'
+      },
+      'sans_reponse': {
+        label: 'Sans réponse',
+        className: 'bg-gray-500/20 text-gray-300 border-gray-500/30'
+      },
+      'non_interesse': {
+        label: 'Non intéressé',
+        className: 'bg-red-500/20 text-red-300 border-red-500/30'
+      },
+      'qualifie': {
+        label: 'Qualifié',
+        className: 'bg-green-500/20 text-green-300 border-green-500/30'
+      },
+      'refuse': {
+        label: 'Refusé',
+        className: 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+      },
+    }
+
+    return badges[status]
+  }
+
+  const leadStatusOptions: LeadStatus[] = [
+    'nouveau',
+    'a_recontacter',
+    'sans_reponse',
+    'non_interesse',
+    'qualifie',
+    'refuse',
+  ]
+
+  // Handle lead status change
+  const handleLeadStatusChange = async (newStatus: LeadStatus) => {
+    if (isUpdatingStatus || contact.leadStatus === newStatus) return
+
+    setIsUpdatingStatus(true)
+    setOpenStatusDropdown(false)
+
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        throw new Error('Token d\'authentification manquant')
+      }
+
+      const response = await fetch(`/api/contacts/${contact.id}/lead-status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ leadStatus: newStatus }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || data.details || 'Failed to update lead status')
+      }
+
+      toast.success(`Statut Lead mis à jour: ${getLeadStatusLabel(newStatus)}`, {
+        description: 'Le statut a été mis à jour sur toutes les pages',
+        duration: 3000,
+      })
+
+      // Refresh contact data
+      await onUpdate()
+    } catch (error) {
+      console.error('Error updating lead status:', error)
+      toast.error('Erreur lors de la mise à jour du statut', {
+        description: error instanceof Error ? error.message : 'Une erreur est survenue',
+        duration: 5000,
+      })
+    } finally {
+      setIsUpdatingStatus(false)
     }
   }
 
@@ -1219,6 +1325,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
             Résumé
           </h3>
           <div className="space-y-2.5">
+            {/* Contact Status */}
             <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/50">
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
                 <div className={`w-1.5 h-1.5 rounded-full ${contact.tag === 'client' ? 'bg-green-400 animate-pulse' :
@@ -1227,9 +1334,114 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                   }`} />
                 Statut
               </p>
-              <p className="text-xs font-bold text-white capitalize">
-                {contact.tag === 'client' ? 'Client' : contact.status || 'Contact'}
+              <p className="text-xs font-bold text-white">
+                {contact.tag === 'client' 
+                  ? 'Client' 
+                  : contact.status === 'perdu' && contact.leadStatus === 'refuse'
+                    ? 'Refusé'
+                    : contact.status === 'qualifie'
+                      ? 'Qualifié'
+                      : contact.status === 'prise_de_besoin'
+                        ? 'Prise de besoin'
+                        : contact.status === 'acompte_recu'
+                          ? 'Acompte Reçu'
+                          : contact.status || 'Contact'}
               </p>
+            </div>
+
+            {/* Lead Status with Dropdown */}
+            <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/50">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                <Activity className="w-3 h-3 text-blue-400" />
+                Statut Lead
+              </p>
+              <div className="relative">
+                {contact.leadStatus ? (
+                  <DropdownMenu open={openStatusDropdown} onOpenChange={setOpenStatusDropdown}>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        disabled={isUpdatingStatus}
+                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs border transition-all ${
+                          getLeadStatusBadge(contact.leadStatus)?.className || 'bg-slate-700/50 text-slate-300 border-slate-600/30'
+                        } ${isUpdatingStatus ? 'opacity-70 cursor-wait' : 'hover:scale-105 cursor-pointer'}`}
+                      >
+                        {isUpdatingStatus ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span>Mise à jour...</span>
+                          </>
+                        ) : (
+                          <>
+                            {getLeadStatusBadge(contact.leadStatus)?.label || contact.leadStatus}
+                            <ChevronDown className="w-3 h-3" />
+                          </>
+                        )}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="glass border-slate-600/30 min-w-[180px]">
+                      {leadStatusOptions.map((status) => {
+                        const badge = getLeadStatusBadge(status)
+                        const isSelected = contact.leadStatus === status
+                        return (
+                          <DropdownMenuItem
+                            key={status}
+                            onClick={() => handleLeadStatusChange(status)}
+                            disabled={isSelected || isUpdatingStatus}
+                            className={`flex items-center justify-between px-3 py-2 text-xs cursor-pointer ${
+                              isSelected
+                                ? 'bg-slate-700/50 opacity-50 cursor-not-allowed'
+                                : 'hover:bg-slate-700/70'
+                            }`}
+                          >
+                            <span className={badge?.className ? `px-2 py-0.5 rounded border ${badge.className}` : ''}>
+                              {badge?.label || status}
+                            </span>
+                            {isSelected && <Check className="w-3 h-3 text-green-400" />}
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <DropdownMenu open={openStatusDropdown} onOpenChange={setOpenStatusDropdown}>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        disabled={isUpdatingStatus}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-slate-500 hover:text-slate-300 hover:bg-slate-700/50 transition-all border border-slate-600/30"
+                      >
+                        {isUpdatingStatus ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span>Mise à jour...</span>
+                          </>
+                        ) : (
+                          <>
+                            + Statut
+                            <ChevronDown className="w-3 h-3" />
+                          </>
+                        )}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="glass border-slate-600/30 min-w-[180px]">
+                      {leadStatusOptions.map((status) => {
+                        const badge = getLeadStatusBadge(status)
+                        return (
+                          <DropdownMenuItem
+                            key={status}
+                            onClick={() => handleLeadStatusChange(status)}
+                            disabled={isUpdatingStatus}
+                            className="flex items-center justify-between px-3 py-2 text-xs hover:bg-slate-700/70 cursor-pointer"
+                          >
+                            <span className={badge?.className ? `px-2 py-0.5 rounded border ${badge.className}` : ''}>
+                              {badge?.label || status}
+                            </span>
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
 
             {isConverted && converterName && (

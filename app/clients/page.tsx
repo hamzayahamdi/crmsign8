@@ -306,24 +306,27 @@ export default function ClientsPage() {
           <Header />
 
           {/* Stats Cards */}
-          <div className="px-4 md:px-6 pt-4 md:pt-6 pb-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          <div className="px-3 md:px-4 pt-2 md:pt-3 pb-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass relative overflow-hidden rounded-lg md:rounded-xl px-3 md:px-4 py-3 md:py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(59,130,246,0.6)]"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-blue-500/30 transition-all duration-300"
               >
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
-                    {isLoading ? (
-                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-blue-400 animate-spin" />
-                    ) : (
-                      <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
-                    )}
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Total</p>
+                    <p className="text-2xl font-bold text-white leading-tight">{isLoading ? '...' : clients.length}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Clients</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] md:text-xs text-slate-400 font-medium">Clients</p>
-                    <p className="text-xl md:text-2xl font-bold text-white">{isLoading ? '...' : clients.length}</p>
+                  <div className="flex-shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                      {isLoading ? (
+                        <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                      ) : (
+                        <Users className="w-5 h-5 text-blue-400" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -332,19 +335,22 @@ export default function ClientsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="glass relative overflow-hidden rounded-lg md:rounded-xl px-3 md:px-4 py-3 md:py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(249,115,22,0.55)]"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-orange-500/30 transition-all duration-300"
               >
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
-                    {isLoading ? (
-                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-orange-400 animate-spin" />
-                    ) : (
-                      <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
-                    )}
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Actifs</p>
+                    <p className="text-2xl font-bold text-orange-400 leading-tight">{isLoading ? '...' : activeProjects}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Projets</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] md:text-xs text-slate-400 font-medium">Actifs</p>
-                    <p className="text-xl md:text-2xl font-bold text-white">{isLoading ? '...' : activeProjects}</p>
+                  <div className="flex-shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                      {isLoading ? (
+                        <Loader2 className="w-5 h-5 text-orange-400 animate-spin" />
+                      ) : (
+                        <TrendingUp className="w-5 h-5 text-orange-400" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -353,19 +359,22 @@ export default function ClientsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="glass relative overflow-hidden rounded-lg md:rounded-xl px-3 md:px-4 py-3 md:py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(34,197,94,0.55)] sm:col-span-2 lg:col-span-1"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-green-500/30 transition-all duration-300 sm:col-span-2 lg:col-span-1"
               >
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
-                    {isLoading ? (
-                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-green-400 animate-spin" />
-                    ) : (
-                      <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
-                    )}
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Terminés</p>
+                    <p className="text-2xl font-bold text-green-400 leading-tight">{isLoading ? '...' : completedProjects}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Projets</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] md:text-xs text-slate-400 font-medium">Terminés</p>
-                    <p className="text-xl md:text-2xl font-bold text-white">{isLoading ? '...' : completedProjects}</p>
+                  <div className="flex-shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                      {isLoading ? (
+                        <Loader2 className="w-5 h-5 text-green-400 animate-spin" />
+                      ) : (
+                        <TrendingUp className="w-5 h-5 text-green-400" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -373,9 +382,9 @@ export default function ClientsPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="px-4 md:px-6 pb-3 md:pb-4">
-            <div className="space-y-3 md:space-y-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="px-3 md:px-4 pb-2">
+            <div className="space-y-1.5">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
                 <div className="flex-1 min-w-[220px]">
                   <ClientAutocomplete
                     clients={clients}
@@ -384,58 +393,58 @@ export default function ClientsPage() {
                   />
                 </div>
 
-                <div className="glass rounded-lg p-1 flex border border-slate-600/30 self-stretch lg:self-auto">
+                <div className="glass rounded-lg p-0.5 flex border border-slate-600/30 self-stretch lg:self-auto">
                   <button
                     onClick={() => handleViewModeChange('table')}
                     className={cn(
-                      "flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all duration-200 flex-1 lg:flex-none",
+                      "flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 flex-1 lg:flex-none h-7",
                       viewMode === 'table'
                         ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
                         : "text-slate-400 hover:text-white hover:bg-slate-700/50"
                     )}
                   >
-                    <TableIcon className="w-3.5 h-3.5" />
+                    <TableIcon className="w-3 h-3" />
                     <span className="inline">Table</span>
                   </button>
                   <button
                     onClick={() => handleViewModeChange('kanban')}
                     className={cn(
-                      "flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all duration-200 flex-1 lg:flex-none",
+                      "flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 flex-1 lg:flex-none h-7",
                       viewMode === 'kanban'
                         ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
                         : "text-slate-400 hover:text-white hover:bg-slate-700/50"
                     )}
                   >
-                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <LayoutGrid className="w-3 h-3" />
                     <span className="inline">Kanban</span>
                   </button>
                 </div>
 
                 <Button
                   onClick={handleAddClient}
-                  className="h-10 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium text-sm shadow-[0_12px_40px_-24px_rgba(59,130,246,0.9)] w-full lg:w-auto"
+                  className="h-7 px-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium text-xs shadow-[0_12px_40px_-24px_rgba(59,130,246,0.9)] w-full lg:w-auto"
                 >
-                  <Plus className="w-4 h-4 mr-1.5" />
+                  <Plus className="w-3.5 h-3.5 mr-1" />
                   <span>Nouveau client</span>
                 </Button>
               </div>
 
-              <div className="glass rounded-lg md:rounded-xl border border-slate-600/30 shadow-[0_18px_48px_-28px_rgba(59,130,246,0.65)]">
-                <div className="flex items-center justify-between p-2.5 md:p-3 gap-2 md:gap-3">
+              <div className="glass rounded-lg border border-slate-600/30 shadow-[0_18px_48px_-28px_rgba(59,130,246,0.65)]">
+                <div className="flex items-center justify-between p-2 gap-2">
                   <div
-                    className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1"
+                    className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity flex-1"
                     onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                   >
-                    <Filter className="w-4 h-4 md:w-5 md:h-5 text-primary" />
-                    <span className="text-sm md:text-base font-medium text-white">Filtres</span>
+                    <Filter className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-medium text-white">Filtres</span>
                     {getActiveFiltersCount() > 0 && (
-                      <span className="bg-primary/20 text-primary px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium">
+                      <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded-full text-[10px] font-medium">
                         {getActiveFiltersCount()} actif{getActiveFiltersCount() > 1 ? 's' : ''}
                       </span>
                     )}
                     <ChevronDown
                       className={cn(
-                        "w-3.5 h-3.5 md:w-4 md:h-4 text-white transition-transform ml-auto",
+                        "w-3 h-3 text-white transition-transform ml-auto",
                         isFiltersOpen && "rotate-180"
                       )}
                     />
@@ -447,19 +456,19 @@ export default function ClientsPage() {
                         e.stopPropagation()
                         clearAllFilters()
                       }}
-                      className="text-[10px] md:text-xs text-muted-foreground hover:text-white flex items-center gap-1 md:gap-1.5 transition-colors px-1.5 md:px-2 py-1 rounded hover:bg-slate-700/50"
+                      className="text-[10px] text-muted-foreground hover:text-white flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50"
                     >
-                      <X className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                      <span className="hidden sm:inline">Effacer filtres</span>
+                      <X className="w-3 h-3" />
+                      <span className="hidden sm:inline">Effacer</span>
                     </button>
                   )}
                 </div>
 
                 {getActiveFiltersCount() > 0 && (
-                  <div className="border-t border-slate-600/30 px-4 py-3 bg-slate-900/40">
-                    <div className="flex flex-wrap gap-2">
+                  <div className="border-t border-slate-600/30 px-2.5 py-2 bg-slate-900/40">
+                    <div className="flex flex-wrap gap-1.5">
                       {filters.statut !== "all" && (
-                        <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                        <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5">
                           Statut: {
                             filters.statut === "nouveau" ? "Nouveau" :
                               filters.statut === "acompte_verse" ? "Acompte versé" :
@@ -468,31 +477,31 @@ export default function ClientsPage() {
                                     filters.statut === "livraison" ? "Livraison" : "Terminé"
                           }
                           <button onClick={() => removeFilter('statut')} className="hover:text-primary/70">
-                            <X className="w-3 h-3" />
+                            <X className="w-2.5 h-2.5" />
                           </button>
                         </div>
                       )}
                       {filters.ville !== "all" && (
-                        <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                        <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5">
                           Ville: {filters.ville}
                           <button onClick={() => removeFilter('ville')} className="hover:text-primary/70">
-                            <X className="w-3 h-3" />
+                            <X className="w-2.5 h-2.5" />
                           </button>
                         </div>
                       )}
                       {filters.typeProjet !== "all" && (
-                        <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                        <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5">
                           Type: {filters.typeProjet}
                           <button onClick={() => removeFilter('typeProjet')} className="hover:text-primary/70">
-                            <X className="w-3 h-3" />
+                            <X className="w-2.5 h-2.5" />
                           </button>
                         </div>
                       )}
                       {filters.architecte !== "all" && (
-                        <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                        <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5">
                           Architecte: {filters.architecte}
                           <button onClick={() => removeFilter('architecte')} className="hover:text-primary/70">
-                            <X className="w-3 h-3" />
+                            <X className="w-2.5 h-2.5" />
                           </button>
                         </div>
                       )}
@@ -501,81 +510,81 @@ export default function ClientsPage() {
                 )}
 
                 {isFiltersOpen && (
-                  <div className="px-3 md:px-4 pb-3 md:pb-4 pt-2 md:pt-3 border-t border-slate-600/30 bg-slate-900/35 rounded-b-xl">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-white">Statut du projet</label>
+                  <div className="px-2.5 pb-2.5 pt-2 border-t border-slate-600/30 bg-slate-900/35 rounded-b-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-medium text-white uppercase tracking-wider">Statut du projet</label>
                         <Select
                           value={filters.statut}
                           onValueChange={(value) => setFilters(f => ({ ...f, statut: value as ProjectStatus | "all" }))}
                         >
-                          <SelectTrigger className="h-9 md:h-10 text-sm bg-slate-800/70 border border-slate-600/40 text-white">
+                          <SelectTrigger className="h-7 text-xs bg-slate-800/70 border border-slate-600/40 text-white">
                             <SelectValue placeholder="Tous les statuts" />
                           </SelectTrigger>
                           <SelectContent className="border border-slate-600/40 bg-slate-900/95 text-white">
-                            <SelectItem value="all">Tous les statuts</SelectItem>
-                            <SelectItem value="nouveau">Nouveau</SelectItem>
-                            <SelectItem value="acompte_verse">Acompte versé</SelectItem>
-                            <SelectItem value="en_conception">En conception</SelectItem>
-                            <SelectItem value="en_validation">En validation</SelectItem>
-                            <SelectItem value="en_chantier">En chantier</SelectItem>
-                            <SelectItem value="livraison">Livraison</SelectItem>
-                            <SelectItem value="termine">Terminé</SelectItem>
-                            <SelectItem value="annule">Annulé</SelectItem>
-                            <SelectItem value="suspendu">Suspendu</SelectItem>
+                            <SelectItem value="all" className="text-xs">Tous les statuts</SelectItem>
+                            <SelectItem value="nouveau" className="text-xs">Nouveau</SelectItem>
+                            <SelectItem value="acompte_verse" className="text-xs">Acompte versé</SelectItem>
+                            <SelectItem value="en_conception" className="text-xs">En conception</SelectItem>
+                            <SelectItem value="en_validation" className="text-xs">En validation</SelectItem>
+                            <SelectItem value="en_chantier" className="text-xs">En chantier</SelectItem>
+                            <SelectItem value="livraison" className="text-xs">Livraison</SelectItem>
+                            <SelectItem value="termine" className="text-xs">Terminé</SelectItem>
+                            <SelectItem value="annule" className="text-xs">Annulé</SelectItem>
+                            <SelectItem value="suspendu" className="text-xs">Suspendu</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-white">Ville</label>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-medium text-white uppercase tracking-wider">Ville</label>
                         <Select
                           value={filters.ville}
                           onValueChange={(value) => setFilters(f => ({ ...f, ville: value }))}
                         >
-                          <SelectTrigger className="h-9 md:h-10 text-sm bg-slate-800/70 border border-slate-600/40 text-white">
+                          <SelectTrigger className="h-7 text-xs bg-slate-800/70 border border-slate-600/40 text-white">
                             <SelectValue placeholder="Toutes les villes" />
                           </SelectTrigger>
                           <SelectContent className="border border-slate-600/40 bg-slate-900/95 text-white">
-                            <SelectItem value="all">Toutes les villes</SelectItem>
+                            <SelectItem value="all" className="text-xs">Toutes les villes</SelectItem>
                             {uniqueVilles.map(v => (
-                              <SelectItem key={v} value={v}>{v}</SelectItem>
+                              <SelectItem key={v} value={v} className="text-xs">{v}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-white">Type de projet</label>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-medium text-white uppercase tracking-wider">Type de projet</label>
                         <Select
                           value={filters.typeProjet}
                           onValueChange={(value) => setFilters(f => ({ ...f, typeProjet: value }))}
                         >
-                          <SelectTrigger className="h-9 md:h-10 text-sm bg-slate-800/70 border border-slate-600/40 text-white">
+                          <SelectTrigger className="h-7 text-xs bg-slate-800/70 border border-slate-600/40 text-white">
                             <SelectValue placeholder="Tous les types" />
                           </SelectTrigger>
                           <SelectContent className="border border-slate-600/40 bg-slate-900/95 text-white">
-                            <SelectItem value="all">Tous les types</SelectItem>
+                            <SelectItem value="all" className="text-xs">Tous les types</SelectItem>
                             {uniqueTypes.map(t => (
-                              <SelectItem key={t} value={t}>{t}</SelectItem>
+                              <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-white">Équipe</label>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-medium text-white uppercase tracking-wider">Équipe</label>
                         <Select
                           value={filters.architecte}
                           onValueChange={(value) => setFilters(f => ({ ...f, architecte: value }))}
                         >
-                          <SelectTrigger className="bg-slate-800/70 border border-slate-600/40 text-white">
+                          <SelectTrigger className="h-7 text-xs bg-slate-800/70 border border-slate-600/40 text-white">
                             <SelectValue placeholder="Tous les architectes" />
                           </SelectTrigger>
                           <SelectContent className="border border-slate-600/40 bg-slate-900/95 text-white">
-                            <SelectItem value="all">Tous les architectes</SelectItem>
+                            <SelectItem value="all" className="text-xs">Tous les architectes</SelectItem>
                             {uniqueArchitects.map(a => (
-                              <SelectItem key={a} value={a}>{a}</SelectItem>
+                              <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -588,7 +597,7 @@ export default function ClientsPage() {
           </div>
 
           {/* Clients Content - Table or Kanban */}
-          <div className="flex-1 px-4 md:px-6 pb-6 md:pb-10 overflow-hidden">
+          <div className="flex-1 px-3 md:px-4 pb-3 overflow-hidden">
             <div className="flex h-full w-full flex-col">
               {isLoading ? (
                 <div className="flex h-full items-center justify-center">
