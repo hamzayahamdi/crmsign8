@@ -1,7 +1,7 @@
 "use client"
 
 import type { Lead, LeadStatus, LeadPriority } from "@/types/lead"
-import { Phone, MapPin, User, Calendar, Edit, Trash2, Eye, ArrowUpDown, ArrowUp, ArrowDown, Store, Globe, Facebook, Instagram, Users, Package, Music2, MessageSquarePlus, Clock } from "lucide-react"
+import { Phone, MapPin, User, Calendar, Edit, Trash2, Eye, ArrowUpDown, ArrowUp, ArrowDown, Store, Globe, Facebook, Instagram, Users, Package, Music2, MessageSquarePlus, Clock, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { getLeadDuration, getLeadDurationColor, getLeadDurationIcon } from "@/lib/lead-duration-utils"
@@ -601,10 +601,21 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
                               className="flex items-center gap-1.5"
                               title={duration.isActive ? `Lead actif depuis ${duration.days} jour(s)` : `Converti/Refusé après ${duration.days} jour(s)`}
                             >
-                              <span className="text-[10px] leading-none">{icon}</span>
-                              <span className="text-xs text-slate-400 font-normal whitespace-nowrap">
-                                {duration.label}
-                              </span>
+                              {duration.isActive ? (
+                                <>
+                                  <span className="text-[10px] leading-none flex-shrink-0">{icon}</span>
+                                  <span className="text-xs text-slate-400 font-normal whitespace-nowrap">
+                                    {duration.label}
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                                  <span className="text-xs text-emerald-400/90 font-normal whitespace-nowrap">
+                                    {duration.label}
+                                  </span>
+                                </>
+                              )}
                             </div>
                           )
                         })()}

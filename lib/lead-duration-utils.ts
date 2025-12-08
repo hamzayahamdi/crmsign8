@@ -130,7 +130,7 @@ export function getLeadDurationColor(days: number, isActive: boolean): string {
  */
 export function getLeadDurationIcon(days: number, isActive: boolean): string {
   if (!isActive) {
-    return "🔒"
+    return "" // Return empty string - we'll show text instead
   }
   
   if (days < 3) {

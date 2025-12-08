@@ -1,7 +1,7 @@
 "use client"
 
 import type { Lead, LeadStatus, LeadPriority } from "@/types/lead"
-import { Phone, MapPin, User, Calendar, Edit, Trash2, Store, Globe, Facebook, Instagram, Users, Package, Music2, Clock } from "lucide-react"
+import { Phone, MapPin, User, Calendar, Edit, Trash2, Store, Globe, Facebook, Instagram, Users, Package, Music2, Clock, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { getLeadDuration, getLeadDurationColor, getLeadDurationIcon } from "@/lib/lead-duration-utils"
@@ -320,12 +320,21 @@ export function LeadsTableImproved({
                         <Badge
                           className={cn(
                             "border text-xs font-medium px-2.5 py-1 flex items-center gap-1.5 w-fit",
-                            colorClass
+                            duration.isActive ? colorClass : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                           )}
                           title={duration.isActive ? "Lead actif" : "Lead converti/refusé"}
                         >
-                          <span>{icon}</span>
-                          <span>{duration.label}</span>
+                          {duration.isActive ? (
+                            <>
+                              <span className="text-[10px] leading-none">{icon}</span>
+                              <span>{duration.label}</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>{duration.label}</span>
+                            </>
+                          )}
                         </Badge>
                       )
                     })()}
