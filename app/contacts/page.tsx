@@ -173,10 +173,6 @@ export default function ContactsPage() {
     await loadContacts(page)
   }
 
-  const handleLeadStatusUpdate = async () => {
-    // Reload contacts to get updated lead status
-    await loadContacts(page)
-  }
 
   // Calculate statistics - ONLY what's needed
   const contactsWithOpportunities = contacts.filter(c => (c as any).opportunities?.length > 0).length
@@ -508,7 +504,6 @@ export default function ContactsPage() {
               onRowClick={handleContactClick}
               onEditContact={canManageContacts ? handleEditContact : undefined}
               onDeleteContact={canManageContacts ? handleDeleteContact : undefined}
-              onLeadStatusUpdate={handleLeadStatusUpdate}
               isLoading={loading}
             />
 
