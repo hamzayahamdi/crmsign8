@@ -102,10 +102,17 @@ export async function GET(
         if (opportunity.pipelineStage === "acompte_recu")
           status = "acompte_recu";
         if (opportunity.pipelineStage === "gagnee") status = "projet_en_cours";
-        if (opportunity.pipelineStage === "perdue") status = "annule";
+        // When opportunity is marked as "perdue", it should show as "refuse" (Refused)
+        if (opportunity.pipelineStage === "perdue" || opportunity.statut === "lost") {
+          status = "refuse";
+        }
         console.log(
           "[GET /api/clients] Using status from pipeline stage:",
           status,
+          "pipelineStage:",
+          opportunity.pipelineStage,
+          "statut:",
+          opportunity.statut,
         );
       }
 

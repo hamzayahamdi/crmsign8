@@ -175,8 +175,8 @@ const SidebarComponent = () => {
         >
           <Signature8Logo size={40} className="md:w-12 md:h-12" />
           <div>
-            <h1 className="text-lg md:text-xl font-bold text-white tracking-tight">Signature8</h1>
-            <p className="text-[10px] md:text-xs text-muted-foreground font-medium">CRM Tailor-Made</p>
+            <h1 className="text-sm md:text-base font-bold text-white tracking-tight">Signature8</h1>
+            <p className="text-[9px] md:text-[10px] text-muted-foreground font-medium">CRM Tailor-Made</p>
           </div>
         </motion.div>
       </div>
@@ -315,7 +315,7 @@ const SidebarComponent = () => {
                   </motion.div>
 
                   {/* Text label */}
-                  <span className="relative z-10 flex-1 truncate text-xs md:text-sm font-semibold">{item.name}</span>
+                  <span className="relative z-10 flex-1 truncate text-[11px] md:text-xs font-semibold">{item.name}</span>
 
                   {/* Task badges */}
                   {item.href === "/tasks" && (
@@ -386,10 +386,10 @@ const SidebarComponent = () => {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs md:text-sm font-semibold text-foreground truncate">
+                  <p className="text-[11px] md:text-xs font-semibold text-foreground truncate">
                     {user.name}
                   </p>
-                  <p className="text-[10px] md:text-xs text-muted-foreground truncate">
+                  <p className="text-[9px] md:text-[10px] text-muted-foreground truncate">
                     {user.email}
                   </p>
                   {user.role && (

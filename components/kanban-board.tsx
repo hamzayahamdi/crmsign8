@@ -1403,7 +1403,16 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
             const newNote = await response.json()
 
             // Fetch the updated lead with all notes
-            const leadResponse = await fetch(`/api/leads/${leadId}`)
+            const leadResponse = await fetch(`/api/leads/${leadId}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+            })
+            
+            if (!leadResponse.ok) {
+              throw new Error('Failed to fetch updated lead')
+            }
+            
             const updatedLead = await leadResponse.json()
 
             // Update the lead in the list

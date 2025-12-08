@@ -34,6 +34,7 @@ export function CreateOpportunityModal({
   onSuccess,
 }: CreateOpportunityModalProps) {
   const [architects, setArchitects] = useState<Architect[]>([])
+  const [architectNameMap, setArchitectNameMap] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [propertyType, setPropertyType] = useState<OpportunityType>("autre")
@@ -51,17 +52,34 @@ export function CreateOpportunityModal({
       fetchArchitects()
       loadLeadPropertyType()
 
-      // Pre-select architect if assigned to contact
-      if (contact.architecteAssigne) {
-        setArchitectId(contact.architecteAssigne)
-      }
-
       // Auto-populate title with default if empty
       if (!nomOportunite.trim()) {
         setNomOportunite(defaultTitle(propertyType))
       }
     }
   }, [isOpen, contact])
+
+  // Pre-select architect after architects are loaded
+  useEffect(() => {
+    if (contact.architecteAssigne && architects.length > 0) {
+      // Try to find architect by ID first
+      const architectById = architects.find(a => a.id === contact.architecteAssigne)
+      if (architectById) {
+        setArchitectId(contact.architecteAssigne)
+      } else {
+        // If not found by ID, try to find by name match
+        const architectByName = architects.find(a => {
+          const fullName = `${a.prenom || ''} ${a.nom || ''}`.trim()
+          return fullName === contact.architecteAssigne || 
+                 a.nom === contact.architecteAssigne ||
+                 a.prenom === contact.architecteAssigne
+        })
+        if (architectByName) {
+          setArchitectId(architectByName.id)
+        }
+      }
+    }
+  }, [architects, contact.architecteAssigne])
 
   // Update title when property type changes
   useEffect(() => {
@@ -81,12 +99,29 @@ export function CreateOpportunityModal({
         const data = await response.json()
         const list: Architect[] = data?.data || data?.architects || []
         setArchitects(list)
+        
+        // Build architect name map for resolving IDs to names
+        const map: Record<string, string> = {}
+        list.forEach((arch) => {
+          const fullName = `${arch.prenom || ''} ${arch.nom || ''}`.trim()
+          if (arch.id && fullName) {
+            map[arch.id] = fullName
+            // Also map by name for reverse lookup
+            map[fullName] = fullName
+            if (arch.nom) map[arch.nom] = fullName
+            if (arch.prenom) map[arch.prenom] = fullName
+          }
+        })
+        setArchitectNameMap(map)
       } else {
         setArchitects([])
+        setArchitectNameMap({})
       }
     } catch (error) {
       console.error("Error fetching architects:", error)
       toast.error("Erreur lors du chargement des architectes")
+      setArchitects([])
+      setArchitectNameMap({})
     } finally {
       setLoading(false)
     }
@@ -208,6 +243,26 @@ export function CreateOpportunityModal({
       setMontantEstime("")
       setArchitectId("")
 
+      // Trigger clients page refresh by dispatching a custom event
+      // This ensures the clients page updates when opportunities are created
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('opportunity-created', { 
+          detail: { contactId: contact.id, opportunityId: opportunity.id } 
+        }))
+        
+        // Also try to refresh clients store if available
+        try {
+          const { useClientStore } = await import('@/stores/client-store')
+          const store = useClientStore.getState()
+          if (store.refreshClients) {
+            store.refreshClients()
+          }
+        } catch (e) {
+          // Store might not be available, that's okay
+          console.log('[Create Opportunity] Could not refresh clients store:', e)
+        }
+      }
+
       // Call success callback
       onSuccess?.(opportunity.id)
 
@@ -224,6 +279,32 @@ export function CreateOpportunityModal({
   }
 
   const selectedArchitect = architects.find((a) => a.id === architectId)
+  
+  // Resolve assigned architect name for display
+  const getAssignedArchitectName = () => {
+    if (!contact.architecteAssigne) return null
+    
+    // First try to resolve using the name map
+    const resolvedName = architectNameMap[contact.architecteAssigne]
+    if (resolvedName) return resolvedName
+    
+    // If not in map, check if it's already a name by looking in architects list
+    const architect = architects.find(a => {
+      const fullName = `${a.prenom || ''} ${a.nom || ''}`.trim()
+      return fullName === contact.architecteAssigne || 
+             a.id === contact.architecteAssigne ||
+             a.nom === contact.architecteAssigne ||
+             a.prenom === contact.architecteAssigne
+    })
+    if (architect) {
+      return `${architect.prenom || ''} ${architect.nom || ''}`.trim()
+    }
+    
+    // Fallback: return as-is (might already be a name)
+    return contact.architecteAssigne
+  }
+  
+  const assignedArchitectName = getAssignedArchitectName()
 
   return (
     <AnimatePresence>
@@ -409,13 +490,33 @@ export function CreateOpportunityModal({
                     Attribuer un architecte
                   </h2>
                   <div className="space-y-3">
+                    {/* Show assigned architect from contact if exists */}
+                    {assignedArchitectName && !selectedArchitect && (
+                      <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-bold text-purple-300">
+                              {assignedArchitectName.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-purple-400 mb-1">Architecte assigné au contact</p>
+                            <p className="text-sm font-semibold text-white">
+                              {assignedArchitectName}
+                            </p>
+                          </div>
+                          <Users className="w-5 h-5 text-purple-400 flex-shrink-0" />
+                        </div>
+                      </div>
+                    )}
+
                     <Button
                       type="button"
                       onClick={() => setArchitectDialogOpen(true)}
                       className="h-11 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white"
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
-                      Choisir un architecte
+                      {selectedArchitect || assignedArchitectName ? "Changer l'architecte" : "Choisir un architecte"}
                     </Button>
 
                     {/* Selected architect preview */}
@@ -428,12 +529,15 @@ export function CreateOpportunityModal({
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
+                            <p className="text-xs text-blue-400 mb-1">Architecte sélectionné</p>
                             <p className="text-sm font-semibold text-white">
                               {selectedArchitect.prenom} {selectedArchitect.nom}
                             </p>
-                            <p className="text-xs text-slate-400">
-                              {selectedArchitect.specialite}
-                            </p>
+                            {selectedArchitect.specialite && (
+                              <p className="text-xs text-slate-400">
+                                {selectedArchitect.specialite}
+                              </p>
+                            )}
                           </div>
                           <Users className="w-5 h-5 text-blue-400 flex-shrink-0" />
                         </div>

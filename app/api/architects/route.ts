@@ -49,8 +49,19 @@ function isAssignedToArchitect(
 
 /**
  * Helper function to determine dossier status category
+ * IMPORTANT: "perdu" (lost) and "refuse" (refused) are excluded from all categories
+ * as they represent closed/lost projects that should not be counted as active.
  */
-function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_attente' {
+function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_attente' | null {
+  // Exclude lost/refused projects - these should not be counted in any active category
+  if (
+    statut === 'perdu' ||
+    statut === 'refuse' ||
+    statut === 'annule'
+  ) {
+    return null // Excluded from all counts
+  }
+
   // Terminés - completed projects
   if (
     statut === 'termine' ||
@@ -69,7 +80,7 @@ function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_
     return 'en_attente'
   }
 
-  // En cours - all active projects (default)
+  // En cours - all active projects
   // Includes: acompte_recu, conception, devis_negociation, accepte, premier_depot, 
   // projet_en_cours, chantier, facture_reglee, en_conception, en_validation, en_chantier
   return 'en_cours'
@@ -206,18 +217,21 @@ export async function GET(request: NextRequest) {
 
       const totalDossiers = allDossiers.length
 
-      // Categorize dossiers by status
-      const dossiersEnCours = allDossiers.filter(d =>
-        getDossierStatusCategory(d.statut) === 'en_cours'
-      ).length
+      // Categorize dossiers by status (exclude null/refused/lost projects)
+      const dossiersEnCours = allDossiers.filter(d => {
+        const category = getDossierStatusCategory(d.statut)
+        return category === 'en_cours'
+      }).length
 
-      const dossiersTermines = allDossiers.filter(d =>
-        getDossierStatusCategory(d.statut) === 'termine'
-      ).length
+      const dossiersTermines = allDossiers.filter(d => {
+        const category = getDossierStatusCategory(d.statut)
+        return category === 'termine'
+      }).length
 
-      const dossiersEnAttente = allDossiers.filter(d =>
-        getDossierStatusCategory(d.statut) === 'en_attente'
-      ).length
+      const dossiersEnAttente = allDossiers.filter(d => {
+        const category = getDossierStatusCategory(d.statut)
+        return category === 'en_attente'
+      }).length
 
       // Calculate disponible status: available if less than 10 active dossiers
       const isDisponible = dossiersEnCours < 10

@@ -380,39 +380,122 @@ export async function PATCH(
 
 /**
  * DELETE /api/contacts/[id]
- * Delete a contact and all relations
+ * Delete a contact and all related data (cascading delete)
+ * 
+ * Relations that will be deleted:
+ * - Opportunities (and their tasks, timeline, documents, appointments)
+ * - Tasks
+ * - Timeline entries
+ * - Contact documents
+ * - Contact payments
+ * - Appointments
  */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    console.log('[DELETE /api/contacts/[id]] Starting contact deletion...');
+    
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
+      console.log('[DELETE /api/contacts/[id]] Unauthorized - missing auth header');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.slice(7);
-    const decoded = verify(token, JWT_SECRET) as any;
+    let decoded: any;
+    try {
+      decoded = verify(token, JWT_SECRET) as any;
+    } catch (err) {
+      console.log('[DELETE /api/contacts/[id]] Invalid token');
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
     const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+    console.log('[DELETE /api/contacts/[id]] User attempting deletion:', { 
+      userId: decoded.userId, 
+      role: user?.role 
+    });
 
     if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+      console.log('[DELETE /api/contacts/[id]] Permission denied - user is not admin');
+      return NextResponse.json({ error: 'Permission denied. Only admins can delete contacts.' }, { status: 403 });
     }
 
     // Await params in Next.js 15
     const { id } = await params;
+    console.log('[DELETE /api/contacts/[id]] Contact ID to delete:', id);
 
+    // Check if contact exists first
+    const contact = await prisma.contact.findUnique({
+      where: { id },
+      include: {
+        opportunities: true,
+        tasks: true,
+        timeline: true,
+        documents: true,
+        payments: true,
+        appointments: true,
+      }
+    });
+
+    if (!contact) {
+      console.log('[DELETE /api/contacts/[id]] Contact not found:', id);
+      return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
+    }
+
+    console.log('[DELETE /api/contacts/[id]] Contact found, deleting...', {
+      id: contact.id,
+      nom: contact.nom,
+      opportunitiesCount: contact.opportunities?.length || 0,
+      tasksCount: contact.tasks?.length || 0,
+      timelineCount: contact.timeline?.length || 0,
+      documentsCount: contact.documents?.length || 0,
+      paymentsCount: contact.payments?.length || 0,
+      appointmentsCount: contact.appointments?.length || 0,
+    });
+
+    // Delete the contact - Prisma will cascade delete all related records
+    // due to onDelete: Cascade in the schema
     await prisma.contact.delete({
       where: { id },
     });
 
-    return NextResponse.json({ success: true });
+    console.log('[DELETE /api/contacts/[id]] Contact deleted successfully:', id);
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'Contact deleted successfully',
+      deletedContact: {
+        id: contact.id,
+        nom: contact.nom
+      }
+    });
 
   } catch (error) {
-    console.error('Error deleting contact:', error);
+    console.error('[DELETE /api/contacts/[id]] Error deleting contact:', error);
+    
+    // Check for specific Prisma errors
+    if (error && typeof error === 'object' && 'code' in error) {
+      const prismaError = error as any;
+      if (prismaError.code === 'P2025') {
+        return NextResponse.json(
+          { error: 'Contact not found or already deleted' },
+          { status: 404 }
+        );
+      }
+      if (prismaError.code === 'P2003') {
+        return NextResponse.json(
+          { error: 'Cannot delete contact due to foreign key constraint' },
+          { status: 409 }
+        );
+      }
+    }
+
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete contact';
     return NextResponse.json(
-      { error: 'Failed to delete contact' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

@@ -1,97 +1,124 @@
 "use client"
 
-import type { Client, ProjectStatus } from "@/types/client"
+import type { Client } from "@/types/client"
 import { ClientKanbanCard } from "@/components/client-kanban-card"
 import { useDroppable } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { cn } from "@/lib/utils"
-import { motion } from "framer-motion"
 
 interface ClientKanbanColumnProps {
-  status: ProjectStatus
-  label: string
-  clients: Client[]
-  color: string
-  gradient: string
-  onClientClick: (client: Client) => void
-  newlyAddedClientId?: string | null
-}
-
-const colorClasses: Record<string, string> = {
-  blue: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-  green: "bg-green-500/20 text-green-300 border-green-500/30",
-  purple: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-  yellow: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
-  emerald: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-  red: "bg-red-500/20 text-red-300 border-red-500/30",
-  cyan: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
-  indigo: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
-  amber: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    id: string
+    label: string
+    color: string
+    clients: Client[]
+    onClientClick: (client: Client) => void
+    pendingId?: string | null
+    architectNameMap?: Record<string, string>
+    isDraggedOver?: boolean
+    placeholderId?: string
 }
 
 export function ClientKanbanColumn({
-  status,
-  label,
-  clients,
-  color,
-  gradient,
-  onClientClick,
-  newlyAddedClientId
+    id,
+    label,
+    color,
+    clients,
+    onClientClick,
+    pendingId,
+    architectNameMap = {},
+    isDraggedOver = false,
+    placeholderId
 }: ClientKanbanColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: status,
-  })
+    const { setNodeRef, isOver } = useDroppable({ id })
 
-  return (
-    <div className="flex flex-col h-full min-w-[280px] sm:min-w-[320px] max-w-[280px] sm:max-w-[320px]">
-      {/* Column Header - Modern with Gradient */}
-      <div className="bg-[#171B22] border border-white/10 rounded-xl p-4 mb-3">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-white text-sm uppercase tracking-wider">{label}</h3>
-          <span
-            className={cn(
-              "px-3 py-1 rounded-full text-xs font-bold border",
-              colorClasses[color] || "bg-white/10 text-white/60 border-white/20"
-            )}
-          >
-            {clients.length}
-          </span>
+    return (
+        <div className="flex flex-col shrink-0 w-[280px]">
+            {/* Header - Improved with better contrast */}
+            <div 
+                className="mb-3 px-3 py-2 rounded-lg flex items-center justify-between border backdrop-blur-sm"
+                style={{ 
+                    backgroundColor: color + '20', 
+                    borderColor: color + '60'
+                }}
+            >
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-white">
+                    {label}
+                </span>
+                <span 
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[24px] text-center"
+                    style={{ backgroundColor: color + '40', color: '#fff' }}
+                >
+                    {clients.length}
+                </span>
+            </div>
+
+            {/* Drop Zone - Better visual feedback with smooth transitions */}
+            <div
+                ref={setNodeRef}
+                className={cn(
+                    "flex-1 space-y-2 p-2.5 rounded-xl border-2 transition-all duration-300 min-h-[500px]",
+                    "border-slate-700/30 bg-slate-800/10",
+                    isDraggedOver && "bg-primary/5 border-primary/40 ring-1 ring-primary/20",
+                    isOver && "bg-primary/15 border-primary/70 ring-2 ring-primary/40 shadow-xl shadow-primary/30 scale-[1.03] animate-pulse"
+                )}
+            >
+                {/* Regular sortable cards */}
+                <SortableContext 
+                    items={clients.filter(c => !c.id.startsWith('placeholder-')).map(c => c.id)} 
+                    strategy={verticalListSortingStrategy}
+                >
+                    {clients.filter(c => !c.id.startsWith('placeholder-')).map(client => {
+                        const isPending = pendingId === client.id
+                        
+                        return (
+                            <ClientKanbanCard
+                                key={client.id}
+                                client={client}
+                                onClick={onClientClick}
+                                isPending={isPending}
+                                isPlaceholder={false}
+                                architectNameMap={architectNameMap}
+                            />
+                        )
+                    })}
+                </SortableContext>
+                
+                {/* Placeholder card (non-draggable) */}
+                {clients.filter(c => c.id.startsWith('placeholder-')).map(client => {
+                    const originalId = client.id.replace('placeholder-', '')
+                    const isPending = pendingId === originalId
+                    
+                    return (
+                        <div key={client.id} className="animate-in fade-in duration-200">
+                            <ClientKanbanCard
+                                client={client}
+                                onClick={() => {}}
+                                isPending={isPending}
+                                isPlaceholder={true}
+                                architectNameMap={architectNameMap}
+                            />
+                        </div>
+                    )
+                })}
+
+                {clients.length === 0 && !isOver && (
+                    <div className="flex flex-col items-center justify-center h-40 text-slate-600 text-[10px] font-medium border border-dashed border-slate-700/40 rounded-lg">
+                        <div className="w-8 h-8 rounded-full bg-slate-700/30 flex items-center justify-center mb-2">
+                            <span className="text-slate-500 text-lg">∅</span>
+                        </div>
+                        <span>Aucun projet</span>
+                    </div>
+                )}
+                
+                {clients.length === 0 && isOver && (
+                    <div className="flex flex-col items-center justify-center h-40 text-primary text-xs font-semibold border-2 border-dashed border-primary/60 rounded-lg bg-primary/10">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mb-2">
+                            <span className="text-2xl">↓</span>
+                        </div>
+                        <span>Déposer ici</span>
+                    </div>
+                )}
+            </div>
         </div>
-        {/* Gradient Bar */}
-        <div className={cn("h-1 rounded-full bg-gradient-to-r", gradient)} />
-      </div>
-
-      {/* Column Content - Droppable Area */}
-      <div
-        ref={setNodeRef}
-        className={cn(
-          "flex-1 space-y-3 overflow-y-auto rounded-lg p-3 transition-all duration-200 min-h-[400px]",
-          isOver && "bg-primary/10 ring-2 ring-primary/50 border-2 border-primary/40 shadow-lg",
-          "border border-slate-700/50"
-        )}
-      >
-        <SortableContext items={clients.map(c => c.id)} strategy={verticalListSortingStrategy}>
-          {clients.map((client) => (
-            <ClientKanbanCard
-              key={client.id}
-              client={client}
-              onClick={onClientClick}
-              isNewlyAdded={client.id === newlyAddedClientId}
-            />
-          ))}
-        </SortableContext>
-
-        {clients.length === 0 && (
-          <div className={cn(
-            "glass rounded-lg p-8 text-center transition-all",
-            isOver && "bg-primary/20 border-2 border-primary/60"
-          )}>
-            <p className="text-sm text-muted-foreground">
-              {isOver ? "Déposer ici" : "Aucun projet"}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  )
+    )
 }

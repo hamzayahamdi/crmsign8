@@ -12,6 +12,7 @@ import { ClientDetailPanelRedesigned } from "@/components/client-detail-panel-re
 import { AddClientModalImproved } from "@/components/add-client-modal-improved"
 import { ClientAutocomplete } from "@/components/client-autocomplete"
 import { ClientKanbanBoard } from "@/components/client-kanban-board"
+
 import { ViewStore, type ViewMode } from "@/stores/view-store"
 import { useClientStore } from "@/stores/client-store"
 import { Button } from "@/components/ui/button"
@@ -80,6 +81,17 @@ export default function ClientsPage() {
     })
     return unsubscribe
   }, [])
+
+  // Listen for opportunity creation events to refresh clients list
+  useEffect(() => {
+    const handleOpportunityCreated = () => {
+      console.log('[Clients Page] Opportunity created, refreshing clients...')
+      fetchClients()
+    }
+
+    window.addEventListener('opportunity-created', handleOpportunityCreated)
+    return () => window.removeEventListener('opportunity-created', handleOpportunityCreated)
+  }, [fetchClients])
 
   const handleClientClick = (client: Client & { isContact?: boolean }) => {
     // Always navigate to client details page (not contact details)
@@ -165,35 +177,11 @@ export default function ClientsPage() {
   }
 
   const handleUpdateClient = async (updatedClient: Client) => {
-    try {
-      // Update local state immediately for optimistic UI
-      updateStoreClient(updatedClient.id, updatedClient)
-      setSelectedClient(updatedClient)
-
-      // Update via API
-      const response = await fetch(`/api/clients/${updatedClient.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(updatedClient)
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to update client')
-      }
-
-      console.log('[Clients Page] ✅ Client updated in database')
-
-      // Real-time sync will update the store automatically for other users
-    } catch (error) {
-      console.error('[Clients Page] Error updating client:', error)
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour le client. Veuillez réessayer.",
-        variant: "destructive"
-      })
-      // Note: If API fails, real-time sync will revert the change
-    }
+    // IMPORTANT: Only update the store, don't call API
+    // The kanban board already handles API calls
+    updateStoreClient(updatedClient.id, updatedClient)
+    setSelectedClient(updatedClient)
+    console.log('[Clients Page] ✅ Client store updated')
   }
 
   // Open confirm dialog for deletion
@@ -663,12 +651,7 @@ export default function ClientsPage() {
                     </div>
                   ) : (
                     /* Kanban View - Project Management */
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="h-full overflow-x-hidden"
-                    >
+                    <div className="h-full overflow-hidden">
                       <ClientKanbanBoard
                         clients={clients}
                         onClientClick={handleClientClick}
@@ -676,7 +659,7 @@ export default function ClientsPage() {
                         searchQuery={searchQuery}
                         filters={filters}
                       />
-                    </motion.div>
+                    </div>
                   )}
                 </>
               )}

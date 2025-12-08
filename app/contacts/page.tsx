@@ -25,21 +25,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Sidebar } from '@/components/sidebar'
 import { Header } from '@/components/header'
 import { AuthGuard } from '@/components/auth-guard'
 import { ContactService } from '@/lib/contact-service'
-import { Contact, OpportunityType } from '@/types/contact'
+import { Contact, OpportunityType, LeadStatus } from '@/types/contact'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { ContactsTable } from '@/components/contacts-table'
@@ -63,7 +53,7 @@ export default function ContactsPage() {
   const [searchQuery, setSearchQuery] = useState('')
 
   // Filter states
-  const [statusFilter, setStatusFilter] = useState<string>('all') // 'all', 'prospect', 'client'
+  const [statusFilter, setStatusFilter] = useState<string>('all') // Filter by leadStatus
   const [selectedArchitect, setSelectedArchitect] = useState<string>('all')
   const [hasOpportunitiesFilter, setHasOpportunitiesFilter] = useState<string>('all')
   const [cityFilter, setCityFilter] = useState<string>('all')
@@ -122,9 +112,9 @@ export default function ContactsPage() {
       // Apply client-side filters
       let filtered = result.data
 
-      // Filter by status (workflow stage)
+      // Filter by lead status
       if (statusFilter !== 'all') {
-        filtered = filtered.filter(c => c.status === statusFilter)
+        filtered = filtered.filter(c => c.leadStatus === statusFilter)
       }
 
       // Filter by opportunities
@@ -176,33 +166,11 @@ export default function ContactsPage() {
     toast.info('Fonction de modification à venir')
   }
 
-  const [contactToDelete, setContactToDelete] = useState<string | null>(null)
-
-  const handleDeleteContact = (contactId: string) => {
-    setContactToDelete(contactId)
-  }
-
-  const confirmDeleteContact = async () => {
-    if (!contactToDelete) return
-
-    try {
-      const response = await fetch(`/api/contacts/${contactToDelete}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      })
-
-      if (!response.ok) throw new Error('Erreur lors de la suppression')
-
-      toast.success('Contact supprimé avec succès')
-      setContactToDelete(null)
-      loadContacts(page)
-    } catch (error) {
-      console.error('Error deleting contact:', error)
-      toast.error('Erreur lors de la suppression du contact')
-      setContactToDelete(null)
-    }
+  // Handle delete contact - called from ContactsTable after successful deletion
+  const handleDeleteContact = async (contactId: string) => {
+    console.log('[Contacts Page] Contact deleted, reloading list...')
+    // Reload the contacts list to reflect the deletion
+    await loadContacts(page)
   }
 
   const handleLeadStatusUpdate = async () => {
@@ -240,42 +208,45 @@ export default function ContactsPage() {
 
           {/* Page Title - Show "Mes Contacts Assignés" for Architects */}
           {isArchitect && (
-            <div className="px-4 md:px-6 pt-4 md:pt-6 pb-2">
+            <div className="px-3 md:px-4 pt-3 md:pt-4 pb-1">
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2 md:gap-3"
+                className="flex items-center gap-1.5 md:gap-2"
               >
-                <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-                <h1 className="text-xl md:text-2xl font-bold text-white">Mes Contacts Assignés</h1>
-                <span className="text-xs md:text-sm text-slate-400 ml-1 md:ml-2">({total} contact{total !== 1 ? 's' : ''})</span>
+                <Briefcase className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                <h1 className="text-base md:text-lg font-bold text-white">Mes Contacts Assignés</h1>
+                <span className="text-[10px] md:text-xs text-slate-400 ml-1">({total} contact{total !== 1 ? 's' : ''})</span>
               </motion.div>
-              <p className="text-xs md:text-sm text-slate-400 mt-2 ml-7 md:ml-9">
+              <p className="text-[10px] md:text-xs text-slate-400 mt-1 ml-5.5 md:ml-7">
                 Tous les contacts qui vous ont été assignés
               </p>
             </div>
           )}
 
           {/* Stats Cards - ONLY 3 ESSENTIAL CARDS */}
-          <div className="px-4 md:px-6 pt-4 md:pt-6 pb-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          <div className="px-3 md:px-4 pt-2 md:pt-3 pb-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {/* Total Contacts */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass relative overflow-hidden rounded-lg md:rounded-xl px-3 md:px-4 py-3 md:py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(59,130,246,0.6)]"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-blue-500/30 transition-all duration-300"
               >
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-blue-400 animate-spin" />
-                    ) : (
-                      <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
-                    )}
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Total</p>
+                    <p className="text-2xl font-bold text-white leading-tight">{loading ? '...' : total}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Contacts</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] md:text-xs text-slate-400 font-medium">Total Contacts</p>
-                    <p className="text-xl md:text-2xl font-bold text-white">{loading ? '...' : total}</p>
+                  <div className="flex-shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                      {loading ? (
+                        <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                      ) : (
+                        <Users className="w-5 h-5 text-blue-400" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -285,19 +256,22 @@ export default function ContactsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="glass relative overflow-hidden rounded-lg md:rounded-xl px-3 md:px-4 py-3 md:py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(249,115,22,0.55)]"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-orange-500/30 transition-all duration-300"
               >
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-orange-400 animate-spin" />
-                    ) : (
-                      <Briefcase className="w-4 h-4 md:w-5 md:h-5 text-orange-400" />
-                    )}
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Avec</p>
+                    <p className="text-2xl font-bold text-white leading-tight">{loading ? '...' : contactsWithOpportunities}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Opportunités</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] md:text-xs text-slate-400 font-medium">Avec Opportunités</p>
-                    <p className="text-xl md:text-2xl font-bold text-white">{loading ? '...' : contactsWithOpportunities}</p>
+                  <div className="flex-shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                      {loading ? (
+                        <Loader2 className="w-5 h-5 text-orange-400 animate-spin" />
+                      ) : (
+                        <Briefcase className="w-5 h-5 text-orange-400" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -307,19 +281,22 @@ export default function ContactsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="glass relative overflow-hidden rounded-lg md:rounded-xl px-3 md:px-4 py-3 md:py-4 border border-slate-600/40 shadow-[0_12px_35px_-20px_rgba(34,197,94,0.55)] sm:col-span-2 lg:col-span-1"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-green-500/30 transition-all duration-300 sm:col-span-2 lg:col-span-1"
               >
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-green-400 animate-spin" />
-                    ) : (
-                      <UserCheck className="w-4 h-4 md:w-5 md:h-5 text-green-400" />
-                    )}
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Clients</p>
+                    <p className="text-2xl font-bold text-green-400 leading-tight">{loading ? '...' : clientsCount}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Clients</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] md:text-xs text-slate-400 font-medium">Clients</p>
-                    <p className="text-xl md:text-2xl font-bold text-white">{loading ? '...' : clientsCount}</p>
+                  <div className="flex-shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                      {loading ? (
+                        <Loader2 className="w-5 h-5 text-green-400 animate-spin" />
+                      ) : (
+                        <UserCheck className="w-5 h-5 text-green-400" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -327,16 +304,16 @@ export default function ContactsPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="px-4 md:px-6 pb-3 md:pb-4 mb-6 md:mb-8">
-            <div className="space-y-3 md:space-y-4">
+          <div className="px-3 md:px-4 pb-2 mb-3">
+            <div className="space-y-2">
               {/* Search Bar */}
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
                 <div className="flex-1 min-w-[220px]">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                     <Input
                       placeholder="Rechercher par nom, téléphone, email..."
-                      className="pl-10 h-10 md:h-11 text-sm border-slate-600/30 bg-slate-800/50 text-white placeholder:text-slate-500"
+                      className="pl-9 h-8 text-xs border-slate-600/30 bg-slate-800/50 text-white placeholder:text-slate-500"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -345,16 +322,16 @@ export default function ContactsPage() {
               </div>
 
               {/* Filters Section - Minimal & Clean */}
-              <div className="glass rounded-lg md:rounded-xl border border-slate-600/30 shadow-[0_18px_48px_-28px_rgba(59,130,246,0.65)]">
-                <div className="flex items-center justify-between p-2.5 md:p-3 gap-2 md:gap-3">
+              <div className="glass rounded-lg border border-slate-600/30 shadow-[0_18px_48px_-28px_rgba(59,130,246,0.65)]">
+                <div className="flex items-center justify-between p-2 gap-2">
                   <div
-                    className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1"
+                    className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity flex-1"
                     onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                   >
-                    <Filter className="w-4 h-4 md:w-5 md:h-5 text-primary" />
-                    <span className="text-sm md:text-base font-medium text-white">Filtres</span>
+                    <Filter className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-medium text-white">Filtres</span>
                     {hasActiveFilters && (
-                      <span className="bg-primary/20 text-primary px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium">
+                      <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded-full text-[10px] font-medium">
                         {(statusFilter !== 'all' ? 1 : 0) +
                           (selectedArchitect !== 'all' ? 1 : 0) +
                           (hasOpportunitiesFilter !== 'all' ? 1 : 0) +
@@ -365,7 +342,7 @@ export default function ContactsPage() {
                     )}
                     <ChevronDown
                       className={cn(
-                        "w-3.5 h-3.5 md:w-4 md:h-4 text-white transition-transform ml-auto",
+                        "w-3 h-3 text-white transition-transform ml-auto",
                         isFiltersOpen && "rotate-180"
                       )}
                     />
@@ -382,42 +359,44 @@ export default function ContactsPage() {
                         setProjectTypeFilter('all')
                         setPipelineFilter('all')
                       }}
-                      className="text-[10px] md:text-xs text-muted-foreground hover:text-white flex items-center gap-1 md:gap-1.5 transition-colors px-1.5 md:px-2 py-1 rounded hover:bg-slate-700/50"
+                      className="text-[10px] text-muted-foreground hover:text-white flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50"
                     >
-                      <X className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                      <X className="w-3 h-3" />
                       <span className="hidden sm:inline">Réinitialiser</span>
                     </button>
                   )}
                 </div>
 
                 {isFiltersOpen && (
-                  <div className="border-t border-slate-600/30 px-3 md:px-4 py-3 md:py-4 bg-slate-900/40">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                      {/* Status Filter (Workflow Stage) */}
-                      <div className="space-y-2">
-                        <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wider">Statut</label>
+                  <div className="border-t border-slate-600/30 px-2.5 py-2.5 bg-slate-900/40">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                      {/* Status Filter (Lead Status) */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider">Statut Lead</label>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
-                          <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                          <SelectTrigger className="h-8 text-xs w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-800 border-slate-600">
                             <SelectItem value="all" className="text-white">Tous</SelectItem>
+                            <SelectItem value="nouveau" className="text-white">Nouveau</SelectItem>
+                            <SelectItem value="a_recontacter" className="text-white">À recontacter</SelectItem>
+                            <SelectItem value="sans_reponse" className="text-white">Sans réponse</SelectItem>
+                            <SelectItem value="non_interesse" className="text-white">Non intéressé</SelectItem>
                             <SelectItem value="qualifie" className="text-white">Qualifié</SelectItem>
-                            <SelectItem value="prise_de_besoin" className="text-white">Prise de besoin</SelectItem>
-                            <SelectItem value="acompte_recu" className="text-white">Acompte reçu</SelectItem>
-                            <SelectItem value="perdu" className="text-white">Perdu</SelectItem>
+                            <SelectItem value="refuse" className="text-white">Refusé</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       {/* City Filter */}
-                      <div className="space-y-2">
-                        <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 md:gap-2">
-                          <MapPin className="w-3.5 h-3.5" />
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
                           Ville
                         </label>
                         <Select value={cityFilter} onValueChange={setCityFilter}>
-                          <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                          <SelectTrigger className="h-8 text-xs w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-800 border-slate-600 max-h-72">
@@ -432,13 +411,13 @@ export default function ContactsPage() {
                       </div>
 
                       {/* Type de Projet Filter */}
-                      <div className="space-y-2">
-                        <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 md:gap-2">
-                          <Home className="w-3.5 h-3.5" />
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                          <Home className="w-3 h-3" />
                           Type de projet
                         </label>
                         <Select value={projectTypeFilter} onValueChange={setProjectTypeFilter}>
-                          <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                          <SelectTrigger className="h-8 text-xs w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-800 border-slate-600">
@@ -456,13 +435,13 @@ export default function ContactsPage() {
                       </div>
 
                       {/* Opportunities Filter */}
-                      <div className="space-y-2">
-                        <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 md:gap-2">
-                          <Briefcase className="w-3.5 h-3.5" />
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                          <Briefcase className="w-3 h-3" />
                           Opportunités
                         </label>
                         <Select value={hasOpportunitiesFilter} onValueChange={setHasOpportunitiesFilter}>
-                          <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                          <SelectTrigger className="h-8 text-xs w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-800 border-slate-600">
@@ -475,13 +454,13 @@ export default function ContactsPage() {
 
                       {/* Architect Filter - Show for all roles */}
                       {allArchitects.length > 0 && (
-                        <div className="space-y-2">
-                          <label className="text-[10px] md:text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 md:gap-2">
-                            <UserCircle className="w-3.5 h-3.5" />
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                            <UserCircle className="w-3 h-3" />
                             Architecte assigné
                           </label>
                           <Select value={selectedArchitect} onValueChange={setSelectedArchitect}>
-                            <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                            <SelectTrigger className="h-8 text-xs w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-slate-800 border-slate-600 max-h-72">
@@ -498,10 +477,10 @@ export default function ContactsPage() {
 
                       {/* Tag Filter - Admin Only */}
                       {isAdmin && (
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Tag</label>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider">Tag</label>
                           <Select value={pipelineFilter} onValueChange={setPipelineFilter}>
-                            <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
+                            <SelectTrigger className="h-8 text-xs w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-slate-800 border-slate-600">
@@ -523,7 +502,7 @@ export default function ContactsPage() {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 overflow-auto px-4 md:px-6 pb-4 md:pb-6 mt-2">
+          <div className="flex-1 overflow-auto px-3 md:px-4 pb-3 mt-1">
             <ContactsTable
               contacts={contacts}
               onRowClick={handleContactClick}
@@ -535,17 +514,17 @@ export default function ContactsPage() {
 
             {/* Pagination */}
             {!loading && contacts.length > 0 && (
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4 md:mt-6">
-                <div className="text-xs md:text-sm text-slate-400">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mt-2">
+                <div className="text-[10px] md:text-xs text-slate-400">
                   Page {page} • {contacts.length} contact{contacts.length > 1 ? 's' : ''} affiché{contacts.length > 1 ? 's' : ''}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   {page > 1 && (
                     <Button
                       variant="outline"
                       onClick={() => loadContacts(page - 1)}
-                      className="gap-1 md:gap-2 text-xs md:text-sm h-8 md:h-10 px-3 md:px-4 border-slate-600/30 text-slate-300 hover:text-white hover:bg-slate-700/50"
+                      className="gap-1 text-xs h-7 px-2.5 border-slate-600/30 text-slate-300 hover:text-white hover:bg-slate-700/50"
                     >
                       ← Précédent
                     </Button>
@@ -555,7 +534,7 @@ export default function ContactsPage() {
                     <Button
                       variant="outline"
                       onClick={() => loadContacts(page + 1)}
-                      className="gap-1 md:gap-2 text-xs md:text-sm h-8 md:h-10 px-3 md:px-4 border-slate-600/30 text-slate-300 hover:text-white hover:bg-slate-700/50"
+                      className="gap-1 text-xs h-7 px-2.5 border-slate-600/30 text-slate-300 hover:text-white hover:bg-slate-700/50"
                     >
                       Suivant →
                     </Button>
@@ -566,36 +545,6 @@ export default function ContactsPage() {
           </div>
         </main>
 
-        {/* Delete Confirmation Modal */}
-        <AlertDialog open={contactToDelete !== null} onOpenChange={(open) => !open && setContactToDelete(null)}>
-          <AlertDialogContent className="bg-slate-900 border-slate-700/50 shadow-2xl max-w-md">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-bold text-white flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-                  ⚠️
-                </div>
-                Supprimer ce contact ?
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-slate-300 text-sm leading-relaxed mt-2">
-                Cette action est <span className="font-semibold text-red-400">irréversible</span>. Le contact et toutes ses données associées seront définitivement supprimés de la base de données.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="mt-6 gap-2">
-              <AlertDialogCancel
-                onClick={() => setContactToDelete(null)}
-                className="bg-slate-800 hover:bg-slate-700 text-white border-slate-600/50 transition-all"
-              >
-                Annuler
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmDeleteContact}
-                className="bg-red-600 hover:bg-red-700 text-white font-semibold transition-all shadow-lg shadow-red-500/20"
-              >
-                Supprimer définitivement
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </AuthGuard>
   )

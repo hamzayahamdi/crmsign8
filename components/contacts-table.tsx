@@ -91,33 +91,43 @@ export function ContactsTable({
         throw new Error('No authentication token found')
       }
 
+      console.log('[ContactsTable] Deleting contact:', contactToDelete.id)
+
       const response = await fetch(`/api/contacts/${contactToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       })
 
+      console.log('[ContactsTable] Delete response status:', response.status)
+
+      const data = await response.json()
+      console.log('[ContactsTable] Delete response data:', data)
+
       if (!response.ok) {
-        const data = await response.json()
         throw new Error(data.error || 'Failed to delete contact')
       }
 
-      toast.success('Contact supprimé', {
-        description: `Le contact "${contactToDelete.name}" a été supprimé avec succès`,
+      // Close dialog immediately on success
+      setDeleteDialogOpen(false)
+      setContactToDelete(null)
+
+      // Show success toast
+      toast.success('Contact supprimé avec succès', {
+        description: `Le contact "${contactToDelete.name}" a été supprimé définitivement`,
         duration: 3000,
       })
 
-      // Close dialog
-      setDeleteDialogOpen(false)
-      setContactToDelete(null)
+      console.log('[ContactsTable] Contact deleted successfully, refreshing list...')
 
       // Call parent callback to refresh data
       if (onDeleteContact) {
         onDeleteContact(contactToDelete.id)
       }
     } catch (error) {
-      console.error('Error deleting contact:', error)
+      console.error('[ContactsTable] Error deleting contact:', error)
       toast.error('Erreur lors de la suppression', {
         description: error instanceof Error ? error.message : 'Une erreur est survenue',
         duration: 5000,
@@ -373,53 +383,53 @@ export function ContactsTable({
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-600/20">
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contact</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ville</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Type de projet</th>
+                <th className="text-left px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contact</th>
+                <th className="text-left px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ville</th>
+                <th className="text-left px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Type de projet</th>
                 {!isArchitect && (
-                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Architecte</th>
+                  <th className="text-left px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Architecte</th>
                 )}
-                <th className="text-center px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Opportunités</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Statut Lead</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Dernière activité</th>
-                <th className="text-center px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+                <th className="text-center px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Opportunités</th>
+                <th className="text-left px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Statut Lead</th>
+                <th className="text-left px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Dernière activité</th>
+                <th className="text-center px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
               {Array.from({ length: 8 }).map((_, i) => (
                 <tr key={i} className="border-b border-slate-600/5 animate-pulse">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 bg-slate-700/30 rounded-lg" />
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-slate-700/30 rounded-lg" />
                       <div>
-                        <div className="h-3.5 w-32 bg-slate-700/30 rounded mb-1.5" />
+                        <div className="h-3 w-32 bg-slate-700/30 rounded mb-1" />
                         <div className="h-2.5 w-24 bg-slate-700/20 rounded" />
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2">
                     <div className="h-3 w-20 bg-slate-700/20 rounded" />
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="h-6 w-24 bg-slate-700/20 rounded" />
+                  <td className="px-3 py-2">
+                    <div className="h-5 w-24 bg-slate-700/20 rounded" />
                   </td>
                   {!isArchitect && (
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <div className="h-3 w-20 bg-slate-700/20 rounded" />
                     </td>
                   )}
-                  <td className="px-4 py-3">
-                    <div className="flex justify-center gap-1.5">
-                      <div className="h-5 w-8 bg-slate-700/20 rounded" />
-                      <div className="h-5 w-16 bg-slate-700/20 rounded" />
+                  <td className="px-3 py-2">
+                    <div className="flex justify-center gap-1">
+                      <div className="h-4 w-8 bg-slate-700/20 rounded" />
+                      <div className="h-4 w-16 bg-slate-700/20 rounded" />
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2">
                     <div className="h-3 w-20 bg-slate-700/20 rounded" />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2">
                     <div className="flex justify-center">
-                      <div className="h-8 w-8 bg-slate-700/20 rounded-lg" />
+                      <div className="h-7 w-7 bg-slate-700/20 rounded-lg" />
                     </div>
                   </td>
                 </tr>
@@ -435,8 +445,8 @@ export function ContactsTable({
     return (
       <div className="glass rounded-xl md:rounded-2xl border border-slate-600/30 p-8 md:p-12 text-center">
         <Phone className="w-10 h-10 md:w-12 md:h-12 text-slate-500 mx-auto mb-3 md:mb-4" />
-        <p className="text-slate-300 text-base md:text-lg font-medium">Aucun contact trouvé</p>
-        <p className="text-xs md:text-sm text-slate-500 mt-1">Les contacts proviennent de la conversion des leads</p>
+        <p className="text-slate-300 text-xs md:text-sm font-medium">Aucun contact trouvé</p>
+        <p className="text-[11px] md:text-xs text-slate-500 mt-1">Les contacts proviennent de la conversion des leads</p>
       </div>
     )
   }
@@ -455,8 +465,12 @@ export function ContactsTable({
           const isWon = (o: Opportunity) =>
             o.statut === 'won' || o.pipelineStage === 'gagnee'
 
+          const isLost = (o: Opportunity) =>
+            o.statut === 'lost' || o.pipelineStage === 'perdue'
+
+          // An opportunity is "En cours" when it's open AND not won AND not lost
           const isOpen = (o: Opportunity) =>
-            o.statut === 'open' && !isWon(o)
+            o.statut === 'open' && !isWon(o) && !isLost(o)
 
           const opportunityCounts = {
             open: opportunities.filter(isOpen).length,
@@ -477,12 +491,12 @@ export function ContactsTable({
             >
               {/* Header */}
               <div className="flex items-start gap-3 mb-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center shrink-0 font-bold text-primary text-sm border border-primary/30">
+                <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center shrink-0 font-bold text-primary text-xs border border-primary/30">
                   {contact.nom.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="font-semibold text-white text-sm truncate">{contact.nom}</p>
+                    <p className="font-semibold text-white text-xs truncate">{contact.nom}</p>
                     {contact.tag === 'client' && (
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 shrink-0">
                         CLIENT
@@ -556,7 +570,7 @@ export function ContactsTable({
                 <div className="flex items-center gap-1.5">
                   {opportunities.length > 0 ? (
                     <>
-                      <span className="text-sm font-semibold text-white">{opportunities.length}</span>
+                      <span className="text-xs font-semibold text-white">{opportunities.length}</span>
                       {opportunityCounts.won > 0 && (
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-[10px] font-semibold">
                           {opportunityCounts.won} Gagné{opportunityCounts.won > 1 ? 's' : ''}
@@ -616,21 +630,21 @@ export function ContactsTable({
       </div>
 
       {/* Desktop Table View */}
-      <div className="hidden lg:block glass rounded-2xl border border-slate-600/30 overflow-hidden shadow-[0_18px_48px_-28px_rgba(59,130,246,0.25)]">
+      <div className="hidden lg:block glass rounded-xl border border-slate-600/30 overflow-hidden shadow-[0_18px_48px_-28px_rgba(59,130,246,0.25)]">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-600/20">
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contact</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ville</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Type de projet</th>
+                <th className="text-left px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contact</th>
+                <th className="text-left px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ville</th>
+                <th className="text-left px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Type de projet</th>
                 {!isArchitect && (
-                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Architecte</th>
+                  <th className="text-left px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Architecte</th>
                 )}
-                <th className="text-center px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Opportunités</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Statut Lead</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Dernière activité</th>
-                <th className="text-center px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+                <th className="text-center px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Opportunités</th>
+                <th className="text-left px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Statut Lead</th>
+                <th className="text-left px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Dernière activité</th>
+                <th className="text-center px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-600/10">
@@ -643,8 +657,12 @@ export function ContactsTable({
                 const isWon = (o: Opportunity) =>
                   o.statut === 'won' || o.pipelineStage === 'gagnee'
 
+                const isLost = (o: Opportunity) =>
+                  o.statut === 'lost' || o.pipelineStage === 'perdue'
+
+                // An opportunity is "En cours" when it's open AND not won AND not lost
                 const isOpen = (o: Opportunity) =>
-                  o.statut === 'open' && !isWon(o)
+                  o.statut === 'open' && !isWon(o) && !isLost(o)
 
                 const opportunityCounts = {
                   open: opportunities.filter(isOpen).length,
@@ -665,21 +683,21 @@ export function ContactsTable({
                     className="group cursor-pointer hover:bg-slate-800/50 transition-all duration-150 border-b border-slate-600/5 last:border-0"
                   >
                     {/* Contact Name + Tag + Phone */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center shrink-0 font-bold text-primary text-sm border border-primary/30">
+                    <td className="px-3 py-2">
+                      <div className="flex items-start gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0 font-bold text-primary text-xs border border-primary/30">
                           {contact.nom.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <p className="font-semibold text-white text-sm truncate">{contact.nom}</p>
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <p className="font-semibold text-white text-xs truncate">{contact.nom}</p>
                             {contact.tag === 'client' && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 shrink-0">
+                              <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 shrink-0">
                                 CLIENT
                               </span>
                             )}
                             {contact.tag === 'vip' && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 shrink-0">
+                              <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 shrink-0">
                                 VIP
                               </span>
                             )}
@@ -687,9 +705,9 @@ export function ContactsTable({
                           <a
                             href={`tel:${contact.telephone}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="text-xs text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-1"
+                            className="text-[10px] text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-1"
                           >
-                            <Phone className="w-3 h-3 shrink-0" />
+                            <Phone className="w-2.5 h-2.5 shrink-0" />
                             {contact.telephone}
                           </a>
                         </div>
@@ -697,71 +715,71 @@ export function ContactsTable({
                     </td>
 
                     {/* City */}
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       {contact.ville ? (
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span className="text-sm text-slate-200">{contact.ville}</span>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-emerald-400 shrink-0" />
+                          <span className="text-[11px] text-slate-200">{contact.ville}</span>
                         </div>
                       ) : (
-                        <span className="text-slate-500 text-sm">—</span>
+                        <span className="text-slate-500 text-[11px]">—</span>
                       )}
                     </td>
 
                     {/* Type de projet */}
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       {projectType ? (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-700/40 border border-slate-600/40">
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-700/40 border border-slate-600/40">
                           {React.createElement(getProjectTypeIcon(projectType), {
-                            className: "w-3.5 h-3.5 text-slate-400 shrink-0"
+                            className: "w-3 h-3 text-slate-400 shrink-0"
                           })}
-                          <span className="text-xs font-medium text-slate-200">
+                          <span className="text-[11px] font-medium text-slate-200">
                             {getProjectTypeLabel(projectType)}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-slate-500 text-sm">—</span>
+                        <span className="text-slate-500 text-[11px]">—</span>
                       )}
                     </td>
 
                     {/* Architect */}
                     {!isArchitect && (
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2">
                         {contact.architecteAssigne ? (
-                          <span className="text-sm text-slate-200 truncate max-w-[140px] block">
+                          <span className="text-[11px] text-slate-200 truncate max-w-[140px] block">
                             {architectNameMap[contact.architecteAssigne] || contact.architecteAssigne}
                           </span>
                         ) : (
-                          <span className="text-slate-500 text-sm">—</span>
+                          <span className="text-slate-500 text-[11px]">—</span>
                         )}
                       </td>
                     )}
 
                     {/* Opportunities */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-1.5">
+                    <td className="px-3 py-2">
+                      <div className="flex items-center justify-center gap-1">
                         {opportunities.length > 0 ? (
                           <>
-                            <span className="text-sm font-semibold text-white">{opportunities.length}</span>
+                            <span className="text-[11px] font-semibold text-white">{opportunities.length}</span>
                             {opportunityCounts.won > 0 && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-[10px] font-semibold">
+                              <span className="inline-flex items-center px-1 py-0.5 rounded bg-green-500/20 text-green-400 text-[9px] font-semibold">
                                 {opportunityCounts.won} Gagné{opportunityCounts.won > 1 ? 's' : ''}
                               </span>
                             )}
                             {opportunityCounts.open > 0 && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[10px] font-semibold">
+                              <span className="inline-flex items-center px-1 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[9px] font-semibold">
                                 {opportunityCounts.open} En cours
                               </span>
                             )}
                           </>
                         ) : (
-                          <span className="text-slate-500 text-sm">Aucune</span>
+                          <span className="text-slate-500 text-[11px]">Aucune</span>
                         )}
                       </div>
                     </td>
 
                     {/* Lead Status - Clean & Simple with Loading */}
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                       {contact.leadStatus ? (
                         <div className="relative">
                           <button
@@ -901,10 +919,10 @@ export function ContactsTable({
                     </td>
 
                     {/* Last Activity */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3 h-3 text-slate-500 shrink-0" />
-                        <span className="text-xs text-slate-400">
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-2.5 h-2.5 text-slate-500 shrink-0" />
+                        <span className="text-[11px] text-slate-400">
                           {formatDistanceToNow(new Date(contact.updatedAt), {
                             addSuffix: true,
                             locale: fr,
@@ -914,18 +932,18 @@ export function ContactsTable({
                     </td>
 
                     {/* Actions */}
-                    <td className="px-4 py-3">
-                      <div className="flex justify-center items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <td className="px-3 py-2">
+                      <div className="flex justify-center items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         {/* View */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
                             onRowClick(contact.id)
                           }}
-                          className="p-2 rounded-lg hover:bg-blue-500/20 hover:text-blue-400 text-slate-400 transition-all"
+                          className="p-1.5 rounded-lg hover:bg-blue-500/20 hover:text-blue-400 text-slate-400 transition-all"
                           title="Voir les détails"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-3.5 h-3.5" />
                         </button>
 
                         {/* Edit - Only if callback provided */}
@@ -935,10 +953,10 @@ export function ContactsTable({
                               e.stopPropagation()
                               onEditContact(contact.id)
                             }}
-                            className="p-2 rounded-lg hover:bg-yellow-500/20 hover:text-yellow-400 text-slate-400 transition-all"
+                            className="p-1.5 rounded-lg hover:bg-yellow-500/20 hover:text-yellow-400 text-slate-400 transition-all"
                             title="Modifier"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
                         )}
 
@@ -950,10 +968,10 @@ export function ContactsTable({
                               setContactToDelete({ id: contact.id, name: contact.nom })
                               setDeleteDialogOpen(true)
                             }}
-                            className="p-2 rounded-lg hover:bg-red-500/20 hover:text-red-400 text-slate-400 transition-all"
+                            className="p-1.5 rounded-lg hover:bg-red-500/20 hover:text-red-400 text-slate-400 transition-all"
                             title="Supprimer"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>

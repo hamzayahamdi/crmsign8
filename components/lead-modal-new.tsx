@@ -199,29 +199,84 @@ export function LeadModal({
 
   useEffect(() => {
     if (lead && open) {
-      setFormData({
-        nom: lead.nom,
-        telephone: lead.telephone,
-        ville: lead.ville,
-        typeBien: lead.typeBien,
-        statut: lead.statut,
-        statutDetaille: lead.statutDetaille || "",
-        message: lead.message || "",
-        assignePar: lead.assignePar,
-        source: lead.source,
-        priorite: lead.priorite,
-        magasin: lead.magasin || "",
-        commercialMagasin: lead.commercialMagasin || "",
-        notes: lead.notes || [],
-      })
+      // Load notes from API to ensure we have the latest
+      const loadNotes = async () => {
+        try {
+          const token = localStorage.getItem('token')
+          const response = await fetch(`/api/leads/${lead.id}/notes`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          if (response.ok) {
+            const notes = await response.json()
+            setFormData(prev => ({
+              ...prev,
+              nom: lead.nom,
+              telephone: lead.telephone,
+              ville: lead.ville,
+              typeBien: lead.typeBien,
+              statut: lead.statut,
+              statutDetaille: lead.statutDetaille || "",
+              message: lead.message || "",
+              assignePar: lead.assignePar,
+              source: lead.source,
+              priorite: lead.priorite,
+              magasin: lead.magasin || "",
+              commercialMagasin: lead.commercialMagasin || "",
+              notes: notes || [],
+            }))
+          } else {
+            // Fallback to notes from lead object if API fails
+            setFormData({
+              nom: lead.nom,
+              telephone: lead.telephone,
+              ville: lead.ville,
+              typeBien: lead.typeBien,
+              statut: lead.statut,
+              statutDetaille: lead.statutDetaille || "",
+              message: lead.message || "",
+              assignePar: lead.assignePar,
+              source: lead.source,
+              priorite: lead.priorite,
+              magasin: lead.magasin || "",
+              commercialMagasin: lead.commercialMagasin || "",
+              notes: lead.notes || [],
+            })
+          }
+        } catch (error) {
+          console.error('Error loading notes:', error)
+          // Fallback to notes from lead object
+          setFormData({
+            nom: lead.nom,
+            telephone: lead.telephone,
+            ville: lead.ville,
+            typeBien: lead.typeBien,
+            statut: lead.statut,
+            statutDetaille: lead.statutDetaille || "",
+            message: lead.message || "",
+            assignePar: lead.assignePar,
+            source: lead.source,
+            priorite: lead.priorite,
+            magasin: lead.magasin || "",
+            commercialMagasin: lead.commercialMagasin || "",
+            notes: lead.notes || [],
+          })
+        }
+      }
+
+      loadNotes()
+    } else if (open && !lead) {
+      // For new leads, ensure notes array is empty
+      setFormData(prev => ({
+        ...prev,
+        notes: []
+      }))
     }
   }, [lead, open])
 
-  useEffect(() => {
-    if (open && !lead) {
-      resetForm()
-    }
-  }, [open, lead])
+  // Note: The resetForm logic is now handled in the useEffect above
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -238,27 +293,70 @@ export function LeadModal({
     onOpenChange(false)
   }
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!newNote.trim()) return
 
-    const note: LeadNote = {
-      id: Date.now().toString(),
-      leadId: lead?.id || "",
-      content: newNote,
-      author: currentUserName,
-      createdAt: new Date().toISOString(),
+    // If editing an existing lead, save the note to the database immediately
+    if (lead?.id) {
+      try {
+        const token = localStorage.getItem('token')
+        const response = await fetch(`/api/leads/${lead.id}/notes`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            content: newNote
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to save note')
+        }
+
+        const savedNote = await response.json()
+
+        // Add the saved note to local state
+        setFormData(prev => ({
+          ...prev,
+          notes: [savedNote, ...(prev.notes || [])]
+        }))
+        setNewNote("")
+
+        toast({
+          title: "Note ajoutée",
+          description: "La note a été enregistrée avec succès.",
+        })
+      } catch (error) {
+        console.error('Error saving note:', error)
+        toast({
+          title: "Erreur",
+          description: "Impossible d'enregistrer la note.",
+          variant: "destructive"
+        })
+      }
+    } else {
+      // For new leads, just add to local state (will be saved when lead is created)
+      const note: LeadNote = {
+        id: Date.now().toString(),
+        leadId: "",
+        content: newNote,
+        author: currentUserName,
+        createdAt: new Date().toISOString(),
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        notes: [...(prev.notes || []), note]
+      }))
+      setNewNote("")
+
+      toast({
+        title: "Note ajoutée",
+        description: "La note sera enregistrée lors de la création du lead.",
+      })
     }
-
-    setFormData(prev => ({
-      ...prev,
-      notes: [...(prev.notes || []), note]
-    }))
-    setNewNote("")
-
-    toast({
-      title: "Note ajoutée",
-      description: "La note a été ajoutée avec succès",
-    })
   }
 
   const handleConvertToClient = () => {

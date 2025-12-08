@@ -31,22 +31,70 @@ export function LeadNotesPanel({ open, onOpenChange, lead, onAddNote }: LeadNote
   const [newNote, setNewNote] = useState("")
   const [isAddingNote, setIsAddingNote] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [currentLead, setCurrentLead] = useState<Lead | null>(lead)
+  const [isLoadingNotes, setIsLoadingNotes] = useState(false)
 
+  // Fetch fresh notes when panel opens
   useEffect(() => {
-    if (!open) {
+    if (open && lead?.id) {
+      setIsLoadingNotes(true)
+      const fetchNotes = async () => {
+        try {
+          const token = localStorage.getItem('token')
+          const response = await fetch(`/api/leads/${lead.id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          if (response.ok) {
+            const updatedLead = await response.json()
+            setCurrentLead(updatedLead)
+          } else {
+            // Fallback to provided lead if fetch fails
+            setCurrentLead(lead)
+          }
+        } catch (error) {
+          console.error('Error fetching lead notes:', error)
+          // Fallback to provided lead if fetch fails
+          setCurrentLead(lead)
+        } finally {
+          setIsLoadingNotes(false)
+        }
+      }
+
+      fetchNotes()
+    } else if (open && lead) {
+      setCurrentLead(lead)
+    } else if (!open) {
       setNewNote("")
       setIsAddingNote(false)
+      setCurrentLead(null)
     }
-  }, [open])
+  }, [open, lead])
 
-  if (!lead) return null
+  if (!lead || !currentLead) return null
 
   const handleAddNote = async () => {
-    if (!newNote.trim() || !onAddNote) return
+    if (!newNote.trim() || !onAddNote || !currentLead) return
 
     setIsSaving(true)
     try {
-      await onAddNote(lead.id, newNote.trim())
+      await onAddNote(currentLead.id, newNote.trim())
+      
+      // Refresh notes after adding
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/leads/${currentLead.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const updatedLead = await response.json()
+        setCurrentLead(updatedLead)
+      }
+      
       setNewNote("")
       setIsAddingNote(false)
     } catch (error) {
@@ -88,15 +136,15 @@ export function LeadNotesPanel({ open, onOpenChange, lead, onAddNote }: LeadNote
                   <MessageSquare className="w-4 h-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <DialogTitle className="text-lg font-bold text-white truncate">{lead.nom}</DialogTitle>
+                  <DialogTitle className="text-lg font-bold text-white truncate">{currentLead.nom}</DialogTitle>
                   <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
                     <span className="flex items-center gap-1">
                       <Phone className="w-3 h-3" />
-                      {lead.telephone}
+                      {currentLead.telephone}
                     </span>
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
-                      {lead.ville}
+                      {currentLead.ville}
                     </span>
                   </div>
                 </div>
@@ -172,9 +220,13 @@ export function LeadNotesPanel({ open, onOpenChange, lead, onAddNote }: LeadNote
 
           {/* Notes List - Takes Maximum Space */}
           <ScrollArea className="flex-1 p-4">
-            {lead.notes && lead.notes.length > 0 ? (
+            {isLoadingNotes ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-slate-400">Chargement des notes...</div>
+              </div>
+            ) : currentLead.notes && currentLead.notes.length > 0 ? (
               <div className="space-y-3">
-                {[...lead.notes].reverse().map((note, index) => (
+                {[...currentLead.notes].reverse().map((note, index) => (
                   <div
                     key={note.id}
                     className={cn(
@@ -185,7 +237,7 @@ export function LeadNotesPanel({ open, onOpenChange, lead, onAddNote }: LeadNote
                     )}
                   >
                     {/* Timeline connector */}
-                    {index < lead.notes!.length - 1 && (
+                    {index < currentLead.notes!.length - 1 && (
                       <div className="absolute left-4 top-full h-3 w-px bg-gradient-to-b from-slate-600/50 to-transparent"></div>
                     )}
 

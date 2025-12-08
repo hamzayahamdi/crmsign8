@@ -260,6 +260,33 @@ export async function POST(request: NextRequest) {
       if (best) assignePar = best
     }
 
+    // Prepare notes to create
+    const notesToCreate: Array<{ content: string; author: string; createdAt?: Date }> = []
+    
+    // Add initial traceability note
+    notesToCreate.push({
+      content: `Lead créé par ${createdBy || 'Utilisateur'}${body.source ? ` (source: ${body.source})` : ''}`,
+      author: createdBy || user.name || 'Utilisateur'
+    })
+
+    // Add any notes from the request body (from modal)
+    if (body.notes && Array.isArray(body.notes)) {
+      for (const note of body.notes) {
+        // Skip notes that don't have content or are already saved (have an id that looks like a database ID)
+        if (note.content && note.content.trim()) {
+          // Only add notes that don't have a database ID (temporary notes from modal)
+          // Notes with IDs starting with numbers are likely temporary client-side IDs
+          if (!note.id || note.id.length < 20 || /^\d+$/.test(note.id)) {
+            notesToCreate.push({
+              content: note.content.trim(),
+              author: note.author || createdBy || user.name || 'Utilisateur',
+              createdAt: note.createdAt ? new Date(note.createdAt) : undefined
+            })
+          }
+        }
+      }
+    }
+
     const lead = await prisma.lead.create({
       data: {
         nom: body.nom,
@@ -279,12 +306,9 @@ export async function POST(request: NextRequest) {
         uploadedAt: uploadedAt,
         createdBy: createdBy,
         derniereMaj: new Date(),
-        // Create an initial note for traceability: who created this lead and from where
+        // Create all notes (initial + any from modal)
         notes: {
-          create: {
-            content: `Lead créé par ${createdBy || 'Utilisateur'}${body.source ? ` (source: ${body.source})` : ''}`,
-            author: createdBy || user.name || 'Utilisateur'
-          }
+          create: notesToCreate
         }
       },
       include: {
@@ -296,7 +320,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    console.log('[API] Created lead:', lead.id)
+    console.log('[API] Created lead:', lead.id, 'with', lead.notes.length, 'notes')
     return NextResponse.json(lead, { status: 201 })
   } catch (error) {
     console.error('[API] Error creating lead:', error)

@@ -95,7 +95,7 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
                   onClick={onImportLeads}
                   variant="outline"
                   size="sm"
-                  className="hidden sm:flex border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all bg-transparent h-9 md:h-10 text-xs md:text-sm"
+                  className="hidden sm:flex border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all bg-transparent h-8 md:h-9 text-[11px] md:text-xs"
                 >
                   <Upload className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-2" />
                   <span className="hidden md:inline">Importer</span>
@@ -105,7 +105,7 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
                 <Button
                   onClick={onCreateLead}
                   size="sm"
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transition-all shadow-lg shadow-blue-500/20 h-9 md:h-10 text-xs md:text-sm px-3 md:px-4"
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transition-all shadow-lg shadow-blue-500/20 h-8 md:h-9 text-[11px] md:text-xs px-3 md:px-4"
                 >
                   <Plus className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-2" />
                   <span className="hidden sm:inline">Nouveau lead</span>
@@ -136,12 +136,12 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col space-y-1 flex-1 min-w-0">
-                    <p className="text-xs md:text-sm font-semibold leading-none truncate text-white">{user?.name}</p>
-                    <p className="text-[10px] md:text-xs leading-none text-gray-400 truncate">
+                    <p className="text-[11px] md:text-xs font-semibold leading-none truncate text-white">{user?.name}</p>
+                    <p className="text-[9px] md:text-[10px] leading-none text-gray-400 truncate">
                       {user?.email}
                     </p>
                     {user?.role && (
-                      <span className="text-[10px] md:text-xs text-blue-400 font-medium">
+                      <span className="text-[9px] md:text-[10px] text-blue-400 font-medium">
                         {user.role === "admin" ? "Administrateur" : "Utilisateur"}
                       </span>
                     )}

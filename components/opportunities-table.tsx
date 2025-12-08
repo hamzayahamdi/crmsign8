@@ -6,11 +6,8 @@ import { useRouter } from "next/navigation";
 import {
   MoreVertical,
   Edit2,
-  CheckCircle2,
   XCircle,
   Loader2,
-  DollarSign,
-  FileText,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -30,7 +27,6 @@ import { toast } from "sonner";
 import { MarkAsLostModal } from "@/components/mark-as-lost-modal";
 import { EditOpportunityModal } from "@/components/edit-opportunity-modal";
 import { Contact } from "@/types/contact";
-import { AcompteRecuOpportunityModal } from "@/components/acompte-recu-opportunity-modal";
 
 interface OpportunitiesTableProps {
   opportunities: Opportunity[];
@@ -48,7 +44,6 @@ export function OpportunitiesTable({
   const router = useRouter();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [lostModalOpen, setLostModalOpen] = useState(false);
-  const [acompteModalOpen, setAcompteModalOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] =
     useState<Opportunity | null>(null);
   const [editingOpportunity, setEditingOpportunity] =
@@ -189,7 +184,7 @@ export function OpportunitiesTable({
       <div className="flex items-center gap-2">
         <span className="text-lg">{config.icon}</span>
         <span
-          className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${config.className}`}
+          className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-semibold border ${config.className}`}
         >
           {config.label}
         </span>
@@ -209,94 +204,18 @@ export function OpportunitiesTable({
     //   not as won, because the devis may still be en cours / non accepté.
     if (statut === "won" || pipelineStage === "gagnee") {
       return (
-        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold border bg-green-500/20 text-green-300 border-green-500/50">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-semibold border bg-green-500/20 text-green-300 border-green-500/50">
           Gagnée
         </span>
       );
     } else if (statut === "lost" || pipelineStage === "perdue") {
       return (
-        <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold border bg-red-500/20 text-red-300 border-red-500/50">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-semibold border bg-red-500/20 text-red-300 border-red-500/50">
           Perdue
         </span>
       );
     }
     return <span className="text-slate-500 text-xs">-</span>;
-  };
-
-  const handleProjetAccepte = async (opportunity: Opportunity) => {
-    try {
-      setUpdatingId(opportunity.id);
-      const token = localStorage.getItem("token");
-
-      // Set pipeline stage to Projet Accepté AND mark as won
-      const response = await fetch(`/api/opportunities/${opportunity.id}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          pipelineStage: "projet_accepte",
-          statut: "won",
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erreur lors de la mise à jour");
-      }
-
-      toast.success("Projet accepté et marqué comme gagné!");
-      onUpdate();
-    } catch (error) {
-      console.error("Error updating:", error);
-      toast.error("Erreur lors de la mise à jour");
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const handlePriseDeBesoin = async (opportunity: Opportunity) => {
-    try {
-      setUpdatingId(opportunity.id);
-      const token = localStorage.getItem("token");
-
-      // Set pipeline stage to Prise de besoin (Needs Assessment)
-      const response = await fetch(`/api/opportunities/${opportunity.id}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          pipelineStage: "prise_de_besoin",
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erreur lors de la mise à jour");
-      }
-
-      toast.success("Étape changée à Prise de besoin");
-      onUpdate();
-    } catch (error) {
-      console.error("Error updating:", error);
-      toast.error("Erreur lors de la mise à jour");
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const handleAcompteRecu = (opportunity: Opportunity) => {
-    // Open modal for Acompte Reçu
-    setSelectedOpportunity(opportunity);
-    setAcompteModalOpen(true);
-  };
-
-  const handleAcompteRecuSuccess = async () => {
-    toast.success("Pipeline mis à jour avec succès");
-    setAcompteModalOpen(false);
-    setSelectedOpportunity(null);
-    onUpdate();
   };
 
   const handlePerdu = (opportunity: Opportunity) => {
@@ -320,22 +239,22 @@ export function OpportunitiesTable({
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-600/30 bg-slate-800/30">
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                <th className="px-6 py-2.5 text-left text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
                   Nom de l'opportunité
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                <th className="px-6 py-2.5 text-left text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
                   Budget
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                <th className="px-6 py-2.5 text-left text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
                   État Pipeline
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                <th className="px-6 py-2.5 text-left text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
                   Type de bien
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                <th className="px-6 py-2.5 text-left text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
                   Architecte
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                <th className="px-6 py-2.5 text-right text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -356,36 +275,36 @@ export function OpportunitiesTable({
                     onClick={() => handleRowClick(opp)}
                     className="hover:bg-slate-700/30 transition-colors group cursor-pointer"
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-2.5">
                       <div className="flex items-center gap-3">
                         {updatingId === opp.id && (
-                          <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
                         )}
-                        <span className="font-semibold text-white">
+                        <span className="font-semibold text-white text-xs">
                           {opp.titre}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-semibold text-emerald-400">
+                    <td className="px-6 py-2.5">
+                      <span className="text-xs font-semibold text-emerald-400">
                         {opp.budget ? `${opp.budget.toLocaleString()} DH` : "-"}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-2.5">
                       {getPipelineDisplay(opp.pipelineStage)}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-300 capitalize">
+                    <td className="px-6 py-2.5">
+                      <span className="text-xs text-slate-300 capitalize">
                         {opp.type}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-300">
+                    <td className="px-6 py-2.5">
+                      <span className="text-xs text-slate-300">
                         {architectName}
                       </span>
                     </td>
                     <td
-                      className="px-6 py-4 text-right"
+                      className="px-6 py-2.5 text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <DropdownMenu>
@@ -401,59 +320,27 @@ export function OpportunitiesTable({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                           align="end"
-                          className="glass border-slate-600/30 min-w-[200px]"
+                          className="glass border-slate-600/30 min-w-[180px]"
                         >
                           {/* Éditer - Always available */}
                           <DropdownMenuItem
-                            className="text-slate-300 focus:text-white cursor-pointer"
+                            className="text-slate-300 focus:text-white focus:bg-slate-700/50 cursor-pointer"
                             onClick={() => handleEdit(opp)}
                           >
                             <Edit2 className="w-4 h-4 mr-2" />
                             Éditer
                           </DropdownMenuItem>
 
-                          {/* Pipeline Actions - Only show if status is "open" */}
+                          {/* Perdu - Only show if status is "open" */}
                           {opp.statut === "open" && (
                             <>
                               <DropdownMenuSeparator className="bg-slate-600/30" />
-                              <DropdownMenuLabel className="text-xs text-slate-400 uppercase">
-                                Actions Pipeline
-                              </DropdownMenuLabel>
-
-                              {/* Prise de besoin */}
                               <DropdownMenuItem
-                                className="text-purple-300 focus:text-purple-200 cursor-pointer"
-                                onClick={() => handlePriseDeBesoin(opp)}
-                              >
-                                <FileText className="w-4 h-4 mr-2" />
-                                Prise de besoin
-                              </DropdownMenuItem>
-
-                              {/* Projet Accepté - Sets pipeline and marks as won */}
-                              <DropdownMenuItem
-                                className="text-emerald-300 focus:text-emerald-200 cursor-pointer"
-                                onClick={() => handleProjetAccepte(opp)}
-                              >
-                                <CheckCircle2 className="w-4 h-4 mr-2" />
-                                Projet Accepté
-                              </DropdownMenuItem>
-
-                              {/* Acompte Reçu - Opens modal */}
-                              <DropdownMenuItem
-                                className="text-blue-300 focus:text-blue-200 cursor-pointer"
-                                onClick={() => handleAcompteRecu(opp)}
-                              >
-                                <DollarSign className="w-4 h-4 mr-2" />
-                                Acompte reçu
-                              </DropdownMenuItem>
-
-                              {/* Perdu - Marks as lost */}
-                              <DropdownMenuItem
-                                className="text-red-400 focus:text-red-300 cursor-pointer"
+                                className="text-red-400 focus:text-red-300 focus:bg-red-500/10 cursor-pointer"
                                 onClick={() => handlePerdu(opp)}
                               >
                                 <XCircle className="w-4 h-4 mr-2" />
-                                Perdu
+                                Marquer comme perdu
                               </DropdownMenuItem>
                             </>
                           )}
@@ -490,19 +377,6 @@ export function OpportunitiesTable({
         onConfirm={handleLostConfirm}
         opportunityName={selectedOpportunity?.titre || ""}
       />
-
-      {/* Acompte Reçu Modal for Opportunities */}
-      {selectedOpportunity && (
-        <AcompteRecuOpportunityModal
-          isOpen={acompteModalOpen}
-          onClose={() => {
-            setAcompteModalOpen(false);
-            setSelectedOpportunity(null);
-          }}
-          opportunityId={selectedOpportunity.id}
-          onSuccess={handleAcompteRecuSuccess}
-        />
-      )}
 
       {/* Edit Opportunity Modal */}
       {editingOpportunity && (

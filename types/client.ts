@@ -24,6 +24,18 @@ export type ProjectStatus =
   | "perdu"              // Lost project/opportunity
 export type ProjectType = "appartement" | "villa" | "magasin" | "bureau" | "riad" | "studio" | "autre"
 
+export interface Opportunity {
+  id: string
+  titre: string
+  type: ProjectType
+  budget: number
+  statutProjet: ProjectStatus
+  architecteAssigne: string
+  pipelineStage?: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Client {
   id: string
   contactId?: string // Original contact ID (for opportunity-based clients)
@@ -53,6 +65,8 @@ export interface Client {
   payments?: Payment[]
   devis?: Devis[] // Multiple quotes support
   isContact?: boolean // Flag to indicate if this is from contacts table
+  opportunities?: Opportunity[] // Grouped opportunities for this client
+  opportunitiesCount?: number // Number of opportunities
 }
 
 export interface Devis {

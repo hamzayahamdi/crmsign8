@@ -114,19 +114,22 @@ export async function POST(
           opportunity.pipelineStage,
         );
 
-        // Map project status to pipeline stage (using valid enum values)
-        let pipelineStage = "prise_de_besoin";
+        // Map project status to pipeline stage - Support ALL stage transitions (forward and backward)
+        // This allows opportunities to move to any stage, not just forward progression
+        let pipelineStage = opportunity.pipelineStage; // Keep current stage as default
+        
+        // Map Kanban stages to pipeline stages - allow bidirectional movement
+        if (newStage === "qualifie" || newStage === "nouveau") pipelineStage = "prise_de_besoin";
         if (newStage === "prise_de_besoin") pipelineStage = "prise_de_besoin";
-        if (newStage === "acompte_recu") pipelineStage = "projet_accepte";
-        if (newStage === "conception") pipelineStage = "acompte_recu";
-        if (newStage === "devis_negociation") pipelineStage = "acompte_recu";
-        if (newStage === "accepte") pipelineStage = "gagnee";
-        if (newStage === "refuse") pipelineStage = "perdue";
+        if (newStage === "acompte_recu" || newStage === "acompte_verse") pipelineStage = "acompte_recu";
+        if (newStage === "conception" || newStage === "en_conception") pipelineStage = "acompte_recu";
+        if (newStage === "devis_negociation" || newStage === "en_validation") pipelineStage = "acompte_recu";
+        if (newStage === "accepte") pipelineStage = "projet_accepte";
+        if (newStage === "refuse" || newStage === "perdu" || newStage === "annule" || newStage === "suspendu") pipelineStage = "perdue";
         if (newStage === "premier_depot") pipelineStage = "gagnee";
-        if (newStage === "projet_en_cours") pipelineStage = "gagnee";
-        if (newStage === "chantier") pipelineStage = "gagnee";
+        if (newStage === "projet_en_cours" || newStage === "en_chantier" || newStage === "chantier") pipelineStage = "gagnee";
         if (newStage === "facture_reglee") pipelineStage = "gagnee";
-        if (newStage === "livraison_termine") pipelineStage = "gagnee";
+        if (newStage === "livraison_termine" || newStage === "livraison" || newStage === "termine") pipelineStage = "gagnee";
 
         console.log("[POST /stage] Mapping:", newStage, "→", pipelineStage);
 
@@ -330,11 +333,40 @@ export async function POST(
 
     console.log("[POST /stage] ===== SUCCESS =====");
 
+    // Fetch the updated client data to return
+    const { data: updatedClient, error: fetchError } = await supabase
+      .from("clients")
+      .select("*")
+      .eq("id", clientId)
+      .single();
+
+    if (fetchError) {
+      console.error("[POST /stage] Error fetching updated client:", fetchError);
+    }
+
     return NextResponse.json({
       success: true,
       message: "Statut mis à jour avec succès",
       newStage: newStage,
       timestamp: now,
+      data: updatedClient ? {
+        id: updatedClient.id,
+        nom: updatedClient.nom,
+        telephone: updatedClient.telephone,
+        ville: updatedClient.ville,
+        architecteAssigne: updatedClient.architecte_assigne,
+        statutProjet: updatedClient.statut_projet,
+        typeProjet: updatedClient.type_projet,
+        derniereMaj: updatedClient.derniere_maj,
+        email: updatedClient.email,
+        adresse: updatedClient.adresse,
+        budget: updatedClient.budget,
+        leadId: updatedClient.lead_id,
+        commercialAttribue: updatedClient.commercial_attribue,
+        createdAt: updatedClient.created_at,
+        updatedAt: updatedClient.updated_at,
+        nomProjet: updatedClient.nom_projet,
+      } : null,
     });
   } catch (error) {
     console.error("[POST /stage] ===== ERROR =====");

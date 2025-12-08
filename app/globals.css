@@ -112,6 +112,60 @@
   body {
     @apply bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-foreground antialiased;
     min-height: 100vh;
+    font-size: 13px; /* Base font size for CRM - smaller and more professional */
+    line-height: 1.5;
+  }
+
+  /* Typography Scale - Optimized for CRM density */
+  h1 {
+    @apply text-xl font-bold tracking-tight;
+  }
+
+  h2 {
+    @apply text-lg font-semibold tracking-tight;
+  }
+
+  h3 {
+    @apply text-base font-semibold;
+  }
+
+  h4, h5, h6 {
+    @apply text-sm font-semibold;
+  }
+
+  p {
+    @apply text-xs leading-relaxed;
+  }
+
+  small {
+    @apply text-[11px];
+  }
+
+  /* Table typography - compact and readable */
+  table {
+    @apply text-xs;
+  }
+
+  thead th {
+    @apply text-[11px] font-semibold uppercase tracking-wider;
+  }
+
+  tbody td {
+    @apply text-xs;
+  }
+
+  /* Form elements - consistent sizing */
+  input, select, textarea {
+    @apply text-xs;
+  }
+
+  label {
+    @apply text-xs font-medium;
+  }
+
+  /* Button text sizing */
+  button {
+    @apply text-xs font-medium;
   }
 
   /* Glassmorphism utilities */

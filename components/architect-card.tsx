@@ -49,40 +49,40 @@ export function ArchitectCard({ architect, onViewDetails, index = 0 }: Architect
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.05 }}
-      className="glass rounded-2xl p-6 border border-slate-600/30 hover:border-primary/50 transition-all duration-300 group"
+      className="glass rounded-xl p-4 border border-slate-600/30 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 group cursor-pointer"
     >
       {/* Header with Avatar */}
-      <div className="flex items-start gap-4 mb-5">
-        <Avatar className="h-16 w-16 border-2 border-primary/30 ring-4 ring-primary/10">
+      <div className="flex items-start gap-3 mb-3">
+        <Avatar className="h-12 w-12 border-2 border-primary/30 ring-2 ring-primary/10">
           {architect.photo ? (
             <AvatarImage src={architect.photo} alt={`${architect.prenom} ${architect.nom}`} />
           ) : null}
-          <AvatarFallback className="bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-white font-bold text-lg">
+          <AvatarFallback className="bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-white font-bold text-sm">
             {getInitials(architect.nom, architect.prenom)}
           </AvatarFallback>
         </Avatar>
         
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-bold text-white mb-1 truncate group-hover:text-primary transition-colors">
+          <h3 className="text-sm font-bold text-white mb-1 truncate group-hover:text-primary transition-colors">
             {architect.prenom} {architect.nom}
           </h3>
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
             <span className={cn(
-              "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border",
+              "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border",
               status.color
             )}>
-              <span className="relative flex h-2 w-2 mr-1.5">
+              <span className="relative flex h-1.5 w-1.5 mr-1">
                 <span className={cn(
                   "absolute inline-flex h-full w-full rounded-full opacity-75",
                   architect.statut === "actif" ? "animate-ping bg-green-400" : ""
                 )}></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-current"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
               </span>
               {status.label}
             </span>
             {architect.isDisponible !== undefined && (
               <span className={cn(
-                "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border",
+                "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium border",
                 architect.isDisponible 
                   ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
                   : "bg-orange-500/20 text-orange-400 border-orange-500/30"
@@ -94,46 +94,61 @@ export function ArchitectCard({ architect, onViewDetails, index = 0 }: Architect
         </div>
       </div>
 
-      {/* Info Grid */}
-      <div className="space-y-3 mb-5">
-        <div className="flex items-center gap-2 text-sm text-slate-300">
-          <MapPin className="w-4 h-4 text-slate-400" />
-          <span>{architect.ville}</span>
+      {/* Info Grid - Enhanced with better icons and spacing */}
+      <div className="space-y-2 mb-3">
+        <div className="flex items-center gap-1.5 text-xs text-slate-300 group/item">
+          <div className="p-1 rounded bg-slate-700/50 group-hover/item:bg-emerald-500/20 transition-colors">
+            <MapPin className="w-3 h-3 text-emerald-400" />
+          </div>
+          <span className="font-medium">{architect.ville}</span>
         </div>
-        <div className="flex items-center gap-2 text-sm text-slate-300">
-          <Briefcase className="w-4 h-4 text-slate-400" />
-          <span>{specialtyLabels[architect.specialite]}</span>
+        <div className="flex items-center gap-1.5 text-xs text-slate-300 group/item">
+          <div className="p-1 rounded bg-slate-700/50 group-hover/item:bg-purple-500/20 transition-colors">
+            <Briefcase className="w-3 h-3 text-purple-400" />
+          </div>
+          <span className="font-medium">{specialtyLabels[architect.specialite]}</span>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <FolderOpen className="w-4 h-4 text-primary" />
-          <span className="font-semibold text-white">
+        <div className="flex items-center gap-1.5 text-xs group/item">
+          <div className="p-1 rounded bg-primary/20 group-hover/item:bg-primary/30 transition-colors">
+            <FolderOpen className="w-3 h-3 text-primary" />
+          </div>
+          <span className="font-bold text-white">
             {architect.totalDossiers || 0} dossier{(architect.totalDossiers || 0) > 1 ? 's' : ''}
           </span>
         </div>
       </div>
 
-      {/* Stats Pills */}
-      <div className="grid grid-cols-3 gap-2 mb-5">
-        <div className="glass rounded-lg p-2 text-center border border-slate-600/20">
-          <div className="text-lg font-bold text-orange-400">{architect.dossiersEnCours || 0}</div>
-          <div className="text-[10px] text-slate-400">En cours</div>
-        </div>
-        <div className="glass rounded-lg p-2 text-center border border-slate-600/20">
-          <div className="text-lg font-bold text-green-400">{architect.dossiersTermines || 0}</div>
-          <div className="text-[10px] text-slate-400">Terminés</div>
-        </div>
-        <div className="glass rounded-lg p-2 text-center border border-slate-600/20">
-          <div className="text-lg font-bold text-blue-400">{architect.dossiersEnAttente || 0}</div>
-          <div className="text-[10px] text-slate-400">En attente</div>
-        </div>
+      {/* Stats Pills - Enhanced with better visual hierarchy */}
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        <motion.div 
+          whileHover={{ scale: 1.05 }}
+          className="glass rounded-lg p-2 text-center border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-600/5 hover:border-orange-500/50 transition-all"
+        >
+          <div className="text-lg font-bold text-orange-400 mb-0.5">{architect.dossiersEnCours || 0}</div>
+          <div className="text-[9px] font-medium text-slate-300 uppercase tracking-wide">En cours</div>
+        </motion.div>
+        <motion.div 
+          whileHover={{ scale: 1.05 }}
+          className="glass rounded-lg p-2 text-center border border-green-500/30 bg-gradient-to-br from-green-500/10 to-green-600/5 hover:border-green-500/50 transition-all"
+        >
+          <div className="text-lg font-bold text-green-400 mb-0.5">{architect.dossiersTermines || 0}</div>
+          <div className="text-[9px] font-medium text-slate-300 uppercase tracking-wide">Terminés</div>
+        </motion.div>
+        <motion.div 
+          whileHover={{ scale: 1.05 }}
+          className="glass rounded-lg p-2 text-center border border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 hover:border-blue-500/50 transition-all"
+        >
+          <div className="text-lg font-bold text-blue-400 mb-0.5">{architect.dossiersEnAttente || 0}</div>
+          <div className="text-[9px] font-medium text-slate-300 uppercase tracking-wide">En attente</div>
+        </motion.div>
       </div>
 
       {/* Action Button */}
       <Button
         onClick={() => onViewDetails(architect)}
-        className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-lg shadow-primary/20 group-hover:shadow-primary/30 transition-all"
+        className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-lg shadow-primary/20 group-hover:shadow-primary/30 transition-all h-8 text-xs"
       >
-        <Eye className="w-4 h-4 mr-2" />
+        <Eye className="w-3.5 h-3.5 mr-1.5" />
         Voir détails
       </Button>
     </motion.div>

@@ -196,31 +196,31 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
       onClick={handleOpenDossier}
       className={cn(
-        "glass rounded-xl p-4 border cursor-pointer transition-all duration-200 group",
+        "glass rounded-lg p-3 border cursor-pointer transition-all duration-200 group",
         "hover:border-slate-600/60 hover:shadow-lg",
         statusInfo.borderColor.replace('border-', 'hover:shadow-')
       )}
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
           {/* Opportunity/Project Name as Main Title */}
-          <h3 className="text-base font-bold text-white mb-1.5 truncate group-hover:text-primary transition-colors">
+          <h3 className="text-sm font-bold text-white mb-1 truncate group-hover:text-primary transition-colors">
             {client.nomProjet || client.nom}
           </h3>
           {/* Client Name as Secondary Info */}
           {client.nomProjet && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
+            <div className="flex items-center gap-1 text-[11px] text-slate-400 mb-0.5">
               <span className="truncate">Client: {client.nom}</span>
             </div>
           )}
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+            <Building2 className="w-3 h-3 flex-shrink-0" />
             <span className="truncate">{client.typeProjet}</span>
           </div>
         </div>
         <span className={cn(
-          "inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border flex-shrink-0",
+          "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border flex-shrink-0",
           statusInfo.color,
           statusInfo.bgColor,
           statusInfo.borderColor
@@ -230,17 +230,17 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
       </div>
 
       {/* Info Grid */}
-      <div className="space-y-2 mb-3">
-        <div className="flex items-center gap-2 text-xs text-slate-300">
-          <MapPin className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+      <div className="space-y-1.5 mb-2">
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
+          <MapPin className="w-3 h-3 text-slate-500 flex-shrink-0" />
           <span>{client.ville}</span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-300">
-          <Calendar className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
+          <Calendar className="w-3 h-3 text-slate-500 flex-shrink-0" />
           <span>MAJ: {formatDate(client.derniereMaj)}</span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-300">
-          <DollarSign className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
+          <DollarSign className="w-3 h-3 text-slate-500 flex-shrink-0" />
           <span className="font-medium">{formatCurrency(client.budget || 0)}</span>
         </div>
       </div>
@@ -249,11 +249,11 @@ export function DossierCardEnhanced({ client, onOpen, index = 0 }: DossierCardEn
       <Button
         variant="ghost"
         size="sm"
-        className="w-full h-8 text-xs bg-slate-800/40 hover:bg-primary/20 hover:text-primary border border-slate-700/40 hover:border-primary/40 transition-all group/btn"
+        className="w-full h-7 text-[11px] bg-slate-800/40 hover:bg-primary/20 hover:text-primary border border-slate-700/40 hover:border-primary/40 transition-all group/btn"
         onClick={handleOpenDossier}
       >
         <span>Ouvrir dossier</span>
-        <ArrowRight className="w-3.5 h-3.5 ml-1.5 group-hover/btn:translate-x-1 transition-transform" />
+        <ArrowRight className="w-3 h-3 ml-1 group-hover/btn:translate-x-1 transition-transform" />
       </Button>
     </motion.div>
   )

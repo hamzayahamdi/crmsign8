@@ -3,9 +3,14 @@
 import { PrismaClient } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { verify } from 'jsonwebtoken';
+import { createClient } from '@supabase/supabase-js';
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Initialize Supabase client for client stage updates
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 /**
  * GET /api/opportunities/[id]
@@ -77,7 +82,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const { titre, type, statut, budget, description, architecteAssigne, dateClotureAttendue } = body;
+    const { titre, type, statut, budget, description, architecteAssigne, dateClotureAttendue, pipelineStage, notes } = body;
 
     // Get current opportunity to track changes
     const current = await prisma.opportunity.findUnique({
@@ -98,6 +103,8 @@ export async function PATCH(
     if (dateClotureAttendue !== undefined) {
       updateData.dateClotureAttendue = dateClotureAttendue ? new Date(dateClotureAttendue) : null;
     }
+    if (pipelineStage !== undefined) updateData.pipelineStage = pipelineStage;
+    if (notes !== undefined) updateData.notes = notes;
 
     const opportunity = await prisma.opportunity.update({
       where: { id },
@@ -167,10 +174,12 @@ export async function PATCH(
             opportunityId: current.id,
             eventType: eventTypeMap[statut] || 'status_changed',
             title: `Opportunité: ${statut === 'won' ? '✅ Gagnée' : statut === 'lost' ? '❌ Perdue' : '⏸ Suspendue'}`,
-            description: `Statut changé de "${current.statut}" à "${statut}"`,
+            description: `Statut changé de "${current.statut}" à "${statut}"${pipelineStage && pipelineStage !== current.pipelineStage ? `, Pipeline: "${current.pipelineStage}" → "${pipelineStage}"` : ''}`,
             metadata: {
               previousStatus: current.statut,
               newStatus: statut,
+              previousPipelineStage: current.pipelineStage,
+              newPipelineStage: pipelineStage || current.pipelineStage,
             },
             author: decoded.userId,
           },
@@ -178,6 +187,170 @@ export async function PATCH(
       } catch (timelineErr) {
         console.error('Error creating status change timeline entry:', timelineErr);
         // Continue even if timeline creation fails
+      }
+    }
+
+    // Log pipeline stage changes separately if only pipeline stage changed (without status change)
+    if (pipelineStage && pipelineStage !== current.pipelineStage && (!statut || statut === current.statut)) {
+      try {
+        const stageLabels: Record<string, string> = {
+          prise_de_besoin: 'Prise de besoin',
+          projet_accepte: 'Projet Accepté',
+          acompte_recu: 'Acompte Reçu',
+          gagnee: 'Gagnée',
+          perdue: 'Perdue',
+        };
+
+        await prisma.timeline.create({
+          data: {
+            contactId: current.contactId,
+            opportunityId: current.id,
+            eventType: 'status_changed',
+            title: `Pipeline: ${stageLabels[pipelineStage] || pipelineStage}`,
+            description: `Étape pipeline changée de "${stageLabels[current.pipelineStage] || current.pipelineStage}" à "${stageLabels[pipelineStage] || pipelineStage}"`,
+            metadata: {
+              previousPipelineStage: current.pipelineStage,
+              newPipelineStage: pipelineStage,
+            },
+            author: decoded.userId,
+          },
+        });
+      } catch (timelineErr) {
+        console.error('Error creating pipeline stage change timeline entry:', timelineErr);
+        // Continue even if timeline creation fails
+      }
+    }
+
+    // 🎯 UPDATE CLIENT STAGE WHEN OPPORTUNITY IS MARKED AS LOST
+    // When opportunity is marked as "lost" with pipelineStage "perdue", 
+    // update the client's statutProjet to "refuse" and create history entry
+    // Check if either status changed to lost OR pipeline stage changed to perdue
+    const isMarkedAsLost = (statut === 'lost' && statut !== current.statut) || 
+                           (pipelineStage === 'perdue' && pipelineStage !== current.pipelineStage && statut === 'lost');
+    
+    if (isMarkedAsLost) {
+      try {
+        if (!supabaseUrl || !supabaseServiceKey) {
+          console.warn('[Update Opportunity] Supabase not configured, skipping client stage update');
+        } else {
+          const clientId = `${current.contactId}-${current.id}`;
+          const now = new Date().toISOString();
+          const supabase = createClient(supabaseUrl, supabaseServiceKey);
+          
+          // Get user name for history
+          const user = await prisma.user.findUnique({
+            where: { id: decoded.userId },
+            select: { name: true, email: true },
+          });
+          const changedBy = user?.name || user?.email || decoded.userId;
+
+          console.log('[Update Opportunity] Updating client stage to "refuse" for client:', clientId);
+
+          // Get current client status
+          let currentClientStatus = 'nouveau';
+          const { data: clientData } = await supabase
+            .from('clients')
+            .select('statut_projet')
+            .eq('id', clientId)
+            .single();
+
+          if (clientData?.statut_projet) {
+            currentClientStatus = clientData.statut_projet;
+          }
+
+          // Update client's statut_projet to "refuse"
+          const { error: clientUpdateError } = await supabase
+            .from('clients')
+            .upsert({
+              id: clientId,
+              statut_projet: 'refuse',
+              derniere_maj: now,
+              updated_at: now,
+            }, {
+              onConflict: 'id',
+            });
+
+          if (clientUpdateError) {
+            console.error('[Update Opportunity] Error updating client status:', clientUpdateError);
+          } else {
+            console.log('[Update Opportunity] ✅ Client status updated to "refuse"');
+
+            // Create historique entry for traceability
+            const historyId = `hist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            const statusLabels: Record<string, string> = {
+              qualifie: 'Qualifié',
+              prise_de_besoin: 'Prise de besoin',
+              acompte_recu: 'Acompte reçu',
+              conception: 'Conception',
+              devis_negociation: 'Devis/Négociation',
+              accepte: 'Accepté',
+              refuse: 'Refusé',
+              perdu: 'Perdu',
+            };
+
+            const fromLabel = statusLabels[currentClientStatus] || currentClientStatus;
+            const toLabel = statusLabels['refuse'] || 'Refusé';
+
+            const { error: historiqueError } = await supabase
+              .from('historique')
+              .insert({
+                id: historyId,
+                client_id: clientId,
+                date: now,
+                type: 'statut',
+                description: `Opportunité marquée comme perdue: "${opportunity.titre}". Statut changé de "${fromLabel}" vers "${toLabel}"`,
+                auteur: changedBy,
+                previous_status: currentClientStatus,
+                new_status: 'refuse',
+                timestamp_start: now,
+                created_at: now,
+                updated_at: now,
+              });
+
+            if (historiqueError) {
+              console.error('[Update Opportunity] Error creating historique entry:', historiqueError);
+            } else {
+              console.log('[Update Opportunity] ✅ Historique entry created');
+
+              // Also create client_stage_history entry for better traceability
+              const stageHistoryId = `stage_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+              
+              // Close any active stage history entries
+              await supabase
+                .from('client_stage_history')
+                .update({
+                  ended_at: now,
+                  updated_at: now,
+                })
+                .eq('client_id', clientId)
+                .is('ended_at', null);
+
+              // Create new stage history entry for "refuse"
+              const { error: stageHistoryError } = await supabase
+                .from('client_stage_history')
+                .insert({
+                  id: stageHistoryId,
+                  client_id: clientId,
+                  stage_name: 'refuse',
+                  started_at: now,
+                  ended_at: null,
+                  duration_seconds: null,
+                  changed_by: changedBy,
+                  created_at: now,
+                  updated_at: now,
+                });
+
+              if (stageHistoryError) {
+                console.error('[Update Opportunity] Error creating stage history entry:', stageHistoryError);
+              } else {
+                console.log('[Update Opportunity] ✅ Stage history entry created');
+              }
+            }
+          }
+        }
+      } catch (clientUpdateErr) {
+        console.error('[Update Opportunity] Error updating client stage:', clientUpdateErr);
+        // Continue even if client update fails - the opportunity status was already updated
       }
     }
 

@@ -160,20 +160,23 @@ export default function ArchitectesPage() {
             <Header />
           
           {/* Stats Cards - Compact */}
-          <div className="px-6 pt-6 pb-3">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="px-3 md:px-4 pt-2 md:pt-3 pb-1">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass rounded-lg p-3 border border-slate-600/30"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-blue-500/30 transition-all duration-300"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
-                    <Users className="w-4 h-4 text-blue-400" />
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Total</p>
+                    <p className="text-2xl font-bold text-white leading-tight">{totalArchitects}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Architectes</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-slate-400">Architectes</p>
-                    <p className="text-xl font-bold text-white">{totalArchitects}</p>
+                  <div className="flex-shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-blue-400" />
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -182,15 +185,18 @@ export default function ArchitectesPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="glass rounded-lg p-3 border border-slate-600/30"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-green-500/30 transition-all duration-300"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
-                    <TrendingUp className="w-4 h-4 text-green-400" />
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Actifs</p>
+                    <p className="text-2xl font-bold text-green-400 leading-tight">{activeArchitects}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Architectes</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-slate-400">Actifs</p>
-                    <p className="text-xl font-bold text-white">{activeArchitects}</p>
+                  <div className="flex-shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5 text-green-400" />
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -199,15 +205,18 @@ export default function ArchitectesPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="glass rounded-lg p-3 border border-slate-600/30"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-purple-500/30 transition-all duration-300"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
-                    <FolderOpen className="w-4 h-4 text-purple-400" />
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Dossiers</p>
+                    <p className="text-2xl font-bold text-purple-400 leading-tight">{totalDossiers}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Total</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-slate-400">Dossiers</p>
-                    <p className="text-xl font-bold text-white">{totalDossiers}</p>
+                  <div className="flex-shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                      <FolderOpen className="w-5 h-5 text-purple-400" />
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -216,15 +225,18 @@ export default function ArchitectesPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="glass rounded-lg p-3 border border-slate-600/30"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-orange-500/30 transition-all duration-300"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
-                    <Briefcase className="w-4 h-4 text-orange-400" />
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Moyenne</p>
+                    <p className="text-2xl font-bold text-orange-400 leading-tight">{avgDossiersPerArchitect}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Par architecte</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-slate-400">Moyenne</p>
-                    <p className="text-xl font-bold text-white">{avgDossiersPerArchitect}</p>
+                  <div className="flex-shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                      <Briefcase className="w-5 h-5 text-orange-400" />
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -232,50 +244,50 @@ export default function ArchitectesPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="px-6 pb-3 space-y-2">
+          <div className="px-3 md:px-4 pb-2 space-y-1.5">
             {/* Search Bar and Actions */}
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Rechercher un architecte..."
-                  className="h-10 pl-11 pr-4 bg-slate-800/60 border-slate-600/60 text-white placeholder:text-slate-400 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary/20 text-sm"
+                  className="h-8 pl-9 pr-3 bg-slate-800/60 border-slate-600/60 text-white placeholder:text-slate-400 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary/20 text-xs"
                 />
               </div>
               
               {/* View Mode Toggle */}
-              <div className="glass rounded-lg border border-slate-600/30 p-1 flex gap-1">
+              <div className="glass rounded-lg border border-slate-600/30 p-0.5 flex gap-0.5">
                 <Button
                   variant={viewMode === "grid" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("grid")}
                   className={cn(
-                    "h-8 px-3",
+                    "h-7 px-2",
                     viewMode === "grid" && "bg-primary text-white"
                   )}
                 >
-                  <Grid3x3 className="w-3.5 h-3.5" />
+                  <Grid3x3 className="w-3 h-3" />
                 </Button>
                 <Button
                   variant={viewMode === "table" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("table")}
                   className={cn(
-                    "h-8 px-3",
+                    "h-7 px-2",
                     viewMode === "table" && "bg-primary text-white"
                   )}
                 >
-                  <List className="w-3.5 h-3.5" />
+                  <List className="w-3 h-3" />
                 </Button>
               </div>
 
               <Button
                 onClick={() => setIsAddModalOpen(true)}
-                className="h-10 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium text-sm"
+                className="h-8 px-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium text-xs"
               >
-                <Plus className="w-4 h-4 mr-1.5" />
+                <Plus className="w-3.5 h-3.5 mr-1" />
                 <span className="hidden sm:inline">Ajouter</span>
                 <span className="sm:hidden">+</span>
               </Button>
@@ -284,20 +296,20 @@ export default function ArchitectesPage() {
             {/* Filters */}
             <div className="glass rounded-lg border border-slate-600/30">
               {/* Filter Header */}
-              <div className="flex items-center justify-between p-3 gap-3">
+              <div className="flex items-center justify-between p-2 gap-2">
                 <div 
-                  className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity flex-1"
+                  className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity flex-1"
                   onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                 >
-                  <Filter className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-white">Filtres</span>
+                  <Filter className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs font-medium text-white">Filtres</span>
                   {getActiveFiltersCount() > 0 && (
-                    <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-xs font-medium">
+                    <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded-full text-[10px] font-medium">
                       {getActiveFiltersCount()}
                     </span>
                   )}
                   <ChevronDown className={cn(
-                    "w-3.5 h-3.5 text-white transition-transform ml-auto",
+                    "w-3 h-3 text-white transition-transform ml-auto",
                     isFiltersOpen && "rotate-180"
                   )} />
                 </div>
@@ -308,7 +320,7 @@ export default function ArchitectesPage() {
                       e.stopPropagation()
                       clearAllFilters()
                     }}
-                    className="text-xs text-muted-foreground hover:text-white flex items-center gap-1.5 transition-colors px-2 py-1 rounded hover:bg-slate-700/50"
+                    className="text-[10px] text-muted-foreground hover:text-white flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50"
                   >
                     <X className="w-3 h-3" />
                     Effacer
@@ -318,29 +330,29 @@ export default function ArchitectesPage() {
 
               {/* Active Filter Chips */}
               {getActiveFiltersCount() > 0 && (
-                <div className="border-t border-slate-600/30 px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
+                <div className="border-t border-slate-600/30 px-2.5 py-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {filters.statut !== "all" && (
-                      <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                      <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5">
                         Statut: {filters.statut === "actif" ? "Actif" : filters.statut === "inactif" ? "Inactif" : "En congé"}
                         <button onClick={() => removeFilter('statut')} className="hover:text-primary/70">
-                          <X className="w-3 h-3" />
+                          <X className="w-2.5 h-2.5" />
                         </button>
                       </div>
                     )}
                     {filters.ville !== "all" && (
-                      <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                      <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5">
                         Ville: {filters.ville}
                         <button onClick={() => removeFilter('ville')} className="hover:text-primary/70">
-                          <X className="w-3 h-3" />
+                          <X className="w-2.5 h-2.5" />
                         </button>
                       </div>
                     )}
                     {filters.specialite !== "all" && (
-                      <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                      <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5">
                         Spécialité: {filters.specialite}
                         <button onClick={() => removeFilter('specialite')} className="hover:text-primary/70">
-                          <X className="w-3 h-3" />
+                          <X className="w-2.5 h-2.5" />
                         </button>
                       </div>
                     )}
@@ -350,15 +362,15 @@ export default function ArchitectesPage() {
 
               {/* Filter Content */}
               {isFiltersOpen && (
-                <div className="border-t border-slate-600/30 p-4 bg-slate-800/60">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="border-t border-slate-600/30 p-2.5 bg-slate-800/60">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                     {/* Statut Filter */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-white">Statut</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-medium text-white uppercase tracking-wider">Statut</label>
                       <select
                         value={filters.statut}
                         onChange={(e) => setFilters(f => ({ ...f, statut: e.target.value as any }))}
-                        className="h-10 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        className="h-8 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white text-xs focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
                       >
                         <option value="all">Tous les statuts</option>
                         <option value="actif">Actif</option>
@@ -368,12 +380,12 @@ export default function ArchitectesPage() {
                     </div>
 
                     {/* Ville Filter */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-white">Ville</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-medium text-white uppercase tracking-wider">Ville</label>
                       <select
                         value={filters.ville}
                         onChange={(e) => setFilters(f => ({ ...f, ville: e.target.value }))}
-                        className="h-10 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        className="h-8 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white text-xs focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
                       >
                         <option value="all">Toutes les villes</option>
                         {uniqueVilles.map(v => (
@@ -383,12 +395,12 @@ export default function ArchitectesPage() {
                     </div>
 
                     {/* Specialite Filter */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-white">Spécialité</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-medium text-white uppercase tracking-wider">Spécialité</label>
                       <select
                         value={filters.specialite}
                         onChange={(e) => setFilters(f => ({ ...f, specialite: e.target.value as any }))}
-                        className="h-10 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        className="h-8 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white text-xs focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
                       >
                         <option value="all">Toutes les spécialités</option>
                         <option value="residentiel">Résidentiel</option>
@@ -406,26 +418,26 @@ export default function ArchitectesPage() {
           </div>
 
           {/* Architects Display */}
-          <div className="flex-1 px-6 pb-6 overflow-hidden">
+          <div className="flex-1 px-3 md:px-4 pb-3 overflow-hidden">
             {isLoading ? (
               <div className="h-full flex items-center justify-center">
-                <div className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                  <h2 className="text-xl font-bold text-white mb-2">Chargement des architectes...</h2>
-                  <p className="text-slate-400">Veuillez patienter</p>
+                <div className="glass rounded-xl border border-slate-600/30 p-6 max-w-xl w-full text-center">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3"></div>
+                  <h2 className="text-base font-bold text-white mb-1.5">Chargement des architectes...</h2>
+                  <p className="text-xs text-slate-400">Veuillez patienter</p>
                 </div>
               </div>
             ) : filteredArchitects.length === 0 ? (
               <div className="h-full flex items-center justify-center">
-                <div className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center">
-                  <h2 className="text-2xl font-bold text-white mb-2">Aucun architecte trouvé</h2>
-                  <p className="text-slate-400">Ajustez vos filtres ou ajoutez un nouvel architecte.</p>
+                <div className="glass rounded-xl border border-slate-600/30 p-6 max-w-xl w-full text-center">
+                  <h2 className="text-lg font-bold text-white mb-1.5">Aucun architecte trouvé</h2>
+                  <p className="text-xs text-slate-400">Ajustez vos filtres ou ajoutez un nouvel architecte.</p>
                 </div>
               </div>
             ) : (
               <>
                 {viewMode === "grid" ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {filteredArchitects.map((architect, index) => (
                       <ArchitectCard
                         key={architect.id}

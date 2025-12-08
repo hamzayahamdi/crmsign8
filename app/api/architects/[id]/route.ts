@@ -49,8 +49,19 @@ function isAssignedToArchitect(
 
 /**
  * Helper function to determine dossier status category
+ * IMPORTANT: "perdu" (lost) and "refuse" (refused) are excluded from all categories
+ * as they represent closed/lost projects that should not be counted as active.
  */
-function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_attente' {
+function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_attente' | null {
+  // Exclude lost/refused projects - these should not be counted in any active category
+  if (
+    statut === 'perdu' ||
+    statut === 'refuse' ||
+    statut === 'annule'
+  ) {
+    return null // Excluded from all counts
+  }
+
   // Terminés - completed projects
   if (
     statut === 'termine' ||
@@ -69,7 +80,9 @@ function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_
     return 'en_attente'
   }
 
-  // En cours - all active projects (default)
+  // En cours - all active projects
+  // Includes: acompte_recu, conception, devis_negociation, accepte, premier_depot, 
+  // projet_en_cours, chantier, facture_reglee, en_conception, en_validation, en_chantier
   return 'en_cours'
 }
 
@@ -94,8 +107,10 @@ export async function GET(
   try {
     const { id } = await params
 
-    // Fetch architect user
-    const architect = await prisma.user.findUnique({
+    console.log(`[GET /api/architects/${id}] 🔍 Looking for architect with ID: ${id}`)
+
+    // Fetch architect user - first try with role filter
+    let architect = await prisma.user.findUnique({
       where: {
         id: id,
         role: 'architect'
@@ -112,12 +127,51 @@ export async function GET(
       }
     })
 
+    // If not found with role filter, try without role filter (in case role is not set correctly)
     if (!architect) {
+      console.log(`[GET /api/architects/${id}] ⚠️ Not found with role filter, trying without role filter...`)
+      const user = await prisma.user.findUnique({
+        where: { id: id },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          magasin: true,
+          ville: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      })
+      
+      if (user) {
+        console.log(`[GET /api/architects/${id}] ⚠️ Found user but role is: ${user.role}`)
+        if (user.role?.toLowerCase() === 'architect') {
+          architect = user
+        } else {
+          return NextResponse.json(
+            { 
+              success: false,
+              error: `Utilisateur trouvé mais le rôle n'est pas 'architect' (rôle actuel: ${user.role || 'non défini'})` 
+            },
+            { status: 404 }
+          )
+        }
+      }
+    }
+
+    if (!architect) {
+      console.log(`[GET /api/architects/${id}] ❌ Architect not found`)
       return NextResponse.json(
-        { error: 'Architecte non trouvé' },
+        { 
+          success: false,
+          error: 'Architecte non trouvé' 
+        },
         { status: 404 }
       )
     }
+
+    console.log(`[GET /api/architects/${id}] ✅ Found architect: ${architect.name}`)
 
     const architectName = architect.name
 
@@ -216,17 +270,20 @@ export async function GET(
       }))
     ]
 
-    // Calculate statistics
+    // Calculate statistics (exclude null/refused/lost projects from active counts)
     const totalDossiers = allDossiers.length
-    const dossiersEnCours = allDossiers.filter(d =>
-      getDossierStatusCategory(d.statut) === 'en_cours'
-    ).length
-    const dossiersTermines = allDossiers.filter(d =>
-      getDossierStatusCategory(d.statut) === 'termine'
-    ).length
-    const dossiersEnAttente = allDossiers.filter(d =>
-      getDossierStatusCategory(d.statut) === 'en_attente'
-    ).length
+    const dossiersEnCours = allDossiers.filter(d => {
+      const category = getDossierStatusCategory(d.statut)
+      return category === 'en_cours'
+    }).length
+    const dossiersTermines = allDossiers.filter(d => {
+      const category = getDossierStatusCategory(d.statut)
+      return category === 'termine'
+    }).length
+    const dossiersEnAttente = allDossiers.filter(d => {
+      const category = getDossierStatusCategory(d.statut)
+      return category === 'en_attente'
+    }).length
 
     // Calculate disponible status
     const isDisponible = dossiersEnCours < 10
@@ -257,7 +314,7 @@ export async function GET(
 
     // Transform clients to match frontend format (for backward compatibility)
     // Also include contacts and opportunities as "clients" for the detail page
-    const transformedClients = [
+    const allTransformedClients = [
       // Legacy clients
       ...architectClients.map(client => ({
         id: client.id,
@@ -342,10 +399,72 @@ export async function GET(
         opportunityId: opportunity.id,
         nomProjet: opportunity.titre
       }))
-    ].sort((a, b) => new Date(b.derniereMaj).getTime() - new Date(a.derniereMaj).getTime())
+    ]
+
+    // Remove duplicates based on opportunityId (for opportunities) or id (for legacy clients)
+    // Also check for duplicates based on contact name + project title + budget to catch true duplicates
+    // This ensures that if the same opportunity appears multiple times, we only keep one instance
+    const seenOpportunityIds = new Set<string>()
+    const seenClientIds = new Set<string>()
+    const seenProjectKeys = new Set<string>() // For additional duplicate detection by contact name + title + budget
+    const seenContactProjectKeys = new Set<string>() // For duplicate detection by contact name + title (normalized)
+    
+    const transformedClients = allTransformedClients.filter(client => {
+      // For opportunities (contact-based), deduplicate by opportunityId
+      if (client.opportunityId) {
+        // First check: exact opportunityId match
+        if (seenOpportunityIds.has(client.opportunityId)) {
+          return false // Duplicate opportunity, skip it
+        }
+        seenOpportunityIds.add(client.opportunityId)
+        
+        // Normalize project title for comparison (remove extra spaces, lowercase)
+        const normalizedTitle = (client.nomProjet || client.nom || '').trim().toLowerCase().replace(/\s+/g, ' ')
+        const normalizedContactName = (client.nom || '').trim().toLowerCase().replace(/\s+/g, ' ')
+        const budget = client.budget || 0
+        
+        // Second check: same contact + project title + budget (catch true duplicates with different IDs)
+        const projectKey = `${client.contactId || ''}-${normalizedTitle}-${budget}`
+        if (seenProjectKeys.has(projectKey)) {
+          return false // Duplicate project, skip it
+        }
+        seenProjectKeys.add(projectKey)
+        
+        // Third check: same contact name + project title (normalized) - only for exact matches
+        // This is aggressive deduplication: if contact name + title match exactly, treat as duplicate
+        // This catches cases where the same project was created multiple times by mistake
+        const contactProjectKey = `${normalizedContactName}-${normalizedTitle}`
+        if (seenContactProjectKeys.has(contactProjectKey)) {
+          // Only treat as duplicate if:
+          // 1. Title is not empty/generic
+          // 2. Contact name is not empty
+          // 3. Title is not just "autre" (too generic)
+          if (normalizedTitle && normalizedTitle.length > 2 && 
+              normalizedContactName && normalizedContactName.length > 0 &&
+              normalizedTitle !== 'autre' && normalizedTitle !== 'autre -') {
+            return false // Duplicate project by contact + title, skip it (keep the first one)
+          }
+        }
+        seenContactProjectKeys.add(contactProjectKey)
+        
+        return true
+      }
+      // For legacy clients, deduplicate by id
+      if (seenClientIds.has(client.id)) {
+        return false // Duplicate client, skip it
+      }
+      seenClientIds.add(client.id)
+      return true
+    }).sort((a, b) => new Date(b.derniereMaj).getTime() - new Date(a.derniereMaj).getTime())
 
     const contactOpportunitiesCount = architectContacts.reduce((sum, c) => sum + c.opportunities.length, 0)
+    const beforeDedup = allTransformedClients.length
+    const afterDedup = transformedClients.length
+    const duplicatesRemoved = beforeDedup - afterDedup
     console.log(`[GET /api/architects/${id}] ✅ Fetched architect with ${transformedClients.length} total dossiers (${architectClients.length} legacy clients, ${contactOpportunitiesCount} contact opportunities, ${architectOpportunities.length} direct opportunities)`)
+    if (duplicatesRemoved > 0) {
+      console.log(`[GET /api/architects/${id}] 🗑️ Removed ${duplicatesRemoved} duplicate(s) (${beforeDedup} → ${afterDedup})`)
+    }
 
     return NextResponse.json({
       success: true,
