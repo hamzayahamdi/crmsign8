@@ -29,10 +29,16 @@ export function NotificationPermissionDialog({
   const [email, setEmail] = useState(userEmail || '');
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'intro' | 'settings'>('intro');
+  const [emailError, setEmailError] = useState<string>('');
 
   useEffect(() => {
     if (isOpen) {
       loadPreferences();
+      setEmailError('');
+    } else {
+      // Reset state when modal closes
+      setEmailError('');
+      setStep('intro');
     }
   }, [isOpen]);
 
@@ -42,10 +48,59 @@ export function NotificationPermissionDialog({
       if (prefs) {
         setPushEnabled(prefs.pushEnabled);
         setEmailEnabled(prefs.emailEnabled);
-        if (prefs.email) setEmail(prefs.email);
+        if (prefs.email) {
+          setEmail(prefs.email);
+        } else if (userEmail) {
+          setEmail(userEmail);
+        }
+      } else if (userEmail) {
+        setEmail(userEmail);
       }
     } catch (error) {
       console.error('Error loading preferences:', error);
+    }
+  };
+
+  // Email validation function
+  const validateEmail = (emailValue: string): string => {
+    if (!emailValue || !emailValue.trim()) {
+      return 'L\'adresse email est requise';
+    }
+    
+    const trimmedEmail = emailValue.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!emailRegex.test(trimmedEmail)) {
+      return 'Format d\'email invalide';
+    }
+    
+    return '';
+  };
+
+  // Handle email input change with validation
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (emailEnabled && value) {
+      const error = validateEmail(value);
+      setEmailError(error);
+    } else {
+      setEmailError('');
+    }
+  };
+
+  // Handle email enabled toggle
+  const handleEmailEnabledChange = (enabled: boolean) => {
+    setEmailEnabled(enabled);
+    if (enabled) {
+      // Validate email when enabling
+      if (email) {
+        const error = validateEmail(email);
+        setEmailError(error);
+      } else {
+        setEmailError('L\'adresse email est requise');
+      }
+    } else {
+      setEmailError('');
     }
   };
 
@@ -77,23 +132,47 @@ export function NotificationPermissionDialog({
   };
 
   const handleSavePreferences = async () => {
+    // Validate email if email notifications are enabled
+    if (emailEnabled) {
+      const error = validateEmail(email);
+      if (error) {
+        setEmailError(error);
+        toast.error(error);
+        return;
+      }
+    }
+
     setIsLoading(true);
+    setEmailError('');
+    
     try {
-      const success = await notificationService.updatePreferences(userId, {
+      const trimmedEmail = email.trim();
+      await notificationService.updatePreferences(userId, {
         pushEnabled,
         emailEnabled,
-        email: emailEnabled ? email : undefined
+        email: emailEnabled ? trimmedEmail : undefined
       });
 
-      if (success) {
-        toast.success('Préférences enregistrées avec succès! ✅');
-        onClose();
-      } else {
-        toast.error('Erreur lors de l\'enregistrement des préférences');
-      }
-    } catch (error) {
+      toast.success('Préférences enregistrées avec succès! ✅');
+      onClose();
+    } catch (error: any) {
       console.error('Error saving preferences:', error);
-      toast.error('Erreur lors de l\'enregistrement des préférences');
+      
+      // Handle specific error messages from API
+      const errorMessage = error?.message || '';
+      
+      if (error?.response?.status === 409 || errorMessage.toLowerCase().includes('déjà utilisée') || errorMessage.toLowerCase().includes('already')) {
+        const errorMsg = 'Cette adresse email est déjà utilisée';
+        setEmailError(errorMsg);
+        toast.error(errorMsg);
+      } else if (error?.response?.status === 400 || errorMessage.toLowerCase().includes('email') || errorMessage.toLowerCase().includes('invalide')) {
+        const errorMsg = errorMessage || 'Données invalides. Veuillez vérifier votre email.';
+        setEmailError(errorMsg);
+        toast.error(errorMsg);
+      } else {
+        const errorMsg = errorMessage || 'Erreur lors de l\'enregistrement des préférences';
+        toast.error(errorMsg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -242,7 +321,7 @@ export function NotificationPermissionDialog({
                     <Switch
                       id="email-enabled"
                       checked={emailEnabled}
-                      onCheckedChange={setEmailEnabled}
+                      onCheckedChange={handleEmailEnabledChange}
                     />
                   </div>
 
@@ -259,10 +338,19 @@ export function NotificationPermissionDialog({
                         id="email"
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => handleEmailChange(e.target.value)}
+                        onBlur={() => {
+                          if (emailEnabled && email) {
+                            const error = validateEmail(email);
+                            setEmailError(error);
+                          }
+                        }}
                         placeholder="votre@email.com"
-                        className="mt-1.5"
+                        className={`mt-1.5 ${emailError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                       />
+                      {emailError && (
+                        <p className="text-xs text-red-500 mt-1.5">{emailError}</p>
+                      )}
                     </motion.div>
                   )}
                 </div>
@@ -286,9 +374,9 @@ export function NotificationPermissionDialog({
                 </Button>
                 <Button
                   onClick={handleSavePreferences}
-                  disabled={isLoading || (emailEnabled && !email)}
+                  disabled={isLoading || (emailEnabled && (!email || !!emailError))}
                 >
-                  Enregistrer
+                  {isLoading ? 'Enregistrement...' : 'Enregistrer'}
                 </Button>
               </DialogFooter>
             </motion.div>

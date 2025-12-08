@@ -101,7 +101,7 @@ export async function updatePreferences(
   try {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     if (!token) {
-      return false;
+      throw new Error('Authentication token not found');
     }
 
     const response = await fetch('/api/notifications/preferences', {
@@ -116,10 +116,18 @@ export async function updatePreferences(
       }),
     });
 
-    return response.ok;
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error || `Failed to update preferences: ${response.statusText}`;
+      const error = new Error(errorMessage) as any;
+      error.response = { status: response.status };
+      throw error;
+    }
+
+    return true;
   } catch (error) {
     console.error('[Notification] Error updating preferences:', error);
-    return false;
+    throw error;
   }
 }
 

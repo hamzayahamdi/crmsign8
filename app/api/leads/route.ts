@@ -45,34 +45,91 @@ export async function GET(request: NextRequest) {
     const where: any = {}
     const userRole = (user?.role || '').toLowerCase()
 
+    // IMPORTANT: Always exclude converted leads (leads that have been converted to contacts)
+    // This prevents showing leads that should no longer appear in the leads table
+    // We check both:
+    // 1. Leads with convertedToContactId set
+    // 2. Leads that have a corresponding contact (via leadId in contacts table)
+    
+    // Get all leadIds that have been converted to contacts
+    const contactsWithLeadIds = await prisma.contact.findMany({
+      where: {
+        leadId: { not: null }
+      },
+      select: {
+        leadId: true
+      }
+    })
+    
+    const convertedLeadIds = contactsWithLeadIds
+      .map(c => c.leadId)
+      .filter((id): id is string => id !== null)
+    
+    // Build exclusion conditions
+    const exclusionConditions: any[] = [
+      { convertedToContactId: null } // Not marked as converted
+    ]
+    
+    if (convertedLeadIds.length > 0) {
+      // Also exclude leads that have corresponding contacts
+      exclusionConditions.push({
+        id: { notIn: convertedLeadIds }
+      })
+    }
+    
+    // Combine exclusion conditions
+    if (exclusionConditions.length > 1) {
+      where.AND = exclusionConditions
+    } else {
+      Object.assign(where, exclusionConditions[0])
+    }
+    
+    console.log(`[Leads API] Excluding ${convertedLeadIds.length} converted leads from results`);
+
     // Admin, Operator, and Gestionnaire can see ALL leads (no filter applied)
+    // Role-based filters will be combined with exclusion filters using AND
+    let roleFilter: any = null;
+    
     if (userRole === 'admin' || userRole === 'operator' || userRole === 'gestionnaire') {
-      // No filter - they see everything including unassigned leads
-      console.log(`[API] ${userRole} user ${user?.name} - showing ALL leads`)
+      // No role filter - they see everything including unassigned leads
+      console.log(`[API] ${userRole} user ${user?.name} - showing ALL leads (excluding converted)`)
     } else if (userRole === 'architect') {
       // Architects only see leads assigned to them
       const normalizedName = (user?.name || '').trim()
       const tokens = normalizedName.split(/\s+/)
-      where.OR = [
-        { assignePar: { equals: normalizedName, mode: 'insensitive' } },
-        { assignePar: { contains: normalizedName, mode: 'insensitive' } },
-        ...(tokens.length >= 2
-          ? [
-            { assignePar: { contains: tokens[0], mode: 'insensitive' } },
-            { assignePar: { contains: tokens[tokens.length - 1], mode: 'insensitive' } },
-          ]
-          : []),
-      ]
+      roleFilter = {
+        OR: [
+          { assignePar: { equals: normalizedName, mode: 'insensitive' } },
+          { assignePar: { contains: normalizedName, mode: 'insensitive' } },
+          ...(tokens.length >= 2
+            ? [
+              { assignePar: { contains: tokens[0], mode: 'insensitive' } },
+              { assignePar: { contains: tokens[tokens.length - 1], mode: 'insensitive' } },
+            ]
+            : []),
+        ]
+      }
     } else if (userRole === 'commercial') {
       // Commercial can see their own leads
-      where.OR = [
-        { createdBy: user?.name },
-        { commercialMagasin: user?.name }
-      ]
+      roleFilter = {
+        OR: [
+          { createdBy: user?.name },
+          { commercialMagasin: user?.name }
+        ]
+      }
     } else if (userRole === 'magasiner') {
       // Magasiner can only see leads from their assigned magasin
       if (user?.magasin) {
-        where.magasin = user.magasin
+        roleFilter = { magasin: user.magasin }
+      }
+    }
+    
+    // Combine role filter with exclusion filters
+    if (roleFilter) {
+      if (where.AND) {
+        where.AND.push(roleFilter)
+      } else {
+        where.AND = [...exclusionConditions, roleFilter]
       }
     }
 
@@ -92,8 +149,11 @@ export async function GET(request: NextRequest) {
       }
 
       // Combine with existing where conditions
-      if (where.OR) {
-        // If we already have OR conditions (from role-based filtering), we need to combine them with AND
+      // If we have AND conditions (from exclusion filters), add search to AND
+      if (where.AND) {
+        where.AND.push(searchConditions)
+      } else if (where.OR) {
+        // If we have OR conditions (from role-based filtering), combine with AND
         where.AND = [
           { OR: where.OR },
           searchConditions

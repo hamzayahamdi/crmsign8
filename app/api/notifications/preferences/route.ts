@@ -26,12 +26,18 @@ export async function GET(request: NextRequest) {
       LIMIT 1
     `;
 
+    // Get user email from User table
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true }
+    });
+
     if (preferences.length === 0) {
-      // Return default preferences
+      // Return default preferences with user email if available
       return NextResponse.json({
         pushEnabled: false,
         emailEnabled: true,
-        email: undefined
+        email: user?.email || undefined
       });
     }
 
@@ -39,7 +45,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       pushEnabled: pref.push_enabled,
       emailEnabled: pref.email_enabled,
-      email: undefined // Email is stored in User table
+      email: user?.email || undefined
     });
   } catch (error) {
     console.error('[API] Error getting preferences:', error);
@@ -48,6 +54,22 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Email validation function
+function isValidEmail(email: string): boolean {
+  if (!email || typeof email !== 'string') {
+    return false;
+  }
+  
+  const trimmedEmail = email.trim();
+  if (!trimmedEmail) {
+    return false;
+  }
+  
+  // Basic email regex validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(trimmedEmail);
 }
 
 export async function POST(request: NextRequest) {
@@ -62,6 +84,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate email if email notifications are enabled
+    if (emailEnabled) {
+      if (!email || typeof email !== 'string' || !email.trim()) {
+        return NextResponse.json(
+          { error: 'Email address is required when email notifications are enabled' },
+          { status: 400 }
+        );
+      }
+      
+      const trimmedEmail = email.trim();
+      if (!isValidEmail(trimmedEmail)) {
+        return NextResponse.json(
+          { error: 'Invalid email address format' },
+          { status: 400 }
+        );
+      }
+
+      // Update user email
+      await prisma.user.update({
+        where: { id: userId },
+        data: { email: trimmedEmail }
+      });
+    }
+
     // Update or create preferences
     await prisma.$executeRaw`
       INSERT INTO notification_preferences (id, user_id, push_enabled, email_enabled, created_at, updated_at)
@@ -73,17 +119,21 @@ export async function POST(request: NextRequest) {
         updated_at = NOW()
     `;
 
-    // Update user email if provided
-    if (email) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { email }
-      });
-    }
-
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[API] Error updating preferences:', error);
+    
+    // Handle Prisma errors
+    if (error instanceof Error) {
+      // Check for unique constraint violation (email already exists)
+      if (error.message.includes('Unique constraint') || error.message.includes('unique')) {
+        return NextResponse.json(
+          { error: 'This email address is already in use' },
+          { status: 409 }
+        );
+      }
+    }
+    
     return NextResponse.json(
       { error: 'Failed to update notification preferences' },
       { status: 500 }

@@ -49,17 +49,44 @@ export async function GET(request: NextRequest) {
     // 4. Build filter
     const where: any = {};
     
+    // IMPORTANT: Always include converted contacts (tag='converted') regardless of other filters
+    // This ensures converted leads are always visible in the contacts table
+    
     // Auto-filter for architects - they only see their assigned contacts
+    // BUT also include unassigned contacts (architecteAssigne = null) so they can see newly converted contacts
     if (user.role?.toLowerCase() === 'architect') {
-      where.architecteAssigne = user.name;
+      where.OR = [
+        { architecteAssigne: user.name },
+        { architecteAssigne: null }, // Include unassigned contacts
+        { tag: 'converted' }, // ALWAYS show converted contacts
+      ];
+      console.log(`[Contacts API] Architect filter: showing contacts assigned to "${user.name}", unassigned, OR converted`);
+    } else {
+      console.log(`[Contacts API] User role: ${user.role} - showing ALL contacts (including converted)`);
     }
     
     if (search) {
-      where.OR = [
-        { nom: { contains: search, mode: 'insensitive' } },
-        { telephone: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-      ];
+      const searchConditions = {
+        OR: [
+          { nom: { contains: search, mode: 'insensitive' } },
+          { telephone: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ]
+      };
+      
+      // Combine search with existing where conditions
+      if (where.OR) {
+        // If we already have OR conditions (from architect filter), combine with AND
+        where.AND = [
+          { OR: where.OR },
+          searchConditions
+        ];
+        delete where.OR;
+      } else {
+        Object.assign(where, searchConditions);
+      }
+      
+      console.log(`[Contacts API] Search filter: "${search}"`);
     }
 
     if (tag) {
@@ -75,6 +102,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 5. Fetch contacts
+    console.log(`[Contacts API] Fetching contacts with filter:`, JSON.stringify(where, null, 2));
+    
     const [contacts, total] = await Promise.all([
       prisma.contact.findMany({
         where,
@@ -88,6 +117,18 @@ export async function GET(request: NextRequest) {
       }),
       prisma.contact.count({ where }),
     ]);
+
+    console.log(`[Contacts API] Found ${contacts.length} contacts (total: ${total}, limit: ${limit}, offset: ${offset})`);
+    if (contacts.length > 0) {
+      console.log(`[Contacts API] Sample contacts:`, contacts.slice(0, 3).map(c => ({
+        id: c.id,
+        nom: c.nom,
+        telephone: c.telephone,
+        tag: c.tag,
+        architecteAssigne: c.architecteAssigne,
+        leadId: c.leadId
+      })));
+    }
 
     return NextResponse.json({
       data: contacts,

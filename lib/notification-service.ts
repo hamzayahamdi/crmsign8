@@ -58,6 +58,7 @@ export type NotificationOptions = {
   metadata?: any;
   createdBy?: string;
   sendSMS?: boolean; // Enable SMS notification
+  sendEmail?: boolean; // Enable email notification
 };
 
 /**
@@ -77,6 +78,7 @@ export async function sendNotification(options: NotificationOptions) {
     metadata,
     createdBy,
     sendSMS = false,
+    sendEmail = false,
   } = options;
 
   // Only run on server-side
@@ -117,9 +119,87 @@ export async function sendNotification(options: NotificationOptions) {
       }
     }
 
+    // 3. Send email if enabled (server-side only)
+    if (sendEmail) {
+      await sendEmailNotification(userId, title, message);
+    }
+
     return { success: true, notification };
   } catch (error) {
     console.error('[Notification] Error sending notification:', error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Send email notification using Resend (server-side only)
+ * 
+ * Uses the Resend service configured in lib/resend-service.ts
+ * Checks user preferences before sending
+ */
+async function sendEmailNotification(userId: string, title: string, message: string) {
+  // Only run on server-side
+  if (typeof window !== 'undefined') {
+    console.warn('[Email] Email notifications are server-side only');
+    return { success: false, error: 'Email not available on client-side' };
+  }
+
+  try {
+    // Dynamically import Resend service (server-side only)
+    const resendService = await import('./resend-service');
+    
+    if (!resendService.isResendConfigured()) {
+      console.log(`[Email] Resend not configured. Would send email to user ${userId}: ${title} - ${message}`);
+      console.log(`[Email] Add RESEND_API_KEY to .env to enable email notifications`);
+      return { success: true, note: 'Email sending not yet configured' };
+    }
+
+    const db = getPrisma();
+    
+    // Check user preferences
+    const prefs = await db.$queryRaw<Array<{
+      email_enabled: boolean;
+    }>>`
+      SELECT email_enabled
+      FROM notification_preferences
+      WHERE user_id = ${userId}
+      LIMIT 1
+    `;
+
+    const emailEnabled = prefs.length > 0 ? prefs[0].email_enabled : true;
+
+    if (!emailEnabled) {
+      console.log(`[Email] Email notifications disabled for user ${userId}`);
+      return { success: true, note: 'Email notifications disabled by user' };
+    }
+
+    // Get user email
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { email: true, name: true },
+    });
+
+    if (!user?.email) {
+      console.warn(`[Email] No email found for user ${userId}`);
+      return { success: false, error: 'No email address found' };
+    }
+
+    // Send email
+    const result = await resendService.sendNotificationEmail(user.email, {
+      title,
+      message,
+      type: 'notification',
+    });
+    
+    if (result.success) {
+      console.log(`[Email] Sent to ${user.email}: ${result.messageId}`);
+    } else {
+      console.error(`[Email] Failed to send to ${user.email}:`, result.error);
+    }
+
+    return result;
+  } catch (error) {
+    console.error(`[Email] Error sending email to user ${userId}:`, error);
     return { success: false, error };
   }
 }

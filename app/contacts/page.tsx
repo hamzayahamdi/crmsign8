@@ -141,8 +141,11 @@ export default function ContactsPage() {
       }
 
       // Filter by tag (Admin only)
+      // IMPORTANT: Always include converted contacts even if tag filter is set
       if (isAdmin && pipelineFilter !== 'all') {
-        filtered = filtered.filter(c => c.tag === pipelineFilter)
+        filtered = filtered.filter(c => 
+          c.tag === pipelineFilter || c.tag === 'converted' // Always show converted contacts
+        )
       }
 
       setContacts(filtered)

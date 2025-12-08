@@ -89,14 +89,67 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Check if already converted
+    // First check if lead has convertedToContactId set
     if (lead.convertedToContactId) {
-      return NextResponse.json(
-        { error: 'Lead already converted to contact', contactId: lead.convertedToContactId },
-        { status: 400 }
-      );
+      // Verify the contact still exists
+      const existingContact = await prisma.contact.findUnique({
+        where: { id: lead.convertedToContactId }
+      });
+      
+      if (existingContact) {
+        console.log(`[Convert Lead] Lead already converted - returning existing contact:`, {
+          leadId: lead.id,
+          contactId: lead.convertedToContactId,
+          contactNom: existingContact.nom
+        });
+        return NextResponse.json({
+          success: true,
+          contact: existingContact,
+          message: `Lead "${lead.nom}" was already converted to contact "${existingContact.nom}"`,
+          alreadyConverted: true,
+        });
+      } else {
+        // Contact was deleted, allow re-conversion
+        console.log(`[Convert Lead] Lead marked as converted but contact doesn't exist - allowing re-conversion`);
+      }
+    }
+    
+    // Also check if a contact already exists with this leadId (even if convertedToContactId isn't set)
+    const existingContactByLeadId = await prisma.contact.findFirst({
+      where: { leadId: lead.id }
+    });
+    
+    if (existingContactByLeadId) {
+      console.log(`[Convert Lead] Contact already exists for this leadId:`, {
+        leadId: lead.id,
+        contactId: existingContactByLeadId.id,
+        contactNom: existingContactByLeadId.nom
+      });
+      
+      // Update the lead's convertedToContactId field for consistency
+      await prisma.lead.update({
+        where: { id: lead.id },
+        data: { convertedToContactId: existingContactByLeadId.id }
+      });
+      
+      return NextResponse.json({
+        success: true,
+        contact: existingContactByLeadId,
+        message: `Lead "${lead.nom}" was already converted to contact "${existingContactByLeadId.nom}"`,
+        alreadyConverted: true,
+      });
     }
 
     // 6. Create Contact from Lead (no automatic opportunities)
+    console.log(`[Convert Lead] Creating contact from lead:`, {
+      leadId: lead.id,
+      leadNom: lead.nom,
+      leadTelephone: lead.telephone,
+      architecteName: architecteName || 'none',
+      userId: userId,
+      userName: user.name,
+    });
+
     const contact = await prisma.contact.create({
       data: {
         nom: lead.nom,
@@ -113,6 +166,15 @@ export async function POST(request: NextRequest) {
         createdBy: userId,
         convertedBy: userId, // Track who converted the lead
       },
+    });
+
+    console.log(`[Convert Lead] ✅ Contact created successfully:`, {
+      contactId: contact.id,
+      nom: contact.nom,
+      telephone: contact.telephone,
+      tag: contact.tag,
+      architecteAssigne: contact.architecteAssigne,
+      leadId: contact.leadId,
     });
 
     // 7. Create timeline entries for conversion (and optional architect assignment)
@@ -153,6 +215,13 @@ export async function POST(request: NextRequest) {
       timelineEntries.push(architectEvent);
     }
 
+    // 8. Update the lead's convertedToContactId field before deleting
+    // This ensures consistency if the deletion fails
+    await prisma.lead.update({
+      where: { id: lead.id },
+      data: { convertedToContactId: contact.id }
+    });
+
     // 9. Delete the lead from the database (since it's now a contact)
     // Note: We delete the lead notes first due to foreign key constraints
     await prisma.leadNote.deleteMany({
@@ -162,6 +231,8 @@ export async function POST(request: NextRequest) {
     await prisma.lead.delete({
       where: { id: lead.id },
     });
+    
+    console.log(`[Convert Lead] ✅ Lead ${lead.id} deleted from leads table`);
 
     // 10. Create notification for the assigned gestionnaire/architect
     if (finalArchitectId && architecteName) {

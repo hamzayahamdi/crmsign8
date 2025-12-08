@@ -31,12 +31,19 @@ export const ContactService = {
       }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to convert lead');
+    const data = await response.json();
+
+    // Handle "already converted" case - this is actually a success!
+    if (data.alreadyConverted && data.contact) {
+      console.log('[ContactService] Lead already converted, returning existing contact:', data.contact.id);
+      return data; // Return the existing contact
     }
 
-    return response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to convert lead');
+    }
+
+    return data;
   },
 
   /**

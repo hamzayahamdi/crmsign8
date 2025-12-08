@@ -156,10 +156,19 @@ export function LeadsTableWithInfiniteScroll({
       }
       
       toast.dismiss(loadingToast)
-      toast.success(`✨ ${lead.nom} a été converti en contact avec succès !`, {
-        description: "Redirection vers le profil du contact...",
-        duration: 2000,
-      })
+      
+      // Show appropriate message based on whether it was already converted
+      if (data.alreadyConverted) {
+        toast.success(`ℹ️ ${lead.nom} est déjà un contact !`, {
+          description: `Redirection vers le contact "${data.contact.nom}"...`,
+          duration: 3000,
+        })
+      } else {
+        toast.success(`✨ ${lead.nom} a été converti en contact avec succès !`, {
+          description: "Redirection vers le profil du contact...",
+          duration: 2000,
+        })
+      }
       
       // Reset and reload data
       reset()

@@ -825,11 +825,20 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
       // Small delay to ensure loading toast is dismissed
       await new Promise(resolve => setTimeout(resolve, 100))
 
-      console.log('🎉 [Kanban] Showing success toast for:', lead.nom)
-      toast.success(`✨ ${lead.nom} converti en contact !`, {
-        description: "Redirection vers le profil du contact...",
-        duration: 2000,
-      })
+      // Show appropriate message based on whether it was already converted
+      if (data.alreadyConverted) {
+        console.log('ℹ️ [Kanban] Lead was already converted, showing info message')
+        toast.success(`ℹ️ ${lead.nom} est déjà un contact !`, {
+          description: `Redirection vers le contact "${data.contact.nom}"...`,
+          duration: 3000,
+        })
+      } else {
+        console.log('🎉 [Kanban] Showing success toast for:', lead.nom)
+        toast.success(`✨ ${lead.nom} converti en contact !`, {
+          description: "Redirection vers le profil du contact...",
+          duration: 2000,
+        })
+      }
 
       // Remove lead from UI
       console.log('🎬 [Conversion] Removing lead from UI...')
