@@ -43,6 +43,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { CreateOpportunityModal } from '@/components/create-opportunity-modal'
 import { OpportunitiesTable } from '@/components/opportunities-table'
 import { PriseDeBesoinModal } from '@/components/prise-de-besoin-modal'
@@ -176,13 +186,15 @@ export default function ContactPage() {
         return
       }
 
-      const url = `/api/contacts/${contactId}`
+      // Add cache-busting parameter to ensure fresh data
+      const url = `/api/contacts/${contactId}?t=${Date.now()}`
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        cache: 'no-store', // Ensure we don't use cached data
       })
 
       if (!response.ok) {
@@ -197,13 +209,6 @@ export default function ContactPage() {
       }
 
       const data = await response.json()
-      console.log('[Contact Page] Contact data loaded:', {
-        id: data.id,
-        nom: data.nom,
-        tag: data.tag,
-        convertedBy: data.convertedBy,
-        createdBy: data.createdBy,
-      })
       setContact(data)
     } catch (error) {
       console.error('[Contact Detail] Error loading contact:', error)
@@ -753,6 +758,7 @@ interface ContactNote {
   createdAt: string
   createdBy: string
   type?: string
+  source?: string
 }
 
 function OverviewTab({ contact, architectName, architectNameMap, userNameMap, onUpdate }: { contact: ContactWithDetails; architectName: string | null; architectNameMap: Record<string, string>; userNameMap: Record<string, string>; onUpdate: () => void }) {
@@ -766,6 +772,11 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [notesValue, setNotesValue] = useState('')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
+
+  // Delete note confirmation dialog state
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isDeletingNote, setIsDeletingNote] = useState(false)
 
   // Display notes from contact
   const displayNotes = typeof contact.notes === 'string' ? contact.notes : ''
@@ -785,41 +796,79 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
     }
   }, [contact.notes, isEditingNotes, displayNotes])
 
-  // Parse notes from contact
+  // Parse notes from contact (includes merged lead notes from API)
   useEffect(() => {
+    // Reset notes first
+    setNotes([])
+    
     if (contact.notes) {
       try {
         if (typeof contact.notes === 'string') {
-          const parsed = JSON.parse(contact.notes)
-          if (Array.isArray(parsed)) {
-            setNotes(parsed)
-          } else if (parsed.trim()) {
-            // Legacy single note format - convert to array
-            setNotes([{
-              id: `legacy-${Date.now()}`,
-              content: parsed,
-              createdAt: toISOString(contact.createdAt),
-              createdBy: contact.createdBy,
-              type: 'note'
-            }])
+          // Try to parse as JSON first
+          try {
+            const parsed = JSON.parse(contact.notes)
+            
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              // Valid array of notes (may include lead notes)
+              // Deduplicate on frontend as well (by content + author + date)
+              const uniqueNotes = parsed.filter((note: ContactNote, index: number, self: ContactNote[]) => {
+                const normalizedContent = note.content?.trim().toLowerCase() || '';
+                const dateKey = new Date(note.createdAt).setSeconds(0, 0);
+                const uniqueKey = `${normalizedContent}|${note.createdBy}|${dateKey}`;
+                return index === self.findIndex((n: ContactNote) => {
+                  const nContent = n.content?.trim().toLowerCase() || '';
+                  const nDateKey = new Date(n.createdAt).setSeconds(0, 0);
+                  return `${nContent}|${n.createdBy}|${nDateKey}` === uniqueKey;
+                });
+              });
+              setNotes(uniqueNotes as ContactNote[])
+            } else if (parsed && typeof parsed === 'string' && parsed.trim()) {
+              // Legacy single note format - convert to array
+              setNotes([{
+                id: `legacy-${Date.now()}`,
+                content: parsed,
+                createdAt: toISOString(contact.createdAt),
+                createdBy: contact.createdBy || 'unknown',
+                type: 'note'
+              }])
+            }
+          } catch (parseError) {
+            // Not valid JSON, treat as plain string
+            if (contact.notes.trim()) {
+              setNotes([{
+                id: `legacy-${Date.now()}`,
+                content: contact.notes,
+                createdAt: toISOString(contact.createdAt),
+                createdBy: contact.createdBy || 'unknown',
+                type: 'note'
+              }])
+            }
           }
         } else if (Array.isArray(contact.notes)) {
-          setNotes(contact.notes)
+          // Already an array (from API merge)
+          const notesArray = contact.notes as ContactNote[]
+          if (notesArray.length > 0) {
+            setNotes(notesArray)
+          }
         }
       } catch (e) {
+        console.error('Error parsing contact notes:', e)
         // If it's a plain string, convert to array
         if (typeof contact.notes === 'string' && contact.notes.trim()) {
           setNotes([{
             id: `legacy-${Date.now()}`,
             content: contact.notes,
             createdAt: toISOString(contact.createdAt),
-            createdBy: contact.createdBy,
+            createdBy: contact.createdBy || 'unknown',
             type: 'note'
           }])
         }
       }
+    } else {
+      // No notes in contact.notes
+      setNotes([])
     }
-  }, [contact.notes, contact.createdAt, contact.createdBy])
+  }, [contact.notes, contact.createdAt, contact.createdBy, contact.leadId])
 
   // Check if this contact was converted from a lead
   const isConverted = contact.tag === 'converted' || contact.leadId
@@ -869,13 +918,33 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
     }
   }
 
-  const handleDeleteNote = async (noteId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette note ?')) return
+  const handleDeleteNoteClick = (noteId: string) => {
+    // Find the note to check if it's a lead note
+    const note = notes.find(n => n.id === noteId)
+    
+    // Prevent deletion of lead notes (historical records)
+    if (note && (note.type === 'lead_note' || note.source === 'lead')) {
+      toast.error('Impossible de supprimer une note du lead (historique)')
+      return
+    }
 
+    // Open confirmation dialog
+    setNoteToDelete(noteId)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDeleteNote = async () => {
+    if (!noteToDelete) return
+
+    setIsDeletingNote(true)
+    
+    // Store the note ID to remove from UI immediately
+    const noteIdToDelete = noteToDelete
+    
     try {
       const token = localStorage.getItem('token')
 
-      const response = await fetch(`/api/contacts/${contact.id}/notes?noteId=${noteId}`, {
+      const response = await fetch(`/api/contacts/${contact.id}/notes?noteId=${noteIdToDelete}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -883,14 +952,54 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
       })
 
       if (!response.ok) {
-        throw new Error('Failed to delete note')
+        const errorData = await response.json().catch(() => ({}))
+        
+        // Handle specific error cases
+        if (response.status === 404) {
+          // Note not found - might be a legacy note, remove from UI anyway
+          console.warn('Note not found in database, removing from UI:', noteIdToDelete)
+          
+          // Immediately remove from UI state
+          setNotes(prevNotes => prevNotes.filter(n => n.id !== noteIdToDelete))
+          
+          setIsDeleteDialogOpen(false)
+          setNoteToDelete(null)
+          
+          // Refresh to sync with server
+          await onUpdate()
+          toast.success('Note supprimée de l\'affichage')
+          return
+        }
+        
+        throw new Error(errorData.error || 'Failed to delete note')
       }
 
+      const responseData = await response.json().catch(() => ({}))
+
+      // Immediately remove the note from UI state for instant feedback
+      setNotes(prevNotes => {
+        const filtered = prevNotes.filter(n => n.id !== noteIdToDelete)
+        console.log(`[Delete Note] Removed note ${noteIdToDelete} from UI. Remaining notes: ${filtered.length}`)
+        return filtered
+      })
+      
+      // Close dialog and reset state
+      setIsDeleteDialogOpen(false)
+      setNoteToDelete(null)
+      
+      // Refresh notes from server to ensure consistency
       await onUpdate()
-      toast.success('Note supprimée avec succès')
+      
+      toast.success(responseData.message || 'Note supprimée avec succès')
     } catch (error) {
       console.error('Error deleting note:', error)
-      toast.error('Erreur lors de la suppression de la note')
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la suppression de la note'
+      toast.error(errorMessage)
+      
+      // On error, refresh to get the correct state from server
+      await onUpdate()
+    } finally {
+      setIsDeletingNote(false)
     }
   }
 
@@ -1114,14 +1223,14 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
           transition={{ delay: 0.1 }}
           className="glass rounded-xl border border-slate-600/40 p-4 shadow-lg shadow-slate-900/20"
         >
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-600/10 flex items-center justify-center border border-amber-500/30">
-                <MessageSquare className="w-4 h-4 text-amber-400" />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
               </div>
               Notes & Observations
               {notes.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-normal bg-amber-500/15 text-amber-300 border border-amber-500/25">
                   {notes.length}
                 </span>
               )}
@@ -1130,9 +1239,9 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               <Button
                 onClick={() => setIsAddingNote(true)}
                 size="sm"
-                className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white h-7 px-3 text-xs shadow-lg shadow-amber-500/20"
+                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 h-7 px-2.5 text-[11px] font-normal"
               >
-                <Plus className="w-3.5 h-3.5 mr-1" />
+                <Plus className="w-3 h-3 mr-1" />
                 Ajouter
               </Button>
             )}
@@ -1188,45 +1297,65 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
             </motion.div>
           )}
 
-          {/* Notes List */}
+          {/* Notes List - Enhanced, Clean, Readable */}
           {notes.length > 0 ? (
-            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-              {notes.map((note, index) => (
-                <motion.div
-                  key={note.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="group relative p-3 rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 transition-all backdrop-blur-sm"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap mb-2">
-                        {note.content}
-                      </p>
-                      <div className="flex items-center gap-1.5 text-[10px]">
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20">
-                          <User className="w-2.5 h-2.5 text-blue-400" />
-                          <span className="font-medium text-blue-300">
+            <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1.5">
+              {notes.map((note, index) => {
+                // Use note ID as primary key, fallback to content+date+index for uniqueness
+                const uniqueKey = note.id || `note-${note.content.substring(0, 30)}-${note.createdAt}-${index}`;
+                const isLeadNote = note.type === 'lead_note' || note.source === 'lead';
+                
+                return (
+                  <motion.div
+                    key={uniqueKey}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.015 }}
+                    className={`group relative pl-3.5 pr-3 py-3 rounded-lg border-l-2 transition-all ${
+                      isLeadNote
+                        ? 'bg-slate-800/30 border-l-purple-500/40 hover:bg-slate-800/50 hover:border-l-purple-500/60'
+                        : 'bg-slate-800/20 border-l-slate-600/30 hover:bg-slate-800/40 hover:border-l-slate-500/50'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0 space-y-2">
+                        {/* Note Content - Highlighted and Readable */}
+                        <div className="relative">
+                          <p className="text-xs text-slate-100 leading-relaxed whitespace-pre-wrap font-normal">
+                            {note.content}
+                          </p>
+                        </div>
+                        
+                        {/* Note Metadata - Clean and Subtle */}
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 flex-wrap pt-1">
+                          {isLeadNote && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-500/8 border border-purple-500/15 text-purple-300/80 font-normal">
+                              <History className="w-2.5 h-2.5" />
+                              Lead
+                            </span>
+                          )}
+                          <span className="font-normal text-slate-400">
                             {userNameMap[note.createdBy] || note.createdBy}
                           </span>
-                        </div>
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-700/50 border border-slate-600/50">
-                          <Clock className="w-2.5 h-2.5 text-slate-400" />
-                          <span className="text-slate-400">{formatNoteDate(note.createdAt)}</span>
+                          <span className="text-slate-600">·</span>
+                          <span className="font-normal text-slate-500">{formatNoteDate(note.createdAt)}</span>
                         </div>
                       </div>
+                      
+                      {/* Delete Button - Only for non-lead notes */}
+                      {!isLeadNote && (
+                        <button
+                          onClick={() => handleDeleteNoteClick(note.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-red-500/10 text-red-400/70 hover:text-red-400 flex-shrink-0"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
-                    <button
-                      onClick={() => handleDeleteNote(note.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-500/20 text-red-400 hover:text-red-300"
-                      title="Supprimer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           ) : (
             <div className="p-6 text-center rounded-lg bg-gradient-to-br from-slate-800/30 to-slate-900/20 border border-dashed border-slate-700/50">
@@ -1328,6 +1457,59 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
         {/* Quick Actions */}
 
       </div>
+
+      {/* Delete Note Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="glass border-slate-600/30">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-400" />
+              </div>
+              <AlertDialogTitle className="text-lg font-semibold text-white">
+                Supprimer la note
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-slate-300 text-sm leading-relaxed">
+              Êtes-vous sûr de vouloir supprimer cette note ?
+              <br />
+              <br />
+              <span className="text-red-400 font-medium">
+                Cette action est irréversible.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
+            <AlertDialogCancel
+              disabled={isDeletingNote}
+              onClick={() => {
+                setIsDeleteDialogOpen(false)
+                setNoteToDelete(null)
+              }}
+              className="bg-slate-700/50 hover:bg-slate-700 text-white border-slate-600/30"
+            >
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleConfirmDeleteNote()
+              }}
+              disabled={isDeletingNote}
+              className="bg-red-500 hover:bg-red-600 text-white border-0"
+            >
+              {isDeletingNote ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                'Supprimer'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

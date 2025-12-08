@@ -215,15 +215,47 @@ export async function POST(request: NextRequest) {
       timelineEntries.push(architectEvent);
     }
 
-    // 8. Update the lead's convertedToContactId field before deleting
+    // 8. Copy all lead notes to unified Note table BEFORE deleting lead
+    // This preserves full history and traceability
+    try {
+      const leadNotes = await prisma.leadNote.findMany({
+        where: { leadId: lead.id },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      console.log(`[Convert Lead] Copying ${leadNotes.length} lead notes to unified Note table...`);
+
+      for (const leadNote of leadNotes) {
+        // Create note linked to the contact (preserving lead history)
+        await prisma.note.create({
+          data: {
+            content: leadNote.content,
+            author: leadNote.author,
+            entityType: 'contact',
+            entityId: contact.id,
+            sourceType: 'lead', // Original source
+            sourceId: lead.id, // Original lead ID
+            createdAt: leadNote.createdAt, // Preserve original date
+          },
+        });
+      }
+
+      console.log(`[Convert Lead] ✅ Copied ${leadNotes.length} notes to contact ${contact.id}`);
+    } catch (noteError) {
+      console.error(`[Convert Lead] ⚠️ Error copying lead notes:`, noteError);
+      // Continue even if note copying fails - don't block conversion
+    }
+
+    // 9. Update the lead's convertedToContactId field before deleting
     // This ensures consistency if the deletion fails
     await prisma.lead.update({
       where: { id: lead.id },
       data: { convertedToContactId: contact.id }
     });
 
-    // 9. Delete the lead from the database (since it's now a contact)
+    // 10. Delete the lead from the database (since it's now a contact)
     // Note: We delete the lead notes first due to foreign key constraints
+    // (They're already copied to unified Note table above)
     await prisma.leadNote.deleteMany({
       where: { leadId: lead.id },
     });
@@ -234,7 +266,7 @@ export async function POST(request: NextRequest) {
     
     console.log(`[Convert Lead] ✅ Lead ${lead.id} deleted from leads table`);
 
-    // 10. Create notification for the assigned gestionnaire/architect
+    // 11. Create notification for the assigned gestionnaire/architect
     if (finalArchitectId && architecteName) {
       // Send notification to the person who was assigned the lead
       await prisma.notification.create({

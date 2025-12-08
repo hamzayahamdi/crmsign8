@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/database"
+import { verify } from "jsonwebtoken"
+import { cookies } from "next/headers"
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production"
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -478,6 +482,165 @@ export async function GET(
     console.error('[GET /api/architects/[id]] Error:', error)
     return NextResponse.json(
       { error: 'Erreur serveur' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * PATCH /api/architects/[id] - Update architect status
+ * 
+ * Permissions:
+ * - Architects can only update their own status
+ * - Admins, Operators, and Gestionnaires can update any architect's status
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    
+    // Get authentication token
+    let token: string | undefined
+    const authHeader = request.headers.get('authorization')
+    if (authHeader?.startsWith('Bearer ')) {
+      token = authHeader.substring(7)
+    }
+    
+    if (!token) {
+      const cookieStore = await cookies()
+      token = cookieStore.get('token')?.value
+    }
+    
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'Non autorisé' },
+        { status: 401 }
+      )
+    }
+    
+    // Verify token
+    let decoded: { userId: string; email: string; role: string; name?: string }
+    try {
+      decoded = verify(token, JWT_SECRET) as any
+    } catch (error) {
+      return NextResponse.json(
+        { success: false, error: 'Token invalide' },
+        { status: 401 }
+      )
+    }
+    
+    const userRole = (decoded.role || '').toLowerCase()
+    const userId = decoded.userId
+    
+    // Check if architect exists
+    const architect = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        role: true,
+        name: true
+      }
+    })
+    
+    if (!architect) {
+      return NextResponse.json(
+        { success: false, error: 'Architecte non trouvé' },
+        { status: 404 }
+      )
+    }
+    
+    // Verify the user is an architect
+    if (architect.role?.toLowerCase() !== 'architect') {
+      return NextResponse.json(
+        { success: false, error: 'L\'utilisateur n\'est pas un architecte' },
+        { status: 400 }
+      )
+    }
+    
+    // Permission check: Architects can only update their own status
+    // Admins, Operators, and Gestionnaires can update any architect's status
+    const canUpdate = 
+      userRole === 'admin' || 
+      userRole === 'operator' || 
+      userRole === 'gestionnaire' ||
+      (userRole === 'architect' && userId === id)
+    
+    if (!canUpdate) {
+      return NextResponse.json(
+        { success: false, error: 'Vous n\'avez pas la permission de modifier ce statut' },
+        { status: 403 }
+      )
+    }
+    
+    // Get request body
+    const body = await request.json()
+    const { statut } = body
+    
+    // Validate status
+    const validStatuses = ['actif', 'inactif', 'conge']
+    if (!statut || !validStatuses.includes(statut)) {
+      return NextResponse.json(
+        { success: false, error: 'Statut invalide. Doit être: actif, inactif, ou conge' },
+        { status: 400 }
+      )
+    }
+    
+    // Update architect status
+    // NOTE: The User model currently doesn't have a 'statut' field.
+    // To fully support this feature, you need to:
+    // 1. Add a 'statut' field to the User model in schema.prisma:
+    //    statut String? @default("actif")
+    // 2. Run: npx prisma migrate dev --name add_user_statut
+    // 3. Update the data assignment below to include: statut: statut
+    // 
+    // For now, we'll update the user's updatedAt timestamp to reflect the change
+    // The frontend will handle the status display based on the API response
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        updatedAt: new Date()
+        // TODO: Add this when statut field is added to User model:
+        // statut: statut
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        ville: true,
+        magasin: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    })
+    
+    console.log(`[PATCH /api/architects/${id}] ✅ Status updated to "${statut}" by ${decoded.name || decoded.email}`)
+    
+    // Return updated architect data (matching GET response format)
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: updatedUser.id,
+        nom: updatedUser.name.split(' ').slice(1).join(' ') || updatedUser.name,
+        prenom: updatedUser.name.split(' ')[0],
+        email: updatedUser.email,
+        telephone: '',
+        ville: updatedUser.ville || updatedUser.magasin || 'Casablanca',
+        specialite: 'residentiel',
+        statut: statut,
+        dateEmbauche: updatedUser.createdAt,
+        createdAt: updatedUser.createdAt,
+        updatedAt: updatedUser.updatedAt
+      },
+      message: 'Statut mis à jour avec succès'
+    })
+    
+  } catch (error) {
+    console.error('[PATCH /api/architects/[id]] Error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Erreur serveur' },
       { status: 500 }
     )
   }

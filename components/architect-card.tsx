@@ -1,19 +1,36 @@
 "use client"
 
+import { useState } from "react"
 import { motion } from "framer-motion"
-import { User, MapPin, Briefcase, FolderOpen, Eye } from "lucide-react"
+import { User, MapPin, Briefcase, FolderOpen, Eye, Settings2 } from "lucide-react"
 import { Button } from "./ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
-import type { Architect } from "@/types/architect"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import type { Architect, ArchitectStatus } from "@/types/architect"
 import { cn } from "@/lib/utils"
 
 interface ArchitectCardProps {
   architect: Architect
   onViewDetails: (architect: Architect) => void
   index?: number
+  currentUserId?: string
+  isArchitect?: boolean
+  onStatusUpdate?: (newStatus: ArchitectStatus) => Promise<void>
 }
 
-export function ArchitectCard({ architect, onViewDetails, index = 0 }: ArchitectCardProps) {
+export function ArchitectCard({ 
+  architect, 
+  onViewDetails, 
+  index = 0,
+  currentUserId,
+  isArchitect = false,
+  onStatusUpdate
+}: ArchitectCardProps) {
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+  
+  // Check if this is the current user's own profile
+  const isOwnProfile = isArchitect && currentUserId === architect.id
+  
   const statusConfig = {
     actif: {
       label: "Actif",
@@ -26,6 +43,19 @@ export function ArchitectCard({ architect, onViewDetails, index = 0 }: Architect
     conge: {
       label: "En congé",
       color: "bg-orange-500/20 text-orange-400 border-orange-500/30"
+    }
+  }
+  
+  const handleStatusChange = async (newStatus: ArchitectStatus) => {
+    if (!onStatusUpdate || isUpdatingStatus) return
+    
+    try {
+      setIsUpdatingStatus(true)
+      await onStatusUpdate(newStatus)
+    } catch (error) {
+      console.error("Error updating status:", error)
+    } finally {
+      setIsUpdatingStatus(false)
     }
   }
 
@@ -63,9 +93,50 @@ export function ArchitectCard({ architect, onViewDetails, index = 0 }: Architect
         </Avatar>
         
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-bold text-white mb-1 truncate group-hover:text-primary transition-colors">
-            {architect.prenom} {architect.nom}
-          </h3>
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 className="text-sm font-bold text-white truncate group-hover:text-primary transition-colors">
+              {architect.prenom} {architect.nom}
+            </h3>
+            {isOwnProfile && (
+              <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                <Select
+                  value={architect.statut}
+                  onValueChange={handleStatusChange}
+                  disabled={isUpdatingStatus}
+                >
+                  <SelectTrigger 
+                    className={cn(
+                      "h-7 w-auto min-w-[110px] bg-primary/20 border-primary/40 text-white rounded-md text-[10px] px-2.5 py-1 hover:bg-primary/30 transition-colors",
+                      isUpdatingStatus && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <Settings2 className="w-3 h-3 mr-1.5" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-600" onClick={(e) => e.stopPropagation()}>
+                    <SelectItem value="actif" className="text-white text-xs cursor-pointer hover:bg-slate-700">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                        Actif
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="inactif" className="text-white text-xs cursor-pointer hover:bg-slate-700">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                        Inactif
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="conge" className="text-white text-xs cursor-pointer hover:bg-slate-700">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-orange-400"></span>
+                        En congé
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-1.5 mb-1 flex-wrap">
             <span className={cn(
               "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border",

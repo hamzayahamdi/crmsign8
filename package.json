@@ -44,10 +44,7 @@
     "import:november-leads": "tsx scripts/import-tiktok-leads-november.ts",
     "import:november-csv": "tsx scripts/import-tiktok-leads-november-csv.ts",
     "import:qualified-oct-nov": "tsx scripts/import-qualified-leads-oct-nov.ts",
-    "test:db-connection": "node scripts/test-db-connection.js",
-    "cleanup:converted-leads": "tsx scripts/check-and-cleanup-converted-leads.ts",
-    "check:converted-contacts": "tsx scripts/check-converted-contacts.ts",
-    "find:contact": "tsx scripts/find-contact-by-lead.ts"
+    "test:db-connection": "node scripts/test-db-connection.js"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",

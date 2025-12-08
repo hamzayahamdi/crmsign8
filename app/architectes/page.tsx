@@ -14,12 +14,15 @@ import { ArchitectTable } from "@/components/architect-table"
 import { AddArchitectModal } from "@/components/add-architect-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function ArchitectesPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [architects, setArchitects] = useState<Architect[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
@@ -31,6 +34,9 @@ export default function ArchitectesPage() {
   })
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Check if current user is an architect
+  const isArchitect = user?.role?.toLowerCase() === "architect"
 
   // Fetch architects from API
   useEffect(() => {
@@ -367,49 +373,61 @@ export default function ArchitectesPage() {
                     {/* Statut Filter */}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-medium text-white uppercase tracking-wider">Statut</label>
-                      <select
+                      <Select
                         value={filters.statut}
-                        onChange={(e) => setFilters(f => ({ ...f, statut: e.target.value as any }))}
-                        className="h-8 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white text-xs focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        onValueChange={(value) => setFilters(f => ({ ...f, statut: value as any }))}
                       >
-                        <option value="all">Tous les statuts</option>
-                        <option value="actif">Actif</option>
-                        <option value="inactif">Inactif</option>
-                        <option value="conge">En congé</option>
-                      </select>
+                        <SelectTrigger className="h-8 w-full bg-slate-700/80 border-slate-500/60 text-white text-xs">
+                          <SelectValue placeholder="Tous les statuts" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-600">
+                          <SelectItem value="all" className="text-white text-xs">Tous les statuts</SelectItem>
+                          <SelectItem value="actif" className="text-white text-xs">Actif</SelectItem>
+                          <SelectItem value="inactif" className="text-white text-xs">Inactif</SelectItem>
+                          <SelectItem value="conge" className="text-white text-xs">En congé</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Ville Filter */}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-medium text-white uppercase tracking-wider">Ville</label>
-                      <select
+                      <Select
                         value={filters.ville}
-                        onChange={(e) => setFilters(f => ({ ...f, ville: e.target.value }))}
-                        className="h-8 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white text-xs focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        onValueChange={(value) => setFilters(f => ({ ...f, ville: value }))}
                       >
-                        <option value="all">Toutes les villes</option>
-                        {uniqueVilles.map(v => (
-                          <option key={v} value={v}>{v}</option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="h-8 w-full bg-slate-700/80 border-slate-500/60 text-white text-xs">
+                          <SelectValue placeholder="Toutes les villes" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-600">
+                          <SelectItem value="all" className="text-white text-xs">Toutes les villes</SelectItem>
+                          {uniqueVilles.map(v => (
+                            <SelectItem key={v} value={v} className="text-white text-xs">{v}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Specialite Filter */}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-medium text-white uppercase tracking-wider">Spécialité</label>
-                      <select
+                      <Select
                         value={filters.specialite}
-                        onChange={(e) => setFilters(f => ({ ...f, specialite: e.target.value as any }))}
-                        className="h-8 w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white text-xs focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20"
+                        onValueChange={(value) => setFilters(f => ({ ...f, specialite: value as any }))}
                       >
-                        <option value="all">Toutes les spécialités</option>
-                        <option value="residentiel">Résidentiel</option>
-                        <option value="commercial">Commercial</option>
-                        <option value="industriel">Industriel</option>
-                        <option value="renovation">Rénovation</option>
-                        <option value="luxe">Luxe</option>
-                        <option value="mixte">Mixte</option>
-                      </select>
+                        <SelectTrigger className="h-8 w-full bg-slate-700/80 border-slate-500/60 text-white text-xs">
+                          <SelectValue placeholder="Toutes les spécialités" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-600">
+                          <SelectItem value="all" className="text-white text-xs">Toutes les spécialités</SelectItem>
+                          <SelectItem value="residentiel" className="text-white text-xs">Résidentiel</SelectItem>
+                          <SelectItem value="commercial" className="text-white text-xs">Commercial</SelectItem>
+                          <SelectItem value="industriel" className="text-white text-xs">Industriel</SelectItem>
+                          <SelectItem value="renovation" className="text-white text-xs">Rénovation</SelectItem>
+                          <SelectItem value="luxe" className="text-white text-xs">Luxe</SelectItem>
+                          <SelectItem value="mixte" className="text-white text-xs">Mixte</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -444,6 +462,38 @@ export default function ArchitectesPage() {
                         architect={architect}
                         onViewDetails={handleViewDetails}
                         index={index}
+                        currentUserId={user?.id}
+                        isArchitect={isArchitect}
+                        onStatusUpdate={async (newStatus) => {
+                          try {
+                            const token = localStorage.getItem("token")
+                            const response = await fetch(`/api/architects/${architect.id}`, {
+                              method: "PATCH",
+                              headers: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${token}`,
+                              },
+                              body: JSON.stringify({ statut: newStatus }),
+                            })
+                            
+                            if (!response.ok) {
+                              const error = await response.json()
+                              throw new Error(error.error || "Failed to update status")
+                            }
+                            
+                            const result = await response.json()
+                            if (result.success) {
+                              // Update local state
+                              setArchitects(prev => prev.map(a => 
+                                a.id === architect.id ? { ...a, statut: newStatus } : a
+                              ))
+                              toast.success("Statut mis à jour avec succès")
+                            }
+                          } catch (error: any) {
+                            console.error("Error updating architect status:", error)
+                            toast.error(error.message || "Erreur lors de la mise à jour du statut")
+                          }
+                        }}
                       />
                     ))}
                   </div>

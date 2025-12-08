@@ -251,6 +251,130 @@ export async function GET(
       (contact as any).payments = [];
     }
 
+    // Fetch all notes from unified Note table (includes lead notes if converted)
+    try {
+      // Get all notes for this contact from unified Note table
+      const unifiedNotes = await prisma.note.findMany({
+        where: {
+          entityType: 'contact',
+          entityId: contactId,
+        },
+        orderBy: { createdAt: 'desc' }, // Newest first
+      });
+
+      // Notes fetched from unified table
+
+      // Format notes for frontend
+      const formattedNotes = unifiedNotes.map((note) => ({
+        id: note.id,
+        content: note.content,
+        createdAt: note.createdAt.toISOString(),
+        createdBy: note.author,
+        type: note.sourceType === 'lead' ? 'lead_note' : 'note',
+        source: note.sourceType || 'contact', // 'lead' if originally from lead, 'contact' otherwise
+        sourceId: note.sourceId, // Original lead/contact ID
+      }));
+
+      // Also check for legacy notes in contact.notes field (for backward compatibility)
+      let legacyNotes: any[] = [];
+      if ((contact as any).notes) {
+        try {
+          if (typeof (contact as any).notes === 'string') {
+            const parsed = JSON.parse((contact as any).notes);
+            if (Array.isArray(parsed)) {
+              legacyNotes = parsed.filter((n: any) => {
+                // Only include notes that aren't already in unified table
+                return !formattedNotes.some((fn: any) => 
+                  fn.content === n.content && 
+                  new Date(fn.createdAt).getTime() === new Date(n.createdAt || (contact as any).createdAt).getTime()
+                );
+              });
+            } else if (parsed && typeof parsed === 'string' && parsed.trim()) {
+              // Legacy single note format
+              const exists = formattedNotes.some((fn: any) => fn.content === parsed);
+              if (!exists) {
+                legacyNotes = [{
+                  id: `legacy-contact-${Date.now()}`,
+                  content: parsed,
+                  createdAt: (contact as any).createdAt,
+                  createdBy: (contact as any).createdBy || 'unknown',
+                  type: 'note',
+                  source: 'contact'
+                }];
+              }
+            }
+          } else if (Array.isArray((contact as any).notes)) {
+            legacyNotes = (contact as any).notes.filter((n: any) => {
+              return !formattedNotes.some((fn: any) => 
+                fn.content === n.content && 
+                new Date(fn.createdAt).getTime() === new Date(n.createdAt || (contact as any).createdAt).getTime()
+              );
+            });
+          }
+        } catch (e) {
+          // Plain string
+          if (typeof (contact as any).notes === 'string' && (contact as any).notes.trim()) {
+            const exists = formattedNotes.some((fn: any) => fn.content === (contact as any).notes);
+            if (!exists) {
+              legacyNotes = [{
+                id: `legacy-contact-${Date.now()}`,
+                content: (contact as any).notes,
+                createdAt: (contact as any).createdAt,
+                createdBy: (contact as any).createdBy || 'unknown',
+                type: 'note',
+                source: 'contact'
+              }];
+            }
+          }
+        }
+      }
+
+      // Merge unified notes with legacy notes (unified notes first, then legacy)
+      const allNotes = [...formattedNotes, ...legacyNotes];
+      
+      // Remove duplicates using a Map for O(n) performance
+      // Key: normalized content + author + date (rounded to nearest minute)
+      const uniqueNotesMap = new Map<string, typeof formattedNotes[0]>();
+      
+      for (const note of allNotes) {
+        const normalizedContent = note.content.trim().toLowerCase();
+        const dateKey = new Date(note.createdAt).setSeconds(0, 0); // Round to nearest minute
+        const uniqueKey = `${normalizedContent}|${note.createdBy}|${dateKey}`;
+        
+        // Only add if we haven't seen this exact note before
+        if (!uniqueNotesMap.has(uniqueKey)) {
+          uniqueNotesMap.set(uniqueKey, note);
+        }
+      }
+      
+      // Convert map back to array and sort by creation date (newest first)
+      const uniqueNotes = Array.from(uniqueNotesMap.values()).sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA; // Newest first
+      });
+
+      // Set notes for frontend
+      (contact as any).notes = JSON.stringify(uniqueNotes);
+      
+      // Notes loaded and deduplicated
+    } catch (e) {
+      console.error('Error loading notes from unified table:', e);
+      // Fallback to legacy notes if unified table fails
+      if ((contact as any).notes) {
+        try {
+          const parsed = typeof (contact as any).notes === 'string' 
+            ? JSON.parse((contact as any).notes) 
+            : (contact as any).notes;
+          (contact as any).notes = Array.isArray(parsed) 
+            ? JSON.stringify(parsed) 
+            : (contact as any).notes;
+        } catch (parseError) {
+          // Keep as is
+        }
+      }
+    }
+
     console.log('[GET /api/contacts/[id]] Contact loaded successfully');
     return NextResponse.json(contact);
 
