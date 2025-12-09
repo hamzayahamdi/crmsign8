@@ -417,24 +417,24 @@ export default function ContactPage() {
 
           {/* Main Content */}
           <div className="flex-1 overflow-auto">
-            <div className="w-full px-4 md:px-6 xl:px-8 py-3 space-y-3">
+            <div className="w-full px-3 md:px-4 py-2 space-y-1.5">
               {/* Back Button */}
               <button
                 onClick={() => router.back()}
-                className="flex items-center gap-1.5 text-primary hover:text-primary/80 transition-colors text-xs"
+                className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors text-[10px] font-light"
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span className="font-medium">Retour aux contacts</span>
+                <ArrowLeft className="w-3 h-3" />
+                <span className="font-light">Retour</span>
               </button>
 
               {/* HEADER SECTION */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-2.5"
+                className="space-y-1.5"
               >
                 {/* Main Header Card */}
-                <div className={`relative glass rounded-xl border border-slate-600/40 p-4 shadow-[0_18px_48px_-28px_rgba(59,130,246,0.25)] ${contact.status === 'perdu' ? 'opacity-75 grayscale-[0.5]' : ''}`}>
+                <div className={`relative glass rounded-lg border border-slate-600/40 p-2.5 shadow-[0_18px_48px_-28px_rgba(59,130,246,0.25)] ${contact.status === 'perdu' ? 'opacity-75 grayscale-[0.5]' : ''}`}>
                   {/* Celebration Effect */}
                   <AnimatePresence>
                     {showConversionCelebration && (
@@ -472,45 +472,45 @@ export default function ContactPage() {
                       </>
                     )}
                   </AnimatePresence>
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex items-start gap-3 flex-1 min-w-[280px]">
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <div className="flex items-start gap-2 flex-1 min-w-[200px]">
                       {/* Avatar */}
-                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xs font-light shrink-0">
                         {contact.nom.charAt(0).toUpperCase()}
                       </div>
 
                       {/* Contact Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <h1 className="text-lg font-bold text-white">{contact.nom}</h1>
-                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${statusBadge.className}`}>
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          <h1 className="text-sm font-light text-white">{contact.nom}</h1>
+                          <span className={`inline-flex items-center px-1 py-0.5 rounded text-[9px] font-light border ${statusBadge.className}`}>
                             {statusBadge.label}
                           </span>
                           {contact.architecteAssigne && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border bg-purple-500/10 text-purple-300 border-purple-500/30">
-                              <Briefcase className="w-2.5 h-2.5" />
+                            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-light border bg-purple-500/10 text-purple-300 border-purple-500/30">
+                              <Briefcase className="w-2 h-2" />
                               {resolvedArchitectName || contact.architecteAssigne}
                             </span>
                           )}
                         </div>
 
                         {/* Quick Info */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
                           {contact.telephone && (
-                            <div className="flex items-center gap-1.5 text-[11px]">
-                              <Phone className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                            <div className="flex items-center gap-1 text-[10px] font-light">
+                              <Phone className="w-2.5 h-2.5 text-blue-400 shrink-0" />
                               <span className="text-slate-300">{contact.telephone}</span>
                             </div>
                           )}
                           {contact.ville && (
-                            <div className="flex items-center gap-1.5 text-[11px]">
-                              <MapPin className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                            <div className="flex items-center gap-1 text-[10px] font-light">
+                              <MapPin className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
                               <span className="text-slate-300">{contact.ville}</span>
                             </div>
                           )}
                           {contact.email && (
-                            <div className="flex items-center gap-1.5 text-[11px] min-w-0">
-                              <Mail className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                            <div className="flex items-center gap-1 text-[10px] font-light min-w-0">
+                              <Mail className="w-2.5 h-2.5 text-blue-400 shrink-0" />
                               <span className="text-slate-300 truncate">{contact.email}</span>
                             </div>
                           )}
@@ -519,14 +519,14 @@ export default function ContactPage() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap">
+                    <div className="flex items-center gap-1 shrink-0 flex-wrap">
                       {/* Prise de besoin button - Only when status is 'qualifie' */}
                       {contact.status === 'qualifie' && (
                         <Button
                           onClick={() => setIsPriseDeBesoinModalOpen(true)}
-                          className="h-8 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium text-xs"
+                          className="h-7 px-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-light text-[10px]"
                         >
-                          <FileText className="w-3.5 h-3.5 mr-1" />
+                          <FileText className="w-3 h-3 mr-1" />
                           <span className="hidden sm:inline">Prise de besoin</span>
                         </Button>
                       )}
@@ -535,9 +535,9 @@ export default function ContactPage() {
                       {contact.status === 'prise_de_besoin' && (
                         <Button
                           onClick={() => setIsAcompteRecuModalOpen(true)}
-                          className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-xs"
+                          className="h-7 px-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-light text-[10px]"
                         >
-                          <Plus className="w-3.5 h-3.5 mr-1" />
+                          <Plus className="w-3 h-3 mr-1" />
                           <span className="hidden sm:inline">Acompte Reçu</span>
                         </Button>
                       )}
@@ -546,20 +546,20 @@ export default function ContactPage() {
                       <Button
                         onClick={() => setIsCreateOpportunityModalOpen(true)}
                         disabled={!canCreateOpportunity}
-                        className={`h-8 px-3 rounded-lg font-medium text-xs ${canCreateOpportunity
+                        className={`h-7 px-2 rounded-lg font-light text-[10px] ${canCreateOpportunity
                           ? 'bg-primary hover:bg-primary/90 text-white shadow-[0_12px_40px_-24px_rgba(59,130,246,0.9)]'
                           : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50'
                           }`}
                       >
-                        <Plus className="w-3.5 h-3.5 mr-1" />
-                        <span className="hidden sm:inline">Créer une Opportunité</span>
+                        <Plus className="w-3 h-3 mr-1" />
+                        <span className="hidden sm:inline">Créer Opportunité</span>
                         <span className="sm:hidden">+</span>
                       </Button>
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
-                            <MoreVertical className="w-4 h-4" />
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-white">
+                            <MoreVertical className="w-3.5 h-3.5" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="glass border-slate-600/30">
@@ -584,7 +584,7 @@ export default function ContactPage() {
                   </div>
                 </div>
 
-                {/* Stats Cards - Compact Design */}
+                {/* Stats Cards - Matching Other Pages */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -593,11 +593,11 @@ export default function ContactPage() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Total</p>
-                        <p className="text-2xl font-bold text-white leading-tight">{contact.opportunities?.length || 0}</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Opportunités</p>
+                        <p className="text-[10px] font-light text-slate-400 mb-0.5 uppercase tracking-wider">Total</p>
+                        <p className="text-2xl font-light text-white leading-tight">{contact.opportunities?.length || 0}</p>
+                        <p className="text-[10px] font-light text-slate-500 mt-0.5">Opportunités</p>
                       </div>
-                      <div className="flex-shrink-0 ml-2">
+                      <div className="shrink-0 ml-2">
                         <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
                           <Briefcase className="w-5 h-5 text-blue-400" />
                         </div>
@@ -613,11 +613,11 @@ export default function ContactPage() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Gagnées</p>
-                        <p className="text-2xl font-bold text-green-400 leading-tight">{wonOpportunitiesCount}</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Opportunités</p>
+                        <p className="text-[10px] font-light text-slate-400 mb-0.5 uppercase tracking-wider">Gagnées</p>
+                        <p className="text-2xl font-light text-green-400 leading-tight">{wonOpportunitiesCount}</p>
+                        <p className="text-[10px] font-light text-slate-500 mt-0.5">Opportunités</p>
                       </div>
-                      <div className="flex-shrink-0 ml-2">
+                      <div className="shrink-0 ml-2">
                         <div className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
                           <Check className="w-5 h-5 text-green-400" />
                         </div>
@@ -633,11 +633,11 @@ export default function ContactPage() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">En cours</p>
-                        <p className="text-2xl font-bold text-amber-400 leading-tight">{inProgressOpportunitiesCount}</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Opportunités</p>
+                        <p className="text-[10px] font-light text-slate-400 mb-0.5 uppercase tracking-wider">En cours</p>
+                        <p className="text-2xl font-light text-amber-400 leading-tight">{inProgressOpportunitiesCount}</p>
+                        <p className="text-[10px] font-light text-slate-500 mt-0.5">Opportunités</p>
                       </div>
-                      <div className="flex-shrink-0 ml-2">
+                      <div className="shrink-0 ml-2">
                         <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
                           <Activity className="w-5 h-5 text-amber-400" />
                         </div>
@@ -659,7 +659,7 @@ export default function ContactPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition-all whitespace-nowrap ${activeTab === tab.id
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-light border-b-2 transition-all whitespace-nowrap ${activeTab === tab.id
                       ? 'text-primary border-primary'
                       : 'text-slate-400 border-transparent hover:text-slate-300'
                       }`}
@@ -1136,81 +1136,81 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
 
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-3">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-1.5 mt-1.5">
       {/* Left Column - Main Content */}
-      <div className="lg:col-span-2 space-y-3">
+      <div className="lg:col-span-2 space-y-1.5">
         {/* Contact Information - Enhanced */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass rounded-xl border border-slate-600/40 p-4 shadow-lg shadow-slate-900/20"
+          className="glass rounded-lg border border-slate-600/40 p-2.5 shadow-lg shadow-slate-900/20"
         >
-          <h2 className="text-base font-bold text-white mb-3 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-600/10 flex items-center justify-center border border-blue-500/30">
-              <User className="w-4 h-4 text-blue-400" />
+          <h2 className="text-xs font-light text-white mb-1.5 flex items-center gap-1.5">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-600/10 flex items-center justify-center border border-blue-500/30">
+              <User className="w-3 h-3 text-blue-400" />
             </div>
             Informations
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div className="group relative p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-blue-500/30 transition-all">
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-1">
-                  <User className="w-3 h-3 text-blue-400" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            <div className="group relative p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-blue-500/30 transition-all">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[9px] font-light text-slate-400 uppercase tracking-wide flex items-center gap-1">
+                  <User className="w-2.5 h-2.5 text-blue-400" />
                   Nom
                 </p>
                 <button
                   onClick={() => handleCopy(contact.nom, 'nom')}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-slate-700/50"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-slate-700/50"
                   title="Copier"
                 >
                   {copiedField === 'nom' ? (
-                    <Check className="w-3 h-3 text-green-400" />
+                    <Check className="w-2.5 h-2.5 text-green-400" />
                   ) : (
-                    <Copy className="w-3 h-3 text-slate-400" />
+                    <Copy className="w-2.5 h-2.5 text-slate-400" />
                   )}
                 </button>
               </div>
-              <p className="text-sm font-semibold text-white">{contact.nom}</p>
+              <p className="text-xs font-light text-white">{contact.nom}</p>
             </div>
 
-            <div className="group relative p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-green-500/30 transition-all">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                <Phone className="w-3 h-3 text-green-400" />
+            <div className="group relative p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-green-500/30 transition-all">
+              <p className="text-[9px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                <Phone className="w-2.5 h-2.5 text-green-400" />
                 Téléphone
               </p>
               <a
                 href={`tel:${contact.telephone}`}
-                className="text-sm font-semibold text-green-400 hover:text-green-300 transition-colors flex items-center gap-1.5 group/link"
+                className="text-xs font-light text-green-400 hover:text-green-300 transition-colors flex items-center gap-1 group/link"
               >
                 {contact.telephone}
-                <ExternalLink className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover/link:opacity-100 transition-opacity" />
               </a>
             </div>
 
             {contact.email && (
-              <div className="group relative p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-purple-500/30 transition-all">
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                  <Mail className="w-3 h-3 text-purple-400" />
+              <div className="group relative p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-purple-500/30 transition-all">
+                <p className="text-[9px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                  <Mail className="w-2.5 h-2.5 text-purple-400" />
                   Email
                 </p>
                 <a
                   href={`mailto:${contact.email}`}
-                  className="text-sm font-semibold text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1.5 break-all group/link"
+                  className="text-xs font-light text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1 break-all group/link"
                 >
                   {contact.email}
-                  <ExternalLink className="w-3 h-3 flex-shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                  <ExternalLink className="w-2.5 h-2.5 shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
                 </a>
               </div>
             )}
 
             {contact.ville && (
-              <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all">
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-emerald-400" />
+              <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all">
+                <p className="text-[9px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                  <MapPin className="w-2.5 h-2.5 text-emerald-400" />
                   Ville
                 </p>
-                <p className="text-sm font-semibold text-white">{contact.ville}</p>
+                <p className="text-xs font-light text-white">{contact.ville}</p>
               </div>
             )}
           </div>
@@ -1221,16 +1221,16 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="glass rounded-xl border border-slate-600/40 p-4 shadow-lg shadow-slate-900/20"
+          className="glass rounded-lg border border-slate-600/40 p-2.5 shadow-lg shadow-slate-900/20"
         >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+          <div className="flex items-center justify-between mb-1.5">
+            <h2 className="text-xs font-light text-white flex items-center gap-1.5">
+              <div className="w-5 h-5 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                <MessageSquare className="w-3 h-3 text-amber-400" />
               </div>
               Notes & Observations
               {notes.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-normal bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                <span className="px-1 py-0.5 rounded text-[9px] font-light bg-amber-500/15 text-amber-300 border border-amber-500/25">
                   {notes.length}
                 </span>
               )}
@@ -1239,9 +1239,9 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               <Button
                 onClick={() => setIsAddingNote(true)}
                 size="sm"
-                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 h-7 px-2.5 text-[11px] font-normal"
+                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 h-6 px-2 text-[10px] font-light"
               >
-                <Plus className="w-3 h-3 mr-1" />
+                <Plus className="w-2.5 h-2.5 mr-1" />
                 Ajouter
               </Button>
             )}
@@ -1253,17 +1253,17 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-3 p-3 rounded-lg bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/30 shadow-lg shadow-amber-500/10"
+              className="mb-2 p-2 rounded-lg bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/30 shadow-lg shadow-amber-500/10"
             >
               <textarea
                 value={newNoteContent}
                 onChange={(e) => setNewNoteContent(e.target.value)}
                 placeholder="Écrivez votre note ici..."
-                rows={3}
-                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900/50 border border-slate-600/50 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all resize-none text-xs mb-2"
+                rows={2}
+                className="w-full px-2 py-1 rounded-lg bg-slate-900/50 border border-slate-600/50 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all resize-none text-xs mb-1.5"
                 autoFocus
               />
-              <div className="flex items-center gap-1.5 justify-end">
+              <div className="flex items-center gap-1 justify-end">
                 <Button
                   onClick={() => {
                     setIsAddingNote(false)
@@ -1271,7 +1271,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                   }}
                   variant="ghost"
                   size="sm"
-                  className="text-slate-400 hover:text-white h-7 text-xs px-2"
+                  className="text-slate-400 hover:text-white h-6 text-[10px] px-1.5"
                 >
                   Annuler
                 </Button>
@@ -1279,16 +1279,16 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                   onClick={handleAddNote}
                   disabled={isSavingNote || !newNoteContent.trim()}
                   size="sm"
-                  className="bg-primary hover:bg-primary/90 text-white h-7 text-xs px-2"
+                  className="bg-primary hover:bg-primary/90 text-white h-6 text-[10px] px-1.5"
                 >
                   {isSavingNote ? (
                     <>
-                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      <Loader2 className="w-2.5 h-2.5 mr-1 animate-spin" />
                       Ajout...
                     </>
                   ) : (
                     <>
-                      <Save className="w-3 h-3 mr-1" />
+                      <Save className="w-2.5 h-2.5 mr-1" />
                       Enregistrer
                     </>
                   )}
@@ -1299,7 +1299,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
 
           {/* Notes List - Enhanced, Clean, Readable */}
           {notes.length > 0 ? (
-            <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1.5">
+            <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-1">
               {notes.map((note, index) => {
                 // Use note ID as primary key, fallback to content+date+index for uniqueness
                 const uniqueKey = note.id || `note-${note.content.substring(0, 30)}-${note.createdAt}-${index}`;
@@ -1311,34 +1311,34 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.015 }}
-                    className={`group relative pl-3.5 pr-3 py-3 rounded-lg border-l-2 transition-all ${
+                    className={`group relative pl-2.5 pr-2 py-2 rounded-lg border-l-2 transition-all ${
                       isLeadNote
                         ? 'bg-slate-800/30 border-l-purple-500/40 hover:bg-slate-800/50 hover:border-l-purple-500/60'
                         : 'bg-slate-800/20 border-l-slate-600/30 hover:bg-slate-800/40 hover:border-l-slate-500/50'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0 space-y-1">
                         {/* Note Content - Highlighted and Readable */}
                         <div className="relative">
-                          <p className="text-xs text-slate-100 leading-relaxed whitespace-pre-wrap font-normal">
+                          <p className="text-[11px] text-slate-100 leading-relaxed whitespace-pre-wrap font-light">
                             {note.content}
                           </p>
                         </div>
                         
                         {/* Note Metadata - Clean and Subtle */}
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400 flex-wrap pt-1">
+                        <div className="flex items-center gap-1.5 text-[9px] text-slate-400 flex-wrap pt-0.5">
                           {isLeadNote && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-500/8 border border-purple-500/15 text-purple-300/80 font-normal">
-                              <History className="w-2.5 h-2.5" />
+                            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-md bg-purple-500/8 border border-purple-500/15 text-purple-300/80 font-light">
+                              <History className="w-2 h-2" />
                               Lead
                             </span>
                           )}
-                          <span className="font-normal text-slate-400">
+                          <span className="font-light text-slate-400">
                             {userNameMap[note.createdBy] || note.createdBy}
                           </span>
                           <span className="text-slate-600">·</span>
-                          <span className="font-normal text-slate-500">{formatNoteDate(note.createdAt)}</span>
+                          <span className="font-light text-slate-500">{formatNoteDate(note.createdAt)}</span>
                         </div>
                       </div>
                       
@@ -1346,10 +1346,10 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                       {!isLeadNote && (
                         <button
                           onClick={() => handleDeleteNoteClick(note.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-red-500/10 text-red-400/70 hover:text-red-400 flex-shrink-0"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-red-500/10 text-red-400/70 hover:text-red-400 flex-shrink-0"
                           title="Supprimer"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-2.5 h-2.5" />
                         </button>
                       )}
                     </div>
@@ -1358,41 +1358,41 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               })}
             </div>
           ) : (
-            <div className="p-6 text-center rounded-lg bg-gradient-to-br from-slate-800/30 to-slate-900/20 border border-dashed border-slate-700/50">
-              <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-2">
-                <MessageSquare className="w-6 h-6 text-amber-500/50" />
+            <div className="p-4 text-center rounded-lg bg-gradient-to-br from-slate-800/30 to-slate-900/20 border border-dashed border-slate-700/50">
+              <div className="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-1.5">
+                <MessageSquare className="w-4 h-4 text-amber-500/50" />
               </div>
-              <p className="text-sm font-semibold text-slate-300 mb-0.5">Aucune note pour le moment</p>
-              <p className="text-xs text-slate-500">Cliquez sur "Ajouter" pour créer une note</p>
+              <p className="text-xs font-light text-slate-300 mb-0.5">Aucune note pour le moment</p>
+              <p className="text-[10px] font-light text-slate-500">Cliquez sur "Ajouter" pour créer une note</p>
             </div>
           )}
         </motion.div>
       </div>
 
       {/* Right Column - Summary */}
-      <div className="lg:col-span-1 space-y-3">
+      <div className="lg:col-span-1 space-y-1.5">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="glass rounded-xl border border-slate-600/40 p-4 shadow-lg shadow-slate-900/20"
+          className="glass rounded-lg border border-slate-600/40 p-2.5 shadow-lg shadow-slate-900/20"
         >
-          <h3 className="font-bold text-white mb-3 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-600/10 flex items-center justify-center border border-purple-500/30">
-              <Sparkles className="w-4 h-4 text-purple-400" />
+          <h3 className="text-xs font-light text-white mb-1.5 flex items-center gap-1.5">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-600/10 flex items-center justify-center border border-purple-500/30">
+              <Sparkles className="w-3 h-3 text-purple-400" />
             </div>
             Résumé
           </h3>
-          <div className="space-y-2.5">
+          <div className="space-y-1.5">
             {/* Contact Status */}
-            <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/50">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+            <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
+              <p className="text-[9px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
                 <div className={`w-1.5 h-1.5 rounded-full ${contact.tag === 'client' ? 'bg-green-400 animate-pulse' :
                   contact.status === 'perdu' ? 'bg-red-400' :
                     'bg-blue-400'
                   }`} />
                 Statut
               </p>
-              <p className="text-xs font-bold text-white">
+              <p className="text-[11px] font-light text-white">
                 {contact.tag === 'client' 
                   ? 'Client' 
                   : contact.status === 'perdu' && contact.leadStatus === 'refuse'
@@ -1408,48 +1408,48 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
             </div>
 
             {/* Lead Status - Read-only Badge */}
-            <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/50">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                <Activity className="w-3 h-3 text-blue-400" />
+            <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
+              <p className="text-[9px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                <Activity className="w-2.5 h-2.5 text-blue-400" />
                 Statut Lead
               </p>
               {contact.leadStatus ? (
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${
+                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-light border ${
                   getLeadStatusBadge(contact.leadStatus)?.className || 'bg-slate-700/50 text-slate-300 border-slate-600/30'
                 }`}>
                   {getLeadStatusBadge(contact.leadStatus)?.label || contact.leadStatus}
                 </span>
               ) : (
-                <span className="text-xs text-slate-500">Non défini</span>
+                <span className="text-[10px] font-light text-slate-500">Non défini</span>
               )}
             </div>
 
             {isConverted && converterName && (
-              <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/50">
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-yellow-400" />
+              <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
+                <p className="text-[9px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5 text-yellow-400" />
                   Converti par
                 </p>
-                <p className="text-xs font-semibold text-yellow-300">{converterName}</p>
+                <p className="text-[11px] font-light text-yellow-300">{converterName}</p>
               </div>
             )}
 
             {architectName && (
-              <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/50">
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                  <Briefcase className="w-3 h-3 text-purple-400" />
+              <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
+                <p className="text-[9px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                  <Briefcase className="w-2.5 h-2.5 text-purple-400" />
                   Architecte
                 </p>
-                <p className="text-xs font-semibold text-purple-300">{architectName}</p>
+                <p className="text-[11px] font-light text-purple-300">{architectName}</p>
               </div>
             )}
 
-            <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/50">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-blue-400" />
+            <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
+              <p className="text-[9px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                <Calendar className="w-2.5 h-2.5 text-blue-400" />
                 Contact créé le
               </p>
-              <p className="text-xs font-semibold text-blue-300">{formatDateTime(contact.createdAt)}</p>
+              <p className="text-[11px] font-light text-blue-300">{formatDateTime(contact.createdAt)}</p>
             </div>
           </div>
         </motion.div>
@@ -1460,17 +1460,17 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
 
       {/* Delete Note Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="glass border-slate-600/30">
+        <AlertDialogContent className="glass border-slate-600/30 p-4">
           <AlertDialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-                <Trash2 className="w-5 h-5 text-red-400" />
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                <Trash2 className="w-4 h-4 text-red-400" />
               </div>
-              <AlertDialogTitle className="text-lg font-semibold text-white">
+              <AlertDialogTitle className="text-sm font-semibold text-white">
                 Supprimer la note
               </AlertDialogTitle>
             </div>
-            <AlertDialogDescription className="text-slate-300 text-sm leading-relaxed">
+            <AlertDialogDescription className="text-slate-300 text-xs leading-relaxed">
               Êtes-vous sûr de vouloir supprimer cette note ?
               <br />
               <br />
@@ -1486,7 +1486,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                 setIsDeleteDialogOpen(false)
                 setNoteToDelete(null)
               }}
-              className="bg-slate-700/50 hover:bg-slate-700 text-white border-slate-600/30"
+              className="bg-slate-700/50 hover:bg-slate-700 text-white border-slate-600/30 h-8 px-3 text-xs"
             >
               Annuler
             </AlertDialogCancel>
@@ -1496,11 +1496,11 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                 handleConfirmDeleteNote()
               }}
               disabled={isDeletingNote}
-              className="bg-red-500 hover:bg-red-600 text-white border-0"
+              className="bg-red-500 hover:bg-red-600 text-white border-0 h-8 px-3 text-xs"
             >
               {isDeletingNote ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
                   Suppression...
                 </>
               ) : (
@@ -1516,7 +1516,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
 
 function OpportunitiesTab({ contact, onUpdate, architectNameMap, onCreateOpportunity, canCreateOpportunity }: { contact: ContactWithDetails; onUpdate: () => void; architectNameMap: Record<string, string>; onCreateOpportunity: () => void; canCreateOpportunity: boolean }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {contact.opportunities && contact.opportunities.length > 0 ? (
         <OpportunitiesTable
           opportunities={contact.opportunities}
@@ -1525,18 +1525,18 @@ function OpportunitiesTab({ contact, onUpdate, architectNameMap, onCreateOpportu
           contact={contact}
         />
       ) : (
-        <div className="glass rounded-2xl border border-slate-600/40 p-12 text-center">
-          <Briefcase className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-          <p className="text-slate-300 mb-4">Aucune opportunité pour ce contact</p>
+        <div className="glass rounded-lg border border-slate-600/40 p-8 text-center">
+          <Briefcase className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+          <p className="text-xs text-slate-300 mb-2">Aucune opportunité pour ce contact</p>
           <Button 
             onClick={onCreateOpportunity} 
             disabled={!canCreateOpportunity}
-            className={`${canCreateOpportunity 
+            className={`h-7 px-3 text-[10px] ${canCreateOpportunity 
               ? 'bg-primary hover:bg-primary/90 text-white' 
               : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50'
             }`}
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-3 h-3 mr-1.5" />
             Créer une opportunité
           </Button>
         </div>
@@ -1567,20 +1567,20 @@ function TimelineTab({
 
 function TasksTab({ contact }: { contact: ContactWithDetails }) {
   return (
-    <div className="glass rounded-2xl border border-slate-600/40 p-12 text-center">
-      <Calendar className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-      <p className="text-slate-300">Tâches et RDV à venir</p>
-      <p className="text-sm text-slate-500 mt-1">Cette section affichera les tâches et RDV liés à ce contact</p>
+    <div className="glass rounded-lg border border-slate-600/40 p-8 text-center">
+      <Calendar className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+      <p className="text-xs text-slate-300">Tâches et RDV à venir</p>
+      <p className="text-[10px] text-slate-500 mt-1">Cette section affichera les tâches et RDV liés à ce contact</p>
     </div>
   )
 }
 
 function DocumentsTab({ contact }: { contact: ContactWithDetails }) {
   return (
-    <div className="glass rounded-2xl border border-slate-600/40 p-12 text-center">
-      <FileText className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-      <p className="text-slate-300">Documents</p>
-      <p className="text-sm text-slate-500 mt-1">Aucun document téléchargé pour ce contact</p>
+    <div className="glass rounded-lg border border-slate-600/40 p-8 text-center">
+      <FileText className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+      <p className="text-xs text-slate-300">Documents</p>
+      <p className="text-[10px] text-slate-500 mt-1">Aucun document téléchargé pour ce contact</p>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Users, LogOut, Settings, CalendarDays, Compass, Calendar, Briefcase, Bell, Menu, X, Settings2 } from "lucide-react"
+import { Home, Users, LogOut, Settings, CalendarDays, Compass, Calendar, Briefcase, Bell, Menu, X } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Signature8Logo } from "@/components/signature8-logo"
@@ -461,48 +461,55 @@ const SidebarComponent = () => {
                     {user.email}
                   </p>
                   {user.role && (
-                    <span className="inline-flex items-center gap-1 mt-0.5 md:mt-1 text-[9px] md:text-[10px] font-medium px-1.5 md:px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30">
-                      {getRoleLabel(user.role)}
-                    </span>
-                  )}
-                  {/* Status Selector for Architects */}
-                  {isArchitect && (
-                    <div className="mt-2">
-                      <Select
-                        value={architectStatus}
-                        onValueChange={handleStatusChange}
-                        disabled={isUpdatingStatus}
-                      >
-                        <SelectTrigger 
-                          className={cn(
-                            "h-7 w-full bg-slate-800/60 border-slate-600/50 text-white rounded-md text-[10px] px-2.5 py-1 hover:bg-slate-700/60 transition-colors",
-                            isUpdatingStatus && "opacity-50 cursor-not-allowed"
-                          )}
+                    <div className="flex items-center justify-between gap-2 mt-0.5 md:mt-1">
+                      <span className="inline-flex items-center gap-1 text-[9px] md:text-[10px] font-medium px-1.5 md:px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30">
+                        {getRoleLabel(user.role)}
+                      </span>
+                      {/* Status Selector for Architects - Compact, intuitive design positioned on the right */}
+                      {isArchitect && (
+                        <Select
+                          value={architectStatus}
+                          onValueChange={handleStatusChange}
+                          disabled={isUpdatingStatus}
                         >
-                          <Settings2 className="w-3 h-3 mr-1.5 flex-shrink-0" />
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-600">
-                          <SelectItem value="actif" className="text-white text-xs cursor-pointer hover:bg-slate-700">
-                            <span className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                              Actif
+                          <SelectTrigger 
+                            className={cn(
+                              "h-5 w-auto min-w-[75px] bg-slate-800/70 border border-slate-600/60 text-white rounded-md text-[9px] px-2 py-0.5 hover:bg-slate-700/70 hover:border-slate-500/60 transition-all flex items-center gap-1.5 shadow-sm",
+                              isUpdatingStatus && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            <span className={cn(
+                              "w-1.5 h-1.5 rounded-full flex-shrink-0 shadow-sm",
+                              architectStatus === "actif" && "bg-green-400 shadow-green-400/50",
+                              architectStatus === "inactif" && "bg-slate-400 shadow-slate-400/50",
+                              architectStatus === "conge" && "bg-orange-400 shadow-orange-400/50"
+                            )} />
+                            <span className="text-[9px] font-medium">
+                              {architectStatus === "actif" ? "Actif" : architectStatus === "inactif" ? "Inactif" : "En congé"}
                             </span>
-                          </SelectItem>
-                          <SelectItem value="inactif" className="text-white text-xs cursor-pointer hover:bg-slate-700">
-                            <span className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                              Inactif
-                            </span>
-                          </SelectItem>
-                          <SelectItem value="conge" className="text-white text-xs cursor-pointer hover:bg-slate-700">
-                            <span className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-orange-400"></span>
-                              En congé
-                            </span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-800 border-slate-600 min-w-[110px]">
+                            <SelectItem value="actif" className="text-white text-[10px] cursor-pointer hover:bg-slate-700 py-1.5">
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                                Actif
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="inactif" className="text-white text-[10px] cursor-pointer hover:bg-slate-700 py-1.5">
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                Inactif
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="conge" className="text-white text-[10px] cursor-pointer hover:bg-slate-700 py-1.5">
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                                En congé
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   )}
                 </div>

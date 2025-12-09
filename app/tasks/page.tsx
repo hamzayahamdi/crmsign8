@@ -163,80 +163,91 @@ export default function TasksPage() {
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
+      <div className="flex min-h-screen bg-[rgb(11,14,24)]">
         <Sidebar />
-        <main className="flex-1 flex flex-col overflow-x-hidden">
+        <main className="flex-1 flex flex-col overflow-x-hidden bg-linear-to-b from-[rgb(17,21,33)] via-[rgb(11,14,24)] to-[rgb(7,9,17)]">
           <Header />
 
           {/* Removed page title and subtitle for a cleaner layout */}
 
           {/* Stats Cards */}
-          <div className="p-4 md:p-6 pb-2 md:pb-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <div className="px-3 md:px-4 pt-2 md:pt-3 pb-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-blue-500/30 transition-all duration-300"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-light text-slate-400 mb-0.5 uppercase tracking-wider">Total</p>
+                    <p className="text-2xl font-light text-white leading-tight">{totalTasks}</p>
+                    <p className="text-[10px] font-light text-slate-500 mt-0.5">Tâches</p>
+                  </div>
+                  <div className="shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-blue-400" />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-red-500/30 transition-all duration-300"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-light text-slate-400 mb-0.5 uppercase tracking-wider">À faire</p>
+                    <p className="text-2xl font-light text-red-400 leading-tight">{todoTasks}</p>
+                    <p className="text-[10px] font-light text-slate-500 mt-0.5">Tâches</p>
+                  </div>
+                  <div className="shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                      <Clock className="w-5 h-5 text-red-400" />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="glass rounded-xl md:rounded-2xl p-4 md:p-5 border border-slate-600/30"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-orange-500/30 transition-all duration-300"
               >
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs md:text-sm text-slate-400 mb-1">Total Tâches</p>
-                    <p className="text-2xl md:text-3xl font-bold text-white">{totalTasks}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-light text-slate-400 mb-0.5 uppercase tracking-wider">En cours</p>
+                    <p className="text-2xl font-light text-orange-400 leading-tight">{inProgressTasks}</p>
+                    <p className="text-[10px] font-light text-slate-500 mt-0.5">Tâches</p>
                   </div>
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <Calendar className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
+                  <div className="shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                      <Clock className="w-5 h-5 text-orange-400" />
+                    </div>
                   </div>
                 </div>
               </motion.div>
 
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="glass rounded-xl md:rounded-2xl p-4 md:p-5 border border-slate-600/30"
+                transition={{ delay: 0.15 }}
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-green-500/30 transition-all duration-300"
               >
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs md:text-sm text-slate-400 mb-1">À faire</p>
-                    <p className="text-2xl md:text-3xl font-bold text-white">{todoTasks}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-light text-slate-400 mb-0.5 uppercase tracking-wider">Terminées</p>
+                    <p className="text-2xl font-light text-green-400 leading-tight">{completedTasks}</p>
+                    <p className="text-[10px] font-light text-slate-500 mt-0.5">Tâches</p>
                   </div>
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-500/20 flex items-center justify-center">
-                    <Clock className="w-5 h-5 md:w-6 md:h-6 text-red-400" />
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="glass rounded-xl md:rounded-2xl p-4 md:p-5 border border-slate-600/30"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs md:text-sm text-slate-400 mb-1">En cours</p>
-                    <p className="text-2xl md:text-3xl font-bold text-white">{inProgressTasks}</p>
-                  </div>
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
-                    <Clock className="w-5 h-5 md:w-6 md:h-6 text-orange-400" />
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="glass rounded-xl md:rounded-2xl p-4 md:p-5 border border-slate-600/30"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs md:text-sm text-slate-400 mb-1">Terminées</p>
-                    <p className="text-2xl md:text-3xl font-bold text-white">{completedTasks}</p>
-                  </div>
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
+                  <div className="shrink-0 ml-2">
+                    <div className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-green-400" />
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -244,44 +255,44 @@ export default function TasksPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="px-4 md:px-6 pb-3 md:pb-4 space-y-3">
+          <div className="px-3 md:px-4 pb-2 space-y-2">
             {/* Search Bar and Add Button */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Rechercher..."
-                  className="pl-10 md:pl-12 h-10 md:h-12 bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-500 rounded-lg md:rounded-xl text-sm md:text-base"
+                  className="pl-9 h-9 bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-500 rounded-lg text-xs font-light"
                 />
               </div>
               <Button
                 onClick={handleAddTask}
-                className="h-10 md:h-12 px-4 md:px-6 bg-primary hover:bg-primary/90 text-white rounded-lg md:rounded-xl font-medium text-sm md:text-base"
+                className="h-9 px-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-light text-xs"
               >
-                <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
                 Nouvelle Tâche
               </Button>
             </div>
 
             {/* Filters */}
-            <div className="glass rounded-lg md:rounded-xl border border-slate-600/30">
+            <div className="glass rounded-lg border border-slate-600/30">
               {/* Filter Header */}
-              <div className="flex items-center justify-between p-3 md:p-4 gap-3 md:gap-4">
+              <div className="flex items-center justify-between p-2.5 gap-2">
                 <div
-                  className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1"
+                  className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity flex-1"
                   onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                 >
-                  <Filter className="w-4 h-4 md:w-5 md:h-5 text-primary" />
-                  <span className="font-medium text-white text-sm md:text-base">Filtres</span>
+                  <Filter className="w-3.5 h-3.5 text-primary" />
+                  <span className="font-light text-white text-xs">Filtres</span>
                   {getActiveFiltersCount() > 0 && (
-                    <span className="bg-primary/20 text-primary px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium">
+                    <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded-full text-[9px] font-light">
                       {getActiveFiltersCount()} actif{getActiveFiltersCount() > 1 ? 's' : ''}
                     </span>
                   )}
                   <ChevronDown className={cn(
-                    "w-3.5 h-3.5 md:w-4 md:h-4 text-white transition-transform ml-auto",
+                    "w-3 h-3 text-white transition-transform ml-auto",
                     isFiltersOpen && "rotate-180"
                   )} />
                 </div>
@@ -292,39 +303,39 @@ export default function TasksPage() {
                       e.stopPropagation()
                       clearAllFilters()
                     }}
-                    className="text-[10px] md:text-xs text-muted-foreground hover:text-white flex items-center gap-1 md:gap-1.5 transition-colors px-1.5 md:px-2 py-1 rounded hover:bg-slate-700/50"
+                    className="text-[9px] text-muted-foreground hover:text-white flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50 font-light"
                   >
-                    <X className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                    <span className="hidden sm:inline">Effacer filtres</span>
+                    <X className="w-3 h-3" />
+                    <span className="hidden sm:inline">Effacer</span>
                   </button>
                 )}
               </div>
 
               {/* Active Filter Chips */}
               {getActiveFiltersCount() > 0 && (
-                <div className="border-t border-slate-600/30 px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
+                <div className="border-t border-slate-600/30 px-2.5 py-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {filters.status !== "all" && (
-                      <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                      <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5 font-light">
                         Statut: {filters.status === "a_faire" ? "À faire" : filters.status === "en_cours" ? "En cours" : "Terminé"}
                         <button onClick={() => removeFilter('status')} className="hover:text-primary/70">
-                          <X className="w-3 h-3" />
+                          <X className="w-2.5 h-2.5" />
                         </button>
                       </div>
                     )}
                     {filters.linkedType !== "all" && (
-                      <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                      <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5 font-light">
                         Type: {filters.linkedType === "lead" ? "Lead" : "Client"}
                         <button onClick={() => removeFilter('linkedType')} className="hover:text-primary/70">
-                          <X className="w-3 h-3" />
+                          <X className="w-2.5 h-2.5" />
                         </button>
                       </div>
                     )}
                     {filters.assignedTo !== "all" && (
-                      <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                      <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5 font-light">
                         Assigné à: {filters.assignedTo}
                         <button onClick={() => removeFilter('assignedTo')} className="hover:text-primary/70">
-                          <X className="w-3 h-3" />
+                          <X className="w-2.5 h-2.5" />
                         </button>
                       </div>
                     )}
@@ -334,16 +345,16 @@ export default function TasksPage() {
 
               {/* Filter Content */}
               {isFiltersOpen && (
-                <div className="border-t border-slate-600/30 p-3 md:p-4 bg-slate-800/60">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+                <div className="border-t border-slate-600/30 p-2.5 bg-slate-800/60">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     {/* Status Filter */}
-                    <div className="space-y-2">
-                      <label className="text-xs md:text-sm font-medium text-white">Statut</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-light text-white">Statut</label>
                       <Select
                         value={filters.status}
                         onValueChange={(value) => setFilters(f => ({ ...f, status: value as any }))}
                       >
-                        <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20">
+                        <SelectTrigger className="h-8 text-xs w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400/20 font-light">
                           <SelectValue placeholder="Tous les statuts" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-600 text-white">
@@ -356,13 +367,13 @@ export default function TasksPage() {
                     </div>
 
                     {/* Linked Type Filter */}
-                    <div className="space-y-2">
-                      <label className="text-xs md:text-sm font-medium text-white">Lié à</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-light text-white">Lié à</label>
                       <Select
                         value={filters.linkedType}
                         onValueChange={(value) => setFilters(f => ({ ...f, linkedType: value as any }))}
                       >
-                        <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20">
+                        <SelectTrigger className="h-8 text-xs w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400/20 font-light">
                           <SelectValue placeholder="Tous" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-600 text-white">
@@ -375,13 +386,13 @@ export default function TasksPage() {
 
                     {/* Assigned To Filter - Only show for Admin/Operator */}
                     {userRole !== 'architect' && (
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-white">Assigné à</label>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-light text-white">Assigné à</label>
                         <Select
                           value={filters.assignedTo}
                           onValueChange={(value) => setFilters(f => ({ ...f, assignedTo: value }))}
                         >
-                          <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20">
+                          <SelectTrigger className="h-8 text-xs w-full rounded-lg bg-slate-700/80 border border-slate-500/60 text-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400/20 font-light">
                             <SelectValue placeholder="Tous" />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-800 border-slate-600 text-white">
@@ -400,26 +411,26 @@ export default function TasksPage() {
           </div>
 
           {/* Tasks Table or Empty State */}
-          <div className="flex-1 px-4 md:px-6 pb-6 overflow-hidden">
+          <div className="flex-1 px-3 md:px-4 pb-4 overflow-hidden">
             {isLoading ? (
               <div className="h-full flex items-center justify-center">
-                <div className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center">
-                  <Loader2 className="w-16 h-16 text-primary mx-auto mb-4 animate-spin" />
-                  <h2 className="text-2xl font-bold text-white mb-2">Chargement des tâches...</h2>
-                  <p className="text-slate-400">Veuillez patienter</p>
+                <div className="glass rounded-lg border border-slate-600/30 p-6 max-w-xl w-full text-center">
+                  <Loader2 className="w-10 h-10 text-primary mx-auto mb-3 animate-spin" />
+                  <h2 className="text-sm font-light text-white mb-1.5">Chargement des tâches...</h2>
+                  <p className="text-xs font-light text-slate-400">Veuillez patienter</p>
                 </div>
               </div>
             ) : tasks.length === 0 ? (
               <div className="h-full flex items-center justify-center">
-                <div className="glass rounded-2xl border border-slate-600/30 p-8 max-w-xl w-full text-center">
-                  <Calendar className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                  <h2 className="text-2xl font-bold text-white mb-2">Aucune tâche pour le moment</h2>
-                  <p className="text-slate-400 mb-4">Ajoutez une nouvelle tâche pour commencer à organiser votre travail.</p>
+                <div className="glass rounded-lg border border-slate-600/30 p-6 max-w-xl w-full text-center">
+                  <Calendar className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+                  <h2 className="text-sm font-light text-white mb-1.5">Aucune tâche pour le moment</h2>
+                  <p className="text-xs font-light text-slate-400 mb-3">Ajoutez une nouvelle tâche pour commencer à organiser votre travail.</p>
                   <Button
                     onClick={handleAddTask}
-                    className="bg-primary hover:bg-primary/90 text-white"
+                    className="bg-primary hover:bg-primary/90 text-white h-8 px-3 text-xs font-light"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-3.5 h-3.5 mr-1.5" />
                     Créer ma première tâche
                   </Button>
                 </div>

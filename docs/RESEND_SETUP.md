@@ -187,3 +187,4 @@ Resend has rate limits based on your plan:
 
 Check your Resend dashboard for current usage and limits.
 
+

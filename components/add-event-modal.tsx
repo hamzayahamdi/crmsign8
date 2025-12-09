@@ -341,100 +341,87 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[900px] w-[95vw] md:w-[90vw] max-h-[92vh] md:max-h-[90vh] overflow-hidden p-0 border-border/60 shadow-2xl backdrop-blur-xl bg-background/95">
-        <DialogHeader className="px-3 md:px-6 pt-3 md:pt-6 pb-2 md:pb-4 border-b border-border/40 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
-          <DialogTitle className="text-lg md:text-2xl font-bold flex items-center gap-2 md:gap-3 relative z-10">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 rounded-xl md:rounded-2xl blur-md" />
-              <div className="relative p-1.5 md:p-2.5 bg-gradient-to-br from-primary to-primary/80 rounded-xl md:rounded-2xl shadow-lg">
-                <CalendarIcon className="h-4 w-4 md:h-6 md:w-6 text-primary-foreground" />
-              </div>
+      <DialogContent className="max-w-[600px] w-[95vw] max-h-[90vh] overflow-hidden p-0 border-border/60 shadow-2xl backdrop-blur-xl bg-background/95">
+        <DialogHeader className="px-4 pt-3 pb-2.5 border-b border-border/40 relative">
+          <DialogTitle className="text-sm font-semibold flex items-center gap-2 relative z-10">
+            <div className="p-1.5 bg-primary/10 rounded-lg">
+              <CalendarIcon className="h-3.5 w-3.5 text-primary" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                Nouvel Événement
-              </div>
-              <p className="text-[10px] md:text-sm font-normal text-muted-foreground mt-0.5 md:mt-1">Créez un rendez-vous ou un événement dans votre calendrier</p>
-            </div>
+            <span>Nouvel Événement</span>
           </DialogTitle>
         </DialogHeader>
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex-1 min-h-0 overflow-y-auto px-3 md:px-6 py-3 md:py-5"
+          className="flex-1 min-h-0 overflow-y-auto px-4 py-3"
         >
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {/* Essential Information Section */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Title */}
-                <div className="space-y-2 lg:col-span-2">
-                  <Label htmlFor="title" className="flex items-center gap-2 text-sm font-semibold">
-                    Titre de l'événement *
-                  </Label>
-                  <Input
-                    ref={titleInputRef}
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Ex: Rendez-vous client, Réunion d'équipe..."
-                    className="h-11 px-4 text-base border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all rounded-2xl bg-background/50 backdrop-blur-sm"
-                  />
-                </div>
+            <div className="space-y-2.5">
+              {/* Title */}
+              <div className="space-y-1.5">
+                <Label htmlFor="title" className="text-xs font-medium text-muted-foreground">
+                  Titre de l'événement *
+                </Label>
+                <Input
+                  ref={titleInputRef}
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Ex: Rendez-vous client, Réunion d'équipe..."
+                  className="h-9 px-3 text-sm border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50"
+                />
+              </div>
 
-                {/* Event Type */}
-                <div className="space-y-2 lg:col-span-2">
-                  <Label htmlFor="eventType" className="flex items-center gap-2 text-sm font-semibold">
-                    Type d'événement *
-                  </Label>
-                  <Select
-                    value={formData.eventType}
-                    onValueChange={(value: EventType) => setFormData({ ...formData, eventType: value })}
-                  >
-                    <SelectTrigger className="h-11 px-4 text-base border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all rounded-2xl bg-background/50 backdrop-blur-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="min-w-[320px] rounded-2xl border-border/60 shadow-xl">
-                      {Object.entries(EVENT_TYPE_CONFIG).map(([key, config]) => (
-                        <SelectItem key={key} value={key} className="py-3.5 cursor-pointer rounded-xl">
-                          <div className="flex items-center gap-3">
-                            <span className={`w-3.5 h-3.5 rounded-full ${config.color} shadow-sm`} />
-                            <span className="text-sm font-medium">{config.label}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Event Type */}
+              <div className="space-y-1.5">
+                <Label htmlFor="eventType" className="text-xs font-medium text-muted-foreground">
+                  Type d'événement *
+                </Label>
+                <Select
+                  value={formData.eventType}
+                  onValueChange={(value: EventType) => setFormData({ ...formData, eventType: value })}
+                >
+                  <SelectTrigger className="h-9 px-3 text-sm border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="min-w-[280px] rounded-lg border-border/60 shadow-xl">
+                    {Object.entries(EVENT_TYPE_CONFIG).map(([key, config]) => (
+                      <SelectItem key={key} value={key} className="py-2 cursor-pointer">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2.5 h-2.5 rounded-full ${config.color}`} />
+                          <span className="text-sm">{config.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             {/* Date & Time Section */}
-            <div className="space-y-3 p-4 bg-gradient-to-br from-muted/40 to-muted/20 rounded-2xl border border-border/40">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <CalendarDays className="h-4 w-4 text-primary" />
+            <div className="space-y-2 p-2.5 bg-muted/30 rounded-lg border border-border/40">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                <CalendarDays className="h-3 w-3 text-primary" />
                 <span>Date et heure</span>
               </div>
 
               {/* Start Date & Time */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold flex items-center gap-2">
-                    <span>Date de début *</span>
-                  </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium text-muted-foreground">Date de début *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full h-11 px-4 justify-start text-left font-medium border-2 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all rounded-2xl",
+                          "w-full h-8 px-2.5 justify-start text-left text-xs font-normal border hover:border-primary/50 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all rounded-lg",
                           !startDate && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-3 h-4 w-4 text-primary" />
-                        {startDate ? format(startDate, "PPP", { locale: fr }) : "Sélectionner une date"}
+                        <CalendarIcon className="mr-1.5 h-3 w-3 text-primary" />
+                        {startDate ? format(startDate, "d MMM yyyy", { locale: fr }) : "Date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -449,38 +436,33 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
                   </Popover>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="startTime" className="text-sm font-semibold flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-primary" />
-                    <span>Heure de début *</span>
-                  </Label>
+                <div className="space-y-1">
+                  <Label htmlFor="startTime" className="text-xs font-medium text-muted-foreground">Heure de début *</Label>
                   <Input
                     id="startTime"
                     type="time"
                     value={formData.startTime}
                     onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                    className="h-11 px-4 text-base border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all rounded-2xl bg-background/50 backdrop-blur-sm"
+                    className="h-8 px-2.5 text-xs border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50"
                   />
                 </div>
               </div>
 
               {/* End Date & Time */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold flex items-center gap-2">
-                    <span>Date de fin *</span>
-                  </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium text-muted-foreground">Date de fin *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full h-11 px-4 justify-start text-left font-medium border-2 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all rounded-2xl",
+                          "w-full h-8 px-2.5 justify-start text-left text-xs font-normal border hover:border-primary/50 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all rounded-lg",
                           !endDate && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-3 h-4 w-4 text-primary" />
-                        {endDate ? format(endDate, "PPP", { locale: fr }) : "Sélectionner une date"}
+                        <CalendarIcon className="mr-1.5 h-3 w-3 text-primary" />
+                        {endDate ? format(endDate, "d MMM yyyy", { locale: fr }) : "Date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -495,26 +477,22 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
                   </Popover>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="endTime" className="text-sm font-semibold flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-primary" />
-                    <span>Heure de fin *</span>
-                  </Label>
+                <div className="space-y-1">
+                  <Label htmlFor="endTime" className="text-xs font-medium text-muted-foreground">Heure de fin *</Label>
                   <Input
                     id="endTime"
                     type="time"
                     value={formData.endTime}
                     onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                    className="h-11 px-4 text-base border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all rounded-2xl bg-background/50 backdrop-blur-sm"
+                    className="h-8 px-2.5 text-xs border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50"
                   />
                 </div>
               </div>
             </div>
 
             {/* Location */}
-            <div className="space-y-2">
-              <Label htmlFor="location" className="flex items-center gap-2 text-sm font-semibold">
-                <MapPin className="h-4 w-4 text-primary" />
+            <div className="space-y-1.5">
+              <Label htmlFor="location" className="text-xs font-medium text-muted-foreground">
                 Localisation
               </Label>
               <Input
@@ -522,109 +500,98 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 placeholder="Ex: Bureau Casablanca, Visio, Chantier..."
-                className="h-11 px-4 text-base border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all rounded-2xl bg-background/50 backdrop-blur-sm"
+                className="h-9 px-3 text-sm border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50"
               />
             </div>
 
             {/* Participants & Visibility */}
-            <div className="space-y-3 p-4 bg-gradient-to-br from-muted/40 to-muted/20 rounded-2xl border border-border/40">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Users className="h-4 w-4 text-primary" />
+            <div className="space-y-2 p-2.5 bg-muted/30 rounded-lg border border-border/40">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                <Users className="h-3 w-3 text-primary" />
                 <span>Participants et visibilité</span>
               </div>
 
               {/* Organizer Display */}
               {currentUserId && (
-                <div className="p-3 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-xl border-2 border-primary/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1 bg-primary/20 rounded-lg">
-                      <User className="h-3.5 w-3.5 text-primary" />
-                    </div>
-                    <span className="text-xs font-bold text-primary uppercase tracking-wide">Organisateur</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-2 bg-background/60 rounded-lg">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-sm font-bold shadow-lg ring-2 ring-primary/20">
+                <div className="p-2 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-semibold">
                       {users.find(u => u.id === currentUserId)?.name.charAt(0).toUpperCase() || 'M'}
                     </div>
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <span className="text-sm font-bold text-primary">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-medium text-primary block truncate">
                         {users.find(u => u.id === currentUserId)?.name || 'Vous'}
                       </span>
-                      <span className="text-xs text-muted-foreground truncate">
-                        {users.find(u => u.id === currentUserId)?.email || ''}
-                      </span>
                     </div>
-                    <Badge className="bg-primary/10 text-primary border-primary/20 font-semibold">
-                      Créateur
+                    <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] px-1.5 py-0 h-5">
+                      Organisateur
                     </Badge>
                   </div>
                 </div>
               )}
 
               {/* Invite Participants */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-semibold flex items-center gap-2">
-                    <UserPlus className="h-4 w-4 text-primary" />
+                  <Label className="text-xs font-medium text-muted-foreground">
                     Inviter des participants
                   </Label>
                   {users.filter(u => u.id !== currentUserId && !formData.participants.includes(u.id)).length > 0 && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => setFormData({ ...formData, participants: [] })}
-                        className="h-7 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        className="h-6 text-[10px] px-2 font-normal text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         disabled={formData.participants.length === 0}
                       >
-                        Effacer tout
+                        Effacer
                       </Button>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={addAllParticipants}
-                        className="h-7 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10"
+                        className="h-6 text-[10px] px-2 font-normal text-primary hover:text-primary hover:bg-primary/10"
                       >
-                        <UserPlus className="h-3.5 w-3.5 mr-1.5" />
-                        Tout sélectionner
+                        Tout
                       </Button>
                     </div>
                   )}
                 </div>
 
                 {/* Multi-select Participant List */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {/* Search Input */}
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                     <Input
                       type="text"
-                      placeholder="Rechercher un utilisateur..."
+                      placeholder="Rechercher..."
                       value={participantSearchQuery}
                       onChange={(e) => setParticipantSearchQuery(e.target.value)}
-                      className="h-10 pl-10 pr-4 text-sm border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all rounded-xl bg-background/50 backdrop-blur-sm"
+                      className="h-8 pl-7 pr-2 text-xs border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50"
                     />
                   </div>
 
                   {/* Participants List with Checkboxes */}
-                  <div className="max-h-[240px] overflow-y-auto rounded-xl border-2 border-border/40 bg-background/30 backdrop-blur-sm">
+                  <div className="max-h-[180px] overflow-y-auto rounded-lg border border-border/40 bg-background/30">
                     {isUsersLoading ? (
-                      <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                      <div className="flex items-center justify-center py-6 text-xs text-muted-foreground">
                         <motion.div
                           animate={{ rotate: 360 }}
                           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          className="mr-2"
+                          className="mr-1.5"
                         >
-                          <Users className="h-4 w-4" />
+                          <Users className="h-3 w-3" />
                         </motion.div>
                         Chargement...
                       </div>
                     ) : filteredParticipants.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-8 text-sm text-muted-foreground">
-                        <Users className="h-8 w-8 mb-2 opacity-50" />
-                        <p>Aucun utilisateur trouvé</p>
+                      <div className="flex flex-col items-center justify-center py-6 text-xs text-muted-foreground">
+                        <Users className="h-6 w-6 mb-1 opacity-50" />
+                        <p>Aucun utilisateur</p>
                       </div>
                     ) : (
                       <div className="divide-y divide-border/30">
@@ -639,31 +606,29 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
                             >
                               <label
                                 htmlFor={`participant-${user.id}`}
-                                className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors"
+                                className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-muted/30 transition-colors"
                               >
                                 {/* Checkbox */}
-                                <div className="relative flex items-center">
-                                  <input
-                                    type="checkbox"
-                                    id={`participant-${user.id}`}
-                                    checked={isSelected}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        addParticipant(user.id);
-                                      } else {
-                                        removeParticipant(user.id);
-                                      }
-                                    }}
-                                    className="peer h-4 w-4 rounded border-2 border-border text-primary focus:ring-2 focus:ring-primary/20 focus:ring-offset-0 transition-all cursor-pointer"
-                                  />
-                                </div>
+                                <input
+                                  type="checkbox"
+                                  id={`participant-${user.id}`}
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      addParticipant(user.id);
+                                    } else {
+                                      removeParticipant(user.id);
+                                    }
+                                  }}
+                                  className="h-3.5 w-3.5 rounded border border-border text-primary focus:ring-1 focus:ring-primary/20 transition-all cursor-pointer"
+                                />
 
                                 {/* Avatar */}
                                 <div className={cn(
-                                  "w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm transition-all",
+                                  "w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-semibold transition-all",
                                   isSelected
-                                    ? "bg-gradient-to-br from-primary to-primary/80 ring-2 ring-primary/20"
-                                    : "bg-gradient-to-br from-blue-500 to-blue-600"
+                                    ? "bg-primary ring-1 ring-primary/20"
+                                    : "bg-blue-500"
                                 )}>
                                   {user.name.charAt(0).toUpperCase()}
                                 </div>
@@ -671,18 +636,18 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
                                 {/* User Info */}
                                 <div className="flex flex-col flex-1 min-w-0">
                                   <span className={cn(
-                                    "text-sm font-semibold truncate transition-colors",
+                                    "text-xs font-medium truncate transition-colors",
                                     isSelected ? "text-primary" : "text-foreground"
                                   )}>
                                     {user.name}
                                   </span>
-                                  <span className="text-xs text-muted-foreground truncate">{user.email}</span>
+                                  <span className="text-[10px] text-muted-foreground truncate">{user.email}</span>
                                 </div>
 
                                 {/* Role Badge */}
                                 <Badge
                                   variant="outline"
-                                  className={cn("text-xs font-medium shrink-0", getRoleColor(user.role))}
+                                  className={cn("text-[10px] font-normal shrink-0 px-1.5 py-0 h-4", getRoleColor(user.role))}
                                 >
                                   {getRoleLabel(user.role)}
                                 </Badge>
@@ -700,19 +665,17 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-3 bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent rounded-xl border-2 border-blue-500/20"
+                    className="p-2 bg-blue-500/5 rounded-lg border border-blue-500/20"
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-1 bg-blue-500/10 rounded-lg">
-                        <Users className="h-3.5 w-3.5 text-blue-600" />
-                      </div>
-                      <span className="text-xs font-semibold text-foreground">
-                        {formData.participants.length} participant{formData.participants.length > 1 ? 's' : ''} invité{formData.participants.length > 1 ? 's' : ''}
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Users className="h-3 w-3 text-blue-600" />
+                      <span className="text-xs font-medium text-foreground">
+                        {formData.participants.length} participant{formData.participants.length > 1 ? 's' : ''}
                       </span>
                     </div>
 
                     {/* Compact Participant Tags */}
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-1">
                       <AnimatePresence mode="popLayout">
                         {formData.participants.map((participantId) => {
                           const participant = users.find(u => u.id === participantId);
@@ -724,18 +687,18 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
                               animate={{ scale: 1, opacity: 1 }}
                               exit={{ scale: 0, opacity: 0 }}
                               transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                              className="inline-flex items-center gap-1.5 px-2 py-1 bg-background/60 border border-border/40 rounded-full text-xs font-medium hover:shadow-sm transition-all group"
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-background/60 border border-border/40 rounded-full text-[10px] font-medium transition-all group"
                             >
-                              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-[9px] font-bold">
+                              <div className="w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center text-white text-[8px] font-bold">
                                 {participant.name.charAt(0).toUpperCase()}
                               </div>
-                              <span className="text-foreground max-w-[120px] truncate">{participant.name}</span>
+                              <span className="text-foreground max-w-[80px] truncate">{participant.name}</span>
                               <button
                                 type="button"
                                 onClick={() => removeParticipant(participantId)}
                                 className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-full p-0.5 transition-colors"
                               >
-                                <X className="h-2.5 w-2.5" />
+                                <X className="h-2 w-2" />
                               </button>
                             </motion.div>
                           );
@@ -747,36 +710,24 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
               </div>
 
               {/* Visibility */}
-              <div className="space-y-2 pt-2 border-t border-border/40">
-                <Label className="flex items-center gap-2 text-sm font-semibold">
-                  <Eye className="h-4 w-4 text-primary" />
-                  Visibilité
-                </Label>
+              <div className="space-y-1.5 pt-2 border-t border-border/40">
+                <Label className="text-xs font-medium text-muted-foreground">Visibilité</Label>
                 <Select
                   value={formData.visibility}
                   onValueChange={(value: EventVisibility) => setFormData({ ...formData, visibility: value })}
                 >
-                  <SelectTrigger className="h-11 px-4 text-base border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all rounded-2xl bg-background/50 backdrop-blur-sm">
+                  <SelectTrigger className="h-9 px-3 text-sm border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-border/60 shadow-xl">
-                    <SelectItem value="private" className="py-3 cursor-pointer">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm font-semibold">Privé</span>
-                        <span className="text-xs text-muted-foreground">Visible uniquement par vous</span>
-                      </div>
+                  <SelectContent className="rounded-lg border-border/60 shadow-xl">
+                    <SelectItem value="private" className="py-2 cursor-pointer">
+                      <span className="text-sm">Privé</span>
                     </SelectItem>
-                    <SelectItem value="team" className="py-3 cursor-pointer">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm font-semibold">Équipe</span>
-                        <span className="text-xs text-muted-foreground">Visible par les participants et gestionnaires</span>
-                      </div>
+                    <SelectItem value="team" className="py-2 cursor-pointer">
+                      <span className="text-sm">Équipe</span>
                     </SelectItem>
-                    <SelectItem value="all" className="py-3 cursor-pointer">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm font-semibold">Public</span>
-                        <span className="text-xs text-muted-foreground">Visible par tous les utilisateurs</span>
-                      </div>
+                    <SelectItem value="all" className="py-2 cursor-pointer">
+                      <span className="text-sm">Public</span>
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -784,24 +735,23 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
             </div>
 
             {/* Reminder */}
-            <div className="space-y-2">
-              <Label htmlFor="reminderType" className="flex items-center gap-2 text-sm font-semibold">
-                <Bell className="h-4 w-4 text-primary" />
+            <div className="space-y-1.5">
+              <Label htmlFor="reminderType" className="text-xs font-medium text-muted-foreground">
                 Rappel
               </Label>
               <Select
                 value={formData.reminderType}
                 onValueChange={(value: ReminderType) => setFormData({ ...formData, reminderType: value })}
               >
-                <SelectTrigger className="h-11 px-4 text-base border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all rounded-2xl bg-background/50 backdrop-blur-sm">
+                <SelectTrigger className="h-9 px-3 text-sm border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="min-w-[320px] rounded-2xl border-border/60 shadow-xl">
+                <SelectContent className="min-w-[280px] rounded-lg border-border/60 shadow-xl">
                   {Object.entries(REMINDER_TYPE_CONFIG).map(([key, config]) => (
-                    <SelectItem key={key} value={key} className="py-3.5 cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <Bell className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium">{config.label}</span>
+                    <SelectItem key={key} value={key} className="py-2 cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        <Bell className="h-3 w-3 text-primary" />
+                        <span className="text-sm">{config.label}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -810,15 +760,15 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
             </div>
 
             {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-semibold">Notes ou description</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="description" className="text-xs font-medium text-muted-foreground">Notes ou description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Ajouter des notes supplémentaires, détails importants, ordre du jour..."
-                rows={3}
-                className="resize-none text-base border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all rounded-2xl bg-background/50 backdrop-blur-sm"
+                placeholder="Ajouter des notes supplémentaires..."
+                rows={2}
+                className="resize-none text-sm border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50"
               />
             </div>
 
@@ -826,49 +776,47 @@ export function AddEventModal({ isOpen, onClose, onEventCreated, selectedDate }:
         </motion.div>
 
         {/* Actions - Sticky Footer */}
-        <div className="px-6 py-4 border-t border-border/40 bg-gradient-to-br from-muted/20 to-background">
-          <div className="flex items-center justify-end">
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                disabled={isLoading}
-                className="h-11 px-6 text-base font-medium hover:bg-muted/50 transition-all rounded-2xl"
-              >
-                Annuler
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLoading}
-                onClick={(e) => {
-                  e.preventDefault();
-                  const form = document.querySelector('form');
-                  if (form) {
-                    form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-                  }
-                }}
-                className="h-11 px-6 text-base font-medium shadow-lg hover:shadow-xl transition-all bg-gradient-to-r from-primary to-primary/90 rounded-2xl"
-              >
-                {isLoading ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="mr-2"
-                    >
-                      <CalendarIcon className="h-4 w-4" />
-                    </motion.div>
-                    Création en cours...
-                  </>
-                ) : (
-                  <>
-                    <CalendarIcon className="h-4 w-4 mr-2" />
-                    Créer l'événement
-                  </>
-                )}
-              </Button>
-            </div>
+        <div className="px-4 py-2.5 border-t border-border/40 bg-muted/20">
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isLoading}
+              className="h-8 px-4 text-xs font-medium hover:bg-muted/50 transition-all rounded-lg"
+            >
+              Annuler
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              onClick={(e) => {
+                e.preventDefault();
+                const form = document.querySelector('form');
+                if (form) {
+                  form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
+              }}
+              className="h-8 px-4 text-xs font-medium shadow-sm hover:shadow transition-all bg-primary hover:bg-primary/90 rounded-lg"
+            >
+              {isLoading ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="mr-1.5"
+                  >
+                    <CalendarIcon className="h-3 w-3" />
+                  </motion.div>
+                  Création...
+                </>
+              ) : (
+                <>
+                  <CalendarIcon className="h-3 w-3 mr-1.5" />
+                  Créer l'événement
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </DialogContent>

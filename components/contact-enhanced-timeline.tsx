@@ -263,10 +263,10 @@ export function ContactEnhancedTimeline({
     const statusRegex = /(Qualifié|Prise de besoin|Acompte reçu|Perdu)/gi
     
     // Replace amounts with highlighted version
-    result = result.replace(amountRegex, '<span class="font-bold text-emerald-400">$1 $2</span>')
+    result = result.replace(amountRegex, '<span class="font-light text-emerald-400">$1 $2</span>')
     
     // Replace status keywords
-    result = result.replace(statusRegex, '<span class="font-semibold text-blue-400">$1</span>')
+    result = result.replace(statusRegex, '<span class="font-light text-blue-400">$1</span>')
     
     return <span dangerouslySetInnerHTML={{ __html: result }} />
   }
@@ -333,22 +333,22 @@ export function ContactEnhancedTimeline({
     }
 
     return (
-      <div className="mt-3 p-3 rounded-lg bg-indigo-500/10 backdrop-blur-sm border border-indigo-500/30">
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-800/60 border border-slate-700/50 shadow-sm">
-            <span className="text-[10px] text-slate-400 uppercase font-semibold">De:</span>
-            <span className="text-sm font-semibold text-white">
+      <div className="mt-2 p-2 rounded-lg bg-indigo-500/10 backdrop-blur-sm border border-indigo-500/30">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-slate-800/60 border border-slate-700/50 shadow-sm">
+            <span className="text-[9px] text-slate-400 uppercase font-light">De:</span>
+            <span className="text-xs font-light text-white">
               {statusLabels[metadata.oldStatus] || metadata.oldStatus}
             </span>
           </div>
 
-          <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center shadow-lg">
-            <ArrowRightCircle className="w-3.5 h-3.5 text-white" />
+          <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center shadow-lg">
+            <ArrowRightCircle className="w-3 h-3 text-white" />
           </div>
 
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-indigo-500/20 border border-indigo-500/40 shadow-sm">
-            <span className="text-[10px] text-indigo-300 uppercase font-semibold">À:</span>
-            <span className="text-sm font-semibold text-white">
+          <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-indigo-500/20 border border-indigo-500/40 shadow-sm">
+            <span className="text-[9px] text-indigo-300 uppercase font-light">À:</span>
+            <span className="text-xs font-light text-white">
               {statusLabels[metadata.newStatus] || metadata.newStatus}
             </span>
           </div>
@@ -367,24 +367,24 @@ export function ContactEnhancedTimeline({
     if (!hasContent) return null
 
     return (
-      <div className="mt-3 p-3 rounded-lg bg-purple-500/10 backdrop-blur-sm border border-purple-500/30">
-        <div className="space-y-2 text-sm">
+      <div className="mt-2 p-2 rounded-lg bg-purple-500/10 backdrop-blur-sm border border-purple-500/30">
+        <div className="space-y-1.5 text-xs">
           {metadata.titre && (
-            <div className="flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-purple-400" />
-              <span className="text-white font-semibold">{metadata.titre}</span>
+            <div className="flex items-center gap-1.5">
+              <Briefcase className="w-3 h-3 text-purple-400" />
+              <span className="text-white font-light">{metadata.titre}</span>
             </div>
           )}
           {metadata.type && (
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-purple-400" />
-              <span className="text-slate-300 font-medium capitalize">{metadata.type}</span>
+            <div className="flex items-center gap-1.5">
+              <FileText className="w-3 h-3 text-purple-400" />
+              <span className="text-slate-300 font-light capitalize">{metadata.type}</span>
             </div>
           )}
           {metadata.budget && (
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-emerald-400" />
-              <span className="text-emerald-300 font-bold">{metadata.budget.toLocaleString('fr-FR')} MAD</span>
+            <div className="flex items-center gap-1.5">
+              <DollarSign className="w-3 h-3 text-emerald-400" />
+              <span className="text-emerald-300 font-light">{metadata.budget.toLocaleString('fr-FR')} MAD</span>
             </div>
           )}
         </div>
@@ -398,26 +398,26 @@ export function ContactEnhancedTimeline({
     if (!metadata || !metadata.montant) return null
 
     return (
-      <div className="mt-3 p-4 rounded-lg bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/30">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center border border-emerald-400/50 shadow-lg">
-              <Wallet className="w-4 h-4 text-white" />
+      <div className="mt-2 p-2 rounded-lg bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/30">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center border border-emerald-400/50 shadow-lg">
+              <Wallet className="w-3 h-3 text-white" />
             </div>
-            <span className="text-emerald-300 font-bold text-xl">
+            <span className="text-emerald-300 font-light text-sm">
               {metadata.montant.toLocaleString('fr-FR')} MAD
             </span>
           </div>
           {metadata.methode && (
-            <div className="flex items-center gap-2 pl-11">
-              <CheckCircle className="w-4 h-4 text-emerald-400" />
-              <span className="text-slate-300 font-semibold capitalize text-sm">{metadata.methode}</span>
+            <div className="flex items-center gap-1.5 pl-8">
+              <CheckCircle className="w-3 h-3 text-emerald-400" />
+              <span className="text-slate-300 font-light capitalize text-xs">{metadata.methode}</span>
             </div>
           )}
           {metadata.reference && (
-            <div className="flex items-center gap-2 pl-11">
-              <FileText className="w-4 h-4 text-emerald-400" />
-              <span className="text-slate-400 text-sm">Réf: <span className="font-mono font-semibold text-slate-300">{metadata.reference}</span></span>
+            <div className="flex items-center gap-1.5 pl-8">
+              <FileText className="w-3 h-3 text-emerald-400" />
+              <span className="text-slate-400 text-xs font-light">Réf: <span className="font-mono font-light text-slate-300">{metadata.reference}</span></span>
             </div>
           )}
         </div>
@@ -426,15 +426,15 @@ export function ContactEnhancedTimeline({
   }
 
   return (
-    <div className="bg-gradient-to-br from-[#0F1420]/95 via-[#141A2A]/98 to-[#0F1420]/95 rounded-2xl border border-slate-700/40 p-6 backdrop-blur-sm shadow-xl">
+    <div className="bg-gradient-to-br from-[#0F1420]/95 via-[#141A2A]/98 to-[#0F1420]/95 rounded-lg border border-slate-700/40 p-3 backdrop-blur-sm shadow-xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
-            <History className="w-5 h-5 text-blue-400" />
+          <h3 className="text-sm font-light text-white mb-0.5 flex items-center gap-1.5">
+            <History className="w-4 h-4 text-blue-400" />
             Historique Complet
           </h3>
-          <p className="text-sm text-slate-300 font-medium">
+          <p className="text-xs text-slate-300 font-light">
             {filteredEvents.length} événement{filteredEvents.length > 1 ? 's' : ''}
           </p>
         </div>
@@ -442,7 +442,7 @@ export function ContactEnhancedTimeline({
 
       {/* Filters */}
       {showFilters && (
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {[
             { key: "all", label: "Tous", icon: null, count: allEvents.length },
             { key: "statuts", label: "Statuts", icon: TrendingUp, count: allEvents.filter(e => e.displayType === "statuts").length },
@@ -463,17 +463,17 @@ export function ContactEnhancedTimeline({
                 key={filter.key}
                 onClick={() => setActiveFilter(filter.key as FilterType)}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5",
+                  "px-2 py-1 rounded-lg text-[10px] font-light transition-all flex items-center gap-1",
                   activeFilter === filter.key
                     ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30"
                     : "bg-white/5 text-slate-300 hover:bg-white/10 border border-slate-700/50 hover:border-slate-600/50"
                 )}
               >
-                {Icon && <Icon className="w-3.5 h-3.5" />}
+                {Icon && <Icon className="w-3 h-3" />}
                 {filter.label}
                 {count > 0 && (
                   <span className={cn(
-                    "ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                    "ml-0.5 px-1 py-0.5 rounded-full text-[9px] font-light",
                     activeFilter === filter.key
                       ? "bg-white/20 text-white"
                       : "bg-white/10 text-slate-400"
@@ -489,25 +489,25 @@ export function ContactEnhancedTimeline({
 
       {/* Timeline */}
       {Object.keys(groupedEvents).length > 0 ? (
-        <div className="space-y-6">
+        <div className="space-y-3">
           {Object.entries(groupedEvents).map(([dateKey, events]) => {
             const processedEvents = groupSystemUpdates(events)
             
             return (
               <div key={dateKey}>
               {/* Date Separator */}
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-2 mb-2">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-600/50 to-slate-600/50" />
-                <span className="text-xs font-bold text-white uppercase tracking-wider px-4 py-1.5 rounded-full bg-slate-800/60 border border-slate-700/50 shadow-lg backdrop-blur-sm">
+                <span className="text-[10px] font-light text-white uppercase tracking-wider px-2 py-1 rounded-full bg-slate-800/60 border border-slate-700/50 shadow-lg backdrop-blur-sm">
                   {dateKey}
                 </span>
                 <div className="h-px flex-1 bg-gradient-to-l from-transparent via-slate-600/50 to-slate-600/50" />
               </div>
 
                 {/* Events for this date */}
-                <div className="space-y-3 relative">
+                <div className="space-y-2 relative">
                   {/* Timeline vertical line */}
-                  <div className="absolute left-4 top-3 bottom-3 w-0.5 bg-gradient-to-b from-blue-500/60 via-blue-400/40 to-blue-300/20 rounded-full" />
+                  <div className="absolute left-3.5 top-2 bottom-2 w-0.5 bg-gradient-to-b from-blue-500/60 via-blue-400/40 to-blue-300/20 rounded-full" />
 
                   {processedEvents.map((item, index) => {
                     // Handle grouped system updates
@@ -522,46 +522,46 @@ export function ContactEnhancedTimeline({
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.03 }}
-                          className="relative pl-12"
+                          className="relative pl-10"
                         >
                           {/* Icon */}
                           <div className={cn(
-                            "absolute left-0 w-8 h-8 rounded-full flex items-center justify-center border-2 z-10 bg-slate-800/80 backdrop-blur-sm shadow-lg",
+                            "absolute left-0 w-6 h-6 rounded-full flex items-center justify-center border z-10 bg-slate-800/80 backdrop-blur-sm shadow-lg",
                             firstEvent.iconColor
                           )}>
-                            <firstEvent.icon className="w-4 h-4" />
+                            <firstEvent.icon className="w-3 h-3" />
                           </div>
 
                           {/* Grouped Content Card */}
                           <div className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/50 rounded-lg overflow-hidden hover:border-slate-600/50 hover:bg-slate-800/50 transition-all shadow-lg">
                             <button
                               onClick={() => toggleGroup(item.id)}
-                              className="w-full p-4 hover:bg-slate-800/30 transition-colors text-left"
+                              className="w-full p-2.5 hover:bg-slate-800/30 transition-colors text-left"
                             >
-                              <div className="flex items-start justify-between gap-2 mb-2">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <User className="w-3.5 h-3.5 text-slate-400" />
-                                  <span className="text-xs font-semibold text-white">
+                              <div className="flex items-start justify-between gap-2 mb-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <User className="w-3 h-3 text-slate-400" />
+                                  <span className="text-[10px] font-light text-white">
                                     {getUserName(firstEvent.author)}
                                   </span>
-                                  <span className="text-xs text-slate-500">•</span>
-                                  <span className="text-xs text-slate-400 font-medium">
+                                  <span className="text-[10px] text-slate-500">•</span>
+                                  <span className="text-[10px] text-slate-400 font-light">
                                     {formatRelativeTime(firstEvent.createdAt)}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-300 font-semibold border border-blue-500/30">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-light border border-blue-500/30">
                                     {groupEvents.length} mises à jour
                                   </span>
                                   {isExpanded ? (
-                                    <ChevronUp className="w-4 h-4 text-slate-400" />
+                                    <ChevronUp className="w-3 h-3 text-slate-400" />
                                   ) : (
-                                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                                    <ChevronDown className="w-3 h-3 text-slate-400" />
                                   )}
                                 </div>
                               </div>
                               
-                              <p className="text-sm text-white font-medium leading-relaxed">
+                              <p className="text-xs text-white font-light leading-relaxed">
                                 {groupEvents.length} changements système groupés
                               </p>
                             </button>
@@ -576,16 +576,16 @@ export function ContactEnhancedTimeline({
                                   transition={{ duration: 0.2 }}
                                   className="border-t border-slate-700/50"
                                 >
-                                  <div className="p-3 space-y-2 bg-slate-900/40">
+                                  <div className="p-2 space-y-1.5 bg-slate-900/40">
                                     {groupEvents.map((subEvent, subIndex) => (
-                                      <div key={subEvent.id} className="text-sm p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/50 transition-colors shadow-sm">
-                                        <div className="flex items-center gap-2 text-slate-400 mb-1.5">
-                                          <Clock className="w-3.5 h-3.5" />
-                                          <span className="font-medium text-xs">{formatRelativeTime(subEvent.createdAt)}</span>
+                                      <div key={subEvent.id} className="text-xs p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/50 transition-colors shadow-sm">
+                                        <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                                          <Clock className="w-3 h-3" />
+                                          <span className="font-light text-[10px]">{formatRelativeTime(subEvent.createdAt)}</span>
                                         </div>
-                                        <p className="text-white font-semibold text-sm mb-1">{subEvent.title}</p>
+                                        <p className="text-white font-light text-xs mb-1">{subEvent.title}</p>
                                         {subEvent.description && (
-                                          <div className="text-slate-300 mt-1.5 leading-relaxed text-sm">
+                                          <div className="text-slate-300 mt-1 leading-relaxed text-xs font-light">
                                             {formatDescription(subEvent.description, subEvent.eventType)}
                                           </div>
                                         )}
@@ -611,37 +611,37 @@ export function ContactEnhancedTimeline({
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.03 }}
-                        className="relative pl-11"
+                        className="relative pl-10"
                       >
                         {/* Icon */}
                         <div className={cn(
-                          "absolute left-0 w-8 h-8 rounded-full flex items-center justify-center border-2 z-10 bg-slate-800/80 backdrop-blur-sm shadow-lg",
+                          "absolute left-0 w-6 h-6 rounded-full flex items-center justify-center border z-10 bg-slate-800/80 backdrop-blur-sm shadow-lg",
                           event.iconColor
                         )}>
-                          <Icon className="w-4 h-4" />
+                          <Icon className="w-3 h-3" />
                         </div>
 
                         {/* Content Card */}
-                        <div className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/50 rounded-lg p-4 hover:bg-slate-800/50 hover:border-slate-600/50 transition-all shadow-lg">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <User className="w-3.5 h-3.5 text-slate-400" />
-                              <span className="text-xs font-semibold text-white">
+                        <div className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/50 rounded-lg p-2.5 hover:bg-slate-800/50 hover:border-slate-600/50 transition-all shadow-lg">
+                          <div className="flex items-start justify-between gap-2 mb-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <User className="w-3 h-3 text-slate-400" />
+                              <span className="text-[10px] font-light text-white">
                                 {getUserName(event.author)}
                               </span>
-                              <span className="text-xs text-slate-500">•</span>
-                              <span className="text-xs text-slate-400 font-medium">
+                              <span className="text-[10px] text-slate-500">•</span>
+                              <span className="text-[10px] text-slate-400 font-light">
                                 {formatRelativeTime(event.createdAt)}
                               </span>
                             </div>
                           </div>
                           
-                          <h4 className="text-sm font-bold text-white mb-2">
+                          <h4 className="text-xs font-light text-white mb-1.5">
                             {event.title}
                           </h4>
                           
                           {event.description && (
-                            <div className="text-sm text-slate-300 leading-relaxed font-medium">
+                            <div className="text-xs text-slate-300 leading-relaxed font-light">
                               {formatDescription(event.description, event.eventType)}
                             </div>
                           )}
@@ -663,12 +663,12 @@ export function ContactEnhancedTimeline({
           })}
         </div>
       ) : (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 rounded-full bg-slate-800/60 flex items-center justify-center mx-auto mb-4 border border-slate-700/50">
-            <History className="w-8 h-8 text-slate-500" />
+        <div className="text-center py-8">
+          <div className="w-12 h-12 rounded-full bg-slate-800/60 flex items-center justify-center mx-auto mb-3 border border-slate-700/50">
+            <History className="w-6 h-6 text-slate-500" />
           </div>
-          <p className="text-white text-sm font-semibold">Aucun événement pour le moment</p>
-          <p className="text-slate-400 text-xs mt-1.5">
+          <p className="text-white text-xs font-light">Aucun événement pour le moment</p>
+          <p className="text-slate-400 text-[10px] font-light mt-1">
             L'historique des activités apparaîtra ici
           </p>
         </div>
@@ -680,16 +680,16 @@ export function ContactEnhancedTimeline({
           onClick={() => setShowAll(!showAll)}
           variant="ghost"
           size="sm"
-          className="w-full mt-5 text-slate-300 font-medium hover:text-white hover:bg-slate-800/50 bg-slate-800/30 border border-slate-700/50 rounded-lg py-3 text-sm transition-colors shadow-sm"
+          className="w-full mt-3 text-slate-300 font-light hover:text-white hover:bg-slate-800/50 bg-slate-800/30 border border-slate-700/50 rounded-lg py-2 text-xs transition-colors shadow-sm"
         >
           {showAll ? (
             <>
-              <ChevronUp className="w-4 h-4 mr-2" />
+              <ChevronUp className="w-3 h-3 mr-1.5" />
               Voir moins
             </>
           ) : (
             <>
-              <ChevronDown className="w-4 h-4 mr-2" />
+              <ChevronDown className="w-3 h-3 mr-1.5" />
               Voir tout ({filteredEvents.length - maxItems} de plus)
             </>
           )}

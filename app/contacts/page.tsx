@@ -196,7 +196,7 @@ export default function ContactsPage() {
 
   const projectTypes: OpportunityType[] = ['villa', 'appartement', 'magasin', 'bureau', 'riad', 'studio', 'renovation', 'autre']
 
-  const hasActiveFilters = statusFilter !== 'all' || selectedArchitect !== 'all' || hasOpportunitiesFilter !== 'all' || cityFilter !== 'all' || projectTypeFilter !== 'all' || pipelineFilter !== 'all'
+  const hasActiveFilters = statusFilter !== 'all' || (!isArchitect && selectedArchitect !== 'all') || hasOpportunitiesFilter !== 'all' || cityFilter !== 'all' || projectTypeFilter !== 'all' || pipelineFilter !== 'all'
 
   return (
     <AuthGuard>
@@ -332,11 +332,11 @@ export default function ContactsPage() {
                     {hasActiveFilters && (
                       <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded-full text-[10px] font-medium">
                         {(statusFilter !== 'all' ? 1 : 0) +
-                          (selectedArchitect !== 'all' ? 1 : 0) +
+                          (!isArchitect && selectedArchitect !== 'all' ? 1 : 0) +
                           (hasOpportunitiesFilter !== 'all' ? 1 : 0) +
                           (cityFilter !== 'all' ? 1 : 0) +
                           (projectTypeFilter !== 'all' ? 1 : 0) +
-                          (pipelineFilter !== 'all' ? 1 : 0)} actif{((statusFilter !== 'all' ? 1 : 0) + (selectedArchitect !== 'all' ? 1 : 0) + (hasOpportunitiesFilter !== 'all' ? 1 : 0) + (cityFilter !== 'all' ? 1 : 0) + (projectTypeFilter !== 'all' ? 1 : 0) + (pipelineFilter !== 'all' ? 1 : 0)) > 1 ? 's' : ''}
+                          (pipelineFilter !== 'all' ? 1 : 0)} actif{((statusFilter !== 'all' ? 1 : 0) + (!isArchitect && selectedArchitect !== 'all' ? 1 : 0) + (hasOpportunitiesFilter !== 'all' ? 1 : 0) + (cityFilter !== 'all' ? 1 : 0) + (projectTypeFilter !== 'all' ? 1 : 0) + (pipelineFilter !== 'all' ? 1 : 0)) > 1 ? 's' : ''}
                       </span>
                     )}
                     <ChevronDown
@@ -451,8 +451,8 @@ export default function ContactsPage() {
                         </Select>
                       </div>
 
-                      {/* Architect Filter - Show for all roles */}
-                      {allArchitects.length > 0 && (
+                      {/* Architect Filter - Hide for architects (all contacts are assigned to them) */}
+                      {allArchitects.length > 0 && !isArchitect && (
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1">
                             <UserCircle className="w-3 h-3" />

@@ -59,3 +59,4 @@ async function verifyContactNotes(contactName?: string) {
 const contactName = process.argv[2]
 verifyContactNotes(contactName)
 
+

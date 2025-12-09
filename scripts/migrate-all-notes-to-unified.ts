@@ -239,3 +239,4 @@ migrateAllNotes()
     process.exit(1)
   })
 
+
