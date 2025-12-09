@@ -59,9 +59,18 @@ export function CreateOpportunityModal({
     }
   }, [isOpen, contact])
 
-  // Pre-select architect after architects are loaded
+  // Pre-select architect immediately from contact (don't wait for architects to load)
   useEffect(() => {
-    if (contact.architecteAssigne && architects.length > 0) {
+    if (contact.architecteAssigne) {
+      // If contact has architect assigned, set it immediately
+      // We'll resolve the name later when architects load
+      setArchitectId(contact.architecteAssigne)
+    }
+  }, [contact.architecteAssigne])
+
+  // Update architect ID when architects load and we can match by name
+  useEffect(() => {
+    if (contact.architecteAssigne && architects.length > 0 && !architectId) {
       // Try to find architect by ID first
       const architectById = architects.find(a => a.id === contact.architecteAssigne)
       if (architectById) {
@@ -79,7 +88,7 @@ export function CreateOpportunityModal({
         }
       }
     }
-  }, [architects, contact.architecteAssigne])
+  }, [architects, contact.architecteAssigne, architectId])
 
   // Update title when property type changes
   useEffect(() => {
@@ -183,8 +192,11 @@ export function CreateOpportunityModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Use assigned architect from contact if available, otherwise use selected architect
+    const finalArchitectId = contact.architecteAssigne || architectId
+
     // Validation
-    if (!architectId) {
+    if (!finalArchitectId) {
       toast.error("L'assignation à un architecte est requise")
       return
     }
@@ -225,7 +237,7 @@ export function CreateOpportunityModal({
           type,
           description,
           budget: montantEstime,
-          architecteAssigne: architectId,
+          architecteAssigne: finalArchitectId,
         }),
       })
 
@@ -325,67 +337,67 @@ export function CreateOpportunityModal({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.2 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl max-h-[90vh] bg-slate-900 rounded-2xl shadow-2xl z-50 flex flex-col border border-slate-700/50 overflow-hidden"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[90vh] bg-slate-900 rounded-lg shadow-2xl z-50 flex flex-col border border-slate-700/50 overflow-hidden"
           >
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="absolute top-5 right-5 w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center transition-colors z-10"
+              className="absolute top-3 right-3 w-7 h-7 rounded-full bg-slate-800/50 hover:bg-slate-700/50 border border-slate-600/50 flex items-center justify-center transition-colors z-10"
             >
-              <X className="w-5 h-5 text-white" />
+              <X className="w-3.5 h-3.5 text-white" />
             </button>
 
             {/* Scrollable content */}
-            <div className="overflow-y-auto flex-1 p-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-800">
+            <div className="overflow-y-auto flex-1 p-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-800">
               {/* HEADER */}
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-5 h-5 text-white" />
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-4 h-4 text-white" />
                   </div>
-                  <h1 className="text-2xl font-bold text-white">
+                  <h1 className="text-lg font-light text-white">
                     Créer une nouvelle opportunité
                   </h1>
                 </div>
-                <p className="text-slate-400 text-sm">
+                <p className="text-[10px] font-light text-slate-400">
                   Informations liées au contact & assignation à un architecte
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 {/* CONTACT INFORMATION SECTION - READ ONLY */}
                 <div>
-                  <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                    <div className="w-1 h-3 bg-blue-500 rounded-full" />
+                  <h2 className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    <div className="w-0.5 h-2.5 bg-blue-500 rounded-full" />
                     Informations du contact (Lecture seule)
                   </h2>
-                  <div className="rounded-xl p-5 border border-slate-700 bg-slate-800/50">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-lg p-2.5 border border-slate-700/50 bg-slate-800/30">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {/* Nom complet */}
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                          <User className="w-4 h-4 text-blue-400" />
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                          <User className="w-3 h-3 text-blue-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-slate-500 uppercase tracking-wide">
+                          <p className="text-[10px] font-light text-slate-500 uppercase tracking-wide">
                             Nom complet
                           </p>
-                          <p className="text-sm font-medium text-white truncate">
+                          <p className="text-xs font-light text-white truncate">
                             {contact.nom}
                           </p>
                         </div>
                       </div>
 
                       {/* Téléphone */}
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                          <Phone className="w-4 h-4 text-green-400" />
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                          <Phone className="w-3 h-3 text-green-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-slate-500 uppercase tracking-wide">
+                          <p className="text-[10px] font-light text-slate-500 uppercase tracking-wide">
                             Téléphone
                           </p>
-                          <p className="text-sm font-medium text-white truncate">
+                          <p className="text-xs font-light text-white truncate">
                             {contact.telephone}
                           </p>
                         </div>
@@ -393,15 +405,15 @@ export function CreateOpportunityModal({
 
                       {/* Ville */}
                       {contact.ville && (
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                            <MapPin className="w-4 h-4 text-purple-400" />
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                            <MapPin className="w-3 h-3 text-purple-400" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs text-slate-500 uppercase tracking-wide">
+                            <p className="text-[10px] font-light text-slate-500 uppercase tracking-wide">
                               Ville
                             </p>
-                            <p className="text-sm font-medium text-white truncate">
+                            <p className="text-xs font-light text-white truncate">
                               {contact.ville}
                             </p>
                           </div>
@@ -409,15 +421,15 @@ export function CreateOpportunityModal({
                       )}
 
                       {/* Type de bien */}
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
-                          <Home className="w-4 h-4 text-red-400" />
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                          <Home className="w-3 h-3 text-red-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-slate-500 uppercase tracking-wide">
+                          <p className="text-[10px] font-light text-slate-500 uppercase tracking-wide">
                             Type de bien
                           </p>
-                          <p className="text-sm font-medium text-white truncate">
+                          <p className="text-xs font-light text-white truncate">
                             {typeLabel(propertyType)}
                           </p>
                         </div>
@@ -428,55 +440,55 @@ export function CreateOpportunityModal({
 
                 {/* OPPORTUNITY FIELDS SECTION */}
                 <div>
-                  <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                    <div className="w-1 h-3 bg-blue-500 rounded-full" />
+                  <h2 className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    <div className="w-0.5 h-2.5 bg-blue-500 rounded-full" />
                     Détails de l'opportunité
                   </h2>
-                  <div className="space-y-4">
+                  <div className="space-y-2.5">
                     {/* Nom de l'opportunité */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-300">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-light text-slate-300">
                         Nom de l'opportunité{" "}
-                        <span className="text-xs text-slate-500">(un titre par défaut sera généré si vide)</span>
+                        <span className="text-[10px] font-light text-slate-500">(un titre par défaut sera généré si vide)</span>
                       </Label>
                       <Input
                         type="text"
                         value={nomOportunite}
                         onChange={(e) => setNomOportunite(e.target.value)}
                         placeholder={defaultTitle(propertyType)}
-                        className="h-11 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        className="h-9 text-xs bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
 
                     {/* Description - REQUIRED */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-300">
-                        Description <span className="text-red-400">* (Requis)</span>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-light text-slate-300">
+                        Description <span className="text-[10px] font-light text-red-400">* (Requis)</span>
                       </Label>
                       <Textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         placeholder="Détails du projet, besoins spécifiques..."
-                        className="min-h-[100px] bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
+                        className="min-h-[80px] text-xs bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
                       />
                     </div>
 
                     {/* Montant Estimé - REQUIRED */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-300">
-                        Montant Estimé (MAD) <span className="text-red-400">* (Requis)</span>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-light text-slate-300">
+                        Montant Estimé (MAD) <span className="text-[10px] font-light text-red-400">* (Requis)</span>
                       </Label>
                       <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
-                          <Coins className="w-5 h-5 text-amber-500" />
-                          <span className="text-sm font-semibold text-slate-400">MAD</span>
+                        <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+                          <Coins className="w-3.5 h-3.5 text-amber-500" />
+                          <span className="text-xs font-light text-slate-400">MAD</span>
                         </div>
                         <Input
                           type="number"
                           value={montantEstime}
                           onChange={(e) => setMontantEstime(e.target.value)}
                           placeholder="0.00"
-                          className="h-12 pl-20 pr-4 bg-slate-800 border-slate-700 text-white text-base placeholder:text-slate-500 rounded-lg focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                          className="h-9 pl-16 pr-3 text-xs bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 rounded-lg focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                         />
                       </div>
                     </div>
@@ -485,101 +497,113 @@ export function CreateOpportunityModal({
 
                 {/* ARCHITECT ASSIGNMENT SECTION */}
                 <div>
-                  <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                    <div className="w-1 h-3 bg-blue-500 rounded-full" />
+                  <h2 className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    <div className="w-0.5 h-2.5 bg-blue-500 rounded-full" />
                     Attribuer un architecte
                   </h2>
-                  <div className="space-y-3">
-                    {/* Show assigned architect from contact if exists */}
-                    {assignedArchitectName && !selectedArchitect && (
-                      <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                            <span className="text-sm font-bold text-purple-300">
-                              {assignedArchitectName.charAt(0).toUpperCase()}
+                  <div className="space-y-2">
+                    {/* Show assigned architect from contact - READ ONLY if already assigned */}
+                    {contact.architecteAssigne ? (
+                      <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-light text-purple-300">
+                              {assignedArchitectName?.charAt(0).toUpperCase() || contact.architecteAssigne.charAt(0).toUpperCase()}
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs text-purple-400 mb-1">Architecte assigné au contact</p>
-                            <p className="text-sm font-semibold text-white">
-                              {assignedArchitectName}
+                            <p className="text-[10px] font-light text-purple-400 mb-0.5">Architecte assigné</p>
+                            <p className="text-xs font-light text-white truncate">
+                              {assignedArchitectName || contact.architecteAssigne}
                             </p>
-                          </div>
-                          <Users className="w-5 h-5 text-purple-400 flex-shrink-0" />
-                        </div>
-                      </div>
-                    )}
-
-                    <Button
-                      type="button"
-                      onClick={() => setArchitectDialogOpen(true)}
-                      className="h-11 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white"
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      {selectedArchitect || assignedArchitectName ? "Changer l'architecte" : "Choisir un architecte"}
-                    </Button>
-
-                    {/* Selected architect preview */}
-                    {selectedArchitect && (
-                      <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                            <span className="text-sm font-bold text-blue-300">
-                              {(selectedArchitect.prenom || selectedArchitect.nom).charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-blue-400 mb-1">Architecte sélectionné</p>
-                            <p className="text-sm font-semibold text-white">
-                              {selectedArchitect.prenom} {selectedArchitect.nom}
-                            </p>
-                            {selectedArchitect.specialite && (
-                              <p className="text-xs text-slate-400">
+                            {selectedArchitect?.specialite && (
+                              <p className="text-[10px] font-light text-slate-400 truncate">
                                 {selectedArchitect.specialite}
                               </p>
                             )}
                           </div>
-                          <Users className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                          <Users className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
                         </div>
+                        {!loading && (
+                          <p className="text-[10px] font-light text-slate-500 mt-1.5 italic">
+                            (Lecture seule - assigné lors de la conversion)
+                          </p>
+                        )}
                       </div>
-                    )}
+                    ) : (
+                      <>
+                        <Button
+                          type="button"
+                          onClick={() => setArchitectDialogOpen(true)}
+                          className="h-9 px-3 text-xs font-light rounded-lg bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700/50 text-white"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                          {selectedArchitect ? "Changer l'architecte" : "Choisir un architecte"}
+                        </Button>
 
-                    {!architectId && (
-                      <p className="text-xs text-red-400">
-                        L'assignation à un architecte est obligatoire
-                      </p>
+                        {/* Selected architect preview */}
+                        {selectedArchitect && (
+                          <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs font-light text-blue-300">
+                                  {(selectedArchitect.prenom || selectedArchitect.nom).charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-light text-blue-400 mb-0.5">Architecte sélectionné</p>
+                                <p className="text-xs font-light text-white truncate">
+                                  {selectedArchitect.prenom} {selectedArchitect.nom}
+                                </p>
+                                {selectedArchitect.specialite && (
+                                  <p className="text-[10px] font-light text-slate-400 truncate">
+                                    {selectedArchitect.specialite}
+                                  </p>
+                                )}
+                              </div>
+                              <Users className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                            </div>
+                          </div>
+                        )}
+
+                        {!architectId && (
+                          <p className="text-[10px] font-light text-red-400">
+                            L'assignation à un architecte est obligatoire
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
 
                 {/* CTA BUTTONS */}
-                <div className="flex gap-3 pt-4 border-t border-slate-700">
+                <div className="flex gap-2 pt-3 border-t border-slate-700/50">
                   <Button
                     type="button"
                     onClick={onClose}
                     disabled={submitting}
-                    className="flex-1 h-11 bg-slate-800 hover:bg-slate-700 text-white rounded-lg border border-slate-700"
+                    className="flex-1 h-8 text-xs font-light bg-slate-800/50 hover:bg-slate-700/50 text-white rounded-lg border border-slate-700/50"
                   >
                     Annuler
                   </Button>
                   <Button
                     type="submit"
-                    disabled={submitting || !architectId || !description || !montantEstime}
+                    disabled={submitting || (!contact.architecteAssigne && !architectId) || !description || !montantEstime}
                     className={cn(
-                      "flex-1 h-11 rounded-lg transition-all",
-                      submitting || !architectId || !description || !montantEstime
-                        ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+                      "flex-1 h-8 text-xs font-light rounded-lg transition-all",
+                      submitting || (!contact.architecteAssigne && !architectId) || !description || !montantEstime
+                        ? "bg-slate-800/50 text-slate-500 cursor-not-allowed border border-slate-700/50"
                         : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
                     )}
                   >
                     {submitting ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Création...
+                      <div className="flex items-center gap-1.5">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span className="text-xs">Création...</span>
                       </div>
                     ) : (
-                      <span className="inline-flex items-center">
-                        Créer l'opportunité <ArrowRight className="w-4 h-4 ml-2" />
+                      <span className="inline-flex items-center text-xs">
+                        Créer l'opportunité <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
                       </span>
                     )}
                   </Button>

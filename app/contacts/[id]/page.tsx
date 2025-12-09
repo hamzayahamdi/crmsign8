@@ -27,7 +27,8 @@ import {
   ExternalLink,
   History,
   Activity,
-  Trash2
+  Trash2,
+  Home
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -767,6 +768,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
   const [newNoteContent, setNewNoteContent] = useState('')
   const [isSavingNote, setIsSavingNote] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [leadData, setLeadData] = useState<{ typeBien?: string; source?: string } | null>(null)
 
   // Notes editing state
   const [isEditingNotes, setIsEditingNotes] = useState(false)
@@ -872,6 +874,49 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
 
   // Check if this contact was converted from a lead
   const isConverted = contact.tag === 'converted' || contact.leadId
+
+  // Fetch lead data if contact was converted from a lead
+  useEffect(() => {
+    const fetchLeadData = async () => {
+      if (contact.leadId) {
+        try {
+          const token = localStorage.getItem('token')
+          // Try to get lead data from timeline metadata first
+          const timelineEvent = contact.timeline?.find(
+            t => t.eventType === 'contact_converted_from_lead' && t.metadata
+          )
+          if (timelineEvent?.metadata) {
+            const metadata = timelineEvent.metadata as any
+            setLeadData({
+              typeBien: metadata.typeBien || metadata.leadTypeBien,
+              source: metadata.source || metadata.leadSource
+            })
+          } else {
+            // Fallback: try to fetch from API if available
+            // Note: Lead might be deleted, so this might fail
+            try {
+              const response = await fetch(`/api/leads/${contact.leadId}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+              })
+              if (response.ok) {
+                const lead = await response.json()
+                setLeadData({
+                  typeBien: lead.typeBien,
+                  source: lead.source
+                })
+              }
+            } catch (e) {
+              // Lead might be deleted, that's okay
+              console.log('Lead not found or deleted:', e)
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching lead data:', error)
+        }
+      }
+    }
+    fetchLeadData()
+  }, [contact.leadId, contact.timeline])
 
   // Get the converter name
   const getConverterName = () => {
@@ -1211,6 +1256,26 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                   Ville
                 </p>
                 <p className="text-xs font-light text-white">{contact.ville}</p>
+              </div>
+            )}
+
+            {leadData?.typeBien && (
+              <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-red-500/30 transition-all">
+                <p className="text-[9px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                  <Home className="w-2.5 h-2.5 text-red-400" />
+                  Type de bien
+                </p>
+                <p className="text-xs font-light text-white">{leadData.typeBien}</p>
+              </div>
+            )}
+
+            {leadData?.source && (
+              <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-cyan-500/30 transition-all">
+                <p className="text-[9px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                  <ExternalLink className="w-2.5 h-2.5 text-cyan-400" />
+                  Source
+                </p>
+                <p className="text-xs font-light text-white capitalize">{leadData.source}</p>
               </div>
             )}
           </div>

@@ -143,19 +143,55 @@ export function ContactsTable({
     return map[contact.status] || null
   }
 
-  // Get most common project type from opportunities
-  const getProjectType = (opportunities: Opportunity[] = []) => {
-    if (opportunities.length === 0) return null
+  // Map lead typeBien to opportunity type format
+  const mapTypeBienToOpportunityType = (typeBien: string | null | undefined): string | null => {
+    if (!typeBien) return null
+    
+    const typeMap: Record<string, string> = {
+      'Villa': 'villa',
+      'villa': 'villa',
+      'Appartement': 'appartement',
+      'appartement': 'appartement',
+      'Magasin': 'magasin',
+      'magasin': 'magasin',
+      'Bureau': 'bureau',
+      'bureau': 'bureau',
+      'Riad': 'riad',
+      'riad': 'riad',
+      'Studio': 'studio',
+      'studio': 'studio',
+      'Rénovation': 'renovation',
+      'renovation': 'renovation',
+      'Renovation': 'renovation',
+      'Autre': 'autre',
+      'autre': 'autre',
+    }
+    
+    return typeMap[typeBien] || typeBien.toLowerCase() || null
+  }
 
-    // Count types
-    const typeCounts: Record<string, number> = {}
-    opportunities.forEach(opp => {
-      typeCounts[opp.type] = (typeCounts[opp.type] || 0) + 1
-    })
+  // Get project type: prefer contact.typeBien (direct field), then opportunities, then mapped typeBien
+  const getProjectType = (opportunities: Opportunity[] = [], contactTypeBien?: string | null) => {
+    // First priority: use contact.typeBien directly (from database)
+    if (contactTypeBien) {
+      const mapped = mapTypeBienToOpportunityType(contactTypeBien)
+      if (mapped) return mapped
+    }
+    
+    // Second priority: get from opportunities
+    if (opportunities.length > 0) {
+      // Count types
+      const typeCounts: Record<string, number> = {}
+      opportunities.forEach(opp => {
+        typeCounts[opp.type] = (typeCounts[opp.type] || 0) + 1
+      })
 
-    // Get most common
-    const mostCommon = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]
-    return mostCommon ? mostCommon[0] : null
+      // Get most common
+      const mostCommon = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]
+      if (mostCommon) return mostCommon[0]
+    }
+    
+    return null
   }
 
   const getProjectTypeIcon = (type: string) => {
@@ -386,7 +422,7 @@ export function ContactsTable({
             lost: opportunities.filter((o) => o.statut === 'lost' || o.pipelineStage === 'perdue').length,
             onHold: opportunities.filter((o) => o.statut === 'on_hold').length,
           }
-          const projectType = getProjectType(opportunities)
+          const projectType = getProjectType(opportunities, contact.typeBien)
 
           return (
             <motion.div
@@ -578,7 +614,7 @@ export function ContactsTable({
                   lost: opportunities.filter((o) => o.statut === 'lost' || o.pipelineStage === 'perdue').length,
                   onHold: opportunities.filter((o) => o.statut === 'on_hold').length,
                 }
-                const projectType = getProjectType(opportunities)
+                const projectType = getProjectType(opportunities, contact.typeBien)
                 const pipelineBadge = getPipelineBadge(contact)
 
                 return (

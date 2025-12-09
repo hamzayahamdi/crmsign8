@@ -134,6 +134,8 @@ model Contact {
   ville             String?
   adresse           String?
   leadId            String?           @map("lead_id")
+  typeBien          String?           @map("type_bien")
+  source            String?           @map("source")
   architecteAssigne String?           @map("architecte_assigne")
   tag               ContactTag        @default(prospect)
   notes             String?
@@ -158,6 +160,7 @@ model Contact {
   @@index([leadStatus])
   @@index([architecteAssigne])
   @@index([magasin])
+  @@index([typeBien])
   @@map("contacts")
 }
 

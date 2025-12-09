@@ -19,6 +19,8 @@ export interface Contact {
   ville?: string | null;
   adresse?: string | null;
   leadId?: string | null;
+  typeBien?: string | null;
+  source?: string | null;
   architecteAssigne?: string | null;
   tag: ContactTag;
   status: ContactStatus;

@@ -158,6 +158,8 @@ export async function POST(request: NextRequest) {
         ville: lead.ville,
         adresse: undefined,
         leadId: lead.id,
+        typeBien: lead.typeBien, // Store typeBien directly on contact
+        source: lead.source, // Store source directly on contact
         architecteAssigne: architecteName || undefined,
         tag: 'converted',
         notes: lead.message || undefined,
@@ -190,6 +192,9 @@ export async function POST(request: NextRequest) {
           leadId: lead.id,
           leadStatut: lead.statut,
           source: lead.source,
+          typeBien: lead.typeBien,
+          leadTypeBien: lead.typeBien,
+          leadSource: lead.source,
           convertedByUserId: userId,
           convertedByUserName: user.name,
         },

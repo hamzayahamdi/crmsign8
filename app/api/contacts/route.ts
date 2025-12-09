@@ -109,14 +109,55 @@ export async function GET(request: NextRequest) {
         where,
         include: {
           opportunities: true,
-          timeline: { take: 5, orderBy: { createdAt: 'desc' } },
+          timeline: { 
+            where: { eventType: 'contact_converted_from_lead' },
+            take: 1,
+            orderBy: { createdAt: 'desc' } 
+          },
         },
+        // typeBien and source are now direct fields on Contact model, so they're automatically included
         orderBy: { createdAt: 'desc' },
         take: limit,
         skip: offset,
       }),
       prisma.contact.count({ where }),
     ]);
+
+    // Contacts now have typeBien and source fields directly from database
+    // Only enrich from opportunities if typeBien is missing (for backward compatibility)
+    const enrichedContacts = contacts.map((contact: any) => {
+      // If contact already has typeBien from database, use it directly
+      if (contact.typeBien) {
+        return contact;
+      }
+
+      // Fallback: Try to get from opportunities if typeBien is missing
+      if (contact.opportunities && contact.opportunities.length > 0) {
+        // Count opportunity types to get most common
+        const typeCounts: Record<string, number> = {};
+        contact.opportunities.forEach((opp: any) => {
+          typeCounts[opp.type] = (typeCounts[opp.type] || 0) + 1;
+        });
+        
+        const mostCommon = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
+        if (mostCommon) {
+          const oppType = mostCommon[0];
+          const typeBienMap: Record<string, string> = {
+            'villa': 'Villa',
+            'appartement': 'Appartement',
+            'magasin': 'Magasin',
+            'bureau': 'Bureau',
+            'riad': 'Riad',
+            'studio': 'Studio',
+            'renovation': 'Rénovation',
+            'autre': 'Autre'
+          };
+          contact.typeBien = typeBienMap[oppType] || oppType;
+        }
+      }
+      
+      return contact;
+    });
 
     console.log(`[Contacts API] Found ${contacts.length} contacts (total: ${total}, limit: ${limit}, offset: ${offset})`);
     if (contacts.length > 0) {
@@ -131,7 +172,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      data: contacts,
+      data: enrichedContacts,
       total,
       limit,
       offset,

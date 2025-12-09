@@ -97,26 +97,26 @@ export function CreatableSelect({
           disabled={disabled}
           type="button"
           className={cn(
-            "w-full h-11 justify-between border border-white/10 bg-[#252b3d] text-white hover:bg-[#2a3142] hover:border-blue-500/50 transition-all duration-200 font-light px-3",
+            "w-full h-10 justify-between border border-white/10 bg-[#252b3d]/80 text-white hover:bg-[#2a3142] hover:border-blue-500/60 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition-all duration-200 font-light px-3 text-sm",
             !value && "text-gray-500",
-            open && "border-blue-500/50 ring-2 ring-blue-500/20",
+            open && "border-blue-500/60 ring-2 ring-blue-500/20",
             className
           )}
         >
-          <span className="truncate text-left font-light flex-1 mr-2">
+          <span className="truncate text-left font-light flex-1 mr-2 text-sm">
             {value || placeholder}
           </span>
           <div className="flex items-center gap-1 flex-shrink-0">
             {value && !disabled && (
               <div
-                className="h-4 w-4 shrink-0 opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
+                className="h-3.5 w-3.5 shrink-0 opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
                 onClick={handleClear}
                 onMouseDown={(e) => e.stopPropagation()}
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </div>
             )}
-            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+            <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
           </div>
         </Button>
       </PopoverTrigger>

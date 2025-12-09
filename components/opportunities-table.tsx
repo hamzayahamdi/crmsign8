@@ -218,6 +218,20 @@ export function OpportunitiesTable({
     return <span className="text-slate-500 text-xs">-</span>;
   };
 
+  const getTypeLabel = (type: string) => {
+    const typeMap: Record<string, string> = {
+      'villa': 'Villa',
+      'appartement': 'Appartement',
+      'magasin': 'Magasin',
+      'bureau': 'Bureau',
+      'riad': 'Riad',
+      'studio': 'Studio',
+      'renovation': 'Rénovation',
+      'autre': 'Autre',
+    };
+    return typeMap[type?.toLowerCase()] || type || 'Autre';
+  };
+
   const handlePerdu = (opportunity: Opportunity) => {
     // Mark as lost
     setSelectedOpportunity(opportunity);
@@ -294,8 +308,8 @@ export function OpportunitiesTable({
                       {getPipelineDisplay(opp.pipelineStage)}
                     </td>
                     <td className="px-6 py-2.5">
-                      <span className="text-xs text-slate-300 capitalize">
-                        {opp.type}
+                      <span className="text-xs text-slate-300">
+                        {getTypeLabel(opp.type)}
                       </span>
                     </td>
                     <td className="px-6 py-2.5">

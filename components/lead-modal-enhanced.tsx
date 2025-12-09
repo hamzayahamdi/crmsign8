@@ -366,29 +366,29 @@ export function LeadModalEnhanced({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
                 showCloseButton={false}
-                className="!w-fit !max-w-[95vw] lg:!max-w-fit bg-[#1a1f2e] border border-white/10 max-h-[85vh] overflow-hidden p-0 shadow-2xl flex flex-col"
+                className="!w-fit !max-w-[95vw] lg:!max-w-fit bg-[#1a1f2e] border border-white/10 max-h-[90vh] overflow-hidden p-0 shadow-2xl flex flex-col"
             >
                 {/* Close Button - Enhanced with Red Background */}
                 <button
                     onClick={() => onOpenChange(false)}
-                    className="absolute right-4 top-4 z-50 w-8 h-8 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 flex items-center justify-center transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-[#1a1f2e] group"
+                    className="absolute right-3 top-3 z-50 w-7 h-7 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 flex items-center justify-center transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-[#1a1f2e] group"
                 >
-                    <XCircle className="h-5 w-5 text-red-400 group-hover:text-red-300 transition-colors" />
+                    <XCircle className="h-4 w-4 text-red-400 group-hover:text-red-300 transition-colors" />
                     <span className="sr-only">Close</span>
                 </button>
 
                 {/* Content Area - Scrollable */}
                 <div className="flex flex-col lg:flex-row flex-1 min-h-0">
                     {/* Left Panel - Form */}
-                    <div className="flex-1 lg:min-w-[580px] flex flex-col">
+                    <div className="flex-1 lg:min-w-[560px] flex flex-col">
                         {/* Header - Fixed */}
-                        <div className="px-6 pt-5 pb-3">
+                        <div className="px-5 pt-5 pb-3 border-b border-white/5">
                             <DialogHeader className="mb-0">
                                 <div className="flex items-center justify-between">
-                                    <DialogTitle className="text-2xl font-bold text-white">
+                                    <DialogTitle className="text-xl font-light text-white tracking-tight">
                                         {lead ? "Modifier Lead" : "Créer Lead"}
                                     </DialogTitle>
-                                    <Badge className={cn("px-3 py-1 text-xs font-medium border", priorityColor)}>
+                                    <Badge className={cn("px-3 py-1 text-xs font-light border", priorityColor)}>
                                         ↑ Priorité {formData.priorite === 'haute' ? 'Haute' : formData.priorite === 'moyenne' ? 'Moyenne' : 'Basse'}
                                     </Badge>
                                 </div>
@@ -396,18 +396,18 @@ export function LeadModalEnhanced({
                         </div>
 
                         {/* Scrollable Form Content */}
-                        <div className="flex-1 overflow-y-auto px-6">
-                            <form onSubmit={handleSubmit} className="space-y-4 pb-4">
+                        <div className="flex-1 overflow-y-auto px-5 py-4">
+                            <form onSubmit={handleSubmit} className="space-y-4">
                                 {/* Nom complet */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="nom" className="text-sm font-light text-gray-300">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="nom" className="text-xs font-light text-gray-300">
                                         Nom complet
                                     </Label>
                                     <Input
                                         id="nom"
                                         value={formData.nom}
                                         onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                                        className="bg-[#252b3d] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/50 h-11 font-light"
+                                        className="bg-[#252b3d]/80 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 h-10 text-sm font-light transition-all"
                                         placeholder="Entrez le nom complet"
                                         required
                                     />
@@ -415,34 +415,34 @@ export function LeadModalEnhanced({
 
                                 {/* Téléphone & Ville */}
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="telephone" className="text-sm font-light text-gray-300">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="telephone" className="text-xs font-light text-gray-300">
                                             Téléphone
                                         </Label>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">📞</span>
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm z-10">📞</span>
                                             <Input
                                                 id="telephone"
                                                 value={formData.telephone}
                                                 onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                                                className="bg-[#252b3d] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/50 h-11 pl-9 font-light"
-                                                placeholder="+33 6 12 34 56 78"
+                                                className="bg-[#252b3d]/80 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 h-10 pl-9 text-sm font-light transition-all"
+                                                placeholder="0636939179"
                                                 required
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="ville" className="text-sm font-light text-gray-300">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="ville" className="text-xs font-light text-gray-300">
                                             Ville
                                         </Label>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm z-10">📍</span>
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm z-10">📍</span>
                                             <CreatableSelect
                                                 value={formData.ville}
                                                 onValueChange={(value) => setFormData({ ...formData, ville: value })}
                                                 options={villes}
-                                                placeholder="Paris"
+                                                placeholder="Rabat"
                                                 searchPlaceholder="Rechercher..."
                                                 emptyText="Tapez pour créer"
                                                 className="pl-9"
@@ -453,12 +453,12 @@ export function LeadModalEnhanced({
 
                                 {/* Type de bien & Statut */}
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="typeBien" className="text-sm font-light text-gray-300">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="typeBien" className="text-xs font-light text-gray-300">
                                             Type de bien
                                         </Label>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm z-10">🏠</span>
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm z-10">🏠</span>
                                             <CreatableSelect
                                                 value={formData.typeBien}
                                                 onValueChange={(value) => setFormData({ ...formData, typeBien: value })}
@@ -471,17 +471,17 @@ export function LeadModalEnhanced({
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="statut" className="text-sm font-light text-gray-300">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="statut" className="text-xs font-light text-gray-300">
                                             Statut
                                         </Label>
                                         <Select
                                             value={formData.statut}
                                             onValueChange={(value) => setFormData({ ...formData, statut: value as LeadStatus })}
                                         >
-                                            <SelectTrigger className="bg-[#252b3d] border-white/10 text-white h-11 font-light">
+                                            <SelectTrigger className="bg-[#252b3d]/80 border-white/10 text-white h-10 text-sm font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition-all">
                                                 <div className="flex items-center gap-2">
-                                                    <span className={cn("w-3 h-3 rounded-full shadow-sm",
+                                                    <span className={cn("w-2.5 h-2.5 rounded-full shadow-sm",
                                                         formData.statut === 'nouveau' ? 'bg-green-500' :
                                                             formData.statut === 'a_recontacter' ? 'bg-yellow-500' :
                                                                 formData.statut === 'sans_reponse' ? 'bg-orange-500' :
@@ -489,14 +489,14 @@ export function LeadModalEnhanced({
                                                                         formData.statut === 'qualifie' ? 'bg-blue-500' :
                                                                             'bg-gray-500'
                                                     )} />
-                                                    <span>{statuts.find(s => s.value === formData.statut)?.label || 'Sélectionner'}</span>
+                                                    <span className="text-sm">{statuts.find(s => s.value === formData.statut)?.label || 'Sélectionner'}</span>
                                                 </div>
                                             </SelectTrigger>
                                             <SelectContent className="bg-[#252b3d] border-white/10">
                                                 {statuts.map((statut) => (
-                                                    <SelectItem key={statut.value} value={statut.value} className="text-white font-light">
+                                                    <SelectItem key={statut.value} value={statut.value} className="text-white text-sm font-light">
                                                         <div className="flex items-center gap-2">
-                                                            <span className={cn("w-3 h-3 rounded-full shadow-sm",
+                                                            <span className={cn("w-2.5 h-2.5 rounded-full shadow-sm",
                                                                 statut.value === 'nouveau' ? 'bg-green-500' :
                                                                     statut.value === 'a_recontacter' ? 'bg-yellow-500' :
                                                                         statut.value === 'sans_reponse' ? 'bg-orange-500' :
@@ -515,28 +515,28 @@ export function LeadModalEnhanced({
 
                                 {/* Statut détaillé */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="statutDetaille" className="text-xs font-medium text-gray-400">
-                                        Statut détaillé <span className="text-gray-500 font-normal">(optionnel)</span>
+                                    <Label htmlFor="statutDetaille" className="text-xs font-light text-gray-300">
+                                        Statut détaillé <span className="text-gray-500 font-light">(optionnel)</span>
                                     </Label>
                                     <Textarea
                                         id="statutDetaille"
                                         value={formData.statutDetaille}
                                         onChange={(e) => setFormData({ ...formData, statutDetaille: e.target.value })}
-                                        className="bg-[#252b3d] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/50 min-h-[60px] resize-none font-light text-sm"
+                                        className="bg-[#252b3d]/80 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 min-h-[70px] resize-none font-light text-sm transition-all"
                                         placeholder="Détails du statut..."
                                     />
                                 </div>
 
                                 {/* Message */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="message" className="text-xs font-medium text-gray-400">
-                                        Message <span className="text-gray-500 font-normal">(optionnel)</span>
+                                    <Label htmlFor="message" className="text-xs font-light text-gray-300">
+                                        Message <span className="text-gray-500 font-light">(optionnel)</span>
                                     </Label>
                                     <Textarea
                                         id="message"
                                         value={formData.message}
                                         onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                                        className="bg-[#252b3d] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/50 min-h-[60px] resize-none font-light text-sm"
+                                        className="bg-[#252b3d]/80 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 min-h-[70px] resize-none font-light text-sm transition-all"
                                         placeholder="Message du lead..."
                                     />
                                 </div>
@@ -544,23 +544,23 @@ export function LeadModalEnhanced({
 
                                 {/* Assigné à & Source */}
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="assignePar" className="text-sm font-light text-gray-300">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="assignePar" className="text-xs font-light text-gray-300">
                                             Assigné à
                                         </Label>
                                         <Select
                                             value={formData.assignePar}
                                             onValueChange={(value) => setFormData({ ...formData, assignePar: value })}
                                         >
-                                            <SelectTrigger className="bg-[#252b3d] border-white/10 text-white h-11 font-light">
+                                            <SelectTrigger className="bg-[#252b3d]/80 border-white/10 text-white h-10 text-sm font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition-all">
                                                 <div className="flex items-center gap-2">
                                                     <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                                    <span className="truncate">{formData.assignePar || "Sélectionner..."}</span>
+                                                    <span className="truncate text-sm">{formData.assignePar || "Sélectionner..."}</span>
                                                 </div>
                                             </SelectTrigger>
                                             <SelectContent className="bg-[#252b3d] border-white/10">
                                                 {architects.map((name: string) => (
-                                                    <SelectItem key={name} value={name} className="text-white font-light">
+                                                    <SelectItem key={name} value={name} className="text-white text-sm font-light">
                                                         <div className="flex items-center gap-2">
                                                             <User className="w-4 h-4 text-gray-400" />
                                                             {name}
@@ -571,8 +571,8 @@ export function LeadModalEnhanced({
                                         </Select>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="source" className="text-sm font-light text-gray-300">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="source" className="text-xs font-light text-gray-300">
                                             Source du lead
                                         </Label>
                                         <Select
@@ -583,7 +583,7 @@ export function LeadModalEnhanced({
                                                 setFormData({ ...formData, source: newSource, priorite: calculatedPriority })
                                             }}
                                         >
-                                            <SelectTrigger className="bg-[#252b3d] border-white/10 text-white h-11 font-light">
+                                            <SelectTrigger className="bg-[#252b3d]/80 border-white/10 text-white h-10 text-sm font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition-all">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-sm">
                                                         {formData.source === 'magasin' ? '🏢' :
@@ -598,7 +598,7 @@ export function LeadModalEnhanced({
                                             </SelectTrigger>
                                             <SelectContent className="bg-[#252b3d] border-white/10">
                                                 {sources.map((source) => (
-                                                    <SelectItem key={source.value} value={source.value} className="text-white font-light">
+                                                    <SelectItem key={source.value} value={source.value} className="text-white text-sm font-light">
                                                         {source.label}
                                                     </SelectItem>
                                                 ))}
@@ -612,20 +612,20 @@ export function LeadModalEnhanced({
                                 {formData.source === 'magasin' && (
                                     <div className="p-4 rounded-lg bg-purple-500/5 border border-purple-500/20 space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="magasin" className="text-sm font-light text-gray-300">
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="magasin" className="text-xs font-light text-gray-300">
                                                     Magasin
                                                 </Label>
                                                 <Select
                                                     value={formData.magasin}
                                                     onValueChange={(value) => setFormData({ ...formData, magasin: value })}
                                                 >
-                                                    <SelectTrigger className="bg-[#252b3d] border-white/10 text-white h-11 font-light">
-                                                        <SelectValue placeholder="Sélectionner un magasin..." />
+                                                    <SelectTrigger className="bg-[#252b3d]/80 border-white/10 text-white h-10 text-sm font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition-all">
+                                                        <SelectValue placeholder="Sélectionner..." />
                                                     </SelectTrigger>
                                                     <SelectContent className="bg-[#252b3d] border-white/10">
                                                         {["📍 Casablanca", "📍 Rabat", "📍 Tanger", "📍 Marrakech", "📍 Bouskoura"].map((mag) => (
-                                                            <SelectItem key={mag} value={mag} className="text-white font-light">
+                                                            <SelectItem key={mag} value={mag} className="text-white text-sm font-light">
                                                                 {mag}
                                                             </SelectItem>
                                                         ))}
@@ -633,8 +633,8 @@ export function LeadModalEnhanced({
                                                 </Select>
                                             </div>
 
-                                            <div className="space-y-2">
-                                                <Label htmlFor="commercialMagasin" className="text-sm font-light text-gray-300">
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="commercialMagasin" className="text-xs font-light text-gray-300">
                                                     Commercial
                                                 </Label>
                                                 <Select
@@ -650,12 +650,12 @@ export function LeadModalEnhanced({
                                                         }
                                                     }}
                                                 >
-                                                    <SelectTrigger className="bg-[#252b3d] border-white/10 text-white h-11 font-light">
-                                                        <SelectValue placeholder="Sélectionner un commercial..." />
+                                                    <SelectTrigger className="bg-[#252b3d]/80 border-white/10 text-white h-10 text-sm font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition-all">
+                                                        <SelectValue placeholder="Sélectionner..." />
                                                     </SelectTrigger>
                                                     <SelectContent className="bg-[#252b3d] border-white/10">
                                                         {commercials.map((commercial) => (
-                                                            <SelectItem key={commercial} value={commercial} className="text-white font-light">
+                                                            <SelectItem key={commercial} value={commercial} className="text-white text-sm font-light">
                                                                 {commercial}
                                                             </SelectItem>
                                                         ))}
@@ -666,8 +666,8 @@ export function LeadModalEnhanced({
 
                                         {/* Custom Commercial Name Input */}
                                         {showCustomCommercial && (
-                                            <div className="space-y-2">
-                                                <Label htmlFor="customCommercial" className="text-sm font-light text-gray-300">
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="customCommercial" className="text-xs font-light text-gray-300">
                                                     Nom du commercial (Autre)
                                                 </Label>
                                                 <Input
@@ -677,8 +677,8 @@ export function LeadModalEnhanced({
                                                         setCustomCommercialName(e.target.value)
                                                         setFormData({ ...formData, commercialMagasin: e.target.value })
                                                     }}
-                                                    className="bg-[#252b3d] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/50 h-11 font-light"
-                                                    placeholder="Entrez le nom du commercial..."
+                                                    className="bg-[#252b3d]/80 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 h-10 text-sm font-light transition-all"
+                                                    placeholder="Entrez le nom..."
                                                 />
                                             </div>
                                         )}
@@ -687,15 +687,15 @@ export function LeadModalEnhanced({
 
                                 {/* Conditional: TikTok Campaign Name */}
                                 {formData.source === 'tiktok' && (
-                                    <div className="p-4 rounded-lg bg-pink-500/5 border border-pink-500/20 space-y-2">
-                                        <Label htmlFor="campaignName" className="text-sm font-light text-gray-300">
+                                    <div className="p-3 rounded-lg bg-pink-500/5 border border-pink-500/20 space-y-1">
+                                        <Label htmlFor="campaignName" className="text-xs font-thin text-gray-400">
                                             Nom de la campagne TikTok
                                         </Label>
                                         <Input
                                             id="campaignName"
                                             value={(formData as any).campaignName || ''}
                                             onChange={(e) => setFormData({ ...formData, campaignName: e.target.value } as any)}
-                                            className="bg-[#252b3d] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/50 h-11 font-light"
+                                            className="bg-[#252b3d] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500/50 h-9 text-xs font-thin"
                                             placeholder="Ex: Campagne TikTok Novembre 2024..."
                                         />
                                     </div>
@@ -708,11 +708,11 @@ export function LeadModalEnhanced({
                     </div>
 
                     {/* Right Panel - Notes - Enhanced Glassy Background */}
-                    <div className="w-full lg:w-[380px] bg-gradient-to-br from-[#2a3142]/70 to-[#1e2332]/90 backdrop-blur-lg border-t lg:border-t-0 lg:border-l border-white/30 flex flex-col shadow-2xl shadow-black/20">
-                        <div className="p-6 border-b border-white/20 bg-white/5">
+                    <div className="w-full lg:w-[360px] bg-gradient-to-br from-[#2a3142]/70 to-[#1e2332]/90 backdrop-blur-lg border-t lg:border-t-0 lg:border-l border-white/30 flex flex-col shadow-2xl shadow-black/20">
+                        <div className="p-5 border-b border-white/20 bg-white/5">
                             <div className="flex items-center gap-2 mb-4">
-                                <span className="text-lg">📝</span>
-                                <h3 className="text-lg font-light text-white">Notes ({formData.notes.length})</h3>
+                                <span className="text-base">📝</span>
+                                <h3 className="text-sm font-light text-white">Notes ({formData.notes.length})</h3>
                             </div>
 
                             <div className="space-y-3">
@@ -720,7 +720,7 @@ export function LeadModalEnhanced({
                                     value={newNote}
                                     onChange={(e) => setNewNote(e.target.value)}
                                     placeholder="Ajouter une note..."
-                                    className="bg-white/5 backdrop-blur-sm border-white/20 text-white placeholder:text-gray-400 focus:border-blue-400/50 focus:bg-white/10 min-h-[80px] resize-none font-light text-sm transition-all"
+                                    className="bg-white/5 backdrop-blur-sm border-white/20 text-white placeholder:text-gray-400 focus:border-blue-400/60 focus:bg-white/10 focus:ring-1 focus:ring-blue-500/20 min-h-[80px] resize-none font-light text-sm transition-all"
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                                             handleAddNote()
@@ -731,7 +731,7 @@ export function LeadModalEnhanced({
                                     type="button"
                                     onClick={handleAddNote}
                                     disabled={!newNote.trim()}
-                                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-light"
+                                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm font-light h-10 shadow-lg"
                                 >
                                     <Plus className="w-4 h-4 mr-2" />
                                     Ajouter note
@@ -749,26 +749,26 @@ export function LeadModalEnhanced({
                                     <div
                                         key={note.id}
                                         className={cn(
-                                            "p-4 rounded-lg border backdrop-blur-md",
+                                            "p-3 rounded-lg border backdrop-blur-md",
                                             note.author === currentUserName
                                                 ? "bg-blue-500/20 border-blue-400/40 shadow-lg shadow-blue-500/10"
                                                 : "bg-white/5 border-white/20 shadow-lg"
                                         )}
                                     >
-                                        <div className="flex items-start gap-3 mb-2">
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium">
+                                        <div className="flex items-start gap-2.5 mb-2">
+                                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-light flex-shrink-0">
                                                 {note.author.charAt(0).toUpperCase()}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-sm font-medium text-white">{note.author}</span>
+                                                    <span className="text-xs font-light text-white">{note.author}</span>
                                                     {note.author === currentUserName && (
-                                                        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/40 text-xs px-2 py-0">
+                                                        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/40 text-[10px] px-1.5 py-0.5 font-light">
                                                             Vous
                                                         </Badge>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-2 text-xs text-gray-400">
+                                                <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
                                                     <Clock className="w-3 h-3" />
                                                     {formatTime(note.createdAt)}
                                                 </div>
@@ -781,14 +781,11 @@ export function LeadModalEnhanced({
                                 ))
                             )}
                         </div>
-
-
-
                     </div>
                 </div>
 
                 {/* Footer Buttons - Fixed at Bottom of Modal, Full Width */}
-                <div className="border-t border-white/10 px-6 py-4 bg-[#1a1f2e] flex items-center justify-between gap-3">
+                <div className="border-t border-white/10 px-5 py-4 bg-[#1a1f2e] flex items-center justify-between gap-3">
                     {/* Left: Delete Button (only when editing) */}
                     {lead && onDelete ? (
                         <AlertDialog>
@@ -796,7 +793,7 @@ export function LeadModalEnhanced({
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 font-light px-4 h-11"
+                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 font-light px-4 h-10 text-sm"
                                 >
                                     <Trash2 className="w-4 h-4 mr-2" />
                                     Supprimer
@@ -804,16 +801,16 @@ export function LeadModalEnhanced({
                             </AlertDialogTrigger>
                             <AlertDialogContent className="bg-[#1a1f2e] border-white/10">
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle className="text-white">Supprimer ce lead ?</AlertDialogTitle>
-                                    <AlertDialogDescription className="text-gray-400">
+                                    <AlertDialogTitle className="text-white text-base font-light">Supprimer ce lead ?</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-gray-400 text-sm font-light">
                                         Cette action est irréversible. Le lead sera définitivement supprimé.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooterRoot>
-                                    <AlertDialogCancel className="bg-[#252b3d] border-white/10 text-white hover:bg-[#2a3142]">
+                                    <AlertDialogCancel className="bg-[#252b3d] border-white/10 text-white hover:bg-[#2a3142] text-sm font-light h-10">
                                         Annuler
                                     </AlertDialogCancel>
-                                    <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white" onClick={onDelete}>
+                                    <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white text-sm font-light h-10" onClick={onDelete}>
                                         Supprimer
                                     </AlertDialogAction>
                                 </AlertDialogFooterRoot>
@@ -829,14 +826,14 @@ export function LeadModalEnhanced({
                             type="button"
                             variant="ghost"
                             onClick={() => onOpenChange(false)}
-                            className="bg-[#252b3d] border border-white/10 text-white hover:bg-[#2a3142] font-light px-6 h-11"
+                            className="bg-[#252b3d] border border-white/10 text-white hover:bg-[#2a3142] font-light px-6 h-10 text-sm"
                         >
                             Annuler
                         </Button>
                         <Button
                             type="submit"
                             onClick={handleSubmit}
-                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg font-light px-8 h-11 min-w-[160px]"
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg font-light px-8 h-10 text-sm min-w-[140px]"
                         >
                             <Save className="w-4 h-4 mr-2" />
                             Enregistrer

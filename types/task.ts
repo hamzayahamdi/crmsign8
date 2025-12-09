@@ -1,5 +1,5 @@
 export type TaskStatus = "a_faire" | "en_cours" | "termine"
-export type LinkedType = "lead" | "client"
+export type LinkedType = "lead" | "client" | "contact"
 
 export interface Task {
   id: string
