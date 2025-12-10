@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CheckCircle2, Clock, CircleDashed, Calendar, ChevronRight, Loader2 } from "lucide-react"
+import { CheckCircle2, Clock, CircleDashed, Calendar, ChevronRight, Loader2, Bell } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { TasksService } from "@/lib/tasks-service"
@@ -121,59 +121,88 @@ export function MyTasksWidget() {
           <p className="text-slate-400 text-sm">Aucune tâche active</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {tasks.map((task, index) => (
-            <motion.div
-              key={task.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="group relative p-4 rounded-xl bg-slate-800/40 border border-slate-600/30 hover:border-primary/40 transition-all"
-            >
-              <div className="flex items-start gap-3">
-                <div className="mt-1">
-                  {getStatusIcon(task.status)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-medium text-white truncate mb-1">
-                    {task.title}
-                  </h4>
-                  <p className="text-xs text-slate-400 line-clamp-2 mb-2">
-                    {task.description}
-                  </p>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className={cn(
-                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border",
-                      getStatusColor(task.status)
-                    )}>
-                      {getStatusLabel(task.status)}
-                    </span>
-                    <span className={cn(
-                      "flex items-center gap-1 text-xs",
-                      isOverdue(task.dueDate) ? "text-red-400" : "text-slate-400"
-                    )}>
-                      <Calendar className="w-3 h-3" />
-                      {format(new Date(task.dueDate), "d MMM", { locale: fr })}
-                      {isOverdue(task.dueDate) && " (En retard)"}
-                    </span>
+        <div className="space-y-2.5">
+          {tasks.map((task, index) => {
+            const hasReminder = task.reminderEnabled && task.reminderDays
+            const overdue = isOverdue(task.dueDate)
+            
+            return (
+              <motion.div
+                key={task.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className={cn(
+                  "group relative overflow-hidden rounded-lg border transition-all duration-200",
+                  task.status === "a_faire" && "bg-gradient-to-br from-slate-800/60 to-slate-900/40 border-slate-700/50 hover:border-red-500/30",
+                  task.status === "en_cours" && "bg-gradient-to-br from-blue-900/20 to-slate-900/40 border-blue-700/50 hover:border-blue-500/30",
+                  overdue && task.status !== "termine" && "border-red-500/50 bg-gradient-to-br from-red-900/20 to-slate-900/40"
+                )}
+              >
+                {/* Status indicator bar */}
+                <div className={cn(
+                  "absolute top-0 left-0 right-0 h-0.5",
+                  task.status === "a_faire" && "bg-red-500",
+                  task.status === "en_cours" && "bg-blue-500"
+                )} />
+                
+                <div className="p-3.5">
+                  <div className="flex items-start gap-2.5">
+                    <div className="mt-0.5 shrink-0">
+                      {getStatusIcon(task.status)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-sm font-light text-white truncate leading-tight">
+                          {task.title}
+                        </h4>
+                        {hasReminder && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/20 border border-primary/30">
+                            <Bell className="w-2.5 h-2.5 text-primary" />
+                            <span className="text-[9px] font-light text-primary">{task.reminderDays}j</span>
+                          </div>
+                        )}
+                      </div>
+                      {task.description && (
+                        <p className="text-xs font-light text-slate-400 line-clamp-2 mb-2 leading-relaxed">
+                          {task.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className={cn(
+                          "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-light border",
+                          getStatusColor(task.status)
+                        )}>
+                          {getStatusLabel(task.status)}
+                        </span>
+                        <span className={cn(
+                          "flex items-center gap-1 text-xs font-light",
+                          overdue ? "text-red-400" : "text-slate-400"
+                        )}>
+                          <Calendar className="w-3 h-3" />
+                          {format(new Date(task.dueDate), "d MMM", { locale: fr })}
+                          {overdue && " (En retard)"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {task.status !== 'termine' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleMarkComplete(task.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity h-7 px-2.5 text-[10px] font-light bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                        >
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                          Terminer
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {task.status !== 'termine' && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleMarkComplete(task.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity h-8 px-3 text-xs bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                    >
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      Terminer
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            )
+          })}
         </div>
       )}
 

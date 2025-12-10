@@ -1,13 +1,18 @@
 "use client"
 
-import { Home, Users, LogOut, Settings, CalendarDays, Compass, Calendar, Briefcase, Bell, Menu, X } from "lucide-react"
+import { Home, Users, LogOut, Settings, CalendarDays, Compass, Calendar, Briefcase, Bell, Menu, X, MoreVertical, Check } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Signature8Logo } from "@/components/signature8-logo"
 import { useAuth } from "@/contexts/auth-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useMemo, useEffect, useState, useCallback, memo } from "react"
 import { motion, LayoutGroup, AnimatePresence } from "framer-motion"
 import { TasksService } from "@/lib/tasks-service"
@@ -472,50 +477,95 @@ const SidebarComponent = () => {
                           {getRoleLabel(user.role)}
                         </span>
                       )}
-                      {/* Status Selector for Architects - Exact same size as role tag */}
+                      {/* Status Badge for Architects - Always visible */}
                       {isArchitect && (
-                        <Select
-                          value={architectStatus}
-                          onValueChange={handleStatusChange}
-                          disabled={isUpdatingStatus}
-                        >
-                          <SelectTrigger 
-                            className={cn(
-                              "h-[22px] w-auto min-w-[80px] bg-slate-700/50 border-slate-600/50 text-white rounded text-[10px] font-semibold px-1.5 py-0.5 hover:bg-slate-700/70 hover:border-slate-500/60 transition-colors flex items-center gap-1 leading-none",
-                              isUpdatingStatus && "opacity-50 cursor-not-allowed"
-                            )}
-                          >
-                            <span className={cn(
-                              "w-1.5 h-1.5 rounded-full flex-shrink-0",
-                              architectStatus === "actif" && "bg-green-400",
-                              architectStatus === "inactif" && "bg-slate-400",
-                              architectStatus === "conge" && "bg-orange-400"
-                            )} />
-                            <span className="text-[10px] font-semibold leading-none">
-                              {architectStatus === "actif" ? "Actif" : architectStatus === "inactif" ? "Inactif" : "En congé"}
-                            </span>
-                          </SelectTrigger>
-                          <SelectContent className="bg-slate-800 border-slate-600 min-w-[110px]">
-                            <SelectItem value="actif" className="text-white text-[10px] cursor-pointer hover:bg-slate-700 py-1.5">
-                              <span className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-                                Actif
-                              </span>
-                            </SelectItem>
-                            <SelectItem value="inactif" className="text-white text-[10px] cursor-pointer hover:bg-slate-700 py-1.5">
-                              <span className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                                Inactif
-                              </span>
-                            </SelectItem>
-                            <SelectItem value="conge" className="text-white text-[10px] cursor-pointer hover:bg-slate-700 py-1.5">
-                              <span className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
-                                En congé
-                              </span>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <span className={cn(
+                          "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border h-[22px]",
+                          architectStatus === "actif" && "bg-green-500/20 text-green-400 border-green-500/30",
+                          architectStatus === "inactif" && "bg-slate-500/20 text-slate-400 border-slate-500/30",
+                          architectStatus === "conge" && "bg-orange-500/20 text-orange-400 border-orange-500/30"
+                        )}>
+                          <span className={cn(
+                            "w-1.5 h-1.5 rounded-full mr-1 flex-shrink-0",
+                            architectStatus === "actif" && "bg-green-400",
+                            architectStatus === "inactif" && "bg-slate-400",
+                            architectStatus === "conge" && "bg-orange-400"
+                          )} />
+                          {architectStatus === "actif" ? "Actif" : architectStatus === "inactif" ? "Inactif" : "En congé"}
+                        </span>
+                      )}
+                      {/* 3-dot Menu for Status Actions - Only for architects */}
+                      {isArchitect && (
+                        <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              disabled={isUpdatingStatus}
+                              className={cn(
+                                "p-1 rounded-md hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50",
+                                isUpdatingStatus && "opacity-50 cursor-not-allowed"
+                              )}
+                            >
+                              <MoreVertical className="w-3.5 h-3.5 text-slate-400 hover:text-white transition-colors" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50 min-w-[140px] p-1.5"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="px-2 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                Changer le statut
+                              </div>
+                              <DropdownMenuItem
+                                onClick={() => handleStatusChange("actif")}
+                                disabled={isUpdatingStatus || architectStatus === "actif"}
+                                className={cn(
+                                  "text-xs text-white cursor-pointer rounded-md px-2 py-1.5 hover:bg-slate-700/70 focus:bg-slate-700/70 transition-colors",
+                                  architectStatus === "actif" && "bg-green-500/20 hover:bg-green-500/20"
+                                )}
+                              >
+                                <div className="flex items-center gap-2 w-full">
+                                  <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></span>
+                                  <span className="flex-1">Actif</span>
+                                  {architectStatus === "actif" && (
+                                    <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                                  )}
+                                </div>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleStatusChange("inactif")}
+                                disabled={isUpdatingStatus || architectStatus === "inactif"}
+                                className={cn(
+                                  "text-xs text-white cursor-pointer rounded-md px-2 py-1.5 hover:bg-slate-700/70 focus:bg-slate-700/70 transition-colors",
+                                  architectStatus === "inactif" && "bg-slate-500/20 hover:bg-slate-500/20"
+                                )}
+                              >
+                                <div className="flex items-center gap-2 w-full">
+                                  <span className="w-2 h-2 rounded-full bg-slate-400 flex-shrink-0"></span>
+                                  <span className="flex-1">Inactif</span>
+                                  {architectStatus === "inactif" && (
+                                    <Check className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                                  )}
+                                </div>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleStatusChange("conge")}
+                                disabled={isUpdatingStatus || architectStatus === "conge"}
+                                className={cn(
+                                  "text-xs text-white cursor-pointer rounded-md px-2 py-1.5 hover:bg-slate-700/70 focus:bg-slate-700/70 transition-colors",
+                                  architectStatus === "conge" && "bg-orange-500/20 hover:bg-orange-500/20"
+                                )}
+                              >
+                                <div className="flex items-center gap-2 w-full">
+                                  <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0"></span>
+                                  <span className="flex-1">En congé</span>
+                                  {architectStatus === "conge" && (
+                                    <Check className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+                                  )}
+                                </div>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       )}
                     </div>
                   )}

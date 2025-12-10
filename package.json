@@ -45,7 +45,8 @@
     "import:november-csv": "tsx scripts/import-tiktok-leads-november-csv.ts",
     "import:qualified-oct-nov": "tsx scripts/import-qualified-leads-oct-nov.ts",
     "test:db-connection": "node scripts/test-db-connection.js",
-    "fix:contact-typebien": "tsx scripts/fix-contact-typebien.ts"
+    "fix:contact-typebien": "tsx scripts/fix-contact-typebien.ts",
+    "test:reminders": "tsx scripts/test-reminder-cron.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",

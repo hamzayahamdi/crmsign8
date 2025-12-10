@@ -634,7 +634,11 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
                   )}
                   <div>
                     <h3 className="text-xs font-light text-foreground">Rappel automatique</h3>
-                    <p className="text-[10px] font-light text-muted-foreground">Notification avant l'échéance</p>
+                    <p className="text-[10px] font-light text-muted-foreground">
+                      {formData.reminderEnabled 
+                        ? `Email envoyé ${formData.reminderDays} jour(s) avant l'échéance`
+                        : "Notification par email avant l'échéance"}
+                    </p>
                   </div>
                 </div>
                 <button

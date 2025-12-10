@@ -8,18 +8,44 @@ const prisma = new PrismaClient();
 /**
  * Check and send reminder emails for upcoming events
  * 
- * This endpoint should be called periodically (e.g., via cron job)
- * to check for reminders that need to be sent
+ * This endpoint is called automatically by Vercel Cron Jobs every 5 minutes
+ * It can also be called manually for testing
  * 
  * GET /api/notifications/check-reminders
+ * 
+ * Security: Protected by Vercel Cron secret or can be called with ?secret=CRON_SECRET
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verify cron secret if provided (for manual testing or external cron services)
+    const authHeader = request.headers.get('authorization');
+    const secretParam = request.nextUrl.searchParams.get('secret');
+    const cronSecret = process.env.CRON_SECRET;
+    
+    // Allow if:
+    // 1. Called by Vercel Cron (has 'x-vercel-signature' header or no auth needed)
+    // 2. Has correct secret in query param
+    // 3. Has correct secret in Authorization header
+    if (cronSecret) {
+      const isVercelCron = request.headers.get('x-vercel-cron') === '1';
+      const hasValidSecret = 
+        secretParam === cronSecret || 
+        authHeader === `Bearer ${cronSecret}`;
+      
+      if (!isVercelCron && !hasValidSecret) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+    }
+
     const now = new Date();
     const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000); // 5 minute window
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000); // Also check past reminders (up to 1 hour ago)
 
     // Find reminders that need to be sent
-    // - reminder_time is within the next 5 minutes
+    // - reminder_time is within the next 5 minutes OR up to 1 hour in the past (to catch missed reminders)
     // - notification_sent is false
     const reminders = await prisma.$queryRaw<Array<{
       id: string;
@@ -30,21 +56,23 @@ export async function GET(request: NextRequest) {
     }>>`
       SELECT id, event_id, user_id, reminder_time, reminder_type
       FROM event_reminders
-      WHERE reminder_time >= ${now}
+      WHERE reminder_time >= ${oneHourAgo}
         AND reminder_time <= ${fiveMinutesFromNow}
         AND notification_sent = false
       ORDER BY reminder_time ASC
     `;
 
     if (reminders.length === 0) {
+      console.log(`[Reminders] No reminders to send at ${now.toISOString()}`);
       return NextResponse.json({
         success: true,
         message: 'No reminders to send',
         sent: 0,
+        checkedAt: now.toISOString(),
       });
     }
 
-    console.log(`[Reminders] Found ${reminders.length} reminder(s) to send`);
+    console.log(`[Reminders] 🔔 Found ${reminders.length} reminder(s) to send at ${now.toISOString()}`);
 
     const results = [];
     let successCount = 0;

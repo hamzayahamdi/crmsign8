@@ -5,6 +5,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { sendWhatsAppNotification } from './sendWhatsAppNotification';
+import { sendNotificationEmail } from './resend-service';
 
 const prisma = new PrismaClient();
 
@@ -278,53 +279,90 @@ export async function notifyTaskAssigned(params: {
     createdBy: params.createdBy,
   });
 
-  // Send WhatsApp notification
+  // Send WhatsApp and Email notifications
   try {
     const user = await prisma.user.findUnique({
       where: { id: params.userId },
-      select: { phone: true, name: true }
+      select: { phone: true, name: true, email: true }
     });
 
-    if (user?.phone) {
-      const formattedDueDate = new Date(params.dueDate).toLocaleDateString('fr-FR', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      });
+    if (!user) {
+      console.log(`[NotificationCreator] User ${params.userId} not found`);
+      return notification;
+    }
 
-      const whatsappMessage = `✅ *Nouvelle Tâche Assignée*\n\n` +
-        `Bonjour ${user.name.split(' ')[0]},\n\n` +
-        `Une nouvelle tâche vous a été assignée.\n\n` +
-        `📋 *Tâche :* ${params.taskTitle}\n` +
-        `📅 *Échéance :* ${formattedDueDate}\n` +
-        `${params.linkedName ? `🔗 *Lié à :* ${params.linkedName}\n` : ''}` +
-        `\n💡 *Action requise :*\n` +
-        `Merci de compléter cette tâche avant la date d'échéance.\n\n` +
-        `_Créé par ${params.createdBy}_`;
+    const formattedDueDate = new Date(params.dueDate).toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
 
-      await sendWhatsAppNotification({
-        userId: params.userId,
-        phone: user.phone,
-        title: 'Nouvelle tâche assignée',
-        message: whatsappMessage,
-        type: 'task_assigned',
-        priority: 'high',
-        linkedType: 'task',
-        linkedId: params.taskId,
-        linkedName: params.linkedName,
-        metadata: {
-          dueDate: params.dueDate,
-        }
-      });
+    // Send WhatsApp notification
+    if (user.phone) {
+      try {
+        const whatsappMessage = `✅ *Nouvelle Tâche Assignée*\n\n` +
+          `Bonjour ${user.name.split(' ')[0]},\n\n` +
+          `Une nouvelle tâche vous a été assignée.\n\n` +
+          `📋 *Tâche :* ${params.taskTitle}\n` +
+          `📅 *Échéance :* ${formattedDueDate}\n` +
+          `${params.linkedName ? `🔗 *Lié à :* ${params.linkedName}\n` : ''}` +
+          `\n💡 *Action requise :*\n` +
+          `Merci de compléter cette tâche avant la date d'échéance.\n\n` +
+          `_Créé par ${params.createdBy}_`;
 
-      console.log(`[NotificationCreator] WhatsApp sent for task to ${user.name}`);
+        await sendWhatsAppNotification({
+          userId: params.userId,
+          phone: user.phone,
+          title: 'Nouvelle tâche assignée',
+          message: whatsappMessage,
+          type: 'task_assigned',
+          priority: 'high',
+          linkedType: 'task',
+          linkedId: params.taskId,
+          linkedName: params.linkedName,
+          metadata: {
+            dueDate: params.dueDate,
+          }
+        });
+
+        console.log(`[NotificationCreator] ✅ WhatsApp sent for task to ${user.name}`);
+      } catch (whatsappError) {
+        console.error('[NotificationCreator] Error sending WhatsApp for task:', whatsappError);
+        // Don't fail if WhatsApp fails
+      }
     } else {
       console.log(`[NotificationCreator] No phone number for user ${params.userId}, skipping WhatsApp`);
     }
+
+    // Send Email notification
+    if (user.email) {
+      try {
+        const emailMessage = `Bonjour ${user.name},\n\n` +
+          `Une nouvelle tâche vous a été assignée.\n\n` +
+          `📋 **Tâche :** ${params.taskTitle}\n` +
+          `📅 **Échéance :** ${formattedDueDate}\n` +
+          `${params.linkedName ? `🔗 **Lié à :** ${params.linkedName}\n` : ''}` +
+          `\n💡 **Action requise :**\n` +
+          `Merci de compléter cette tâche avant la date d'échéance.\n\n` +
+          `_Créé par ${params.createdBy}_`;
+
+        await sendNotificationEmail(user.email, {
+          title: `Nouvelle tâche assignée: ${params.taskTitle}`,
+          message: emailMessage,
+          type: 'task_assigned'
+        });
+        console.log(`[NotificationCreator] ✅ Email sent for task to ${user.email}`);
+      } catch (emailError) {
+        console.error('[NotificationCreator] Error sending email for task:', emailError);
+        // Don't fail if email fails
+      }
+    } else {
+      console.log(`[NotificationCreator] No email for user ${params.userId}, skipping email`);
+    }
   } catch (error) {
-    console.error('[NotificationCreator] Error sending WhatsApp for task:', error);
-    // Don't fail the notification creation if WhatsApp fails
+    console.error('[NotificationCreator] Error sending notifications for task:', error);
+    // Don't fail the notification creation if notifications fail
   }
 
   return notification;

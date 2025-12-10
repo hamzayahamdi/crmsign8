@@ -2,10 +2,15 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { User, MapPin, Briefcase, FolderOpen, Eye, Settings2 } from "lucide-react"
+import { User, MapPin, Briefcase, FolderOpen, Eye, Settings2, MoreVertical, Check } from "lucide-react"
 import { Button } from "./ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu"
 import type { Architect, ArchitectStatus } from "@/types/architect"
 import { cn } from "@/lib/utils"
 
@@ -97,73 +102,99 @@ export function ArchitectCard({
             <h3 className="text-sm font-bold text-white truncate group-hover:text-primary transition-colors">
               {architect.prenom} {architect.nom}
             </h3>
+            {/* 3-dot Menu for Status Actions - Only for own profile, positioned in header */}
+            {isOwnProfile && (
+              <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    disabled={isUpdatingStatus}
+                    className={cn(
+                      "p-1 rounded-md hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50",
+                      isUpdatingStatus && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <MoreVertical className="w-3.5 h-3.5 text-slate-400 hover:text-white transition-colors" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50 min-w-[140px] p-1.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="px-2 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                      Changer le statut
+                    </div>
+                    <DropdownMenuItem
+                      onClick={() => handleStatusChange("actif")}
+                      disabled={isUpdatingStatus || architect.statut === "actif"}
+                      className={cn(
+                        "text-xs text-white cursor-pointer rounded-md px-2 py-1.5 hover:bg-slate-700/70 focus:bg-slate-700/70 transition-colors",
+                        architect.statut === "actif" && "bg-green-500/20 hover:bg-green-500/20"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></span>
+                        <span className="flex-1">Actif</span>
+                        {architect.statut === "actif" && (
+                          <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleStatusChange("inactif")}
+                      disabled={isUpdatingStatus || architect.statut === "inactif"}
+                      className={cn(
+                        "text-xs text-white cursor-pointer rounded-md px-2 py-1.5 hover:bg-slate-700/70 focus:bg-slate-700/70 transition-colors",
+                        architect.statut === "inactif" && "bg-slate-500/20 hover:bg-slate-500/20"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="w-2 h-2 rounded-full bg-slate-400 flex-shrink-0"></span>
+                        <span className="flex-1">Inactif</span>
+                        {architect.statut === "inactif" && (
+                          <Check className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleStatusChange("conge")}
+                      disabled={isUpdatingStatus || architect.statut === "conge"}
+                      className={cn(
+                        "text-xs text-white cursor-pointer rounded-md px-2 py-1.5 hover:bg-slate-700/70 focus:bg-slate-700/70 transition-colors",
+                        architect.statut === "conge" && "bg-orange-500/20 hover:bg-orange-500/20"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0"></span>
+                        <span className="flex-1">En congé</span>
+                        {architect.statut === "conge" && (
+                          <Check className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             {/* Role Tag - Architecte */}
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
               Architecte
             </span>
-            {/* Status Select - Aligned with role tag, same size */}
-            {isOwnProfile && (
-              <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                <Select
-                  value={architect.statut}
-                  onValueChange={handleStatusChange}
-                  disabled={isUpdatingStatus}
-                >
-                  <SelectTrigger 
-                    className={cn(
-                      "h-[22px] w-auto min-w-[80px] bg-slate-700/50 border-slate-600/50 text-white rounded text-[10px] font-semibold px-1.5 py-0.5 hover:bg-slate-700/70 hover:border-slate-500/60 transition-colors flex items-center gap-1",
-                      isUpdatingStatus && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <span className={cn(
-                      "w-1.5 h-1.5 rounded-full flex-shrink-0",
-                      architect.statut === "actif" && "bg-green-400",
-                      architect.statut === "inactif" && "bg-slate-400",
-                      architect.statut === "conge" && "bg-orange-400"
-                    )} />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-600" onClick={(e) => e.stopPropagation()}>
-                    <SelectItem value="actif" className="text-white text-xs cursor-pointer hover:bg-slate-700">
-                      <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                        Actif
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="inactif" className="text-white text-xs cursor-pointer hover:bg-slate-700">
-                      <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                        Inactif
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="conge" className="text-white text-xs cursor-pointer hover:bg-slate-700">
-                      <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-orange-400"></span>
-                        En congé
-                      </span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {/* Status Badge - Show when not own profile */}
-            {!isOwnProfile && (
-              <span className={cn(
-                "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border",
-                status.color
-              )}>
-                <span className="relative flex h-1.5 w-1.5 mr-1">
-                  <span className={cn(
-                    "absolute inline-flex h-full w-full rounded-full opacity-75",
-                    architect.statut === "actif" ? "animate-ping bg-green-400" : ""
-                  )}></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
-                </span>
-                {status.label}
+            {/* Status Badge - Always visible */}
+            <span className={cn(
+              "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border",
+              status.color
+            )}>
+              <span className="relative flex h-1.5 w-1.5 mr-1">
+                <span className={cn(
+                  "absolute inline-flex h-full w-full rounded-full opacity-75",
+                  architect.statut === "actif" ? "animate-ping bg-green-400" : ""
+                )}></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
               </span>
-            )}
+              {status.label}
+            </span>
             {architect.isDisponible !== undefined && (
               <span className={cn(
                 "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium border",
