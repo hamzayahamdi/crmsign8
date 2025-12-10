@@ -565,9 +565,16 @@ export function FinancementDocumentsUnified({
                             {getPaymentMethodIcon(payment.method)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-semibold text-white">
-                              {getPaymentMethodLabel(payment.method)}
-                            </h4>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="text-sm font-semibold text-white">
+                                {getPaymentMethodLabel(payment.method)}
+                              </h4>
+                              {payment.type === "accompte" && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                  Acompte
+                                </span>
+                              )}
+                            </div>
                             {payment.reference && (
                               <span className="text-[10px] text-white/40 truncate">
                                 Réf: {payment.reference}

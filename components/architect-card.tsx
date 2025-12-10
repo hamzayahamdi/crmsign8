@@ -97,6 +97,13 @@ export function ArchitectCard({
             <h3 className="text-sm font-bold text-white truncate group-hover:text-primary transition-colors">
               {architect.prenom} {architect.nom}
             </h3>
+          </div>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            {/* Role Tag - Architecte */}
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
+              Architecte
+            </span>
+            {/* Status Select - Aligned with role tag, same size */}
             {isOwnProfile && (
               <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                 <Select
@@ -106,11 +113,16 @@ export function ArchitectCard({
                 >
                   <SelectTrigger 
                     className={cn(
-                      "h-7 w-auto min-w-[110px] bg-primary/20 border-primary/40 text-white rounded-md text-[10px] px-2.5 py-1 hover:bg-primary/30 transition-colors",
+                      "h-[22px] w-auto min-w-[80px] bg-slate-700/50 border-slate-600/50 text-white rounded text-[10px] font-semibold px-1.5 py-0.5 hover:bg-slate-700/70 hover:border-slate-500/60 transition-colors flex items-center gap-1",
                       isUpdatingStatus && "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    <Settings2 className="w-3 h-3 mr-1.5" />
+                    <span className={cn(
+                      "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                      architect.statut === "actif" && "bg-green-400",
+                      architect.statut === "inactif" && "bg-slate-400",
+                      architect.statut === "conge" && "bg-orange-400"
+                    )} />
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600" onClick={(e) => e.stopPropagation()}>
@@ -136,21 +148,22 @@ export function ArchitectCard({
                 </Select>
               </div>
             )}
-          </div>
-          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-            <span className={cn(
-              "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border",
-              status.color
-            )}>
-              <span className="relative flex h-1.5 w-1.5 mr-1">
-                <span className={cn(
-                  "absolute inline-flex h-full w-full rounded-full opacity-75",
-                  architect.statut === "actif" ? "animate-ping bg-green-400" : ""
-                )}></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
+            {/* Status Badge - Show when not own profile */}
+            {!isOwnProfile && (
+              <span className={cn(
+                "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border",
+                status.color
+              )}>
+                <span className="relative flex h-1.5 w-1.5 mr-1">
+                  <span className={cn(
+                    "absolute inline-flex h-full w-full rounded-full opacity-75",
+                    architect.statut === "actif" ? "animate-ping bg-green-400" : ""
+                  )}></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
+                </span>
+                {status.label}
               </span>
-              {status.label}
-            </span>
+            )}
             {architect.isDisponible !== undefined && (
               <span className={cn(
                 "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium border",

@@ -139,6 +139,7 @@ export interface ContactPayment {
   methode: string;
   reference?: string | null;
   description?: string | null;
+  type?: "accompte" | "paiement" | null; // Type of payment to distinguish acompte from regular payments
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;

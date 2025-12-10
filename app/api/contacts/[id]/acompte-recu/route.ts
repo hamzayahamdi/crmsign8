@@ -57,7 +57,7 @@ export async function POST(
             },
         });
 
-        // Create payment record
+        // Create payment record with type "accompte"
         await prisma.contactPayment.create({
             data: {
                 contactId,
@@ -65,6 +65,7 @@ export async function POST(
                 methode,
                 reference: reference || undefined,
                 description: description || 'Acompte initial',
+                type: 'accompte', // Tag this payment as "accompte"
                 createdBy: decoded.userId,
             },
         });

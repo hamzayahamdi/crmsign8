@@ -262,6 +262,7 @@ model ContactPayment {
   methode     String
   reference   String?
   description String?
+  type        String?  @default("accompte") // Type of payment: "accompte" or "paiement"
   createdBy   String   @map("created_by")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -490,6 +491,7 @@ model Payment {
   methode     String
   reference   String?
   description String?
+  type        String?  @default("paiement") // Type of payment: "accompte" or "paiementx"
   createdBy   String   @map("created_by")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

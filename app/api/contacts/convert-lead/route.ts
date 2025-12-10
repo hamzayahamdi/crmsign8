@@ -162,9 +162,10 @@ export async function POST(request: NextRequest) {
         source: lead.source, // Store source directly on contact
         architecteAssigne: architecteName || undefined,
         tag: 'converted',
+        status: 'qualifie', // Automatically set to 'qualifie' when converting from lead
         notes: lead.message || undefined,
         magasin: lead.magasin,
-        leadStatus: lead.statut, // Preserve the original lead status
+        leadStatus: lead.statut, // Preserve the original lead status for reference
         createdBy: userId,
         convertedBy: userId, // Track who converted the lead
       },

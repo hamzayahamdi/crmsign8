@@ -46,6 +46,37 @@ export async function POST(
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
+    // 2. Determine payment type before creating payment
+    const { data: clientDataForType } = await supabase
+      .from("clients")
+      .select("statut_projet")
+      .eq("id", clientId)
+      .single();
+
+    const hasAcompteStatusForType =
+      clientDataForType &&
+      [
+        "acompte_recu",
+        "acompte_verse",
+        "conception",
+        "devis_negociation",
+        "accepte",
+        "premier_depot",
+        "projet_en_cours",
+        "chantier",
+        "facture_reglee",
+      ].includes(clientDataForType.statut_projet);
+
+    // Check if client already has payments
+    const { data: existingPaymentsForType } = await supabase
+      .from("payments")
+      .select("id")
+      .eq("client_id", clientId);
+
+    const hasExistingPaymentsForType = existingPaymentsForType && existingPaymentsForType.length > 0;
+    const isFirstPayment = !hasAcompteStatusForType && !hasExistingPaymentsForType;
+    const paymentType = isFirstPayment ? "accompte" : (body.paymentType || "paiement");
+
     // 2. Create payment in payments table
     const now = new Date().toISOString();
     const { data: newPayment, error: paymentError } = await supabase
@@ -58,6 +89,7 @@ export async function POST(
         methode: body.methode || "virement",
         reference: body.reference || null,
         description: body.description || "",
+        type: paymentType, // Tag the payment type
         created_by: body.createdBy || "Utilisateur",
         created_at: now,
         updated_at: now,
@@ -73,39 +105,8 @@ export async function POST(
       );
     }
 
-    // 3. Create history entry
-    await supabase;
-    // 3. Determine payment type based on client status
-    const { data: clientData } = await supabase
-      .from("clients")
-      .select("statut_projet")
-      .eq("id", clientId)
-      .single();
-
-    const hasAcompteStatus =
-      clientData &&
-      [
-        "acompte_recu",
-        "acompte_verse",
-        "conception",
-        "devis_negociation",
-        "accepte",
-        "premier_depot",
-        "projet_en_cours",
-        "chantier",
-        "facture_reglee",
-      ].includes(clientData.statut_projet);
-
-    // Check if client already has payments
-    const { data: existingPayments } = await supabase
-      .from("payments")
-      .select("id")
-      .eq("client_id", clientId);
-
-    const hasExistingPayments = existingPayments && existingPayments.length > 0;
-    const isFirstPayment = !hasAcompteStatus && !hasExistingPayments;
-    const paymentType = isFirstPayment ? "acompte" : "paiement";
-    const paymentTypeCapitalized = isFirstPayment ? "Acompte" : "Paiement";
+    // 3. Create history entry (use the paymentType already determined above)
+    const paymentTypeCapitalized = paymentType === "accompte" ? "Acompte" : "Paiement";
 
     // 4. Add entry to historique with dynamic terminology
     const { error: historiqueError } = await supabase

@@ -378,7 +378,38 @@ export async function GET(
         .eq("client_id", clientId)
         .order("date", { ascending: false });
 
-      payments = paymentsData || [];
+      // Also fetch contact payments if this is an opportunity-based client
+      let contactPayments: any[] = [];
+      if (contactId) {
+        try {
+          const contactPaymentsData = await prisma.contactPayment.findMany({
+            where: { contactId },
+            orderBy: { date: 'desc' },
+          });
+          // Transform contact payments to match client payment format
+          contactPayments = contactPaymentsData.map((cp: any) => ({
+            id: cp.id,
+            client_id: clientId, // Map to client_id for consistency
+            montant: cp.montant,
+            date: cp.date instanceof Date ? cp.date.toISOString() : cp.date,
+            methode: cp.methode,
+            reference: cp.reference,
+            description: cp.description,
+            type: cp.type || 'accompte', // Contact payments are typically acompte
+            created_by: cp.createdBy,
+            created_at: cp.createdAt instanceof Date ? cp.createdAt.toISOString() : cp.createdAt,
+            updated_at: cp.updatedAt instanceof Date ? cp.updatedAt.toISOString() : cp.updatedAt,
+          }));
+          console.log(`[GET /api/clients/[id]] Fetched ${contactPayments.length} contact payments for client ${clientId}`);
+        } catch (error) {
+          console.error('[GET /api/clients/[id]] Error fetching contact payments:', error);
+        }
+      }
+
+      // Merge both payment sources (contact payments + client payments)
+      payments = [...contactPayments, ...(paymentsData || [])].sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
 
       // CRITICAL FIX: Fetch devis for opportunity-based clients from Supabase
       const { data: devisData } = await supabase
@@ -703,12 +734,13 @@ export async function GET(
         payments?.map((p) => ({
           id: p.id,
           amount: p.montant,
-          date: p.date,
+          date: p.date instanceof Date ? p.date.toISOString() : (typeof p.date === 'string' ? p.date : new Date(p.date).toISOString()),
           method: p.methode,
           reference: p.reference,
           notes: p.description,
+          type: p.type || "paiement", // Include payment type (accompte or paiement)
           createdBy: p.created_by,
-          createdAt: p.created_at,
+          createdAt: p.created_at instanceof Date ? p.created_at.toISOString() : (typeof p.created_at === 'string' ? p.created_at : new Date(p.created_at).toISOString()),
         })) || [],
     };
 

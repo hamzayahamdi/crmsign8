@@ -461,11 +461,18 @@ const SidebarComponent = () => {
                     {user.email}
                   </p>
                   {user.role && (
-                    <div className="flex items-center justify-between gap-2 mt-0.5 md:mt-1">
-                      <span className="inline-flex items-center gap-1 text-[9px] md:text-[10px] font-medium px-1.5 md:px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30">
-                        {getRoleLabel(user.role)}
-                      </span>
-                      {/* Status Selector for Architects - Compact, intuitive design positioned on the right */}
+                    <div className="flex items-center gap-2 mt-0.5 md:mt-1 flex-wrap">
+                      {/* Role Tag - Only show "Architecte" for architects, styled as cyan/teal pill */}
+                      {isArchitect ? (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-cyan-500/20 text-cyan-300 border-cyan-500/30 h-[22px]">
+                          Architecte
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[9px] md:text-[10px] font-medium px-1.5 md:px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30">
+                          {getRoleLabel(user.role)}
+                        </span>
+                      )}
+                      {/* Status Selector for Architects - Exact same size as role tag */}
                       {isArchitect && (
                         <Select
                           value={architectStatus}
@@ -474,17 +481,17 @@ const SidebarComponent = () => {
                         >
                           <SelectTrigger 
                             className={cn(
-                              "h-5 w-auto min-w-[75px] bg-slate-800/70 border border-slate-600/60 text-white rounded-md text-[9px] px-2 py-0.5 hover:bg-slate-700/70 hover:border-slate-500/60 transition-all flex items-center gap-1.5 shadow-sm",
+                              "h-[22px] w-auto min-w-[80px] bg-slate-700/50 border-slate-600/50 text-white rounded text-[10px] font-semibold px-1.5 py-0.5 hover:bg-slate-700/70 hover:border-slate-500/60 transition-colors flex items-center gap-1 leading-none",
                               isUpdatingStatus && "opacity-50 cursor-not-allowed"
                             )}
                           >
                             <span className={cn(
-                              "w-1.5 h-1.5 rounded-full flex-shrink-0 shadow-sm",
-                              architectStatus === "actif" && "bg-green-400 shadow-green-400/50",
-                              architectStatus === "inactif" && "bg-slate-400 shadow-slate-400/50",
-                              architectStatus === "conge" && "bg-orange-400 shadow-orange-400/50"
+                              "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                              architectStatus === "actif" && "bg-green-400",
+                              architectStatus === "inactif" && "bg-slate-400",
+                              architectStatus === "conge" && "bg-orange-400"
                             )} />
-                            <span className="text-[9px] font-medium">
+                            <span className="text-[10px] font-semibold leading-none">
                               {architectStatus === "actif" ? "Actif" : architectStatus === "inactif" ? "Inactif" : "En congé"}
                             </span>
                           </SelectTrigger>

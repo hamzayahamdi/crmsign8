@@ -36,7 +36,7 @@ import { Sidebar } from '@/components/sidebar'
 import { Header } from '@/components/header'
 import { AuthGuard } from '@/components/auth-guard'
 import { useAuth } from '@/contexts/auth-context'
-import { Contact, Opportunity, Timeline, ContactWithDetails, ContactStatus, LeadStatus } from '@/types/contact'
+import { Contact, Opportunity, Timeline, ContactWithDetails, ContactStatus } from '@/types/contact'
 import { toast } from 'sonner'
 import {
   DropdownMenu,
@@ -1145,39 +1145,6 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
     }
   }
 
-  // Lead status helpers
-  const getLeadStatusBadge = (status: LeadStatus | null | undefined) => {
-    if (!status) return null
-
-    const badges: Record<LeadStatus, { label: string, className: string }> = {
-      'nouveau': {
-        label: 'Nouveau',
-        className: 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-      },
-      'a_recontacter': {
-        label: 'À recontacter',
-        className: 'bg-orange-500/20 text-orange-300 border-orange-500/30'
-      },
-      'sans_reponse': {
-        label: 'Sans réponse',
-        className: 'bg-gray-500/20 text-gray-300 border-gray-500/30'
-      },
-      'non_interesse': {
-        label: 'Non intéressé',
-        className: 'bg-red-500/20 text-red-300 border-red-500/30'
-      },
-      'qualifie': {
-        label: 'Qualifié',
-        className: 'bg-green-500/20 text-green-300 border-green-500/30'
-      },
-      'refuse': {
-        label: 'Refusé',
-        className: 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-      },
-    }
-
-    return badges[status]
-  }
 
 
   return (
@@ -1460,7 +1427,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               <p className="text-xs font-light text-white">
                 {contact.tag === 'client' 
                   ? 'Client' 
-                  : contact.status === 'perdu' && contact.leadStatus === 'refuse'
+                  : contact.status === 'perdu'
                     ? 'Refusé'
                     : contact.status === 'qualifie'
                       ? 'Qualifié'
@@ -1468,25 +1435,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                         ? 'Prise de besoin'
                         : contact.status === 'acompte_recu'
                           ? 'Acompte Reçu'
-                          : contact.status || 'Contact'}
+                          : 'Qualifié'}
               </p>
-            </div>
-
-            {/* Lead Status - Read-only Badge */}
-            <div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50">
-              <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-                <Activity className="w-3 h-3 text-blue-400" />
-                Statut Lead
-              </p>
-              {contact.leadStatus ? (
-                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-light border ${
-                  getLeadStatusBadge(contact.leadStatus)?.className || 'bg-slate-700/50 text-slate-300 border-slate-600/30'
-                }`}>
-                  {getLeadStatusBadge(contact.leadStatus)?.label || contact.leadStatus}
-                </span>
-              ) : (
-                <span className="text-xs font-light text-slate-500">Non défini</span>
-              )}
             </div>
 
             {isConverted && converterName && (

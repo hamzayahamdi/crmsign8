@@ -144,6 +144,7 @@ export interface Payment {
   method: "espece" | "virement" | "cheque"
   reference?: string
   notes?: string
+  type?: "accompte" | "paiement" // Type of payment to distinguish acompte from regular payments
   createdBy: string
   createdAt: string
 }
