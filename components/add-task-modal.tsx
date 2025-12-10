@@ -135,7 +135,8 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
       })
     } else {
       // If preSelectedClient is provided, auto-select it
-      const linkedType: LinkedType = preSelectedClient ? "contact" : "lead"
+      // Note: API expects 'client' not 'contact', so we use 'client' here
+      const linkedType: LinkedType = preSelectedClient ? "client" : "lead"
       const linkedId = preSelectedClient ? preSelectedClient.id : ""
       const linkedName = preSelectedClient ? preSelectedClient.nom : ""
 
@@ -252,8 +253,14 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
       const item = combinedItems.find(i => i.id === formData.linkedId)
       if (item) {
         linkedName = item.name
-        linkedType = item.type as LinkedType
+        // API expects 'client' not 'contact', so convert 'contact' to 'client'
+        linkedType = (item.type === 'contact' ? 'client' : item.type) as LinkedType
       }
+    }
+
+    // Ensure linkedType is valid for API (convert 'contact' to 'client' if needed)
+    if (linkedType === 'contact') {
+      linkedType = 'client'
     }
 
     // Validate date is valid
@@ -578,11 +585,13 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
                                 key={`${item.type}-${item.id}`}
                                 value={`${item.name}-${item.id}`}
                                 onSelect={() => {
+                                  // API expects 'client' not 'contact', so convert 'contact' to 'client'
+                                  const apiLinkedType = (item.type === 'contact' ? 'client' : item.type) as LinkedType
                                   setFormData({ 
                                     ...formData, 
                                     linkedId: item.id, 
                                     linkedName: item.name,
-                                    linkedType: item.type as LinkedType
+                                    linkedType: apiLinkedType
                                   })
                                   setLinkedSearchOpen(false)
                                   setSearchQuery("")
@@ -617,7 +626,7 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
                 {formData.linkedId && (
                   <p className="text-[10px] text-green-400 flex items-center gap-1 font-light">
                     <CheckCircle2 className="w-2.5 h-2.5" />
-                    {formData.linkedType === "lead" ? "Lead" : "Contact"} sélectionné
+                    {formData.linkedType === "lead" ? "Lead" : formData.linkedType === "client" ? "Client" : "Contact"} sélectionné
                   </p>
                 )}
               </div>

@@ -50,7 +50,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!["lead", "client"].includes(linkedType)) {
+    // Also accept 'contact' and convert it to 'client' for backward compatibility
+    let normalizedLinkedType = linkedType
+    if (linkedType === 'contact') {
+      normalizedLinkedType = 'client'
+      console.log('[API /tasks/assign] Converted linkedType from "contact" to "client"')
+    }
+    
+    if (!["lead", "client"].includes(normalizedLinkedType)) {
       return NextResponse.json(
         { error: 'linkedType doit être "lead" ou "client"' },
         { status: 400 },
@@ -63,7 +70,7 @@ export async function POST(request: NextRequest) {
         description: typeof description === "string" ? description : "",
         dueDate: dueDate,
         assignedTo: String(assignedTo),
-        linkedType,
+        linkedType: normalizedLinkedType,
         linkedId: String(linkedId),
         reminderEnabled: Boolean(reminderEnabled),
         reminderDays: reminderDays ?? null,

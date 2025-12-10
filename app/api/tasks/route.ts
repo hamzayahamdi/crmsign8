@@ -269,10 +269,24 @@ export async function POST(request: NextRequest) {
     const validStatus = ['a_faire', 'en_cours', 'termine']
     const validLinked = ['lead', 'client']
     if (body.status && !validStatus.includes(body.status)) {
-      return NextResponse.json({ success: false, error: 'Invalid status' }, { status: 400 })
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Invalid status', 
+        details: `Status must be one of: ${validStatus.join(', ')}. Received: ${body.status}` 
+      }, { status: 400 })
     }
     if (!validLinked.includes(body.linkedType)) {
-      return NextResponse.json({ success: false, error: 'Invalid linkedType' }, { status: 400 })
+      // Also accept 'contact' and convert it to 'client' for backward compatibility
+      if (body.linkedType === 'contact') {
+        body.linkedType = 'client'
+        console.log('[API /tasks POST] Converted linkedType from "contact" to "client"')
+      } else {
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Invalid linkedType', 
+          details: `linkedType must be one of: ${validLinked.join(', ')}. Received: ${body.linkedType}` 
+        }, { status: 400 })
+      }
     }
 
     console.log('[API /tasks POST] Calling createTaskWithEvent...');
