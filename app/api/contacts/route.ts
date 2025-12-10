@@ -49,18 +49,11 @@ export async function GET(request: NextRequest) {
     // 4. Build filter
     const where: any = {};
     
-    // IMPORTANT: Always include converted contacts (tag='converted') regardless of other filters
-    // This ensures converted leads are always visible in the contacts table
-    
-    // Auto-filter for architects - they only see their assigned contacts
-    // BUT also include unassigned contacts (architecteAssigne = null) so they can see newly converted contacts
+    // Auto-filter for architects - they ONLY see contacts assigned to them
+    // Architects are NOT admins, so they should NOT see all contacts
     if (user.role?.toLowerCase() === 'architect') {
-      where.OR = [
-        { architecteAssigne: user.name },
-        { architecteAssigne: null }, // Include unassigned contacts
-        { tag: 'converted' }, // ALWAYS show converted contacts
-      ];
-      console.log(`[Contacts API] Architect filter: showing contacts assigned to "${user.name}", unassigned, OR converted`);
+      where.architecteAssigne = user.name;
+      console.log(`[Contacts API] Architect filter: showing ONLY contacts assigned to "${user.name}"`);
     } else {
       console.log(`[Contacts API] User role: ${user.role} - showing ALL contacts (including converted)`);
     }
