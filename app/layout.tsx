@@ -2,10 +2,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import { AuthProvider } from "@/contexts/auth-context";
-import { NotificationProvider } from "@/contexts/notification-context";
-import { Toaster } from "@/components/ui/sonner";
-import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 const inter = Inter({
@@ -41,11 +38,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} font-sans antialiased bg-[rgb(11,14,24)] text-white min-h-screen`}
       >
-        <AuthProvider>
-          <NotificationProvider>{children}</NotificationProvider>
-        </AuthProvider>
-        <Toaster position="top-right" richColors />
-        <ShadcnToaster />
+        <Providers>{children}</Providers>
         <Analytics />
       </body>
     </html>

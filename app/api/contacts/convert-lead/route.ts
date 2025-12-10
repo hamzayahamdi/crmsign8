@@ -150,25 +150,44 @@ export async function POST(request: NextRequest) {
       userName: user.name,
     });
 
+    // Prepare contact data with campaignName and commercialMagasin
+    const contactData: any = {
+      nom: lead.nom,
+      telephone: lead.telephone,
+      email: undefined,
+      ville: lead.ville,
+      adresse: undefined,
+      leadId: lead.id,
+      typeBien: lead.typeBien, // Store typeBien directly on contact
+      source: lead.source, // Store source directly on contact
+      architecteAssigne: architecteName || undefined,
+      tag: 'converted',
+      status: 'qualifie', // Automatically set to 'qualifie' when converting from lead
+      notes: lead.message || undefined,
+      magasin: lead.magasin || undefined,
+      leadStatus: lead.statut, // Preserve the original lead status for reference
+      createdBy: userId,
+      convertedBy: userId, // Track who converted the lead
+    };
+
+    // Only add campaignName and commercialMagasin if they exist (to avoid null issues)
+    if (lead.campaignName) {
+      contactData.campaignName = lead.campaignName;
+    }
+    if (lead.commercialMagasin) {
+      contactData.commercialMagasin = lead.commercialMagasin;
+    }
+
+    console.log(`[Convert Lead] Creating contact with data:`, {
+      nom: contactData.nom,
+      source: contactData.source,
+      campaignName: contactData.campaignName,
+      commercialMagasin: contactData.commercialMagasin,
+      magasin: contactData.magasin,
+    });
+
     const contact = await prisma.contact.create({
-      data: {
-        nom: lead.nom,
-        telephone: lead.telephone,
-        email: undefined,
-        ville: lead.ville,
-        adresse: undefined,
-        leadId: lead.id,
-        typeBien: lead.typeBien, // Store typeBien directly on contact
-        source: lead.source, // Store source directly on contact
-        architecteAssigne: architecteName || undefined,
-        tag: 'converted',
-        status: 'qualifie', // Automatically set to 'qualifie' when converting from lead
-        notes: lead.message || undefined,
-        magasin: lead.magasin,
-        leadStatus: lead.statut, // Preserve the original lead status for reference
-        createdBy: userId,
-        convertedBy: userId, // Track who converted the lead
-      },
+      data: contactData,
     });
 
     console.log(`[Convert Lead] ✅ Contact created successfully:`, {
@@ -178,6 +197,8 @@ export async function POST(request: NextRequest) {
       tag: contact.tag,
       architecteAssigne: contact.architecteAssigne,
       leadId: contact.leadId,
+      campaignName: (contact as any).campaignName,
+      commercialMagasin: (contact as any).commercialMagasin,
     });
 
     // 7. Create timeline entries for conversion (and optional architect assignment)
@@ -306,9 +327,36 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error converting lead:', error);
+    console.error('❌ [Convert Lead] Error converting lead:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    // Log detailed error information
+    console.error('❌ [Convert Lead] Error details:', {
+      message: errorMessage,
+      name: error instanceof Error ? error.name : 'Unknown',
+      stack: errorStack,
+    });
+    
+    // Check if it's a Prisma error
+    if (errorMessage.includes('campaignName') || errorMessage.includes('commercialMagasin')) {
+      console.error('❌ [Convert Lead] Database schema issue detected. Fields may not exist in database.');
+      return NextResponse.json(
+        { 
+          error: 'Database schema error. Please run database migration.',
+          details: 'The campaignName or commercialMagasin fields may not exist in the database. Run: npx prisma db push'
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to convert lead', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        error: 'Failed to convert lead', 
+        details: errorMessage,
+        // Include more details in development
+        ...(process.env.NODE_ENV === 'development' && { stack: errorStack })
+      },
       { status: 500 }
     );
   }

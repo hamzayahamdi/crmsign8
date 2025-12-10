@@ -97,13 +97,13 @@ export function CreatableSelect({
           disabled={disabled}
           type="button"
           className={cn(
-            "w-full h-10 justify-between border border-white/10 bg-[#252b3d]/80 text-white hover:bg-[#2a3142] hover:border-blue-500/60 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition-all duration-200 font-light px-3 text-sm",
-            !value && "text-gray-500",
+            "w-full h-8 justify-between border border-slate-600/40 bg-slate-800/90 text-white hover:bg-slate-700/90 hover:border-blue-500/60 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all duration-200 font-light px-3 text-xs",
+            !value && "text-slate-400",
             open && "border-blue-500/60 ring-2 ring-blue-500/20",
             className
           )}
         >
-          <span className="truncate text-left font-light flex-1 mr-2 text-sm">
+          <span className="truncate text-left font-light flex-1 mr-2 text-xs">
             {value || placeholder}
           </span>
           <div className="flex items-center gap-1 flex-shrink-0">
@@ -120,13 +120,13 @@ export function CreatableSelect({
           </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 glass bg-slate-900/95 border-white/10" align="start">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-slate-800/95 backdrop-blur-xl border-slate-600/50 shadow-xl" align="start">
         <Command className="bg-transparent" shouldFilter={false}>
           <CommandInput
             placeholder={searchPlaceholder}
             value={searchValue}
             onValueChange={setSearchValue}
-            className="border-none focus:ring-0 h-10 text-white"
+            className="border-none focus:ring-0 h-8 text-white bg-slate-800/50 placeholder:text-slate-400 text-xs"
           />
           <CommandList className="max-h-[240px]">
             {filteredOptions.length === 0 && !canCreateNew && (
@@ -142,7 +142,7 @@ export function CreatableSelect({
                     key={option}
                     value={option}
                     onSelect={() => handleSelect(option)}
-                    className="cursor-pointer hover:bg-primary/10 transition-colors text-white"
+                    className="cursor-pointer hover:bg-slate-700/50 transition-colors text-white font-light"
                   >
                     <Check
                       className={cn(
@@ -169,7 +169,7 @@ export function CreatableSelect({
                   <div className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/20 mr-2">
                     <Plus className="h-3.5 w-3.5 text-emerald-400" />
                   </div>
-                  <span className="text-emerald-400 font-semibold text-sm">
+                  <span className="text-emerald-400 font-semibold text-xs">
                     Créer "{trimmedSearch}"
                   </span>
                 </CommandItem>

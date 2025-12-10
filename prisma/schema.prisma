@@ -61,16 +61,16 @@ model LeadNote {
 
 // Unified Note model for traceability across leads, contacts, and clients
 model Note {
-  id          String    @id @default(cuid())
-  content     String
-  author      String
-  authorId    String?   @map("author_id")
-  entityType  String    @map("entity_type") // 'lead', 'contact', 'client'
-  entityId    String    @map("entity_id")   // ID of the lead/contact/client
-  sourceType  String?   @map("source_type")  // 'lead', 'contact', 'client' - original source (for migrated notes)
-  sourceId    String?   @map("source_id")    // Original lead/contact/client ID if migrated
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id         String   @id @default(cuid())
+  content    String
+  author     String
+  authorId   String?  @map("author_id")
+  entityType String   @map("entity_type") // 'lead', 'contact', 'client'
+  entityId   String   @map("entity_id") // ID of the lead/contact/client
+  sourceType String?  @map("source_type") // 'lead', 'contact', 'client' - original source (for migrated notes)
+  sourceId   String?  @map("source_id") // Original lead/contact/client ID if migrated
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@index([entityType, entityId])
   @@index([sourceType, sourceId])
@@ -140,6 +140,8 @@ model Contact {
   tag               ContactTag        @default(prospect)
   notes             String?
   magasin           String?
+  campaignName      String?           @map("campaign_name")
+  commercialMagasin String?           @map("commercial_magasin")
   createdBy         String
   createdAt         DateTime          @default(now()) @map("created_at")
   updatedAt         DateTime          @updatedAt @map("updated_at")

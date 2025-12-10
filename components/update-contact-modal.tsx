@@ -2,39 +2,33 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CreatableSelect } from "@/components/creatable-select"
 import { Textarea } from "@/components/ui/textarea"
-import type { Lead, LeadStatus, LeadSource, LeadPriority, LeadNote } from "@/types/lead"
-import { Trash2, UserPlus, XCircle, Save, Plus, Clock, User } from "lucide-react"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter as AlertDialogFooterRoot,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+import type { Contact, ContactTag, ContactStatus } from "@/types/contact"
+import { XCircle, Save, Plus, Clock, User } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 
-interface LeadModalProps {
+interface ContactNote {
+    id: string
+    content: string
+    createdAt: string
+    createdBy: string
+    type?: string
+    source?: string
+}
+
+interface UpdateContactModalProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    lead?: Lead
-    onSave: (lead: Omit<Lead, "id"> & { id?: string }) => void
-    onDelete?: () => void
-    onConvertToClient?: (lead: Lead) => void
-    onMarkAsNotInterested?: (lead: Lead) => void
-    currentUserRole?: string
+    contact: Contact | null
+    onSave: (contact: Contact) => void
     currentUserName?: string
 }
 
@@ -60,16 +54,7 @@ const defaultTypesBien = [
     "Commerce",
 ]
 
-const statuts: { value: LeadStatus; label: string; color: string }[] = [
-    { value: "nouveau", label: "Nouveau", color: "bg-green-500/20 text-green-400 border-green-500/40" },
-    { value: "a_recontacter", label: "À recontacter", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40" },
-    { value: "sans_reponse", label: "Sans réponse", color: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
-    { value: "non_interesse", label: "Non intéressé", color: "bg-red-500/20 text-red-400 border-red-500/40" },
-    { value: "qualifie", label: "Qualifié", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
-    { value: "refuse", label: "Refusé", color: "bg-gray-500/20 text-gray-400 border-gray-500/40" },
-]
-
-const sources: { value: LeadSource; label: string }[] = [
+const sources: { value: string; label: string }[] = [
     { value: "magasin", label: "Magasin" },
     { value: "site_web", label: "Site web" },
     { value: "facebook", label: "Facebook" },
@@ -79,7 +64,35 @@ const sources: { value: LeadSource; label: string }[] = [
     { value: "autre", label: "Autre" },
 ]
 
-const calculatePriority = (source: LeadSource): LeadPriority => {
+const tags: { value: ContactTag; label: string; color: string }[] = [
+    { value: "prospect", label: "Prospect", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
+    { value: "vip", label: "VIP", color: "bg-amber-500/20 text-amber-400 border-amber-500/40" },
+    { value: "converted", label: "Converti", color: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
+    { value: "client", label: "Client", color: "bg-green-500/20 text-green-400 border-green-500/40" },
+    { value: "archived", label: "Archivé", color: "bg-gray-500/20 text-gray-400 border-gray-500/40" },
+]
+
+const statuses: { value: ContactStatus; label: string; color: string }[] = [
+    { value: "qualifie", label: "Qualifié", color: "bg-blue-500/20 text-blue-400 border-blue-500/40" },
+    { value: "prise_de_besoin", label: "Prise de besoin", color: "bg-purple-500/20 text-purple-400 border-purple-500/40" },
+    { value: "acompte_recu", label: "Acompte Reçu", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" },
+    { value: "perdu", label: "Perdu", color: "bg-red-500/20 text-red-400 border-red-500/40" },
+]
+
+type ContactPriority = "haute" | "moyenne" | "basse"
+
+const commercials = [
+    "BOUCHEMAMA LAILA",
+    "AMANE HAMZA",
+    "ABOUTTAIB RANIA",
+    "EL AID HANANE",
+    "BELHAJ FADOUA",
+    "NAMIRA GHITA",
+    "KAITOUNI IDRISSI ALI",
+    "Autre"
+]
+
+const calculatePriority = (source: string): ContactPriority => {
     switch (source) {
         // Haute (High Priority): Direct sources with highest intent and conversion potential
         case "magasin":           // Direct walk-in, immediate interest, highest conversion
@@ -102,49 +115,37 @@ const calculatePriority = (source: LeadSource): LeadPriority => {
     }
 }
 
-export function LeadModalEnhanced({
+export function UpdateContactModal({
     open,
     onOpenChange,
-    lead,
+    contact,
     onSave,
-    onDelete,
-    onConvertToClient,
-    onMarkAsNotInterested,
-    currentUserRole = "admin",
     currentUserName = "Admin"
-}: LeadModalProps) {
+}: UpdateContactModalProps) {
     const [villes, setVilles] = useState<string[]>(defaultVilles)
     const [typesBien, setTypesBien] = useState<string[]>(defaultTypesBien)
     const [architects, setArchitects] = useState<string[]>(['Mohamed'])
-    const [commercials] = useState<string[]>([
-        "BOUCHEMAMA LAILA",
-        "AMANE HAMZA",
-        "ABOUTTAIB RANIA",
-        "EL AID HANANE",
-        "BELHAJ FADOUA",
-        "NAMIRA GHITA",
-        "KAITOUNI IDRISSI ALI",
-        "Autre"
-    ])
     const [showCustomCommercial, setShowCustomCommercial] = useState(false)
     const [customCommercialName, setCustomCommercialName] = useState("")
     const [newNote, setNewNote] = useState("")
+    const [notes, setNotes] = useState<ContactNote[]>([])
 
     const initialForm = {
-        nom: lead?.nom || "",
-        telephone: lead?.telephone || "",
-        ville: lead?.ville || "",
-        typeBien: lead?.typeBien || "",
-        statut: lead?.statut || ("nouveau" as LeadStatus),
-        statutDetaille: lead?.statutDetaille || "",
-        message: lead?.message || "",
-        assignePar: lead?.assignePar || "Mohamed",
-        source: lead?.source || ("site_web" as LeadSource),
-        priorite: lead?.priorite || ("moyenne" as LeadPriority),
-        magasin: lead?.magasin || "",
-        commercialMagasin: lead?.commercialMagasin || "",
-        campaignName: (lead as any)?.campaignName || "",
-        notes: lead?.notes || [],
+        nom: contact?.nom || "",
+        telephone: contact?.telephone || "",
+        ville: contact?.ville || "",
+        typeBien: contact?.typeBien || "",
+        source: contact?.source || "site_web",
+        architecteAssigne: contact?.architecteAssigne || "",
+        tag: contact?.tag || ("prospect" as ContactTag),
+        status: contact?.status || ("qualifie" as ContactStatus),
+        statutDetaille: "",
+        message: "",
+        notes: contact?.notes || "",
+        magasin: contact?.magasin || "",
+        commercialMagasin: (contact as any)?.commercialMagasin || "",
+        campaignName: (contact as any)?.campaignName || "",
+        priorite: calculatePriority(contact?.source || "site_web") as ContactPriority,
     }
 
     const [formData, setFormData] = useState(initialForm)
@@ -166,200 +167,305 @@ export function LeadModalEnhanced({
                             .filter((n: string) => n)
                     ))
 
-                    const mohamedUser = users.find((u: any) =>
-                        (u.name || '').toLowerCase().includes('mohamed') &&
-                        (u.role || '').toLowerCase() === 'gestionnaire'
-                    )
-
-                    const defaultAssignee = mohamedUser?.name || list[0] || 'Mohamed'
                     setArchitects(list.length ? list : ['Mohamed'])
 
-                    if (!lead) {
-                        setFormData((prev) => ({ ...prev, assignePar: defaultAssignee }))
+                    if (contact && !contact.architecteAssigne) {
+                        const mohamedUser = users.find((u: any) =>
+                            (u.name || '').toLowerCase().includes('mohamed') &&
+                            (u.role || '').toLowerCase() === 'gestionnaire'
+                        )
+                        const defaultAssignee = mohamedUser?.name || list[0] || 'Mohamed'
+                        setFormData((prev) => ({ ...prev, architecteAssigne: defaultAssignee }))
                     }
                 } else {
                     setArchitects(['Mohamed'])
-                    if (!lead) {
-                        setFormData((prev) => ({ ...prev, assignePar: 'Mohamed' }))
-                    }
                 }
             } catch {
                 setArchitects(['Mohamed'])
-                if (!lead) {
-                    setFormData((prev) => ({ ...prev, assignePar: 'Mohamed' }))
-                }
             }
         }
         loadAssignees()
-    }, [lead])
+    }, [contact])
 
-    const resetForm = () => setFormData({
-        nom: "",
-        telephone: "",
-        ville: "",
-        typeBien: "",
-        statut: "nouveau" as LeadStatus,
-        statutDetaille: "",
-        message: "",
-        assignePar: "Mohamed",
-        source: "site_web" as LeadSource,
-        priorite: "moyenne" as LeadPriority,
-        magasin: "",
-        commercialMagasin: "",
-        campaignName: "",
-        notes: [],
-    })
-
+    // Load notes and lead data in parallel when modal opens
     useEffect(() => {
-        if (lead && open) {
-            const campaignName = (lead as any)?.campaignName || ""
-            console.log('[Lead Modal] Loading lead data:', {
-                leadId: lead.id,
-                source: lead.source,
-                campaignName: campaignName,
-                hasCampaignName: !!(lead as any)?.campaignName
-            })
+        if (open && contact?.id) {
+            // Set empty notes immediately
+            setNotes([])
             
-            setFormData((prev) => ({
-                ...prev,
-                nom: lead.nom,
-                telephone: lead.telephone,
-                ville: lead.ville,
-                typeBien: lead.typeBien,
-                statut: lead.statut,
-                statutDetaille: lead.statutDetaille || "",
-                message: lead.message || "",
-                assignePar: lead.assignePar || prev.assignePar || (architects[0] || 'Mohamed'),
-                source: lead.source,
-                priorite: lead.priorite,
-                magasin: lead.magasin || "",
-                commercialMagasin: lead.commercialMagasin || "",
-                campaignName: campaignName,
-                notes: lead.notes || [],
-            }))
+            const token = localStorage.getItem('token')
+            const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {}
             
-            console.log('[Lead Modal] Form data updated with campaignName:', campaignName)
-        }
-    }, [lead, architects, open])
-
-    useEffect(() => {
-        if (open && !lead) {
-            resetForm()
-            const defaultAssignee = architects.find((name: string) =>
-                name.toLowerCase().includes('mohamed')
-            ) || architects[0] || 'Mohamed'
-            setFormData((prev) => ({ ...prev, assignePar: defaultAssignee }))
-        }
-    }, [open, lead, architects])
-
-    // Reload notes when modal opens for an existing lead
-    useEffect(() => {
-        const loadNotes = async () => {
-            if (open && lead?.id) {
-                try {
-                    const token = localStorage.getItem('token')
-                    const response = await fetch(`/api/leads/${lead.id}/notes`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
+            // Load notes and lead data in parallel
+            const loadData = async () => {
+                const promises: Promise<any>[] = []
+                
+                // Load notes
+                promises.push(
+                    fetch(`/api/contacts/${contact.id}/notes`, { headers })
+                        .then(res => res.ok ? res.json() : [])
+                        .catch(() => [])
+                )
+                
+                // Load lead data if leadId exists
+                const leadId = (contact as any).leadId || contact.leadId
+                if (leadId) {
+                    promises.push(
+                        fetch(`/api/leads/${leadId}`, { headers })
+                            .then(res => res.ok ? res.json() : null)
+                            .catch(() => null)
+                    )
+                } else {
+                    promises.push(Promise.resolve(null))
+                }
+                
+                // Wait for both to complete
+                const [notesData, leadData] = await Promise.all(promises)
+                
+                // Set notes
+                if (Array.isArray(notesData)) {
+                    setNotes(notesData)
+                } else if (notesData?.data && Array.isArray(notesData.data)) {
+                    setNotes(notesData.data)
+                } else if (notesData?.notes && Array.isArray(notesData.notes)) {
+                    setNotes(notesData.notes)
+                }
+                
+                // Update form with lead data if available
+                // ALWAYS prefer lead data for campaignName and commercialMagasin (they originate from leads)
+                if (leadData) {
+                    const leadCampaignName = leadData.campaignName || ""
+                    console.log('[Update Contact Modal] Lead data received:', {
+                        leadId: leadData.id,
+                        source: leadData.source,
+                        campaignName: leadCampaignName,
+                        hasCampaignName: !!leadData.campaignName,
+                        commercialMagasin: leadData.commercialMagasin,
+                        magasin: leadData.magasin,
+                        contactCampaignName: (contact as any)?.campaignName,
                     })
-
-                    if (response.ok) {
-                        const notes = await response.json()
-                        setFormData((prev) => ({
-                            ...prev,
-                            notes: notes
-                        }))
+                    
+                    setFormData(prev => {
+                        const updates: any = {}
+                        
+                        // ALWAYS update campaignName from lead if it exists (lead is source of truth)
+                        // This ensures we get the correct value even if contact was converted before schema update
+                        if (leadCampaignName) {
+                            updates.campaignName = leadCampaignName
+                            console.log('[Update Contact Modal] ✅ Setting campaignName from lead:', leadCampaignName, 'Previous:', prev.campaignName)
+                        } else if (!prev.campaignName) {
+                            console.log('[Update Contact Modal] ⚠️ No campaignName in lead or contact')
+                        }
+                        
+                        // Update commercialMagasin from lead if source is magasin
+                        if (prev.source === 'magasin' && leadData.commercialMagasin) {
+                            updates.commercialMagasin = leadData.commercialMagasin
+                            console.log('[Update Contact Modal] Setting commercialMagasin from lead:', leadData.commercialMagasin)
+                            
+                            // Update custom commercial state
+                            if (!commercials.includes(leadData.commercialMagasin)) {
+                                setShowCustomCommercial(true)
+                                setCustomCommercialName(leadData.commercialMagasin)
+                            }
+                        }
+                        
+                        // Update magasin if not already set
+                        if (leadData.magasin && !prev.magasin) {
+                            updates.magasin = leadData.magasin
+                        }
+                        
+                        // Always update if we have lead data (even if empty, to ensure consistency)
+                        if (Object.keys(updates).length > 0 || leadCampaignName !== prev.campaignName) {
+                            console.log('[Update Contact Modal] ✅ Updating formData with:', updates, 'Final campaignName:', updates.campaignName || prev.campaignName)
+                            return { ...prev, ...updates }
+                        }
+                        return prev
+                    })
+                } else {
+                    console.log('[Update Contact Modal] ⚠️ No lead data available for contact:', contact?.id, 'leadId:', leadId)
+                    // If no lead data and contact doesn't have campaignName, log it
+                    if (!(contact as any)?.campaignName && contact?.source === 'tiktok') {
+                        console.warn('[Update Contact Modal] ⚠️ Contact has TikTok source but no campaignName and no lead data available!')
                     }
-                } catch (error) {
-                    console.error('Error loading notes:', error)
                 }
             }
+            
+            loadData()
+        } else {
+            setNotes([])
         }
+    }, [open, contact?.id])
 
-        loadNotes()
-    }, [open, lead?.id])
+    // Update form when contact changes - Load data immediately (synchronous)
+    useEffect(() => {
+        if (contact && open) {
+            const source = contact.source || "site_web"
+            const calculatedPriority = calculatePriority(source)
+            
+            // Initialize immediately with contact data (no waiting)
+            // Load campaignName and commercialMagasin from contact first (they should be saved during conversion)
+            // Try multiple ways to access campaignName (in case of type issues)
+            let campaignName = (contact as any)?.campaignName || (contact as any)?.campaign_name || ""
+            let commercialMagasin = (contact as any)?.commercialMagasin || (contact as any)?.commercial_magasin || ""
+            let magasin = contact.magasin || ""
+            
+            console.log('[Update Contact Modal] 🔍 Initializing form with contact data:', {
+                contactId: contact.id,
+                source: source,
+                campaignName: campaignName,
+                hasCampaignName: !!(contact as any)?.campaignName,
+                hasCampaignNameAlt: !!(contact as any)?.campaign_name,
+                commercialMagasin: commercialMagasin,
+                hasCommercialMagasin: !!commercialMagasin,
+                leadId: (contact as any)?.leadId || contact.leadId,
+                contactKeys: Object.keys(contact), // Log all keys to see what's available
+                contactFull: contact // Log full contact object
+            })
+            
+            // Set form data immediately with contact data
+            setFormData({
+                nom: contact.nom || "",
+                telephone: contact.telephone || "",
+                ville: contact.ville || "",
+                typeBien: contact.typeBien || "",
+                source: source,
+                architecteAssigne: contact.architecteAssigne || "",
+                tag: contact.tag || ("prospect" as ContactTag),
+                status: contact.status || ("qualifie" as ContactStatus),
+                statutDetaille: "",
+                message: "",
+                notes: contact.notes || "",
+                magasin: magasin,
+                commercialMagasin: commercialMagasin,
+                campaignName: campaignName,
+                priorite: calculatedPriority,
+            })
+            
+            console.log('[Update Contact Modal] Form initialized with campaignName:', campaignName, 'commercialMagasin:', commercialMagasin)
+            
+            // Check if commercialMagasin is custom
+            setShowCustomCommercial(false)
+            setCustomCommercialName("")
+            if (commercialMagasin && !commercials.includes(commercialMagasin)) {
+                setShowCustomCommercial(true)
+                setCustomCommercialName(commercialMagasin)
+            }
+            
+            // Note: Lead data and notes are loaded in parallel in the separate useEffect above
+            // This ensures form appears immediately while data loads in background
+            // campaignName will be updated from lead data if contact doesn't have it (for backward compatibility)
+        }
+    }, [contact, open])
+
+    // Reset form when modal closes
+    useEffect(() => {
+        if (!open) {
+            setFormData(initialForm)
+            setShowCustomCommercial(false)
+            setCustomCommercialName("")
+            setNewNote("")
+            setNotes([])
+        }
+    }, [open])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        const calculatedPriority = calculatePriority(formData.source)
-        const leadData = {
-            ...formData,
-            priorite: calculatedPriority,
-            id: lead?.id,
-            derniereMaj: new Date().toISOString(),
-            createdAt: lead?.createdAt ?? new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+        
+        if (!contact) return
+
+        try {
+            const token = localStorage.getItem('token')
+            if (!token) {
+                toast.error('Token d\'authentification manquant')
+                return
+            }
+
+            // Calculate priority based on source
+            const calculatedPriority = calculatePriority(formData.source)
+
+            // Prepare update data
+            const updateData: any = {
+                nom: formData.nom,
+                telephone: formData.telephone,
+                ville: formData.ville || undefined,
+                typeBien: formData.typeBien || undefined,
+                source: formData.source || undefined,
+                architecteAssigne: formData.architecteAssigne || undefined,
+                tag: formData.tag,
+                status: formData.status,
+                notes: formData.notes || undefined,
+                magasin: formData.magasin || undefined,
+            }
+
+            // Add campaignName if source is tiktok
+            if (formData.source === 'tiktok') {
+                updateData.campaignName = formData.campaignName || undefined
+            }
+
+            // Add commercialMagasin if source is magasin
+            if (formData.source === 'magasin') {
+                updateData.commercialMagasin = formData.commercialMagasin || undefined
+            }
+
+            const response = await fetch(`/api/contacts/${contact.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updateData),
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                throw new Error(errorData.error || 'Failed to update contact')
+            }
+
+            const updatedContact = await response.json()
+            onSave(updatedContact)
+            toast.success('Contact mis à jour avec succès')
+            onOpenChange(false)
+        } catch (error) {
+            console.error('Error updating contact:', error)
+            toast.error(error instanceof Error ? error.message : 'Erreur lors de la mise à jour du contact')
         }
-
-        // Save the lead first
-        onSave(leadData)
-
-        // If this is a new lead with notes, we need to save them after the lead is created
-        // The parent component will handle the lead creation and should pass back the created lead ID
-        // For now, we'll just reset the form
-        resetForm()
-        onOpenChange(false)
     }
 
     const handleAddNote = async () => {
-        if (!newNote.trim()) return
+        if (!newNote.trim() || !contact?.id) return
 
-        // If editing an existing lead, save the note to the database immediately
-        if (lead?.id) {
-            try {
-                const token = localStorage.getItem('token')
-                const response = await fetch(`/api/leads/${lead.id}/notes`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        content: newNote
-                    })
+        try {
+            const token = localStorage.getItem('token')
+            const response = await fetch(`/api/contacts/${contact.id}/notes`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    content: newNote
                 })
-
-                if (!response.ok) {
-                    throw new Error('Failed to save note')
-                }
-
-                const savedNote = await response.json()
-
-                // Add the saved note to local state
-                setFormData({
-                    ...formData,
-                    notes: [savedNote, ...formData.notes]
-                })
-                setNewNote("")
-
-                toast({
-                    title: "Note ajoutée",
-                    description: "La note a été enregistrée avec succès.",
-                })
-            } catch (error) {
-                console.error('Error saving note:', error)
-                toast({
-                    title: "Erreur",
-                    description: "Impossible d'enregistrer la note.",
-                    variant: "destructive"
-                })
-            }
-        } else {
-            // For new leads, just add to local state (will be saved when lead is created)
-            const note: LeadNote = {
-                id: Date.now().toString(),
-                leadId: '',
-                content: newNote,
-                author: currentUserName,
-                createdAt: new Date().toISOString(),
-            }
-
-            setFormData({
-                ...formData,
-                notes: [note, ...formData.notes]
             })
+
+            if (!response.ok) {
+                throw new Error('Failed to save note')
+            }
+
+            const responseData = await response.json()
+            const savedNote = responseData.data || responseData
+            
+            // Add the saved note to local state
+            setNotes([savedNote, ...notes])
             setNewNote("")
+
+            toast.success("Note ajoutée", {
+                description: "La note a été enregistrée avec succès.",
+            })
+        } catch (error) {
+            console.error('Error saving note:', error)
+            toast.error("Erreur", {
+                description: "Impossible d'enregistrer la note.",
+            })
         }
     }
 
@@ -374,12 +480,7 @@ export function LeadModalEnhanced({
         return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
     }
 
-    const currentStatus = statuts.find(s => s.value === formData.statut)
-    const priorityColor = formData.priorite === 'haute'
-        ? 'bg-green-500/20 text-green-400 border-green-500/40'
-        : formData.priorite === 'moyenne'
-            ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
-            : 'bg-gray-500/20 text-gray-400 border-gray-500/40'
+    const currentTag = tags.find(t => t.value === formData.tag)
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -405,9 +506,15 @@ export function LeadModalEnhanced({
                             <DialogHeader className="mb-0">
                                 <div className="flex items-center justify-between">
                                     <DialogTitle className="text-base font-light text-white tracking-tight">
-                                        {lead ? "Modifier Lead" : "Créer Lead"}
+                                        Modifier Contact
                                     </DialogTitle>
-                                    <Badge className={cn("px-2 py-0.5 text-[10px] font-light border", priorityColor)}>
+                                    <Badge className={cn("px-2 py-0.5 text-[10px] font-light border", 
+                                        formData.priorite === 'haute' 
+                                            ? 'bg-green-500/20 text-green-400 border-green-500/40'
+                                            : formData.priorite === 'moyenne'
+                                                ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
+                                                : 'bg-gray-500/20 text-gray-400 border-gray-500/40'
+                                    )}>
                                         ↑ {formData.priorite === 'haute' ? 'Haute' : formData.priorite === 'moyenne' ? 'Moyenne' : 'Basse'}
                                     </Badge>
                                 </div>
@@ -504,39 +611,35 @@ export function LeadModalEnhanced({
                                     </div>
 
                                     <div className="space-y-1">
-                                        <Label htmlFor="statut" className="text-[10px] font-light text-slate-300">
+                                        <Label htmlFor="status" className="text-[10px] font-light text-slate-300">
                                             Statut
                                         </Label>
                                         <Select
-                                            value={formData.statut}
-                                            onValueChange={(value) => setFormData({ ...formData, statut: value as LeadStatus })}
+                                            value={formData.status}
+                                            onValueChange={(value) => setFormData({ ...formData, status: value as ContactStatus })}
                                         >
                                             <SelectTrigger className="bg-slate-800/90 border-slate-600/40 text-white h-8 text-xs font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all">
                                                 <div className="flex items-center gap-1.5">
                                                     <span className={cn("w-2 h-2 rounded-full shadow-sm",
-                                                        formData.statut === 'nouveau' ? 'bg-green-500' :
-                                                            formData.statut === 'a_recontacter' ? 'bg-yellow-500' :
-                                                                formData.statut === 'sans_reponse' ? 'bg-orange-500' :
-                                                                    formData.statut === 'non_interesse' ? 'bg-red-500' :
-                                                                        formData.statut === 'qualifie' ? 'bg-blue-500' :
-                                                                            'bg-gray-500'
+                                                        formData.status === 'qualifie' ? 'bg-blue-500' :
+                                                            formData.status === 'prise_de_besoin' ? 'bg-purple-500' :
+                                                                formData.status === 'acompte_recu' ? 'bg-emerald-500' :
+                                                                    'bg-red-500'
                                                     )} />
-                                                    <span className="text-xs">{statuts.find(s => s.value === formData.statut)?.label || 'Sélectionner'}</span>
+                                                    <span className="text-xs">{statuses.find(s => s.value === formData.status)?.label || 'Sélectionner'}</span>
                                                 </div>
                                             </SelectTrigger>
                                             <SelectContent className="bg-[#252b3d] border-white/10">
-                                                {statuts.map((statut) => (
-                                                    <SelectItem key={statut.value} value={statut.value} className="text-white text-xs font-light">
+                                                {statuses.map((status) => (
+                                                    <SelectItem key={status.value} value={status.value} className="text-white text-xs font-light">
                                                         <div className="flex items-center gap-1.5">
                                                             <span className={cn("w-2 h-2 rounded-full shadow-sm",
-                                                                statut.value === 'nouveau' ? 'bg-green-500' :
-                                                                    statut.value === 'a_recontacter' ? 'bg-yellow-500' :
-                                                                        statut.value === 'sans_reponse' ? 'bg-orange-500' :
-                                                                            statut.value === 'non_interesse' ? 'bg-red-500' :
-                                                                                statut.value === 'qualifie' ? 'bg-blue-500' :
-                                                                                    'bg-gray-500'
+                                                                status.value === 'qualifie' ? 'bg-blue-500' :
+                                                                    status.value === 'prise_de_besoin' ? 'bg-purple-500' :
+                                                                        status.value === 'acompte_recu' ? 'bg-emerald-500' :
+                                                                            'bg-red-500'
                                                             )} />
-                                                            {statut.label}
+                                                            {status.label}
                                                         </div>
                                                     </SelectItem>
                                                 ))}
@@ -569,10 +672,9 @@ export function LeadModalEnhanced({
                                         value={formData.message}
                                         onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                                         className="bg-slate-800/90 border-slate-600/40 text-white placeholder:text-slate-400 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 h-8 resize-none font-light text-xs transition-all"
-                                        placeholder="Message ou commentaire du lead..."
+                                        placeholder="Message ou commentaire du contact..."
                                     />
                                 </div>
-
 
                                 {/* Assigné à & Source */}
                                 <div className="grid grid-cols-2 gap-3">
@@ -581,16 +683,22 @@ export function LeadModalEnhanced({
                                             Assigné à
                                         </Label>
                                         <Select
-                                            value={formData.assignePar}
-                                            onValueChange={(value) => setFormData({ ...formData, assignePar: value })}
+                                            value={formData.architecteAssigne || "__none__"}
+                                            onValueChange={(value) => setFormData({ ...formData, architecteAssigne: value === "__none__" ? "" : value })}
                                         >
                                             <SelectTrigger className="bg-slate-800/90 border-slate-600/40 text-white h-8 text-xs font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all">
                                                 <div className="flex items-center gap-1.5">
                                                     <User className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                                                    <span className="truncate text-xs">{formData.assignePar || "Sélectionner..."}</span>
+                                                    <span className="truncate text-xs">{formData.architecteAssigne || "Sélectionner..."}</span>
                                                 </div>
                                             </SelectTrigger>
                                             <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
+                                                <SelectItem value="__none__" className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <User className="w-3 h-3 text-gray-400" />
+                                                        Aucun
+                                                    </div>
+                                                </SelectItem>
                                                 {architects.map((name: string) => (
                                                     <SelectItem key={name} value={name} className="text-white text-xs font-light hover:bg-slate-700/50">
                                                         <div className="flex items-center gap-1.5">
@@ -605,14 +713,13 @@ export function LeadModalEnhanced({
 
                                     <div className="space-y-1">
                                         <Label htmlFor="source" className="text-[10px] font-light text-slate-300">
-                                            Source du lead
+                                            Source du contact
                                         </Label>
                                         <Select
                                             value={formData.source}
                                             onValueChange={(value) => {
-                                                const newSource = value as LeadSource
-                                                const calculatedPriority = calculatePriority(newSource)
-                                                setFormData({ ...formData, source: newSource, priorite: calculatedPriority })
+                                                const calculatedPriority = calculatePriority(value)
+                                                setFormData({ ...formData, source: value, priorite: calculatedPriority })
                                             }}
                                         >
                                             <SelectTrigger className="bg-slate-800/90 border-slate-600/40 text-white h-8 text-xs font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all">
@@ -638,7 +745,6 @@ export function LeadModalEnhanced({
                                         </Select>
                                     </div>
                                 </div>
-
 
                                 {/* Conditional: Magasin Fields */}
                                 {formData.source === 'magasin' && (
@@ -725,16 +831,27 @@ export function LeadModalEnhanced({
                                         </Label>
                                         <Input
                                             id="campaignName"
-                                            key={`campaign-${(formData as any).campaignName || 'empty'}`}
-                                            value={(formData as any).campaignName || ''}
-                                            onChange={(e) => setFormData({ ...formData, campaignName: e.target.value } as any)}
+                                            key={`campaign-${formData.campaignName || 'empty'}-${Date.now()}`}
+                                            value={formData.campaignName || ''}
+                                            onChange={(e) => {
+                                                console.log('[Update Contact Modal] campaignName changed:', e.target.value)
+                                                setFormData({ ...formData, campaignName: e.target.value })
+                                            }}
                                             className="bg-slate-800/90 border-slate-600/40 text-white placeholder:text-slate-400 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 h-8 text-xs font-light"
                                             placeholder="Nom de la campagne TikTok"
                                         />
+                                        {formData.campaignName && (
+                                            <div className="text-[9px] text-green-400 mt-0.5">
+                                                ✓ Campaign name loaded: {formData.campaignName}
+                                            </div>
+                                        )}
+                                        {!formData.campaignName && formData.source === 'tiktok' && (
+                                            <div className="text-[9px] text-yellow-400 mt-0.5">
+                                                ⚠️ No campaign name found
+                                            </div>
+                                        )}
                                     </div>
                                 )}
-
-
 
                             </form>
                         </div>
@@ -745,7 +862,7 @@ export function LeadModalEnhanced({
                         <div className="p-3 border-b border-slate-700/40 bg-slate-800/30">
                             <div className="flex items-center gap-1.5 mb-3">
                                 <span className="text-sm">📝</span>
-                                <h3 className="text-xs font-light text-white">Notes ({formData.notes.length})</h3>
+                                <h3 className="text-xs font-light text-white">Notes ({notes.length})</h3>
                             </div>
 
                             <div className="space-y-2">
@@ -773,29 +890,29 @@ export function LeadModalEnhanced({
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-900/30">
-                            {formData.notes.length === 0 ? (
+                            {notes.length === 0 ? (
                                 <div className="text-center py-6 text-slate-400 text-xs font-light">
                                     Aucune note pour le moment
                                 </div>
                             ) : (
-                                formData.notes.map((note) => (
+                                notes.map((note) => (
                                     <div
                                         key={note.id}
                                         className={cn(
                                             "p-2 rounded-lg border backdrop-blur-sm",
-                                            note.author === currentUserName
+                                            note.createdBy === currentUserName
                                                 ? "bg-blue-500/20 border-blue-400/50 shadow-lg shadow-blue-500/10"
                                                 : "bg-slate-800/60 border-slate-600/40 shadow-lg"
                                         )}
                                     >
                                         <div className="flex items-start gap-2 mb-1.5">
                                             <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-[10px] font-light flex-shrink-0 shadow-md">
-                                                {note.author.charAt(0).toUpperCase()}
+                                                {note.createdBy.charAt(0).toUpperCase()}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-1.5 mb-0.5">
-                                                    <span className="text-[10px] font-light text-white">{note.author}</span>
-                                                    {note.author === currentUserName && (
+                                                    <span className="text-[10px] font-light text-white">{note.createdBy}</span>
+                                                    {note.createdBy === currentUserName && (
                                                         <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/40 text-[9px] px-1 py-0 font-light">
                                                             Vous
                                                         </Badge>
@@ -818,41 +935,7 @@ export function LeadModalEnhanced({
                 </div>
 
                 {/* Footer Buttons - Fixed at Bottom of Modal, Full Width */}
-                <div className="border-t border-slate-700/40 px-4 py-2.5 bg-gradient-to-r from-slate-900/95 to-slate-800/95 flex items-center justify-between gap-2">
-                    {/* Left: Delete Button (only when editing) */}
-                    {lead && onDelete ? (
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 font-light px-3 h-8 text-xs"
-                                >
-                                    <Trash2 className="w-3 h-3 mr-1.5" />
-                                    Supprimer
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="bg-[#1a1f2e] border-white/10">
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle className="text-white text-sm font-light">Supprimer ce lead ?</AlertDialogTitle>
-                                    <AlertDialogDescription className="text-gray-400 text-xs font-light">
-                                        Cette action est irréversible. Le lead sera définitivement supprimé.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooterRoot>
-                                    <AlertDialogCancel className="bg-[#252b3d] border-white/10 text-white hover:bg-[#2a3142] text-xs font-light h-8">
-                                        Annuler
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white text-xs font-light h-8" onClick={onDelete}>
-                                        Supprimer
-                                    </AlertDialogAction>
-                                </AlertDialogFooterRoot>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    ) : (
-                        <div></div>
-                    )}
-
+                <div className="border-t border-slate-700/40 px-4 py-2.5 bg-gradient-to-r from-slate-900/95 to-slate-800/95 flex items-center justify-end gap-2">
                     {/* Right: Cancel and Save Buttons */}
                     <div className="flex items-center gap-2 ml-auto">
                         <Button
@@ -873,7 +956,6 @@ export function LeadModalEnhanced({
                         </Button>
                     </div>
                 </div>
-
             </DialogContent>
         </Dialog>
     )

@@ -60,6 +60,7 @@ import { PriseDeBesoinModal } from '@/components/prise-de-besoin-modal'
 import { AcompteRecuModal } from '@/components/acompte-recu-modal'
 import { ContactEnhancedTimeline } from '@/components/contact-enhanced-timeline'
 import { DeleteContactDialog } from '@/components/delete-contact-dialog'
+import { UpdateContactModal } from '@/components/update-contact-modal'
 
 /**
  * Professional Contact Page - Redesigned
@@ -75,7 +76,7 @@ export default function ContactPage() {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const contactId = params?.id as string
 
   const [contact, setContact] = useState<ContactWithDetails | null>(null)
@@ -98,6 +99,9 @@ export default function ContactPage() {
   // Delete contact state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Update contact modal state
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
 
   useEffect(() => {
     if (contactId && isAuthenticated) {
@@ -564,7 +568,10 @@ export default function ContactPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="glass border-slate-600/30">
-                          <DropdownMenuItem className="text-slate-300 focus:text-white">
+                          <DropdownMenuItem 
+                            className="text-slate-300 focus:text-white"
+                            onClick={() => setIsUpdateModalOpen(true)}
+                          >
                             <Edit2 className="w-4 h-4 mr-2" />
                             Éditer le contact
                           </DropdownMenuItem>
@@ -743,6 +750,18 @@ export default function ContactPage() {
               contactName={contact.nom}
               onConfirm={handleDeleteContact}
               isDeleting={isDeleting}
+            />
+
+            <UpdateContactModal
+              open={isUpdateModalOpen}
+              onOpenChange={setIsUpdateModalOpen}
+              contact={contact}
+              onSave={(updatedContact) => {
+                setContact(updatedContact as ContactWithDetails)
+                loadContact()
+                setIsUpdateModalOpen(false)
+              }}
+              currentUserName={user?.name}
             />
           </>
         )}

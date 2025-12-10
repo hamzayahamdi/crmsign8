@@ -51,7 +51,7 @@ export function ConvertLeadModal({
     opportunityTitle: undefined,
   })
 
-  // Load architects on mount
+  // Load architects on mount and reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       loadArchitects()
@@ -61,8 +61,16 @@ export function ConvertLeadModal({
       })
       setStep('preview')
       setSelectedArchitect('none')
+      setResult(null)
+      setLoading(false)
+    } else {
+      // Reset state when modal closes
+      setStep('preview')
+      setSelectedArchitect('none')
+      setResult(null)
+      setLoading(false)
     }
-  }, [isOpen, result])
+  }, [isOpen])
 
   const loadArchitects = async () => {
     try {
@@ -92,6 +100,10 @@ export function ConvertLeadModal({
 
       console.log('✅ [Convert Modal] Conversion successful:', result)
       
+      // Stop loading
+      setLoading(false)
+      
+      // Show success state
       setResult(result)
       setStep('success')
 
@@ -102,17 +114,20 @@ export function ConvertLeadModal({
         duration: 3000,
       })
 
+      // Call onSuccess callback after showing success
       if (onSuccess) {
         console.log('🔄 [Convert Modal] Calling onSuccess callback')
         onSuccess(result)
       }
 
-      // Close modal immediately after success
+      // Close modal after showing success state (give user time to see the success message)
       setTimeout(() => {
-        console.log('🚪 [Convert Modal] Closing modal and redirecting')
+        console.log('🚪 [Convert Modal] Closing modal after success display')
         onClose()
         setStep('preview')
-      }, 1500)
+        setSelectedArchitect('none')
+        setResult(null)
+      }, 2000) // Show success for 2 seconds before closing
     } catch (error) {
       console.error('❌ [Convert Modal] Error converting lead:', error)
       toast.error(error instanceof Error ? error.message : 'Échec de la conversion')
@@ -125,7 +140,12 @@ export function ConvertLeadModal({
   if (!lead) return null
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      // Only allow closing if not currently converting
+      if (!open && step !== 'converting') {
+        onClose()
+      }
+    }}>
       <DialogContent className="sm:max-w-[600px] bg-gradient-to-b from-slate-50 to-white border-0 shadow-2xl">
         <DialogHeader className="space-y-4">
           <DialogTitle className="text-2xl font-bold text-slate-900">

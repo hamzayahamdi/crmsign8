@@ -34,6 +34,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { ContactsTable } from '@/components/contacts-table'
 import { useAuth } from '@/contexts/auth-context'
+import { UpdateContactModal } from '@/components/update-contact-modal'
 
 /**
  * Contacts Page - CRM Best Practices
@@ -70,6 +71,10 @@ export default function ContactsPage() {
   const ITEMS_PER_PAGE = 20
 
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
+
+  // Update contact modal state
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
 
   // Fetch architects from API
   useEffect(() => {
@@ -165,8 +170,24 @@ export default function ContactsPage() {
   }
 
   const handleEditContact = (contactId: string) => {
-    // TODO: Implement edit modal or navigate to edit page
-    toast.info('Fonction de modification à venir')
+    const contact = contacts.find(c => c.id === contactId)
+    if (contact) {
+      setSelectedContact(contact)
+      setIsUpdateModalOpen(true)
+    } else {
+      toast.error('Contact non trouvé')
+    }
+  }
+
+  const handleUpdateContact = async (updatedContact: Contact) => {
+    // Update the contact in the local state
+    setContacts(prevContacts =>
+      prevContacts.map(c => c.id === updatedContact.id ? updatedContact : c)
+    )
+    // Reload contacts to ensure we have the latest data
+    await loadContacts(page)
+    setIsUpdateModalOpen(false)
+    setSelectedContact(null)
   }
 
   // Handle delete contact - called from ContactsTable after successful deletion
@@ -543,6 +564,14 @@ export default function ContactsPage() {
           </div>
         </main>
 
+        {/* Update Contact Modal */}
+        <UpdateContactModal
+          open={isUpdateModalOpen}
+          onOpenChange={setIsUpdateModalOpen}
+          contact={selectedContact}
+          onSave={handleUpdateContact}
+          currentUserName={user?.name}
+        />
       </div>
     </AuthGuard>
   )

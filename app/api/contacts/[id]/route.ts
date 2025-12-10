@@ -409,7 +409,7 @@ export async function PATCH(
     const { id } = await params;
 
     const body = await request.json();
-    const { nom, telephone, email, ville, adresse, architecteAssigne, tag, notes } = body;
+    const { nom, telephone, email, ville, adresse, architecteAssigne, tag, notes, source, typeBien, magasin, status, campaignName, commercialMagasin } = body;
 
     // Get current contact to compare architect assignment
     const currentContact = await prisma.contact.findUnique({
@@ -429,6 +429,12 @@ export async function PATCH(
     if (architecteAssigne !== undefined) updateData.architecteAssigne = architecteAssigne;
     if (tag !== undefined) updateData.tag = tag;
     if (notes !== undefined) updateData.notes = notes;
+    if (source !== undefined) updateData.source = source;
+    if (typeBien !== undefined) updateData.typeBien = typeBien;
+    if (magasin !== undefined) updateData.magasin = magasin;
+    if (status !== undefined) updateData.status = status;
+    if (campaignName !== undefined) updateData.campaignName = campaignName;
+    if (commercialMagasin !== undefined) updateData.commercialMagasin = commercialMagasin;
 
     const contact = await prisma.contact.update({
       where: { id },
