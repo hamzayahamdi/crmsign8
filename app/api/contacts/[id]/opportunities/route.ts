@@ -116,36 +116,54 @@ export async function POST(
       },
     });
 
-    // Check if this is the first opportunity (or if contact is not yet a client)
-    // The requirement says: Contact becomes Client ONLY IF they have at least 1 opportunity created
-    // OR Have Acompte Reçu already done (which is a prerequisite for creating opportunity anyway)
+    // 🎯 NEW LOGIC: Contact becomes Client ONLY if opportunity has 'acompte_recu' status
+    // If all opportunities are 'perdu', the client should NOT appear in the clients table
+    const isAcompteRecu = defaultPipelineStage === 'acompte_recu'
+    
+    if (isAcompteRecu) {
+      // Only set contact tag to 'client' if opportunity has 'acompte_recu' status
+      if (contact.tag !== 'client') {
+        await prisma.contact.update({
+          where: { id: contactId },
+          data: {
+            tag: 'client',
+            clientSince: new Date(),
+            // We don't change the 'status' field here (it remains 'acompte_recu' or whatever it was)
+            // The 'tag' is what determines if they show up in the Clients page
+          }
+        });
 
-    // We update the contact to be a client if it's not already
-    if (contact.tag !== 'client') {
-      await prisma.contact.update({
-        where: { id: contactId },
-        data: {
-          tag: 'client',
-          clientSince: new Date(),
-          // We don't change the 'status' field here (it remains 'acompte_recu' or whatever it was)
-          // The 'tag' is what determines if they show up in the Clients page
+        // Log conversion to client
+        await prisma.timeline.create({
+          data: {
+            contactId,
+            eventType: 'status_changed',
+            title: 'Contact converti en Client',
+            description: 'Le contact est devenu client suite à la création d\'une opportunité avec acompte reçu',
+            metadata: {
+              previousTag: contact.tag,
+              newTag: 'client',
+              reason: 'opportunity_with_acompte_recu'
+            },
+            author: decoded.userId,
+          },
+        });
+      }
+    } else {
+      // If opportunity is created without 'acompte_recu', check if contact should still be a client
+      // (i.e., if they have other opportunities with 'acompte_recu')
+      const hasOtherAcompteRecu = await prisma.opportunity.findFirst({
+        where: {
+          contactId,
+          id: { not: opportunity.id },
+          pipelineStage: 'acompte_recu',
+          statut: { not: 'lost' }
         }
       });
 
-      // Log conversion to client
-      await prisma.timeline.create({
-        data: {
-          contactId,
-          eventType: 'status_changed',
-          title: 'Contact converti en Client',
-          description: 'Le contact est devenu client suite à la création d\'une opportunité',
-          metadata: {
-            previousTag: contact.tag,
-            newTag: 'client'
-          },
-          author: decoded.userId,
-        },
-      });
+      // If no other opportunities with acompte_recu, and contact is currently a client, 
+      // we might want to keep it as client (they might get acompte_recu later)
+      // But for now, we'll leave it as is - the update endpoint will handle it when status changes
     }
 
     // Log to timeline - opportunity created

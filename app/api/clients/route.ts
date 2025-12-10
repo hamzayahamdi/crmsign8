@@ -126,17 +126,41 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Fetch Contacts that are Clients (Unified model)
-    // Filter by architect role - architects only see their assigned contacts/opportunities
+    // 🎯 NEW LOGIC: Only show contacts that have at least one opportunity with 'acompte_recu' status
+    // If all opportunities are 'perdu' (lost), the client should NOT appear
     const contactWhere: any = {
-      tag: 'client' // Always filter for clients
+      tag: 'client', // Always filter for clients
+      // CRITICAL: Only include contacts with at least one opportunity that has 'acompte_recu' status
+      opportunities: {
+        some: {
+          // Opportunity must have pipelineStage === 'acompte_recu' AND not be lost/won
+          pipelineStage: 'acompte_recu',
+          statut: {
+            not: 'lost' // Exclude lost opportunities
+          }
+        }
+      }
     }
 
     if (user?.role?.toLowerCase() === 'architect' && user.name) {
       // Architect sees contacts where:
       // 1. Tagged as 'client' AND
-      // 2. (Contact is assigned to them OR has at least one opportunity assigned to them)
+      // 2. Has at least one opportunity with 'acompte_recu' status AND
+      // 3. (Contact is assigned to them OR has at least one opportunity assigned to them)
       // Note: architecteAssigne can be either user ID or user name, so we check both
       contactWhere.AND = [
+        {
+          opportunities: {
+            some: {
+              pipelineStage: 'acompte_recu',
+              statut: { not: 'lost' },
+              OR: [
+                { architecteAssigne: user.id },
+                { architecteAssigne: user.name }
+              ]
+            }
+          }
+        },
         {
           OR: [
             { architecteAssigne: user.id },
@@ -228,24 +252,23 @@ export async function GET(request: NextRequest) {
       }
 
       // Create ONE row for EACH opportunity
-      // Filter opportunities by architect if user is architect (check both ID and name)
-      let opportunitiesToShow = c.opportunities
+      // 🎯 NEW LOGIC: Only show opportunities with 'acompte_recu' status
+      // Multiple opportunities with 'acompte_recu' are fine - all should appear
+      let opportunitiesToShow = c.opportunities.filter((opp: any) => {
+        // Only include opportunities with 'acompte_recu' status
+        const hasAcompteRecu = opp.pipelineStage === 'acompte_recu'
+        // Exclude lost/won opportunities
+        const isWon = opp.statut === 'won' || opp.pipelineStage === 'gagnee'
+        const isLost = opp.statut === 'lost' || opp.pipelineStage === 'perdue'
+        return hasAcompteRecu && !isWon && !isLost
+      })
+
+      // Filter by architect if user is architect (check both ID and name)
       if (user?.role?.toLowerCase() === 'architect' && user.name) {
-        opportunitiesToShow = c.opportunities.filter(
+        opportunitiesToShow = opportunitiesToShow.filter(
           (opp: any) => opp.architecteAssigne === user.id || opp.architecteAssigne === user.name
         )
       }
-
-      // 🎯 CRM BEST PRACTICE: Only show ACTIVE opportunities on clients page
-      // Exclude lost/won opportunities - they should not appear in the active clients list
-      // Active opportunities are those that are:
-      // - NOT won (statut !== 'won' && pipelineStage !== 'gagnee')
-      // - NOT lost (statut !== 'lost' && pipelineStage !== 'perdue')
-      opportunitiesToShow = opportunitiesToShow.filter((opp: any) => {
-        const isWon = opp.statut === 'won' || opp.pipelineStage === 'gagnee'
-        const isLost = opp.statut === 'lost' || opp.pipelineStage === 'perdue'
-        return !isWon && !isLost
-      })
 
       // If no opportunities match after filtering, return empty array
       if (opportunitiesToShow.length === 0) {

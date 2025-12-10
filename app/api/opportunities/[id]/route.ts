@@ -114,8 +114,86 @@ export async function PATCH(
       },
     });
 
-    // 🎯 AUTOMATIC CLIENT CONVERSION LOGIC
-    // When an opportunity is marked as "won", check if this is the first won opportunity
+    // 🎯 AUTOMATIC CLIENT TAG MANAGEMENT LOGIC
+    // 1. When opportunity is marked as "acompte_recu", ensure contact tag is 'client'
+    const isAcompteRecu = pipelineStage === 'acompte_recu' || (pipelineStage === undefined && current.pipelineStage === 'acompte_recu')
+    const becameAcompteRecu = pipelineStage === 'acompte_recu' && current.pipelineStage !== 'acompte_recu'
+    
+    if (isAcompteRecu && (becameAcompteRecu || opportunity.contact.tag !== 'client')) {
+      try {
+        await prisma.contact.update({
+          where: { id: current.contactId },
+          data: {
+            tag: 'client',
+            clientSince: opportunity.contact.clientSince || new Date(),
+          },
+        });
+        console.log(`[Update Opportunity] ✅ Contact ${current.contactId} tagged as 'client' (has acompte_recu opportunity)`);
+      } catch (err) {
+        console.error('Error updating contact tag to client:', err);
+      }
+    }
+
+    // 2. When opportunity is marked as "perdu" (lost), check if all opportunities are lost
+    const isLost = statut === 'lost' || pipelineStage === 'perdue'
+    const becameLost = (statut === 'lost' && current.statut !== 'lost') || (pipelineStage === 'perdue' && current.pipelineStage !== 'perdue')
+    
+    if (isLost && becameLost) {
+      try {
+        // Get all opportunities for this contact (including the one we just updated)
+        const allOpportunities = await prisma.opportunity.findMany({
+          where: { contactId: current.contactId },
+        });
+
+        // Check if there's at least one active opportunity with acompte_recu
+        // Use the updated opportunity's new status for the current opportunity
+        const finalPipelineStage = pipelineStage !== undefined ? pipelineStage : opportunity.pipelineStage
+        const finalStatut = statut !== undefined ? statut : opportunity.statut
+        
+        const hasActiveAcompteRecu = allOpportunities.some((opp: any) => {
+          // For the opportunity we just updated, use the new values
+          const oppPipelineStage = opp.id === id ? finalPipelineStage : opp.pipelineStage
+          const oppStatut = opp.id === id ? finalStatut : opp.statut
+          
+          const isAcompteRecu = oppPipelineStage === 'acompte_recu'
+          const isWon = oppStatut === 'won' || oppPipelineStage === 'gagnee'
+          const isLost = oppStatut === 'lost' || oppPipelineStage === 'perdue'
+          
+          return isAcompteRecu && !isWon && !isLost
+        })
+
+        // If no active opportunities with acompte_recu, remove client tag
+        if (!hasActiveAcompteRecu && opportunity.contact.tag === 'client') {
+          await prisma.contact.update({
+            where: { id: current.contactId },
+            data: {
+              tag: 'converted', // Change back to 'converted' or another non-client tag
+            },
+          });
+          console.log(`[Update Opportunity] ✅ Contact ${current.contactId} tag removed (all opportunities are lost/won, no active acompte_recu)`);
+          
+          // Log to timeline
+          await prisma.timeline.create({
+            data: {
+              contactId: current.contactId,
+              eventType: 'status_changed',
+              title: 'Contact retiré de la liste des clients',
+              description: `Toutes les opportunités sont perdues/gagnées. Le contact a été retiré de la liste des clients actifs.`,
+              metadata: {
+                previousTag: 'client',
+                newTag: 'converted',
+                triggeredByOpportunity: opportunity.id,
+              },
+              author: decoded.userId,
+            },
+          });
+        }
+      } catch (err) {
+        console.error('Error checking/updating contact tag after opportunity loss:', err);
+      }
+    }
+
+    // 3. When an opportunity is marked as "won", check if this is the first won opportunity
     // If yes, automatically convert the contact to "client" status
     if (statut === 'won' && statut !== current.statut) {
       try {

@@ -11,6 +11,7 @@ import {
   Wand2,
   Sparkles,
   CheckCircle2,
+  Briefcase,
 } from "lucide-react";
 import type { Client, ProjectStatus } from "@/types/client";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
   type PaymentData,
 } from "@/components/add-payment-modal";
 import { DocumentsModal } from "@/components/documents-modal";
+import { CreateOpportunityModal } from "@/components/create-opportunity-modal";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { hasPermission } from "@/lib/permissions";
@@ -43,11 +45,55 @@ export function QuickActionsSidebar({
   const [isDevisModalOpen, setIsDevisModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false);
+  const [isCreateOpportunityModalOpen, setIsCreateOpportunityModalOpen] = useState(false);
+  const [contact, setContact] = useState<any>(null);
+  const [loadingContact, setLoadingContact] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
   const canUpdateStage = hasPermission(user?.role, "projectProgress", "update");
   const depositLocked = client.statutProjet === "qualifie";
+
+  // Get contact ID from client (for opportunity-based clients)
+  const contactId = client.contactId || (client.id.includes("-") ? client.id.split("-")[0] : null);
+  const isOpportunityClient = !!contactId;
+
+  // Load contact when opening opportunity modal
+  const handleOpenOpportunityModal = async () => {
+    if (!contactId) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer une opportunité: contact introuvable",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoadingContact(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/contacts/${contactId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!response.ok) {
+        throw new Error("Contact non trouvé");
+      }
+
+      const contactData = await response.json();
+      setContact(contactData);
+      setIsCreateOpportunityModalOpen(true);
+    } catch (error) {
+      console.error("[QuickActionsSidebar] Error loading contact:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les informations du contact",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingContact(false);
+    }
+  };
 
   // Helper function to check if client already has an acompte (by status or payments)
   const hasExistingAcompte = () => {
@@ -299,6 +345,18 @@ export function QuickActionsSidebar({
         )}
 
         <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-col lg:space-y-2">
+          {/* Create Opportunity - Only for opportunity-based clients */}
+          {isOpportunityClient && (
+            <ActionButton
+              icon={Briefcase}
+              label="Créer opportunité"
+              description="Ajoutez une nouvelle opportunité"
+              accent="from-blue-500 via-indigo-500 to-purple-500"
+              onClick={handleOpenOpportunityModal}
+              disabled={loadingContact}
+            />
+          )}
+
           <ActionButton
             icon={MessageSquare}
             label="Ajouter note"
@@ -383,6 +441,37 @@ export function QuickActionsSidebar({
         client={client}
         onDocumentsAdded={handleDocumentsAdded}
       />
+
+      {/* Create Opportunity Modal - Only show if contact is loaded */}
+      {contact && (
+        <CreateOpportunityModal
+          isOpen={isCreateOpportunityModalOpen}
+          onClose={() => {
+            setIsCreateOpportunityModalOpen(false);
+            setContact(null);
+          }}
+          contact={contact}
+          onSuccess={async (opportunityId) => {
+            // Refresh client data after opportunity creation
+            const updatedClient = await fetchAndUpdateClient();
+            if (updatedClient) {
+              toast({
+                title: "Opportunité créée",
+                description: "L'opportunité a été créée avec succès et le client a été mis à jour",
+              });
+              
+              // Trigger clients page refresh
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('opportunity-created', { 
+                  detail: { contactId: contact.id, opportunityId } 
+                }));
+              }
+            }
+            setIsCreateOpportunityModalOpen(false);
+            setContact(null);
+          }}
+        />
+      )}
     </>
   );
 }

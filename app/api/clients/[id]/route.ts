@@ -180,7 +180,9 @@ export async function GET(
         updated_at: opportunity.updatedAt,
         is_contact: true,
         contact_id: contactId,
+        contactId: contactId, // Also add camelCase version for frontend
         opportunity_id: opportunityId,
+        opportunityId: opportunityId, // Also add camelCase version for frontend
       };
     } else {
       // Legacy client - fetch from Supabase
