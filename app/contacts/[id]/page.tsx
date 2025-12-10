@@ -61,6 +61,7 @@ import { AcompteRecuModal } from '@/components/acompte-recu-modal'
 import { ContactEnhancedTimeline } from '@/components/contact-enhanced-timeline'
 import { DeleteContactDialog } from '@/components/delete-contact-dialog'
 import { UpdateContactModal } from '@/components/update-contact-modal'
+import { ConversionCelebration } from '@/components/conversion-celebration'
 
 /**
  * Professional Contact Page - Redesigned
@@ -109,65 +110,81 @@ export default function ContactPage() {
     }
   }, [contactId, isAuthenticated])
 
-  // Check if this is a fresh conversion and show celebration
+  // Check if this is a fresh conversion and show celebration + toast
   useEffect(() => {
     const converted = searchParams?.get('converted')
-    if (converted === 'true' && contact) {
+    if (converted === 'true') {
+      // Clean up URL immediately
+      const newUrl = window.location.pathname
+      window.history.replaceState({}, '', newUrl)
+      
+      // Show confetti immediately
       setShowConversionCelebration(true)
-
-      // Show celebration notification
-      toast.success(`🎉 ${contact.nom} est maintenant un contact !`, {
-        description: "Vous pouvez maintenant créer des opportunités et gérer ce contact.",
+      
+      // Show success toast with detailed message
+      toast.success('🎉 Conversion Réussie !', {
+        description: contact?.nom 
+          ? `${contact.nom} est maintenant un contact actif. Vous pouvez créer des opportunités et gérer le pipeline.`
+          : 'Le lead a été converti en contact avec succès. Vous pouvez maintenant créer des opportunités.',
         duration: 5000,
       })
-
-      // Hide celebration after animation
+      
+      // Auto-hide confetti after 3 seconds
       setTimeout(() => {
         setShowConversionCelebration(false)
       }, 3000)
-
-      // Clean up URL
-      const newUrl = window.location.pathname
-      window.history.replaceState({}, '', newUrl)
     }
   }, [searchParams, contact])
 
-  // Load architect/user names
+  // Load architect/user names in parallel with contact data (non-blocking)
   useEffect(() => {
     const loadArchitects = async () => {
       try {
         const token = localStorage.getItem('token')
 
-        // Load architects
-        const archRes = await fetch('/api/architects', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        })
+        // Load both in parallel for faster loading
+        const [archRes, usersRes] = await Promise.all([
+          fetch('/api/architects', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }).catch(() => null),
+          fetch('/api/users', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }).catch(() => null),
+        ])
 
         const map: Record<string, string> = {}
 
-        if (archRes.ok) {
-          const archData = await archRes.json()
-          const architects = archData?.data || archData?.architects || []
-          architects.forEach((arch: any) => {
-            const fullName = `${arch.prenom || ''} ${arch.nom || ''}`.trim()
-            if (arch.id && fullName) {
-              map[arch.id] = fullName
-            }
-          })
+        // Process architects
+        if (archRes?.ok) {
+          try {
+            const archData = await archRes.json()
+            const architects = archData?.data || archData?.architects || []
+            architects.forEach((arch: any) => {
+              const fullName = `${arch.prenom || ''} ${arch.nom || ''}`.trim()
+              if (arch.id && fullName) {
+                map[arch.id] = fullName
+              }
+            })
+          } catch (e) {
+            console.error('[Contact Detail] Error parsing architects:', e)
+          }
         }
 
-        // Also load users as fallback
-        const usersRes = await fetch('/api/users')
-        if (usersRes.ok) {
-          const users = await usersRes.json()
-          users.forEach((u: any) => {
-            const name = (u.name || '').trim()
-            if (!name) return
-            if (u.id) {
-              map[u.id] = name
-            }
-            map[name] = name
-          })
+        // Process users
+        if (usersRes?.ok) {
+          try {
+            const users = await usersRes.json()
+            users.forEach((u: any) => {
+              const name = (u.name || '').trim()
+              if (!name) return
+              if (u.id) {
+                map[u.id] = name
+              }
+              map[name] = name
+            })
+          } catch (e) {
+            console.error('[Contact Detail] Error parsing users:', e)
+          }
         }
 
         setArchitectNameMap(map)
@@ -176,6 +193,7 @@ export default function ContactPage() {
       }
     }
 
+    // Load architects in background, don't block page render
     loadArchitects()
   }, [])
 
@@ -191,15 +209,16 @@ export default function ContactPage() {
         return
       }
 
-      // Add cache-busting parameter to ensure fresh data
-      const url = `/api/contacts/${contactId}?t=${Date.now()}`
+      // Optimized fetch - use cache for faster loading
+      const url = `/api/contacts/${contactId}`
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        cache: 'no-store', // Ensure we don't use cached data
+        // Enable caching for faster subsequent loads
+        cache: 'default',
       })
 
       if (!response.ok) {
@@ -415,6 +434,8 @@ export default function ContactPage() {
 
   return (
     <AuthGuard>
+      {/* Conversion Celebration - lightweight confetti only */}
+      <ConversionCelebration show={showConversionCelebration} />
       <div className="flex min-h-screen bg-[rgb(11,14,24)]">
         <Sidebar />
         <main className="flex-1 flex flex-col overflow-x-hidden bg-linear-to-b from-[rgb(17,21,33)] via-[rgb(11,14,24)] to-[rgb(7,9,17)]">
@@ -440,43 +461,6 @@ export default function ContactPage() {
               >
                 {/* Main Header Card */}
                 <div className={`relative glass rounded-lg border border-slate-600/40 p-4 shadow-[0_18px_48px_-28px_rgba(59,130,246,0.25)] ${contact.status === 'perdu' ? 'opacity-75 grayscale-[0.5]' : ''}`}>
-                  {/* Celebration Effect */}
-                  <AnimatePresence>
-                    {showConversionCelebration && (
-                      <>
-                        {[...Array(12)].map((_, i) => (
-                          <motion.div
-                            key={i}
-                            initial={{
-                              opacity: 1,
-                              scale: 0,
-                              x: 0,
-                              y: 0,
-                            }}
-                            animate={{
-                              opacity: 0,
-                              scale: 1.5,
-                              x: Math.cos((i * Math.PI * 2) / 12) * 200,
-                              y: Math.sin((i * Math.PI * 2) / 12) * 200,
-                            }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 1.5, ease: "easeOut" }}
-                            className="absolute top-1/2 left-1/2 pointer-events-none"
-                            style={{ zIndex: 50 }}
-                          >
-                            <Sparkles className="w-6 h-6 text-yellow-400" />
-                          </motion.div>
-                        ))}
-                        <motion.div
-                          initial={{ scale: 0, opacity: 0 }}
-                          animate={{ scale: [0, 1.2, 1], opacity: [0, 1, 0] }}
-                          transition={{ duration: 2, times: [0, 0.5, 1] }}
-                          className="absolute inset-0 rounded-2xl border-4 border-yellow-400/50 pointer-events-none"
-                          style={{ zIndex: 40 }}
-                        />
-                      </>
-                    )}
-                  </AnimatePresence>
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="flex items-start gap-3 flex-1 min-w-[200px]">
                       {/* Avatar */}

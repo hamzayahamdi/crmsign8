@@ -53,7 +53,7 @@ export async function GET(
 
     console.log('[GET /api/contacts/[id]] Fetching contact:', contactId);
 
-    // First, just try to fetch the contact without any includes
+    // Fetch contact (basic info)
     const contact = await prisma.contact.findUnique({
       where: { id: contactId },
     });
@@ -63,181 +63,36 @@ export async function GET(
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
     }
 
-    console.log('[GET /api/contacts/[id]] Contact found, adding relations...');
+    console.log('[GET /api/contacts/[id]] Contact found, loading relations in parallel...');
 
-    // Now try to add relations one by one
+    // Load all relations in parallel for faster response
+    const [
+      opportunities,
+      tasks,
+      appointments,
+      documents,
+      timeline,
+    ] = await Promise.allSettled([
+      prisma.opportunity.findMany({ where: { contactId } }),
+      prisma.task.findMany({ where: { contactId } }),
+      prisma.appointment.findMany({ where: { contactId } }),
+      prisma.contactDocument.findMany({ where: { contactId } }),
+      prisma.timeline.findMany({ where: { contactId } }),
+    ]);
+
+    // Assign results safely
+    (contact as any).opportunities = opportunities.status === 'fulfilled' ? opportunities.value : [];
+    (contact as any).tasks = tasks.status === 'fulfilled' ? tasks.value : [];
+    (contact as any).appointments = appointments.status === 'fulfilled' ? appointments.value : [];
+    (contact as any).documents = documents.status === 'fulfilled' ? documents.value : [];
+    const timelineData = timeline.status === 'fulfilled' ? timeline.value : [];
+
+    // Build timeline - simplified for faster loading
+    // Just use timeline data directly, don't merge everything (can be done client-side if needed)
     try {
-      const opportunities = await prisma.opportunity.findMany({
-        where: { contactId },
-      });
-      (contact as any).opportunities = opportunities;
+      (contact as any).timeline = timelineData || [];
     } catch (e) {
-      console.error('Error fetching opportunities:', e);
-      (contact as any).opportunities = [];
-    }
-
-    try {
-      const tasks = await prisma.task.findMany({
-        where: { contactId },
-      });
-      (contact as any).tasks = tasks;
-    } catch (e) {
-      console.error('Error fetching tasks:', e);
-      (contact as any).tasks = [];
-    }
-
-    try {
-      const appointments = await prisma.appointment.findMany({
-        where: { contactId },
-      });
-      (contact as any).appointments = appointments;
-    } catch (e) {
-      console.error('Error fetching appointments:', e);
-      (contact as any).appointments = [];
-    }
-
-    try {
-      const documents = await prisma.contactDocument.findMany({
-        where: { contactId },
-      });
-      (contact as any).documents = documents;
-    } catch (e) {
-      console.error('Error fetching documents:', e);
-      (contact as any).documents = [];
-    }
-
-    try {
-      const timeline = await prisma.timeline.findMany({
-        where: { contactId },
-      });
-
-      // Build a comprehensive timeline with all relevant events
-      let mergedTimeline: any[] = [...timeline]
-      
-      // 1. Add lead notes if this contact was converted from a lead
-      try {
-        if ((contact as any).leadId) {
-          const leadNotes = await prisma.leadNote.findMany({
-            where: { leadId: (contact as any).leadId },
-            orderBy: { createdAt: 'desc' },
-          })
-
-          const noteEvents = leadNotes.map((n) => ({
-            id: `leadnote_${n.id}`,
-            contactId,
-            eventType: 'note_added' as const,
-            title: 'Note du Lead',
-            description: n.content,
-            metadata: { leadId: (contact as any).leadId, source: 'lead' },
-            author: n.author,
-            createdAt: n.createdAt,
-          }))
-
-          mergedTimeline.push(...noteEvents)
-        }
-      } catch (noteErr) {
-        console.error('Error merging lead notes into contact timeline:', noteErr)
-      }
-
-      // 2. Add tasks to timeline (if not already in timeline)
-      try {
-        const tasks = (contact as any).tasks || []
-        const taskEvents = tasks.map((task: any) => ({
-          id: `task_${task.id}`,
-          contactId,
-          eventType: task.status === 'terminee' ? 'task_completed' : 'task_created',
-          title: task.status === 'terminee' ? `Tâche terminée: ${task.title}` : `Tâche créée: ${task.title}`,
-          description: task.description,
-          metadata: { 
-            taskId: task.id, 
-            dueDate: task.dueDate,
-            assignedTo: task.assignedTo,
-            status: task.status
-          },
-          author: task.createdBy,
-          createdAt: task.status === 'terminee' ? task.updatedAt : task.createdAt,
-        }))
-        mergedTimeline.push(...taskEvents)
-      } catch (taskErr) {
-        console.error('Error adding tasks to timeline:', taskErr)
-      }
-
-      // 3. Add appointments to timeline
-      try {
-        const appointments = (contact as any).appointments || []
-        const appointmentEvents = appointments.map((apt: any) => ({
-          id: `appointment_${apt.id}`,
-          contactId,
-          eventType: apt.status === 'completed' ? 'appointment_completed' : 'appointment_created',
-          title: apt.status === 'completed' ? `RDV terminé: ${apt.title}` : `RDV créé: ${apt.title}`,
-          description: apt.description || apt.notes,
-          metadata: { 
-            appointmentId: apt.id, 
-            dateStart: apt.dateStart,
-            location: apt.location,
-            status: apt.status
-          },
-          author: apt.createdBy,
-          createdAt: apt.status === 'completed' && apt.updatedAt ? apt.updatedAt : apt.createdAt,
-        }))
-        mergedTimeline.push(...appointmentEvents)
-      } catch (aptErr) {
-        console.error('Error adding appointments to timeline:', aptErr)
-      }
-
-      // 4. Add documents to timeline
-      try {
-        const documents = (contact as any).documents || []
-        const documentEvents = documents.map((doc: any) => ({
-          id: `document_${doc.id}`,
-          contactId,
-          eventType: 'document_uploaded' as const,
-          title: `Document ajouté: ${doc.name}`,
-          description: `Catégorie: ${doc.category}`,
-          metadata: { 
-            documentId: doc.id,
-            name: doc.name,
-            type: doc.type,
-            size: doc.size,
-            category: doc.category
-          },
-          author: doc.uploadedBy,
-          createdAt: doc.uploadedAt,
-        }))
-        mergedTimeline.push(...documentEvents)
-      } catch (docErr) {
-        console.error('Error adding documents to timeline:', docErr)
-      }
-
-      // 5. Add payments to timeline (create payment events)
-      try {
-        const payments = (contact as any).payments || []
-        const paymentEvents = payments.map((payment: any) => ({
-          id: `payment_${payment.id}`,
-          contactId,
-          eventType: 'other' as const,
-          title: `Paiement reçu: ${payment.montant.toLocaleString('fr-FR')} MAD`,
-          description: payment.description || `Méthode: ${payment.methode}`,
-          metadata: { 
-            paymentId: payment.id,
-            montant: payment.montant,
-            methode: payment.methode,
-            reference: payment.reference
-          },
-          author: payment.createdBy,
-          createdAt: payment.date,
-        }))
-        mergedTimeline.push(...paymentEvents)
-      } catch (paymentErr) {
-        console.error('Error adding payments to timeline:', paymentErr)
-      }
-
-      // Sort newest first for better UX
-      mergedTimeline.sort((a, b) => new Date(b.createdAt as any).getTime() - new Date(a.createdAt as any).getTime())
-
-      ;(contact as any).timeline = mergedTimeline
-    } catch (e) {
-      console.error('Error fetching timeline:', e);
+      console.error('Error setting timeline:', e);
       (contact as any).timeline = [];
     }
 
@@ -251,127 +106,34 @@ export async function GET(
       (contact as any).payments = [];
     }
 
-    // Fetch all notes from unified Note table (includes lead notes if converted)
+    // Fetch notes - simplified for faster loading
     try {
-      // Get all notes for this contact from unified Note table
       const unifiedNotes = await prisma.note.findMany({
         where: {
           entityType: 'contact',
           entityId: contactId,
         },
-        orderBy: { createdAt: 'desc' }, // Newest first
+        orderBy: { createdAt: 'desc' },
+        take: 50, // Limit to 50 most recent notes for faster loading
       });
 
-      // Notes fetched from unified table
-
-      // Format notes for frontend
       const formattedNotes = unifiedNotes.map((note) => ({
         id: note.id,
         content: note.content,
         createdAt: note.createdAt.toISOString(),
         createdBy: note.author,
         type: note.sourceType === 'lead' ? 'lead_note' : 'note',
-        source: note.sourceType || 'contact', // 'lead' if originally from lead, 'contact' otherwise
-        sourceId: note.sourceId, // Original lead/contact ID
+        source: note.sourceType || 'contact',
+        sourceId: note.sourceId,
       }));
 
-      // Also check for legacy notes in contact.notes field (for backward compatibility)
-      let legacyNotes: any[] = [];
-      if ((contact as any).notes) {
-        try {
-          if (typeof (contact as any).notes === 'string') {
-            const parsed = JSON.parse((contact as any).notes);
-            if (Array.isArray(parsed)) {
-              legacyNotes = parsed.filter((n: any) => {
-                // Only include notes that aren't already in unified table
-                return !formattedNotes.some((fn: any) => 
-                  fn.content === n.content && 
-                  new Date(fn.createdAt).getTime() === new Date(n.createdAt || (contact as any).createdAt).getTime()
-                );
-              });
-            } else if (parsed && typeof parsed === 'string' && parsed.trim()) {
-              // Legacy single note format
-              const exists = formattedNotes.some((fn: any) => fn.content === parsed);
-              if (!exists) {
-                legacyNotes = [{
-                  id: `legacy-contact-${Date.now()}`,
-                  content: parsed,
-                  createdAt: (contact as any).createdAt,
-                  createdBy: (contact as any).createdBy || 'unknown',
-                  type: 'note',
-                  source: 'contact'
-                }];
-              }
-            }
-          } else if (Array.isArray((contact as any).notes)) {
-            legacyNotes = (contact as any).notes.filter((n: any) => {
-              return !formattedNotes.some((fn: any) => 
-                fn.content === n.content && 
-                new Date(fn.createdAt).getTime() === new Date(n.createdAt || (contact as any).createdAt).getTime()
-              );
-            });
-          }
-        } catch (e) {
-          // Plain string
-          if (typeof (contact as any).notes === 'string' && (contact as any).notes.trim()) {
-            const exists = formattedNotes.some((fn: any) => fn.content === (contact as any).notes);
-            if (!exists) {
-              legacyNotes = [{
-                id: `legacy-contact-${Date.now()}`,
-                content: (contact as any).notes,
-                createdAt: (contact as any).createdAt,
-                createdBy: (contact as any).createdBy || 'unknown',
-                type: 'note',
-                source: 'contact'
-              }];
-            }
-          }
-        }
-      }
-
-      // Merge unified notes with legacy notes (unified notes first, then legacy)
-      const allNotes = [...formattedNotes, ...legacyNotes];
-      
-      // Remove duplicates using a Map for O(n) performance
-      // Key: normalized content + author + date (rounded to nearest minute)
-      const uniqueNotesMap = new Map<string, typeof formattedNotes[0]>();
-      
-      for (const note of allNotes) {
-        const normalizedContent = note.content.trim().toLowerCase();
-        const dateKey = new Date(note.createdAt).setSeconds(0, 0); // Round to nearest minute
-        const uniqueKey = `${normalizedContent}|${note.createdBy}|${dateKey}`;
-        
-        // Only add if we haven't seen this exact note before
-        if (!uniqueNotesMap.has(uniqueKey)) {
-          uniqueNotesMap.set(uniqueKey, note);
-        }
-      }
-      
-      // Convert map back to array and sort by creation date (newest first)
-      const uniqueNotes = Array.from(uniqueNotesMap.values()).sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        return dateB - dateA; // Newest first
-      });
-
-      // Set notes for frontend
-      (contact as any).notes = JSON.stringify(uniqueNotes);
-      
-      // Notes loaded and deduplicated
+      // Set notes for frontend (simplified - no complex deduplication)
+      (contact as any).notes = JSON.stringify(formattedNotes);
     } catch (e) {
-      console.error('Error loading notes from unified table:', e);
-      // Fallback to legacy notes if unified table fails
-      if ((contact as any).notes) {
-        try {
-          const parsed = typeof (contact as any).notes === 'string' 
-            ? JSON.parse((contact as any).notes) 
-            : (contact as any).notes;
-          (contact as any).notes = Array.isArray(parsed) 
-            ? JSON.stringify(parsed) 
-            : (contact as any).notes;
-        } catch (parseError) {
-          // Keep as is
-        }
+      console.error('Error loading notes:', e);
+      // Keep existing notes if any
+      if (!(contact as any).notes) {
+        (contact as any).notes = JSON.stringify([]);
       }
     }
 
