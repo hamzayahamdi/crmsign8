@@ -405,6 +405,20 @@ export async function PATCH(
     const token = authHeader.slice(7);
     const decoded = verify(token, JWT_SECRET) as any;
 
+    // Check user role for edit permission
+    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 401 });
+    }
+
+    const userRole = (user.role || '').toLowerCase();
+    // Allow Admin, Operator, and Gestionnaire to edit contacts
+    if (!['admin', 'operator', 'gestionnaire'].includes(userRole)) {
+      return NextResponse.json({ 
+        error: 'Permission denied. Only admins, operators, and gestionnaires can edit contacts.' 
+      }, { status: 403 });
+    }
+
     // Await params in Next.js 15
     const { id } = await params;
 

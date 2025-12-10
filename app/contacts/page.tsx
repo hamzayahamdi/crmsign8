@@ -47,7 +47,8 @@ export default function ContactsPage() {
   const isAdmin = user?.role?.toLowerCase() === 'admin'
   const isGestionnaire = user?.role?.toLowerCase() === 'gestionnaire'
   const isArchitect = user?.role?.toLowerCase() === 'architect'
-  const canManageContacts = isAdmin || isGestionnaire // Admin and Gestionnaire can edit/delete
+  const canEditContacts = isAdmin || isGestionnaire // Admin and Gestionnaire can edit
+  const canDeleteContacts = isAdmin // Only Admin can delete (Gestionnaire cannot delete per permissions)
 
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
@@ -526,8 +527,8 @@ export default function ContactsPage() {
             <ContactsTable
               contacts={contacts}
               onRowClick={handleContactClick}
-              onEditContact={canManageContacts ? handleEditContact : undefined}
-              onDeleteContact={canManageContacts ? handleDeleteContact : undefined}
+              onEditContact={canEditContacts ? handleEditContact : undefined}
+              onDeleteContact={canDeleteContacts ? handleDeleteContact : undefined}
               isLoading={loading}
             />
 

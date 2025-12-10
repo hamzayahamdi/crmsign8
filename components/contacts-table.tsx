@@ -544,7 +544,7 @@ export function ContactsTable({
                   <Eye className="w-3.5 h-3.5" />
                   Voir
                 </button>
-                {isAdmin && onEditContact && (
+                {(isAdmin || isGestionnaire) && onEditContact && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
@@ -764,8 +764,8 @@ export function ContactsTable({
                           <Eye className="w-3.5 h-3.5" />
                         </button>
 
-                        {/* Edit - Only if callback provided */}
-                        {onEditContact && (
+                        {/* Edit - Admin and Gestionnaire can edit */}
+                        {(isAdmin || isGestionnaire) && onEditContact && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
@@ -778,8 +778,8 @@ export function ContactsTable({
                           </button>
                         )}
 
-                        {/* Delete - Only if callback provided */}
-                        {onDeleteContact && (
+                        {/* Delete - Only Admin can delete (Gestionnaire cannot delete per permissions) */}
+                        {isAdmin && onDeleteContact && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
