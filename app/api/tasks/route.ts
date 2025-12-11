@@ -317,7 +317,16 @@ export async function POST(request: NextRequest) {
     try {
       // Find the userId from the assigned user name
       const user = await prisma.user.findFirst({ where: { name: body.assignedTo } })
-      if (user?.id) {
+      
+      if (!user) {
+        console.error(`[API/tasks] ⚠️ User not found for task assignment: "${body.assignedTo}"`)
+        console.error(`[API/tasks] Task created but notification skipped - user lookup failed`)
+      } else if (!user.id) {
+        console.error(`[API/tasks] ⚠️ User found but missing ID: "${body.assignedTo}"`)
+      } else {
+        console.log(`[API/tasks] 📧 Sending notifications to user: ${user.name} (${user.id})`)
+        console.log(`[API/tasks] User phone: ${user.phone || 'NOT SET'}, email: ${user.email || 'NOT SET'}`)
+        
         await notifyTaskAssigned({
           userId: user.id,
           taskTitle: body.title,
@@ -326,27 +335,84 @@ export async function POST(request: NextRequest) {
           linkedName: body.linkedName || undefined,
           createdBy: body.createdBy || 'Système',
         })
+        
+        console.log(`[API/tasks] ✅ Notification request completed for user: ${user.name}`)
       }
     } catch (notifyError) {
-      console.error('[API/tasks] Failed to send assignment notification:', notifyError)
+      console.error('[API/tasks] ❌ Failed to send assignment notification:', notifyError)
+      console.error('[API/tasks] Error details:', {
+        error: notifyError instanceof Error ? notifyError.message : String(notifyError),
+        stack: notifyError instanceof Error ? notifyError.stack : undefined,
+        assignedTo: body.assignedTo,
+        taskId: task.id
+      })
       // Do not fail the request because of notification errors
     }
 
     // Create historique entry if linked to a client
+    // Note: Historique requires a Client ID (from clients table), not a Contact ID
     if (body.linkedType === 'client' && body.linkedId) {
       try {
-        await prisma.historique.create({
-          data: {
-            clientId: body.linkedId,
-            date: new Date(),
-            type: 'tache',
-            description: `Tâche créée: "${body.title}"`,
-            auteur: body.createdBy || 'Système',
-            metadata: { taskId: task.id, eventId: result.event?.id }
-          }
+        // Check if linkedId is actually a Client ID (not a Contact ID)
+        const clientExists = await prisma.client.findUnique({
+          where: { id: body.linkedId },
+          select: { id: true }
         })
-      } catch (histError) {
-        console.error('Error creating historique entry for task:', histError)
+
+        if (!clientExists) {
+          // linkedId might be a Contact ID, not a Client ID
+          // Try to find if there's a corresponding Client for this Contact
+          const contact = await prisma.contact.findUnique({
+            where: { id: body.linkedId },
+            select: { id: true, leadId: true }
+          })
+
+          if (contact?.leadId) {
+            // Try to find Client by leadId
+            const clientByLead = await prisma.client.findFirst({
+              where: { leadId: contact.leadId },
+              select: { id: true }
+            })
+
+            if (clientByLead) {
+              // Create historique with the actual Client ID
+              await prisma.historique.create({
+                data: {
+                  clientId: clientByLead.id,
+                  date: new Date(),
+                  type: 'tache',
+                  description: `Tâche créée: "${body.title}"`,
+                  auteur: body.createdBy || 'Système',
+                  metadata: { taskId: task.id, eventId: result.event?.id, originalLinkedId: body.linkedId }
+                }
+              })
+              console.log(`[API/tasks] ✅ Historique entry created for client ${clientByLead.id} (found via contact ${body.linkedId})`)
+            } else {
+              console.warn(`[API/tasks] No Client found for contact ${body.linkedId}, skipping historique creation`)
+            }
+          } else {
+            console.warn(`[API/tasks] linkedId ${body.linkedId} is not a valid Client ID and no corresponding Client found, skipping historique creation`)
+          }
+        } else {
+          // linkedId is a valid Client ID, create historique
+          await prisma.historique.create({
+            data: {
+              clientId: body.linkedId,
+              date: new Date(),
+              type: 'tache',
+              description: `Tâche créée: "${body.title}"`,
+              auteur: body.createdBy || 'Système',
+              metadata: { taskId: task.id, eventId: result.event?.id }
+            }
+          })
+          console.log(`[API/tasks] ✅ Historique entry created for client ${body.linkedId}`)
+        }
+      } catch (histError: any) {
+        console.error('[API/tasks] Error creating historique entry for task:', histError)
+        if (histError?.code === 'P2003') {
+          console.error('[API/tasks] Foreign key constraint error - client may not exist:', body.linkedId)
+          console.error('[API/tasks] This is non-critical - task was created successfully')
+        }
         // Don't fail the task creation if historique fails
       }
     }

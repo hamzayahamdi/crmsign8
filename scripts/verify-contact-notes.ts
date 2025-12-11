@@ -60,3 +60,4 @@ const contactName = process.argv[2]
 verifyContactNotes(contactName)
 
 
+

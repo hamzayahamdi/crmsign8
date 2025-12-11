@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { CalendarIcon, Search, CheckCircle2, Clock, CircleDashed, User, Link2, Bell, BellOff, Phone, MapPin } from "lucide-react"
+import { CalendarIcon, Search, CheckCircle2, Clock, CircleDashed, User, Link2, Bell, BellOff, Phone, MapPin, X } from "lucide-react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import type { Task, TaskStatus, LinkedType } from "@/types/task"
@@ -65,12 +65,11 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
   const [users, setUsers] = useState<string[]>([])
   const [isLoadingContacts, setIsLoadingContacts] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Load data sources
   useEffect(() => {
     if (!isOpen) return
 
-    // Leads via API (fallback to empty)
     const loadLeads = async () => {
       try {
         const apiLeads = await LeadsService.getAllLeads()
@@ -81,13 +80,11 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
       }
     }
 
-    // Contacts via API
     const loadContacts = async () => {
       try {
         setIsLoadingContacts(true)
         const response = await ContactService.getContacts({ limit: 1000 })
         const contactsData = response.data || []
-        // Filter out test contacts if needed, or just use all contacts
         setContacts(contactsData)
       } catch (error) {
         console.error('Error loading contacts:', error)
@@ -97,7 +94,6 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
       }
     }
 
-    // Users from API
     const loadUsers = async () => {
       try {
         const res = await fetch('/api/users', { cache: 'no-store' })
@@ -118,13 +114,12 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
     loadUsers()
   }, [isOpen, user?.name])
 
-  // Populate form when editing
   useEffect(() => {
     if (editingTask) {
       setFormData({
         title: editingTask.title,
         description: editingTask.description,
-        dueDate: editingTask.dueDate.split("T")[0], // Format for date input
+        dueDate: editingTask.dueDate.split("T")[0],
         assignedTo: editingTask.assignedTo,
         linkedType: editingTask.linkedType,
         linkedId: editingTask.linkedId,
@@ -133,9 +128,8 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
         reminderEnabled: editingTask.reminderEnabled || false,
         reminderDays: editingTask.reminderDays || 2,
       })
+      setIsSubmitting(false) // Reset submitting state when editing
     } else {
-      // If preSelectedClient is provided, auto-select it
-      // Note: API expects 'client' not 'contact', so we use 'client' here
       const linkedType: LinkedType = preSelectedClient ? "client" : "lead"
       const linkedId = preSelectedClient ? preSelectedClient.id : ""
       const linkedName = preSelectedClient ? preSelectedClient.nom : ""
@@ -152,24 +146,20 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
         reminderEnabled: false,
         reminderDays: 2,
       })
+      setIsSubmitting(false) // Reset submitting state when creating new
     }
   }, [editingTask, user, isOpen, preSelectedClient])
 
-  // Combined leads and contacts for unified search (deduplicated by ID and name+phone)
   const combinedItems = React.useMemo(() => {
     const itemsMap = new Map<string, { id: string; name: string; phone: string; city: string; type: 'lead' | 'contact'; displayName: string }>()
-    const seenKeys = new Set<string>() // Track by name+phone to avoid duplicates
+    const seenKeys = new Set<string>()
     
-    // Helper to create a unique key
     const createKey = (name: string, phone: string) => 
       `${(name || '').toLowerCase().trim()}_${(phone || '').trim()}`
     
-    // Add leads
     leads.forEach(lead => {
       if (!lead.id || !lead.nom) return
       const key = createKey(lead.nom, lead.telephone || '')
-      
-      // Only add if we haven't seen this name+phone combination
       if (!seenKeys.has(key)) {
         seenKeys.add(key)
         itemsMap.set(lead.id, {
@@ -183,14 +173,10 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
       }
     })
     
-    // Add contacts (prefer contact over lead if same name+phone)
     contacts.forEach(contact => {
       if (!contact.id || !contact.nom) return
       const key = createKey(contact.nom, contact.telephone || '')
-      
-      // If we've seen this name+phone before, remove the lead and add the contact
       if (seenKeys.has(key)) {
-        // Find and remove the existing item with this key
         const existingItem = Array.from(itemsMap.values()).find(item => 
           createKey(item.name, item.phone) === key
         )
@@ -198,8 +184,6 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
           itemsMap.delete(existingItem.id)
         }
       }
-      
-      // Add the contact (or update if it was a lead)
       seenKeys.add(key)
       itemsMap.set(contact.id, {
         id: contact.id,
@@ -214,12 +198,10 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
     return Array.from(itemsMap.values())
   }, [leads, contacts])
   
-  // Filter items based on search query
   const filteredItems = React.useMemo(() => {
     if (!searchQuery.trim()) {
       return combinedItems
     }
-    
     const query = searchQuery.toLowerCase().trim()
     return combinedItems.filter(item => {
       const searchableText = `${item.name} ${item.phone} ${item.city} ${item.type}`.toLowerCase()
@@ -227,10 +209,16 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
     })
   }, [combinedItems, searchQuery])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validate required fields
+    // Prevent double submission
+    if (isSubmitting || isLoading) {
+      console.log('[AddTaskModal] Submission already in progress, ignoring duplicate click')
+      return
+    }
+
+    // Validation
     if (!formData.title.trim()) {
       toast.error('Le titre est requis')
       return
@@ -246,161 +234,164 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
       return
     }
 
-    // Find the linked item name and type
     let linkedName = formData.linkedName
     let linkedType: LinkedType = formData.linkedType
     if (formData.linkedId) {
       const item = combinedItems.find(i => i.id === formData.linkedId)
       if (item) {
         linkedName = item.name
-        // API expects 'client' not 'contact', so convert 'contact' to 'client'
         linkedType = (item.type === 'contact' ? 'client' : item.type) as LinkedType
       }
     }
 
-    // Ensure linkedType is valid for API (convert 'contact' to 'client' if needed)
     if (linkedType === 'contact') {
       linkedType = 'client'
     }
 
-    // Validate date is valid
     const dueDate = new Date(formData.dueDate)
     if (isNaN(dueDate.getTime())) {
       toast.error('Date d\'échéance invalide')
       return
     }
 
-    onSave({
-      ...formData,
-      linkedType,
-      dueDate: dueDate.toISOString(),
-      linkedName,
-    })
+    // Set submitting state to prevent duplicate submissions
+    setIsSubmitting(true)
+
+    try {
+      // Call onSave and wait for it to complete
+      await onSave({
+        ...formData,
+        linkedType,
+        dueDate: dueDate.toISOString(),
+        linkedName,
+      })
+    } catch (error) {
+      console.error('[AddTaskModal] Error saving task:', error)
+      // Error is already handled by parent component, just reset submitting state
+    } finally {
+      // Reset submitting state after completion (success or error)
+      setIsSubmitting(false)
+    }
   }
 
-
-  // State for popovers
   const [datePickerOpen, setDatePickerOpen] = useState(false)
   const [userSearchOpen, setUserSearchOpen] = useState(false)
   const [linkedSearchOpen, setLinkedSearchOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
 
-  // Update selectedDate when formData.dueDate changes
   useEffect(() => {
     if (formData.dueDate) {
       setSelectedDate(new Date(formData.dueDate))
     }
   }, [formData.dueDate])
 
-  const getStatusIcon = (status: TaskStatus) => {
-    switch (status) {
-      case "a_faire":
-        return <CircleDashed className="w-4 h-4" />
-      case "en_cours":
-        return <Clock className="w-4 h-4" />
-      case "termine":
-        return <CheckCircle2 className="w-4 h-4" />
-    }
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[600px] w-[95vw] max-h-[90vh] overflow-hidden p-0 border-border/60 shadow-2xl backdrop-blur-xl bg-background/95">
-        <DialogHeader className="px-4 pt-3 pb-2.5 border-b border-border/40 relative">
-          <DialogTitle className="text-sm font-semibold flex items-center gap-2 relative z-10">
-            <div className="p-1.5 bg-primary/10 rounded-lg">
-              <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+      <DialogContent className="max-w-[550px] w-[95vw] max-h-[95vh] overflow-hidden p-0 border border-slate-700/60 shadow-xl [&>button]:hidden">
+        <div className="absolute inset-0 bg-slate-900/98" />
+        
+        <div className="relative z-10 flex flex-col h-full">
+          {/* Compact Header */}
+          <DialogHeader className="px-3 py-2 border-b border-slate-700/60 bg-slate-800/50 relative">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-xs font-semibold flex items-center gap-1.5 text-white">
+                <CheckCircle2 className="h-3 w-3 text-primary" />
+                {editingTask ? "Modifier la tâche" : "Nouvelle tâche"}
+              </DialogTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="h-6 w-6 rounded bg-red-500/80 hover:bg-red-500 text-white border border-red-600/50 hover:border-red-400 transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </Button>
             </div>
-            <span>{editingTask ? "Modifier la tâche" : "Nouvelle tâche"}</span>
-          </DialogTitle>
-        </DialogHeader>
+          </DialogHeader>
 
-        {/* Readonly Client Card - Only show when preSelectedClient is provided */}
-        {preSelectedClient && (
-          <div className="mx-4 mt-2 p-2 rounded-lg bg-blue-500/5 border border-blue-500/20">
-            <div className="flex items-start gap-2">
-              <div className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
-                <User className="w-3.5 h-3.5 text-blue-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <p className="text-[9px] font-light text-blue-400 uppercase tracking-wider">Client assigné</p>
-                  <div className="px-1 py-0.5 rounded bg-blue-500/20 border border-blue-500/30">
-                    <span className="text-[9px] font-light text-blue-300">Lecture seule</span>
+          {/* Compact Client Card */}
+          {preSelectedClient && (
+            <div className="mx-3 mt-2 p-2 rounded border border-blue-500/30 bg-blue-500/5">
+              <div className="flex items-center gap-2">
+                <User className="h-3 w-3 text-blue-400" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-medium text-blue-300 mb-0.5">{preSelectedClient.nom}</p>
+                  <div className="flex items-center gap-2 text-[9px] text-slate-400">
+                    {preSelectedClient.telephone && (
+                      <span className="flex items-center gap-0.5">
+                        <Phone className="h-2.5 w-2.5" />
+                        {preSelectedClient.telephone}
+                      </span>
+                    )}
+                    {preSelectedClient.ville && (
+                      <span className="flex items-center gap-0.5">
+                        <MapPin className="h-2.5 w-2.5" />
+                        {preSelectedClient.ville}
+                      </span>
+                    )}
                   </div>
                 </div>
-                <p className="text-xs font-light text-white mb-0.5">{preSelectedClient.nom}</p>
-                <div className="flex items-center gap-2 text-[10px] font-light text-white/60">
-                  {preSelectedClient.telephone && (
-                    <span className="flex items-center gap-0.5">
-                      <Phone className="w-2.5 h-2.5" />
-                      {preSelectedClient.telephone}
-                    </span>
-                  )}
-                  {preSelectedClient.ville && (
-                    <span className="flex items-center gap-0.5">
-                      <MapPin className="w-2.5 h-2.5" />
-                      {preSelectedClient.ville}
-                    </span>
-                  )}
-                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto px-4 py-3">
-          <div className="space-y-3">
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-3 py-2 space-y-2" noValidate>
             {/* Title */}
-            <div className="space-y-1.5">
-              <Label htmlFor="title" className="text-xs font-medium text-muted-foreground">
-                Titre de la tâche <span className="text-red-400">*</span>
+            <div className="space-y-1">
+              <Label htmlFor="title" className="text-[10px] font-medium text-slate-300">
+                Titre <span className="text-red-400">*</span>
               </Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Ex: Appeler le client pour validation"
-                className="h-9 px-3 text-sm border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50 font-light"
+                placeholder="Ex: Appeler le client"
+                disabled={isLoading || isSubmitting}
+                className="h-8 px-2 text-xs border border-slate-600/70 bg-slate-800/60 text-white placeholder:text-slate-300 placeholder:opacity-70 focus:border-primary/60 focus:ring-1 focus:ring-primary/20 rounded font-light disabled:opacity-50"
                 required
               />
             </div>
 
             {/* Description */}
-            <div className="space-y-1.5">
-              <Label htmlFor="description" className="text-xs font-medium text-muted-foreground">
+            <div className="space-y-1">
+              <Label htmlFor="description" className="text-[10px] font-medium text-slate-300">
                 Description <span className="text-red-400">*</span>
               </Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Détails de la tâche..."
-                className="min-h-[60px] px-3 py-2 text-sm border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50 font-light resize-none"
+                placeholder="Détails..."
+                disabled={isLoading || isSubmitting}
+                className="min-h-[60px] px-2 py-1.5 text-xs border border-slate-600/80 bg-slate-800/60 text-white placeholder:text-slate-300 placeholder:opacity-70 focus:border-primary/80 focus:ring-1 focus:ring-primary/20 rounded font-light resize-none disabled:opacity-50 border-solid"
                 required
               />
             </div>
 
-            {/* Due Date and Assigned To */}
+            {/* Date and Assigned - Compact Grid */}
             <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">
-                  Date d'échéance <span className="text-red-400">*</span>
+              <div className="space-y-1">
+                <Label className="text-[10px] font-medium text-slate-300">
+                  Date <span className="text-red-400">*</span>
                 </Label>
                 <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                  <PopoverTrigger asChild>
+                  <PopoverTrigger asChild> 
                     <Button
                       variant="outline"
+                      disabled={isLoading || isSubmitting}
+                      style={{ border: '1px solid rgb(71 85 105 / 0.8)' }}
                       className={cn(
-                        "w-full h-9 px-3 justify-start text-left text-xs font-normal border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50",
-                        !selectedDate && "text-muted-foreground"
+                        "w-full h-8 px-2 justify-start text-left text-xs font-light bg-slate-800/60 hover:bg-slate-700/60 hover:border-slate-500/80 focus-visible:border-primary/80 focus-visible:ring-1 focus-visible:ring-primary/20 rounded disabled:opacity-50 transition-colors border-solid",
+                        selectedDate ? "text-white" : "text-slate-300"
                       )}
                     >
-                      <CalendarIcon className="mr-1.5 h-3 w-3 text-primary" />
-                      {selectedDate ? format(selectedDate, "d MMM yyyy", { locale: fr }) : "Date"}
+                      <CalendarIcon className={cn("mr-1 h-3 w-3 shrink-0", selectedDate ? "text-primary" : "text-slate-400")} />
+                      <span className={cn("truncate font-normal", selectedDate ? "text-white" : "text-slate-300")}>
+                        {selectedDate ? format(selectedDate, "d MMM", { locale: fr }) : "Sélectionner une date"}
+                      </span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 border border-slate-700 bg-slate-800" align="start">
                     <Calendar
                       mode="single"
                       selected={selectedDate}
@@ -418,58 +409,49 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
                 </Popover>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">
-                  Assigné à <span className="text-red-400">*</span>
+              <div className="space-y-1">
+                <Label className="text-[10px] font-medium text-slate-300">
+                  Assigné <span className="text-red-400">*</span>
                 </Label>
                 <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       role="combobox"
+                      disabled={isLoading || isSubmitting}
+                      style={{ border: '1px solid rgb(71 85 105 / 0.8)' }}
                       className={cn(
-                        "w-full h-9 px-3 justify-between text-xs font-normal border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50",
-                        !formData.assignedTo && "text-muted-foreground"
+                        "w-full h-8 px-2 justify-between text-xs font-light bg-slate-800/60 hover:bg-slate-700/60 hover:border-slate-500/80 focus-visible:border-primary/80 focus-visible:ring-1 focus-visible:ring-primary/20 rounded disabled:opacity-50 transition-colors border-solid",
+                        formData.assignedTo ? "text-white" : "text-slate-300"
                       )}
                     >
-                      <span className="truncate">{formData.assignedTo || "Utilisateur"}</span>
-                      <Search className="ml-1.5 h-3 w-3 shrink-0 opacity-50" />
+                      <span className={cn("truncate flex items-center gap-1 font-normal", formData.assignedTo ? "text-white" : "text-slate-300")}>
+                        <User className={cn("h-3 w-3 shrink-0", formData.assignedTo ? "text-primary" : "text-slate-400")} />
+                        {formData.assignedTo || "Sélectionner un utilisateur"}
+                      </span>
+                      <Search className="h-3 w-3 text-slate-400 shrink-0" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[280px] p-0" align="start">
-                    <Command className="bg-transparent">
-                      <CommandInput placeholder="Rechercher..." className="text-xs" />
+                  <PopoverContent className="w-[240px] p-0 border border-slate-700 bg-slate-800" align="start">
+                    <Command className="bg-slate-800">
+                      <CommandInput placeholder="Rechercher..." className="text-xs border-b border-slate-700 h-8" />
                       <CommandList>
-                        <CommandEmpty className="text-xs text-muted-foreground py-4 text-center">Aucun utilisateur trouvé.</CommandEmpty>
+                        <CommandEmpty className="text-xs text-slate-400 py-2 text-center">Aucun utilisateur.</CommandEmpty>
                         <CommandGroup>
-                          {users.length > 0 ? (
-                            users.map((u) => (
-                              <CommandItem
-                                key={u}
-                                value={u}
-                                onSelect={() => {
-                                  setFormData({ ...formData, assignedTo: u })
-                                  setUserSearchOpen(false)
-                                }}
-                                className="text-xs cursor-pointer"
-                              >
-                                <User className="mr-2 h-3 w-3" />
-                                {u}
-                              </CommandItem>
-                            ))
-                          ) : (
+                          {users.map((u) => (
                             <CommandItem
-                              value={user?.name || "Système"}
+                              key={u}
+                              value={u}
                               onSelect={() => {
-                                setFormData({ ...formData, assignedTo: user?.name || "Système" })
+                                setFormData({ ...formData, assignedTo: u })
                                 setUserSearchOpen(false)
                               }}
-                              className="text-xs cursor-pointer"
+                              className="text-xs cursor-pointer hover:bg-slate-700 py-1.5"
                             >
-                              <User className="mr-2 h-3 w-3" />
-                              {user?.name || "Système"}
+                              <User className="mr-1.5 h-3 w-3" />
+                              {u}
                             </CommandItem>
-                          )}
+                          ))}
                         </CommandGroup>
                       </CommandList>
                     </Command>
@@ -478,246 +460,257 @@ export function AddTaskModal({ isOpen, onClose, onSave, editingTask, preSelected
               </div>
             </div>
 
-            {/* Status */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Statut de la tâche</Label>
+            {/* Status - Compact */}
+            <div className="space-y-1">
+              <Label className="text-[10px] font-medium text-slate-300">Statut</Label>
               <div className="grid grid-cols-3 gap-1.5">
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, status: "a_faire" })}
+                  disabled={isLoading}
                   className={cn(
-                    "flex flex-col items-center gap-1 p-2 rounded-lg border transition-all",
+                    "flex flex-col items-center gap-0.5 p-1.5 rounded border transition-all",
                     formData.status === "a_faire"
-                      ? "bg-red-500/20 border-red-500 text-red-400"
-                      : "bg-background/30 border-border/30 text-muted-foreground hover:border-border/50"
+                      ? "bg-red-500/20 border-red-500/60 text-red-400"
+                      : "bg-slate-800/60 border-slate-600/70 text-slate-400 hover:border-slate-500/70 hover:bg-slate-700/60",
+                    isLoading && "opacity-50 cursor-not-allowed"
                   )}
                 >
-                  <CircleDashed className="w-4 h-4" />
-                  <span className="text-[10px] font-light">À faire</span>
+                  <CircleDashed className="w-3 h-3" />
+                  <span className="text-[9px] font-light">À faire</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, status: "en_cours" })}
+                  disabled={isLoading}
                   className={cn(
-                    "flex flex-col items-center gap-1 p-2 rounded-lg border transition-all",
+                    "flex flex-col items-center gap-0.5 p-1.5 rounded border transition-all",
                     formData.status === "en_cours"
-                      ? "bg-orange-500/20 border-orange-500 text-orange-400"
-                      : "bg-background/30 border-border/30 text-muted-foreground hover:border-border/50"
+                      ? "bg-orange-500/20 border-orange-500/60 text-orange-400"
+                      : "bg-slate-800/60 border-slate-600/70 text-slate-400 hover:border-slate-500/70 hover:bg-slate-700/60",
+                    isLoading && "opacity-50 cursor-not-allowed"
                   )}
                 >
-                  <Clock className="w-4 h-4" />
-                  <span className="text-[10px] font-light">En cours</span>
+                  <Clock className="w-3 h-3" />
+                  <span className="text-[9px] font-light">En cours</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, status: "termine" })}
+                  disabled={isLoading}
                   className={cn(
-                    "flex flex-col items-center gap-1 p-2 rounded-lg border transition-all",
+                    "flex flex-col items-center gap-0.5 p-1.5 rounded border transition-all",
                     formData.status === "termine"
-                      ? "bg-green-500/20 border-green-500 text-green-400"
-                      : "bg-background/30 border-border/30 text-muted-foreground hover:border-border/50"
+                      ? "bg-green-500/20 border-green-500/60 text-green-400"
+                      : "bg-slate-800/60 border-slate-600/70 text-slate-400 hover:border-slate-500/70 hover:bg-slate-700/60",
+                    isLoading && "opacity-50 cursor-not-allowed"
                   )}
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-[10px] font-light">Terminé</span>
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span className="text-[9px] font-light">Terminé</span>
                 </button>
               </div>
             </div>
 
-            {/* Smart Unified Lead/Client Select - Only show when NO preSelectedClient */}
+            {/* Link Section - Compact */}
             {!preSelectedClient && (
-              <div className="space-y-1.5 p-2.5 bg-muted/30 rounded-lg border border-border/40">
-                <div className="flex items-center gap-1.5">
-                  <Link2 className="w-3 h-3 text-primary" />
-                  <Label className="text-xs font-medium text-muted-foreground">
-                    Lier cette tâche à un Lead ou Contact
-                  </Label>
-                </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] font-medium text-slate-300 flex items-center gap-1">
+                  <Link2 className="h-3 w-3 text-primary" />
+                  Lier à un Lead/Contact
+                </Label>
                 <Popover 
                   open={linkedSearchOpen} 
                   onOpenChange={(open) => {
                     setLinkedSearchOpen(open)
-                    if (!open) {
-                      setSearchQuery("")
-                    }
+                    if (!open) setSearchQuery("")
                   }}
                 >
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       role="combobox"
+                      disabled={isLoading || isSubmitting}
+                      style={{ border: '1px solid rgb(71 85 105 / 0.8)' }}
                       className={cn(
-                        "h-9 w-full justify-between px-3 text-xs font-normal border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50",
-                        !formData.linkedId && "text-muted-foreground"
+                        "w-full h-8 px-2 justify-between text-xs font-light bg-slate-800/60 hover:bg-slate-700/60 hover:border-slate-500/80 focus-visible:border-primary/80 focus-visible:ring-1 focus-visible:ring-primary/20 rounded disabled:opacity-50 transition-colors border-solid",
+                        formData.linkedId ? "text-white" : "text-slate-300"
                       )}
                     >
                       {formData.linkedId ? (
-                        <span className="flex items-center gap-1.5 truncate">
+                        <span className="flex items-center gap-1 truncate text-white font-normal">
                           {combinedItems.find(item => item.id === formData.linkedId)?.type === 'lead' ? (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-light bg-blue-500/10 text-blue-300 border border-blue-500/20">Lead</span>
+                            <span className="px-1 py-0.5 rounded text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/30">Lead</span>
                           ) : (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-light bg-purple-500/10 text-purple-300 border border-purple-500/20">Contact</span>
+                            <span className="px-1 py-0.5 rounded text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30">Contact</span>
                           )}
-                          <span className="truncate">{combinedItems.find(item => item.id === formData.linkedId)?.name}</span>
+                          <span className="truncate text-white">{combinedItems.find(item => item.id === formData.linkedId)?.name}</span>
                         </span>
                       ) : (
-                        <span className="text-muted-foreground">Rechercher un lead ou contact...</span>
+                        <span className="text-slate-300 font-normal">Rechercher un lead ou contact...</span>
                       )}
-                      <Search className="ml-1.5 h-3 w-3 shrink-0 opacity-50" />
+                      <Search className="h-3 w-3 text-slate-400 shrink-0" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[500px] max-w-[90vw] p-0" align="start">
-                    <Command className="bg-transparent" shouldFilter={false}>
+                  <PopoverContent className="w-[450px] max-w-[90vw] p-0 border border-slate-700 bg-slate-800" align="start">
+                    <Command className="bg-slate-800" shouldFilter={false}>
                       <CommandInput
-                        placeholder="Rechercher par nom, téléphone, ville..."
-                        className="text-xs"
+                        placeholder="Rechercher..."
+                        className="text-xs border-b border-slate-700 h-8"
                         value={searchQuery}
                         onValueChange={setSearchQuery}
                       />
-                      <CommandList className="max-h-[300px]">
-                        <CommandEmpty className="text-xs text-muted-foreground py-4 text-center">
-                          {isLoadingContacts ? 'Chargement...' : 'Aucun résultat trouvé.'}
+                      <CommandList className="max-h-[250px]">
+                        <CommandEmpty className="text-xs text-slate-400 py-2 text-center">
+                          {isLoadingContacts ? 'Chargement...' : 'Aucun résultat.'}
                         </CommandEmpty>
-                        <CommandGroup heading="Résultats">
-                          {filteredItems.map((item) => {
-                            return (
-                              <CommandItem
-                                key={`${item.type}-${item.id}`}
-                                value={`${item.name}-${item.id}`}
-                                onSelect={() => {
-                                  // API expects 'client' not 'contact', so convert 'contact' to 'client'
-                                  const apiLinkedType = (item.type === 'contact' ? 'client' : item.type) as LinkedType
-                                  setFormData({ 
-                                    ...formData, 
-                                    linkedId: item.id, 
-                                    linkedName: item.name,
-                                    linkedType: apiLinkedType
-                                  })
-                                  setLinkedSearchOpen(false)
-                                  setSearchQuery("")
-                                }}
-                                className="text-xs cursor-pointer"
-                              >
-                                <div className="flex items-center gap-2 w-full">
-                                  {item.type === 'lead' ? (
-                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-light bg-blue-500/10 text-blue-300 border border-blue-500/20 shrink-0">Lead</span>
-                                  ) : (
-                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-light bg-purple-500/10 text-purple-300 border border-purple-500/20 shrink-0">Contact</span>
+                        <CommandGroup>
+                          {filteredItems.map((item) => (
+                            <CommandItem
+                              key={`${item.type}-${item.id}`}
+                              value={`${item.name}-${item.id}`}
+                              onSelect={() => {
+                                const apiLinkedType = (item.type === 'contact' ? 'client' : item.type) as LinkedType
+                                setFormData({ 
+                                  ...formData, 
+                                  linkedId: item.id, 
+                                  linkedName: item.name,
+                                  linkedType: apiLinkedType
+                                })
+                                setLinkedSearchOpen(false)
+                                setSearchQuery("")
+                              }}
+                              className="text-xs cursor-pointer hover:bg-slate-700 py-1.5"
+                            >
+                              <div className="flex items-center gap-2 w-full">
+                                {item.type === 'lead' ? (
+                                  <span className="px-1 py-0.5 rounded text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/30">Lead</span>
+                                ) : (
+                                  <span className="px-1 py-0.5 rounded text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30">Contact</span>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-light text-white truncate">{item.name}</div>
+                                  {(item.phone || item.city) && (
+                                    <div className="text-[9px] text-slate-400 truncate">
+                                      {item.phone && <span>{item.phone}</span>}
+                                      {item.phone && item.city && <span> • </span>}
+                                      {item.city && <span>{item.city}</span>}
+                                    </div>
                                   )}
-                                  <div className="flex-1 min-w-0">
-                                    <div className="font-light text-foreground truncate">{item.name}</div>
-                                    {(item.phone || item.city) && (
-                                      <div className="text-[10px] text-muted-foreground truncate">
-                                        {item.phone && <span>{item.phone}</span>}
-                                        {item.phone && item.city && <span> • </span>}
-                                        {item.city && <span>{item.city}</span>}
-                                      </div>
-                                    )}
-                                  </div>
                                 </div>
-                              </CommandItem>
-                            )
-                          })}
+                              </div>
+                            </CommandItem>
+                          ))}
                         </CommandGroup>
                       </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>
-                {formData.linkedId && (
-                  <p className="text-[10px] text-green-400 flex items-center gap-1 font-light">
-                    <CheckCircle2 className="w-2.5 h-2.5" />
-                    {formData.linkedType === "lead" ? "Lead" : formData.linkedType === "client" ? "Client" : "Contact"} sélectionné
-                  </p>
-                )}
               </div>
             )}
 
-            {/* Reminder */}
-            <div className="space-y-2 p-2.5 bg-muted/30 rounded-lg border border-border/40">
+            {/* Reminder - Compact */}
+            <div className="space-y-1 p-2 rounded border border-slate-700/60 bg-slate-800/40">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   {formData.reminderEnabled ? (
                     <Bell className="w-3 h-3 text-primary" />
                   ) : (
-                    <BellOff className="w-3 h-3 text-muted-foreground" />
+                    <BellOff className="w-3 h-3 text-slate-400" />
                   )}
                   <div>
-                    <h3 className="text-xs font-light text-foreground">Rappel automatique</h3>
-                    <p className="text-[10px] font-light text-muted-foreground">
+                    <Label className="text-[10px] font-medium text-white">Rappel automatique</Label>
+                    <p className="text-[9px] text-slate-400">
                       {formData.reminderEnabled 
-                        ? `Email envoyé ${formData.reminderDays} jour(s) avant l'échéance`
-                        : "Notification par email avant l'échéance"}
+                        ? `${formData.reminderDays} jour(s) avant`
+                        : "Email avant échéance"}
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, reminderEnabled: !formData.reminderEnabled })}
+                  disabled={isLoading}
                   className={cn(
-                    "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
-                    formData.reminderEnabled ? "bg-primary" : "bg-muted"
+                    "relative inline-flex h-4 w-7 items-center rounded-full transition-colors border",
+                    formData.reminderEnabled ? "bg-primary border-primary" : "bg-slate-700 border-slate-600",
+                    isLoading && "opacity-50 cursor-not-allowed"
                   )}
                 >
                   <span
                     className={cn(
-                      "inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform",
-                      formData.reminderEnabled ? "translate-x-5" : "translate-x-0.5"
+                      "inline-block h-3 w-3 transform rounded-full bg-white transition-transform",
+                      formData.reminderEnabled ? "translate-x-3.5" : "translate-x-0.5"
                     )}
                   />
                 </button>
               </div>
 
               {formData.reminderEnabled && (
-                <div className="space-y-1.5 pt-2 border-t border-border/40">
-                  <Label className="text-[10px] font-light text-muted-foreground">
-                    Délai du rappel
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="reminderDays"
-                      type="number"
-                      min="1"
-                      max="30"
-                      value={formData.reminderDays}
-                      onChange={(e) => setFormData({ ...formData, reminderDays: parseInt(e.target.value) || 2 })}
-                      className="text-center text-xs font-light w-14 h-8 px-2 border focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-lg bg-background/50"
-                    />
-                    <span className="text-[10px] font-light text-muted-foreground">jour(s) avant</span>
-                  </div>
+                <div className="flex items-center gap-2 pt-1.5 border-t border-slate-700/60 mt-1.5">
+                  <Input
+                    id="reminderDays"
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={formData.reminderDays}
+                    onChange={(e) => setFormData({ ...formData, reminderDays: parseInt(e.target.value) || 2 })}
+                    disabled={isLoading}
+                    className="text-center text-xs font-light w-12 h-7 px-1 border border-slate-600/70 bg-slate-900/60 text-white focus:border-primary/60 focus:ring-1 focus:ring-primary/20 rounded disabled:opacity-50"
+                  />
+                  <span className="text-[9px] text-slate-400">jour(s) avant</span>
                 </div>
               )}
             </div>
-          </div>
+          </form>
 
-          {/* Actions */}
-          <div className="px-4 py-2.5 border-t border-border/40 bg-muted/20">
+          {/* Compact Footer */}
+          <div className="px-3 py-2 border-t border-slate-700/60 bg-slate-800/50">
             <div className="flex justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                disabled={isLoading}
-                className="h-8 px-4 text-xs font-light hover:bg-muted/50 transition-all rounded-lg"
+                disabled={isLoading || isSubmitting}
+                className="h-7 px-3 text-xs font-light border border-slate-600/70 bg-slate-800/60 text-slate-300 hover:bg-slate-700/60 hover:text-white hover:border-slate-500/70 rounded disabled:opacity-50"
               >
                 Annuler
               </Button>
               <Button
                 type="submit"
-                disabled={isLoading}
-                className="h-8 px-4 text-xs font-light shadow-sm hover:shadow transition-all bg-primary hover:bg-primary/90 rounded-lg"
+                disabled={isLoading || isSubmitting}
+                onClick={handleSubmit}
+                className={cn(
+                  "h-7 px-4 text-xs font-medium rounded transition-all relative overflow-hidden border border-primary/50",
+                  "bg-primary hover:bg-primary/90 text-white",
+                  "disabled:opacity-70 disabled:cursor-not-allowed",
+                  (isLoading || isSubmitting) && "cursor-wait"
+                )}
               >
-                {isLoading ? (
-                  <>
-                    <CircleDashed className="mr-1.5 h-3 w-3 animate-spin" />
-                    Création...
-                  </>
+                {(isLoading || isSubmitting) ? (
+                  <span className="flex items-center gap-1.5 relative z-10">
+                    <CircleDashed className="h-3 w-3 animate-spin" />
+                    <span>{editingTask ? "Mise à jour..." : "Création..."}</span>
+                  </span>
                 ) : (
-                  editingTask ? "Mettre à jour" : "Créer la tâche"
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3 w-3" />
+                    {editingTask ? "Mettre à jour" : "Créer"}
+                  </span>
+                )}
+                {(isLoading || isSubmitting) && (
+                  <div 
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                    style={{
+                      animation: 'button-shimmer 2s infinite',
+                      transform: 'translateX(-100%)'
+                    }}
+                  />
                 )}
               </Button>
             </div>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   )

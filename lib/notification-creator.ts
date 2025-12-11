@@ -4,8 +4,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { sendWhatsAppNotification } from './sendWhatsAppNotification';
-import { sendNotificationEmail } from './resend-service';
+import { sendWhatsAppNotification, formatPhoneForWhatsApp } from './sendWhatsAppNotification';
+import { sendNotificationEmail, isResendConfigured } from './resend-service';
 
 const prisma = new PrismaClient();
 
@@ -281,15 +281,19 @@ export async function notifyTaskAssigned(params: {
 
   // Send WhatsApp and Email notifications
   try {
+    console.log(`[NotificationCreator] 🔍 Looking up user for task notification: ${params.userId}`);
+    
     const user = await prisma.user.findUnique({
       where: { id: params.userId },
-      select: { phone: true, name: true, email: true }
+      select: { phone: true, name: true, email: true, id: true }
     });
 
     if (!user) {
-      console.log(`[NotificationCreator] User ${params.userId} not found`);
+      console.error(`[NotificationCreator] ❌ User ${params.userId} not found - cannot send notifications`);
       return notification;
     }
+
+    console.log(`[NotificationCreator] ✅ User found: ${user.name} (phone: ${user.phone || 'NOT SET'}, email: ${user.email || 'NOT SET'})`);
 
     const formattedDueDate = new Date(params.dueDate).toLocaleDateString('fr-FR', {
       weekday: 'long',
@@ -301,6 +305,10 @@ export async function notifyTaskAssigned(params: {
     // Send WhatsApp notification
     if (user.phone) {
       try {
+        // Format phone number to international format
+        const formattedPhone = formatPhoneForWhatsApp(user.phone);
+        console.log(`[NotificationCreator] 📱 Attempting to send WhatsApp to ${user.name} at ${formattedPhone} (original: ${user.phone})`);
+        
         const whatsappMessage = `✅ *Nouvelle Tâche Assignée*\n\n` +
           `Bonjour ${user.name.split(' ')[0]},\n\n` +
           `Une nouvelle tâche vous a été assignée.\n\n` +
@@ -311,9 +319,9 @@ export async function notifyTaskAssigned(params: {
           `Merci de compléter cette tâche avant la date d'échéance.\n\n` +
           `_Créé par ${params.createdBy}_`;
 
-        await sendWhatsAppNotification({
+        const whatsappResult = await sendWhatsAppNotification({
           userId: params.userId,
-          phone: user.phone,
+          phone: formattedPhone,
           title: 'Nouvelle tâche assignée',
           message: whatsappMessage,
           type: 'task_assigned',
@@ -326,42 +334,111 @@ export async function notifyTaskAssigned(params: {
           }
         });
 
-        console.log(`[NotificationCreator] ✅ WhatsApp sent for task to ${user.name}`);
+        if (whatsappResult.ok && whatsappResult.whatsappSent) {
+          console.log(`[NotificationCreator] ✅ WhatsApp sent successfully for task to ${user.name} (${formattedPhone})`);
+        } else {
+          console.error(`[NotificationCreator] ❌ WhatsApp failed for task to ${user.name} (${formattedPhone}):`, whatsappResult.error || 'Unknown error');
+        }
       } catch (whatsappError) {
-        console.error('[NotificationCreator] Error sending WhatsApp for task:', whatsappError);
+        console.error('[NotificationCreator] ❌ Exception sending WhatsApp for task:', whatsappError);
+        console.error('[NotificationCreator] WhatsApp error details:', {
+          error: whatsappError instanceof Error ? whatsappError.message : String(whatsappError),
+          stack: whatsappError instanceof Error ? whatsappError.stack : undefined,
+          userId: params.userId,
+          phone: user.phone,
+          formattedPhone: formatPhoneForWhatsApp(user.phone)
+        });
         // Don't fail if WhatsApp fails
       }
     } else {
-      console.log(`[NotificationCreator] No phone number for user ${params.userId}, skipping WhatsApp`);
+      console.warn(`[NotificationCreator] ⚠️ No phone number for user ${user.name} (${params.userId}), skipping WhatsApp`);
     }
 
     // Send Email notification
     if (user.email) {
       try {
-        const emailMessage = `Bonjour ${user.name},\n\n` +
-          `Une nouvelle tâche vous a été assignée.\n\n` +
-          `📋 **Tâche :** ${params.taskTitle}\n` +
-          `📅 **Échéance :** ${formattedDueDate}\n` +
-          `${params.linkedName ? `🔗 **Lié à :** ${params.linkedName}\n` : ''}` +
-          `\n💡 **Action requise :**\n` +
-          `Merci de compléter cette tâche avant la date d'échéance.\n\n` +
-          `_Créé par ${params.createdBy}_`;
-
-        await sendNotificationEmail(user.email, {
-          title: `Nouvelle tâche assignée: ${params.taskTitle}`,
-          message: emailMessage,
-          type: 'task_assigned'
-        });
-        console.log(`[NotificationCreator] ✅ Email sent for task to ${user.email}`);
+        // Check if Resend is configured
+        if (!isResendConfigured()) {
+          console.warn(`[NotificationCreator] ⚠️ Resend not configured. Email notification skipped for ${user.email}`);
+          console.warn(`[NotificationCreator] ⚠️ Add RESEND_API_KEY to .env file to enable email notifications`);
+        } else {
+          console.log(`[NotificationCreator] 📧 Attempting to send email to ${user.name} at ${user.email}`);
+          console.log(`[NotificationCreator] Email validation:`, {
+            email: user.email,
+            isValidFormat: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email || '')
+          });
+          
+          const emailResult = await sendNotificationEmail(user.email, {
+            title: `Nouvelle tâche assignée: ${params.taskTitle}`,
+            message: `Bonjour ${user.name},\n\nUne nouvelle tâche vous a été assignée.`,
+            type: 'task_assigned',
+            taskData: {
+              taskTitle: params.taskTitle,
+              dueDate: formattedDueDate,
+              linkedName: params.linkedName,
+              createdBy: params.createdBy,
+              taskId: params.taskId
+            }
+          });
+          
+          if (emailResult.success) {
+            console.log(`[NotificationCreator] ✅ Email sent successfully for task to ${user.email}`);
+            if (emailResult.messageId) {
+              console.log(`[NotificationCreator] 📬 Email message ID: ${emailResult.messageId}`);
+            }
+            if (emailResult.debug) {
+              console.log(`[NotificationCreator] 📧 Email debug info:`, JSON.stringify(emailResult.debug, null, 2));
+            }
+          } else {
+            console.error(`[NotificationCreator] ❌ Email failed for task to ${user.email}`);
+            console.error(`[NotificationCreator] ❌ Error:`, emailResult.error || 'Unknown error');
+            if (emailResult.debug) {
+              console.error(`[NotificationCreator] ❌ Debug info:`, JSON.stringify(emailResult.debug, null, 2));
+            }
+            
+            // Show specific troubleshooting based on error type
+            if (emailResult.error?.includes('API key is invalid')) {
+              console.error(`[NotificationCreator] ❌ INVALID API KEY DETECTED`);
+              console.error(`[NotificationCreator] ❌ Your RESEND_API_KEY in .env is invalid or expired`);
+              console.error(`[NotificationCreator] ❌ Steps to fix:`);
+              console.error(`[NotificationCreator]    1. Go to https://resend.com/api-keys`);
+              console.error(`[NotificationCreator]    2. Check if your API key is active`);
+              console.error(`[NotificationCreator]    3. Generate a NEW API key if needed`);
+              console.error(`[NotificationCreator]    4. Copy the key (starts with re_)`);
+              console.error(`[NotificationCreator]    5. Update RESEND_API_KEY in .env file`);
+              console.error(`[NotificationCreator]    6. RESTART your server`);
+              console.error(`[NotificationCreator]    7. Test: GET /api/email/test?email=${user.email}`);
+            } else {
+              console.error(`[NotificationCreator] ❌ Troubleshooting steps:`);
+              console.error(`[NotificationCreator]    1. Check RESEND_API_KEY is set in .env file`);
+              console.error(`[NotificationCreator]    2. Verify email address is valid: ${user.email}`);
+              console.error(`[NotificationCreator]    3. Check Resend account is active`);
+              console.error(`[NotificationCreator]    4. Test email endpoint: GET /api/email/test?email=${user.email}`);
+              console.error(`[NotificationCreator]    5. Check server logs for detailed error messages`);
+            }
+          }
+        }
       } catch (emailError) {
-        console.error('[NotificationCreator] Error sending email for task:', emailError);
+        console.error('[NotificationCreator] ❌ Exception sending email for task:', emailError);
+        console.error('[NotificationCreator] Email error details:', {
+          error: emailError instanceof Error ? emailError.message : String(emailError),
+          stack: emailError instanceof Error ? emailError.stack : undefined,
+          userId: params.userId,
+          email: user.email
+        });
         // Don't fail if email fails
       }
     } else {
-      console.log(`[NotificationCreator] No email for user ${params.userId}, skipping email`);
+      console.warn(`[NotificationCreator] ⚠️ No email for user ${user.name} (${params.userId}), skipping email`);
     }
   } catch (error) {
-    console.error('[NotificationCreator] Error sending notifications for task:', error);
+    console.error('[NotificationCreator] ❌ Critical error sending notifications for task:', error);
+    console.error('[NotificationCreator] Error details:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: params.userId,
+      taskId: params.taskId
+    });
     // Don't fail the notification creation if notifications fail
   }
 

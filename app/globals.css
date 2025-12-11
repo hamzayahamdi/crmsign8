@@ -275,6 +275,16 @@
     animation: shimmer 2.5s infinite;
   }
 
+  /* Button shimmer animation for loading states */
+  @keyframes button-shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
   /* Glowing text effect */
   @keyframes text-glow {
 

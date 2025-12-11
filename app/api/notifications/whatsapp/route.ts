@@ -96,6 +96,8 @@ export async function POST(req: Request) {
 
         // Attempt to send WhatsApp message
         try {
+            console.log(`[WhatsApp API] 📱 Sending message to ${cleanPhone} via UltraMSG`);
+            
             const resp = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -107,16 +109,37 @@ export async function POST(req: Request) {
             });
 
             apiResponse = await resp.json();
-            whatsappSuccess = resp.ok;
+            
+            // UltraMSG API returns success in the response body, not just HTTP status
+            // Check both HTTP status and API response
+            const isHttpOk = resp.ok;
+            const isApiSuccess = apiResponse?.sent === 'true' || apiResponse?.sent === true || 
+                                 apiResponse?.success === true || 
+                                 (apiResponse?.error === undefined && isHttpOk);
+            
+            whatsappSuccess = isHttpOk && isApiSuccess;
 
-            if (!resp.ok) {
-                console.error("❌ UltraMSG API error:", apiResponse);
+            if (!whatsappSuccess) {
+                console.error("❌ UltraMSG API error:", {
+                    httpStatus: resp.status,
+                    httpOk: resp.ok,
+                    apiResponse: apiResponse,
+                    phone: cleanPhone
+                });
             } else {
-                console.log("✅ WhatsApp message sent successfully to", cleanPhone);
+                console.log("✅ WhatsApp message sent successfully to", cleanPhone, {
+                    messageId: apiResponse?.id || apiResponse?.messageId,
+                    response: apiResponse
+                });
             }
         } catch (whatsappError: any) {
-            console.error("❌ WhatsApp sending failed:", whatsappError.message);
+            console.error("❌ WhatsApp sending failed with exception:", {
+                error: whatsappError.message,
+                stack: whatsappError.stack,
+                phone: cleanPhone
+            });
             apiResponse = { error: whatsappError.message };
+            whatsappSuccess = false;
         }
 
         // Save notification in database (always, regardless of WhatsApp success)
