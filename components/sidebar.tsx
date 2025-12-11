@@ -254,7 +254,7 @@ const SidebarComponent = () => {
         </motion.div>
       </div>
 
-      <nav className="flex-1 p-3 md:p-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sky-500/30 scrollbar-track-transparent">
+      <nav className="flex-1 p-3 md:p-4 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-sky-500/30 scrollbar-track-transparent">
         <LayoutGroup id="sidebar-nav">
           {useMemo(() => {
             const role = user?.role
@@ -298,7 +298,6 @@ const SidebarComponent = () => {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.4, ease: "easeOut" }}
-                whileHover={{ x: 4 }}
                 whileTap={{ scale: 0.98 }}
                 className="w-full text-left block"
                 type="button"
@@ -306,89 +305,55 @@ const SidebarComponent = () => {
                 <motion.div
                   layout
                   className={cn(
-                    "relative flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3.5 rounded-xl md:rounded-2xl group overflow-hidden transition-all duration-150",
+                    "relative flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3.5 rounded-2xl group overflow-hidden transition-all duration-200",
                     isActive
-                      ? "text-sky-50"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "text-white"
+                      : "text-white/70 hover:text-white"
                   )}
                   transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.8 }}
                 >
-                  {isActive && (
-                    <>
-                      {/* Background glow effect with improved spring */}
-                      <motion.div
-                        layoutId="sidebar-active-pill"
-                        className="absolute inset-0 rounded-xl md:rounded-2xl"
-                        style={{
-                          background: "linear-gradient(135deg, rgba(56,189,248,0.9) 0%, rgba(59,130,246,1) 100%)",
-                          boxShadow: "0 0 40px rgba(56,189,248,0.8), 0 0 80px rgba(59,130,246,0.5), inset 0 1px 0 rgba(255,255,255,0.25)",
-                        }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 500,
-                          damping: 35,
-                          mass: 0.6,
-                          velocity: 2
-                        }}
-                      />
-
-                      {/* Animated outer glow with smoother pulse */}
-                      <motion.div
-                        layoutId="sidebar-active-glow-outer"
-                        className="pointer-events-none absolute -inset-2 rounded-3xl blur-xl"
-                        style={{
-                          background: "radial-gradient(circle, rgba(56,189,248,0.7) 0%, rgba(59,130,246,0.4) 50%, transparent 100%)",
-                        }}
-                        animate={{ opacity: [0.6, 0.9, 0.6], scale: [0.96, 1.04, 0.96] }}
-                        transition={{
-                          duration: 2.5,
-                          repeat: Infinity,
-                          repeatType: "mirror",
-                          ease: [0.4, 0, 0.6, 1] // Custom cubic-bezier for smoother easing
-                        }}
-                      />
-
-                      {/* Inner shimmer glow with faster, smoother animation */}
-                      <motion.div
-                        layoutId="sidebar-active-glow-inner"
-                        className="pointer-events-none absolute inset-0 rounded-xl md:rounded-2xl"
-                        style={{
-                          background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%)",
-                        }}
-                        animate={{ x: [-120, 120] }}
-                        transition={{
-                          duration: 2,
-                          repeat: Infinity,
-                          repeatType: "mirror",
-                          ease: [0.4, 0, 0.2, 1] // Smoother easing
-                        }}
-                      />
-                    </>
+                  {/* Hover background */}
+                  {!isActive && (
+                    <motion.div
+                      className="absolute inset-0 rounded-2xl bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    />
                   )}
 
-                  {/* Icon with enhanced glow and smoother pulse */}
-                  <motion.div
-                    className="relative z-10"
-                    animate={isActive ? { scale: [1, 1.12, 1] } : {}}
-                    transition={{
-                      duration: 2.5,
-                      repeat: Infinity,
-                      repeatType: "mirror",
-                      ease: [0.4, 0, 0.6, 1]
-                    }}
-                  >
-                    <item.icon
-                      className={cn(
-                        "w-4 h-4 md:w-5 md:h-5 transition-all duration-300",
-                        isActive
-                          ? "drop-shadow-[0_0_24px_rgba(56,189,248,1)] drop-shadow-[0_0_48px_rgba(59,130,246,0.6)]"
-                          : "group-hover:scale-110 group-hover:drop-shadow-[0_0_12px_rgba(56,189,248,0.6)]",
-                      )}
+                  {/* Active gradient background */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-active-pill"
+                      className="absolute inset-0 rounded-2xl"
+                      style={{
+                        background: "linear-gradient(135deg, rgba(56,189,248,0.9) 0%, rgba(59,130,246,1) 100%)",
+                        boxShadow: "0 4px 12px rgba(56,189,248,0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 35,
+                        mass: 0.6,
+                      }}
                     />
-                  </motion.div>
+                  )}
+
+                  {/* Icon */}
+                  <item.icon
+                    className={cn(
+                      "w-4 h-4 md:w-5 md:h-5 relative z-10 transition-all duration-200",
+                      isActive
+                        ? "opacity-100"
+                        : "opacity-70 group-hover:opacity-100"
+                    )}
+                  />
 
                   {/* Text label */}
-                  <span className="relative z-10 flex-1 truncate text-[11px] md:text-xs font-semibold">{item.name}</span>
+                  <span className={cn(
+                    "relative z-10 flex-1 truncate text-[11px] md:text-xs font-semibold transition-all duration-200",
+                    isActive ? "text-white" : "text-white/70 group-hover:text-white"
+                  )}>
+                    {item.name}
+                  </span>
 
                   {/* Task badges */}
                   {item.href === "/tasks" && (
@@ -448,10 +413,10 @@ const SidebarComponent = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
-          className="shrink-0 border-t border-border/40 bg-background/50 backdrop-blur-sm"
+          className="shrink-0 border-t border-border/40"
         >
           <div className="p-3 md:p-4 space-y-2 md:space-y-3">
-            <div className="glass rounded-xl md:rounded-2xl p-2 md:p-3 space-y-1.5 border border-border/40 hover:border-border/60 transition-all duration-300">
+            <div className="rounded-2xl p-2 md:p-3 space-y-1.5 bg-white/5 backdrop-blur-sm shadow-lg transition-all duration-300">
               <div className="flex items-center gap-2 md:gap-3">
                 <Avatar className="h-8 w-8 md:h-10 md:w-10 border-2 border-sky-400/50 ring-2 ring-sky-400/20">
                   <AvatarFallback className="bg-gradient-to-br from-sky-500 via-sky-400 to-sky-600 text-white font-bold text-xs md:text-sm">
