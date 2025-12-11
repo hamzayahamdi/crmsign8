@@ -41,9 +41,9 @@ export const sidebarPermissions: SidebarItem[] = [
 
   {
     id: "clients",
-    label: "Clients",
+    label: "Opportunités",
     href: "/clients",
-    icon: "Users",
+    icon: "Target",
     roles: ["Admin", "Operator", "Gestionnaire", "Architect"],
   },
   {

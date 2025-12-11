@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Users, LogOut, Settings, CalendarDays, Compass, Calendar, Briefcase, Bell, Menu, X, MoreVertical, Check } from "lucide-react"
+import { Home, Users, LogOut, Settings, CalendarDays, Compass, Calendar, Briefcase, Bell, Menu, X, MoreVertical, Check, Target } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Signature8Logo } from "@/components/signature8-logo"
@@ -42,6 +42,7 @@ const iconMap: Record<string, any> = {
   Calendar,
   Bell,
   Settings,
+  Target,
 }
 
 const SidebarComponent = () => {

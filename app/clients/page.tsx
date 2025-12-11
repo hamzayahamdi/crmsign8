@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Filter, X, ChevronDown, Users, TrendingUp, LayoutGrid, Table as TableIcon, Loader2 } from "lucide-react"
+import { Plus, Filter, X, ChevronDown, Users, TrendingUp, LayoutGrid, Table as TableIcon, Loader2, CheckCircle2, Clock } from "lucide-react"
 import type { Client, ProjectStatus } from "@/types/client"
 import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
@@ -287,15 +287,66 @@ export default function ClientsPage() {
     }))
   }
 
-  // Calculate statistics
-  const totalClients = clients.length
-  const activeProjects = clients.filter(c => c.statutProjet !== "termine" && c.statutProjet !== "livraison").length
-  const completedProjects = clients.filter(c => c.statutProjet === "termine").length
+  // Calculate statistics - Client statistics based on project status
+  // IMPORTANT: Use the same filtering logic as the table to ensure stats match displayed clients
+  // Only count clients that have a project name (nomProjet) - matching table logic
+  
+  // Filter clients the same way the table does - only show clients with nomProjet
+  const clientsWithProjects = clients.filter(client => {
+    // Only count clients that have a project name (nomProjet)
+    // This matches the table filtering logic in ClientsTable component
+    return client.nomProjet && client.nomProjet.trim()
+  })
 
-  // Get unique values for filters
-  const uniqueArchitects = Array.from(new Set(clients.map(c => c.architecteAssigne))).filter(Boolean)
-  const uniqueVilles = Array.from(new Set(clients.map(c => c.ville))).filter(Boolean)
-  const uniqueTypes = Array.from(new Set(clients.map(c => c.typeProjet))).filter(Boolean)
+  // Remove duplicates: Only count unique client+project combinations
+  // This prevents counting the same client multiple times
+  const uniqueClientsWithProjects = clientsWithProjects.reduce((acc, client) => {
+    const existingIndex = acc.findIndex(c => c.nom === client.nom && c.nomProjet === client.nomProjet)
+    if (existingIndex < 0) {
+      acc.push(client)
+    }
+    return acc
+  }, [] as Client[])
+  
+  // Helper function to categorize client status (matches architect logic)
+  const getClientStatusCategory = (status: ProjectStatus): 'en_cours' | 'termine' | 'en_attente' | 'excluded' => {
+    // Exclude lost/refused/cancelled projects - these are not counted in active stats
+    if (status === 'perdu' || status === 'refuse' || status === 'annule') {
+      return 'excluded'
+    }
+    
+    // Terminés - completed projects
+    if (status === 'termine' || status === 'livraison_termine' || status === 'livraison') {
+      return 'termine'
+    }
+    
+    // En attente - new or qualified projects waiting to start
+    if (status === 'nouveau' || status === 'qualifie' || status === 'prise_de_besoin') {
+      return 'en_attente'
+    }
+    
+    // En cours - all active projects in progress
+    // Includes: acompte_recu, conception, devis_negociation, accepte, premier_depot,
+    // projet_en_cours, chantier, facture_reglee, en_conception, en_validation, en_chantier, suspendu
+    return 'en_cours'
+  }
+
+  // Calculate stats based on clients with projects (matching table display)
+  const totalClients = uniqueClientsWithProjects.length
+  
+  // Clients with projects actively in progress (en cours)
+  const clientsEnCours = uniqueClientsWithProjects.filter(c => getClientStatusCategory(c.statutProjet) === 'en_cours').length
+  
+  // Clients with completed projects (terminés)
+  const clientsTermines = uniqueClientsWithProjects.filter(c => getClientStatusCategory(c.statutProjet) === 'termine').length
+  
+  // Clients with projects waiting to start (en attente) - for reference
+  const clientsEnAttente = uniqueClientsWithProjects.filter(c => getClientStatusCategory(c.statutProjet) === 'en_attente').length
+
+  // Get unique values for filters (based on clients with projects)
+  const uniqueArchitects = Array.from(new Set(uniqueClientsWithProjects.map(c => c.architecteAssigne))).filter(Boolean)
+  const uniqueVilles = Array.from(new Set(uniqueClientsWithProjects.map(c => c.ville))).filter(Boolean)
+  const uniqueTypes = Array.from(new Set(uniqueClientsWithProjects.map(c => c.typeProjet))).filter(Boolean)
 
 
   return (
@@ -316,7 +367,7 @@ export default function ClientsPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Total</p>
-                    <p className="text-2xl font-bold text-white leading-tight">{isLoading ? '...' : clients.length}</p>
+                    <p className="text-2xl font-bold text-white leading-tight">{isLoading ? '...' : totalClients}</p>
                     <p className="text-[10px] text-slate-500 mt-0.5">Clients</p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
@@ -339,16 +390,16 @@ export default function ClientsPage() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Actifs</p>
-                    <p className="text-2xl font-bold text-orange-400 leading-tight">{isLoading ? '...' : activeProjects}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Projets</p>
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">En cours</p>
+                    <p className="text-2xl font-bold text-orange-400 leading-tight">{isLoading ? '...' : clientsEnCours}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Clients</p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
                     <div className="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
                       {isLoading ? (
                         <Loader2 className="w-5 h-5 text-orange-400 animate-spin" />
                       ) : (
-                        <TrendingUp className="w-5 h-5 text-orange-400" />
+                        <Clock className="w-5 h-5 text-orange-400" />
                       )}
                     </div>
                   </div>
@@ -364,15 +415,15 @@ export default function ClientsPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Terminés</p>
-                    <p className="text-2xl font-bold text-green-400 leading-tight">{isLoading ? '...' : completedProjects}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Projets</p>
+                    <p className="text-2xl font-bold text-green-400 leading-tight">{isLoading ? '...' : clientsTermines}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Clients</p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
                     <div className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
                       {isLoading ? (
                         <Loader2 className="w-5 h-5 text-green-400 animate-spin" />
                       ) : (
-                        <TrendingUp className="w-5 h-5 text-green-400" />
+                        <CheckCircle2 className="w-5 h-5 text-green-400" />
                       )}
                     </div>
                   </div>
