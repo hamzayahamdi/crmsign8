@@ -60,7 +60,6 @@ export default function ContactsPage() {
   const [hasOpportunitiesFilter, setHasOpportunitiesFilter] = useState<string>('all')
   const [cityFilter, setCityFilter] = useState<string>('all')
   const [projectTypeFilter, setProjectTypeFilter] = useState<string>('all')
-  const [pipelineFilter, setPipelineFilter] = useState<string>('all') // Admin only
 
   // Architect data from API
   const [allArchitects, setAllArchitects] = useState<Array<{ id: string, name: string }>>([])
@@ -101,7 +100,7 @@ export default function ContactsPage() {
   useEffect(() => {
     setPage(1) // Reset to page 1 when filters change
     loadContacts(1)
-  }, [searchQuery, statusFilter, selectedArchitect, hasOpportunitiesFilter, cityFilter, projectTypeFilter, pipelineFilter])
+  }, [searchQuery, statusFilter, selectedArchitect, hasOpportunitiesFilter, cityFilter, projectTypeFilter])
 
   const loadContacts = async (pageNum: number = page) => {
     try {
@@ -144,14 +143,6 @@ export default function ContactsPage() {
           const opportunities = (c as any).opportunities || []
           return opportunities.some((opp: any) => opp.type === projectTypeFilter)
         })
-      }
-
-      // Filter by tag (Admin only)
-      // IMPORTANT: Always include converted contacts even if tag filter is set
-      if (isAdmin && pipelineFilter !== 'all') {
-        filtered = filtered.filter(c => 
-          c.tag === pipelineFilter || c.tag === 'converted' // Always show converted contacts
-        )
       }
 
       setContacts(filtered)
@@ -218,7 +209,7 @@ export default function ContactsPage() {
 
   const projectTypes: OpportunityType[] = ['villa', 'appartement', 'magasin', 'bureau', 'riad', 'studio', 'renovation', 'autre']
 
-  const hasActiveFilters = statusFilter !== 'all' || (!isArchitect && selectedArchitect !== 'all') || hasOpportunitiesFilter !== 'all' || cityFilter !== 'all' || projectTypeFilter !== 'all' || pipelineFilter !== 'all'
+  const hasActiveFilters = statusFilter !== 'all' || (!isArchitect && selectedArchitect !== 'all') || hasOpportunitiesFilter !== 'all' || cityFilter !== 'all' || projectTypeFilter !== 'all'
 
   return (
     <AuthGuard>
@@ -357,8 +348,7 @@ export default function ContactsPage() {
                           (!isArchitect && selectedArchitect !== 'all' ? 1 : 0) +
                           (hasOpportunitiesFilter !== 'all' ? 1 : 0) +
                           (cityFilter !== 'all' ? 1 : 0) +
-                          (projectTypeFilter !== 'all' ? 1 : 0) +
-                          (pipelineFilter !== 'all' ? 1 : 0)} actif{((statusFilter !== 'all' ? 1 : 0) + (!isArchitect && selectedArchitect !== 'all' ? 1 : 0) + (hasOpportunitiesFilter !== 'all' ? 1 : 0) + (cityFilter !== 'all' ? 1 : 0) + (projectTypeFilter !== 'all' ? 1 : 0) + (pipelineFilter !== 'all' ? 1 : 0)) > 1 ? 's' : ''}
+                          (projectTypeFilter !== 'all' ? 1 : 0)} actif{((statusFilter !== 'all' ? 1 : 0) + (!isArchitect && selectedArchitect !== 'all' ? 1 : 0) + (hasOpportunitiesFilter !== 'all' ? 1 : 0) + (cityFilter !== 'all' ? 1 : 0) + (projectTypeFilter !== 'all' ? 1 : 0)) > 1 ? 's' : ''}
                       </span>
                     )}
                     <ChevronDown
@@ -378,7 +368,6 @@ export default function ContactsPage() {
                         setHasOpportunitiesFilter('all')
                         setCityFilter('all')
                         setProjectTypeFilter('all')
-                        setPipelineFilter('all')
                       }}
                       className="text-[10px] text-muted-foreground hover:text-white flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50"
                     >
@@ -491,26 +480,6 @@ export default function ContactsPage() {
                                   {architect.name}
                                 </SelectItem>
                               ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-
-                      {/* Tag Filter - Admin Only */}
-                      {isAdmin && (
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider">Tag</label>
-                          <Select value={pipelineFilter} onValueChange={setPipelineFilter}>
-                            <SelectTrigger className="h-8 text-xs w-full bg-slate-700/60 border-slate-600/40 text-white hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-slate-600">
-                              <SelectItem value="all" className="text-white">Tous</SelectItem>
-                              <SelectItem value="prospect" className="text-white">Prospect</SelectItem>
-                              <SelectItem value="vip" className="text-white">VIP</SelectItem>
-                              <SelectItem value="converted" className="text-white">Converti</SelectItem>
-                              <SelectItem value="client" className="text-white">Client</SelectItem>
-                              <SelectItem value="archived" className="text-white">Archivé</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
