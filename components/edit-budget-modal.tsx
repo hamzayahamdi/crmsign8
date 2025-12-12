@@ -13,17 +13,24 @@ interface EditBudgetModalProps {
   onClose: () => void
   client: Client
   onSave: (client: Client) => void
+  onLoadingChange?: (isLoading: boolean) => void
 }
 
 export function EditBudgetModal({ 
   isOpen, 
   onClose, 
   client, 
-  onSave 
+  onSave,
+  onLoadingChange
 }: EditBudgetModalProps) {
   const { toast } = useToast()
   const [budget, setBudget] = useState((client.budget || 0).toString())
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Notify parent of loading state changes
+  useEffect(() => {
+    onLoadingChange?.(isSubmitting)
+  }, [isSubmitting, onLoadingChange])
 
   // Reset form when modal opens or client changes
   useEffect(() => {
