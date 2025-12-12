@@ -150,6 +150,16 @@ export function CreateOpportunityModal({
 
   const loadLeadPropertyType = async () => {
     try {
+      // First, try to use contact.typeBien directly (this is the source of truth after conversion)
+      if (contact?.typeBien) {
+        const pt = mapLeadTypeToOpportunityType(contact.typeBien)
+        setPropertyType(pt)
+        setNomOportunite((prev) => prev || defaultTitle(pt))
+        return
+      }
+      
+      // Fallback: try to fetch from lead if leadId exists (for backward compatibility)
+      // Note: Lead might be deleted after conversion, so this may fail
       const leadId = contact?.leadId
       if (!leadId) {
         setPropertyType("autre")
@@ -164,9 +174,13 @@ export function CreateOpportunityModal({
         const pt = mapLeadTypeToOpportunityType(lead?.typeBien)
         setPropertyType(pt)
         setNomOportunite((prev) => prev || defaultTitle(pt))
+      } else {
+        // Lead not found (likely deleted), default to "autre"
+        setPropertyType("autre")
       }
     } catch (_) {
-      // ignore errors
+      // ignore errors, default to "autre"
+      setPropertyType("autre")
     }
   }
 

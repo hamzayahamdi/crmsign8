@@ -1342,13 +1342,13 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               </div>
             )}
 
-            {leadData?.typeBien && (
+            {(contact.typeBien || leadData?.typeBien) && (
               <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-red-500/30 transition-all">
                 <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
                   <Home className="w-3 h-3 text-red-400" />
                   Type de bien
                 </p>
-                <p className="text-xs font-light text-white">{leadData.typeBien}</p>
+                <p className="text-xs font-light text-white">{contact.typeBien || leadData?.typeBien}</p>
               </div>
             )}
 
@@ -1533,13 +1533,13 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
           <div className="space-y-1.5">
             {/* Contact Status */}
             <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
-              <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+              <div className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
                 <div className={`w-1.5 h-1.5 rounded-full ${contact.tag === 'client' ? 'bg-green-400 animate-pulse' :
                   contact.status === 'perdu' ? 'bg-red-400' :
                     'bg-blue-400'
                   }`} />
                 Statut
-              </p>
+              </div>
               <p className="text-xs font-light text-white">
                 {contact.tag === 'client' 
                   ? 'Client' 

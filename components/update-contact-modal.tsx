@@ -134,7 +134,7 @@ export function UpdateContactModal({
         nom: contact?.nom || "",
         telephone: contact?.telephone || "",
         ville: contact?.ville || "",
-        typeBien: contact?.typeBien || "",
+        typeBien: contact?.typeBien || "", // Use contact.typeBien directly (stored after conversion)
         source: contact?.source || "site_web",
         architecteAssigne: contact?.architecteAssigne || "",
         tag: contact?.tag || ("prospect" as ContactTag),
@@ -233,11 +233,14 @@ export function UpdateContactModal({
                 
                 // Update form with lead data if available
                 // ALWAYS prefer lead data for campaignName and commercialMagasin (they originate from leads)
+                // For typeBien, prefer contact.typeBien (it's stored on contact after conversion)
                 if (leadData) {
                     const leadCampaignName = leadData.campaignName || ""
                     console.log('[Update Contact Modal] Lead data received:', {
                         leadId: leadData.id,
                         source: leadData.source,
+                        typeBien: leadData.typeBien,
+                        contactTypeBien: contact.typeBien,
                         campaignName: leadCampaignName,
                         hasCampaignName: !!leadData.campaignName,
                         commercialMagasin: leadData.commercialMagasin,
@@ -247,6 +250,15 @@ export function UpdateContactModal({
                     
                     setFormData(prev => {
                         const updates: any = {}
+                        
+                        // Update typeBien: prefer contact.typeBien, fallback to lead.typeBien if contact doesn't have it
+                        if (!prev.typeBien && leadData.typeBien) {
+                            updates.typeBien = leadData.typeBien
+                            console.log('[Update Contact Modal] ✅ Setting typeBien from lead (contact has none):', leadData.typeBien)
+                        } else if (prev.typeBien && contact.typeBien) {
+                            // Contact already has typeBien, keep it (it's the source of truth)
+                            console.log('[Update Contact Modal] ✅ Keeping contact.typeBien:', contact.typeBien)
+                        }
                         
                         // ALWAYS update campaignName from lead if it exists (lead is source of truth)
                         // This ensures we get the correct value even if contact was converted before schema update
@@ -323,11 +335,15 @@ export function UpdateContactModal({
             })
             
             // Set form data immediately with contact data
+            // Prefer contact.typeBien directly (it's stored on contact after conversion)
+            // Fallback to lead data if contact doesn't have it (for backward compatibility)
+            const typeBienValue = contact.typeBien || ""
+            
             setFormData({
                 nom: contact.nom || "",
                 telephone: contact.telephone || "",
                 ville: contact.ville || "",
-                typeBien: contact.typeBien || "",
+                typeBien: typeBienValue,
                 source: source,
                 architecteAssigne: contact.architecteAssigne || "",
                 tag: contact.tag || ("prospect" as ContactTag),

@@ -1,9 +1,8 @@
 "use client"
 
 import { useUIStore } from "@/stores/ui-store"
-import { Search, Plus, User, LogOut, Upload, Menu } from "lucide-react"
+import { Search, Plus, User, LogOut, Upload, Menu, Command } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,41 +13,46 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { NotificationBell } from "@/components/notification-bell"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { usePathname } from "next/navigation"
 import { hasPermission } from "@/lib/permissions"
+import { CommandMenu } from "@/components/command-menu"
 
 interface HeaderProps {
   onCreateLead?: () => void
   onImportLeads?: () => void
+  onCreateTask?: () => void
+  onCreateContact?: () => void
   searchQuery?: string
   onSearchChange?: (q: string) => void
 }
 
-export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearchChange }: HeaderProps) {
-  const [localQuery, setLocalQuery] = useState(searchQuery)
+export function Header({ 
+  onCreateLead, 
+  onImportLeads, 
+  onCreateTask,
+  onCreateContact,
+  searchQuery = "", 
+  onSearchChange 
+}: HeaderProps) {
+  const [commandMenuOpen, setCommandMenuOpen] = useState(false)
   const { user, logout } = useAuth()
   const pathname = usePathname()
   const { toggleMobileMenu } = useUIStore()
 
-  // Debounce search to prevent excessive re-renders
+  // Keyboard shortcut for command menu (Cmd/Ctrl+K)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (onSearchChange && localQuery !== searchQuery) {
-        onSearchChange(localQuery)
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setCommandMenuOpen((open) => !open)
       }
-    }, 300) // 300ms debounce
-
-    return () => clearTimeout(timer)
-  }, [localQuery, onSearchChange, searchQuery])
-
-  // Update local query when prop changes (e.g., when cleared externally)
-  useEffect(() => {
-    if (searchQuery !== localQuery) {
-      setLocalQuery(searchQuery)
     }
-  }, [searchQuery])
+
+    document.addEventListener("keydown", down)
+    return () => document.removeEventListener("keydown", down)
+  }, [])
 
   const getInitials = (name: string) => {
     return name
@@ -71,16 +75,21 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
           <Menu className="w-6 h-6" />
         </button>
 
-        {/* Search - Hidden on mobile, visible on md+ */}
-        <div className="hidden md:flex flex-1 max-w-xl relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            type="search"
-            placeholder="Rechercher un lead..."
-            value={localQuery}
-            onChange={(e) => setLocalQuery(e.target.value)}
-            className="h-11 rounded-lg pl-10 bg-[rgb(15,20,32)] border-[rgb(30,41,59)] focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 text-white placeholder:text-slate-500"
-          />
+        {/* Command Menu Trigger - Hidden on mobile, visible on md+ */}
+        <div className="hidden md:flex flex-1 max-w-xl">
+          <Button
+            variant="outline"
+            onClick={() => setCommandMenuOpen(true)}
+            className="h-12 w-full justify-start rounded-lg bg-[rgb(15,20,32)] border-[rgb(30,41,59)] text-slate-400 hover:bg-[rgb(20,25,37)] hover:border-blue-500/50 hover:text-white focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all group"
+          >
+            <Search className="mr-3 h-5 w-5 shrink-0" />
+            <span className="flex-1 text-left text-sm">Rechercher des pages, clients, contacts, tâches...</span>
+            <div className="flex items-center gap-1 ml-3 shrink-0">
+              <kbd className="pointer-events-none hidden h-6 select-none items-center gap-1 rounded-md border border-slate-600/50 bg-[rgb(20,25,37)] px-2 font-mono text-[10px] font-medium text-slate-400 opacity-100 sm:flex shadow-sm">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </div>
+          </Button>
         </div>
 
         {/* Spacer for mobile to push actions to the right */}
@@ -160,6 +169,15 @@ export function Header({ onCreateLead, onImportLeads, searchQuery = "", onSearch
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Command Menu */}
+      <CommandMenu
+        open={commandMenuOpen}
+        onOpenChange={setCommandMenuOpen}
+        onCreateLead={onCreateLead}
+        onCreateTask={onCreateTask}
+        onCreateContact={onCreateContact}
+      />
     </header>
   )
 }

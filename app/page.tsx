@@ -40,6 +40,11 @@ export default function HomePage() {
     }
   }
 
+  const handleCreateTask = () => {
+    // Navigate to tasks page - users can create task there
+    router.push("/tasks")
+  }
+
   const handleImportLeads = () => {
     setIsImportModalOpen(true)
   }
@@ -66,7 +71,8 @@ export default function HomePage() {
         <Sidebar />
         <main className="flex-1 flex flex-col">
           <Header 
-            onCreateLead={handleCreateLead} 
+            onCreateLead={handleCreateLead}
+            onCreateTask={handleCreateTask}
             onImportLeads={handleImportLeads}
             searchQuery={search} 
             onSearchChange={setSearch} 

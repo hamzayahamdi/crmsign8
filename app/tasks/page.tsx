@@ -166,7 +166,7 @@ export default function TasksPage() {
       <div className="flex min-h-screen bg-[rgb(11,14,24)]">
         <Sidebar />
         <main className="flex-1 flex flex-col overflow-x-hidden bg-linear-to-b from-[rgb(17,21,33)] via-[rgb(11,14,24)] to-[rgb(7,9,17)]">
-          <Header />
+          <Header onCreateTask={handleAddTask} />
 
           {/* Removed page title and subtitle for a cleaner layout */}
 

@@ -1,10 +1,12 @@
 "use client"
 
 import type { Lead, LeadStatus, LeadPriority } from "@/types/lead"
-import { Phone, MapPin, User, Calendar, Edit, Trash2, Eye, ArrowUpDown, ArrowUp, ArrowDown, Store, Globe, Facebook, Instagram, Users, Package, Music2, MessageSquarePlus, Clock, CheckCircle2 } from "lucide-react"
+import { Phone, MapPin, User, Calendar, Edit, Trash2, Eye, ArrowUpDown, ArrowUp, ArrowDown, Store, Globe, Facebook, Instagram, Users, Package, Music2, MessageSquarePlus, Clock, CheckCircle2, Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { getLeadDuration, getLeadDurationColor, getLeadDurationIcon } from "@/lib/lead-duration-utils"
+import { useDebounce } from "@/hooks/use-debounce"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +27,7 @@ import {
 import { cn } from "@/lib/utils"
 import { LeadsTableSkeleton } from "@/components/leads-table-skeleton"
 import { LeadActionDialog } from "@/components/lead-action-dialog"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
 interface LeadsTableProps {
@@ -92,8 +94,19 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
   const [hoveredColumn, setHoveredColumn] = useState<SortField | null>(null)
   const [actionDialogLead, setActionDialogLead] = useState<Lead | null>(null)
   const [actionDialogOpen, setActionDialogOpen] = useState(false)
+  const [tableSearchQuery, setTableSearchQuery] = useState("")
+  const debouncedTableSearch = useDebounce(tableSearchQuery, 200)
 
-
+  // Handle Escape key to clear search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && tableSearchQuery) {
+        setTableSearchQuery("")
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [tableSearchQuery])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -142,8 +155,41 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
   // Handle undefined or null leads
   const safeLeads = leads || []
 
-  // Client-side filtering is removed as it is now handled server-side
-  const filteredLeads = safeLeads
+  // Client-side filtering for table search (quick local search)
+  const filteredLeads = useMemo(() => {
+    if (!debouncedTableSearch.trim()) {
+      return safeLeads
+    }
+
+    const searchLower = debouncedTableSearch.toLowerCase().trim()
+    
+    return safeLeads.filter(lead => {
+      // Search across all relevant fields
+      const searchableFields = [
+        lead.nom || '',
+        lead.telephone || '',
+        lead.ville || '',
+        lead.typeBien || '',
+        lead.source || '',
+        lead.assignePar || '',
+        lead.statut || '',
+        lead.priorite || '',
+        lead.campaignName || '',
+        lead.magasin || '',
+        lead.commercialMagasin || '',
+        // Status label
+        statusConfig[lead.statut]?.label || '',
+        // Priority label
+        priorityConfig[lead.priorite]?.label || '',
+        // Source label
+        sourceIcons[lead.source as keyof typeof sourceIcons]?.label || '',
+      ]
+
+      return searchableFields.some(field => 
+        field.toLowerCase().includes(searchLower)
+      )
+    })
+  }, [safeLeads, debouncedTableSearch])
 
   // Debug logging
   console.log(`[LeadsTable] Total leads received: ${safeLeads.length}`)
@@ -298,9 +344,10 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
       {/* Table Container */}
       <div className="rounded-lg border border-[#1F2937] overflow-hidden bg-white/5 backdrop-blur-sm">
         {/* Table Header */}
-        <div className="bg-slate-800/30 px-6 py-4 border-b border-[#1F2937]">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
+        <div className="bg-slate-800/30 border-b border-[#1F2937]">
+          <div className="px-6 py-4 flex items-center justify-between gap-6">
+            {/* Left Side - Title and Count */}
+            <div className="flex-1 min-w-0">
               <h3 className="text-lg font-semibold text-[#E5E7EB]">Liste des Leads</h3>
               <p className="text-sm text-[#9CA3AF]">
                 {sortedLeads.length} lead{sortedLeads.length > 1 ? 's' : ''} trouvé{sortedLeads.length > 1 ? 's' : ''}
@@ -311,6 +358,48 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
                   </span>
                 )}
               </p>
+            </div>
+            
+            {/* Right Side - Search Bar - Enhanced visual design */}
+            <div className="flex-shrink-0 w-full max-w-md lg:max-w-lg xl:max-w-xl">
+              <div className="relative group">
+                {/* Subtle glow effect on focus */}
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"></div>
+                
+                <div className="relative flex items-center">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF] group-hover:text-primary/80 transition-colors z-10 pointer-events-none" />
+                  <Input
+                    type="text"
+                    placeholder="Rechercher rapidement (nom, téléphone, ville, statut, priorité...)"
+                    value={tableSearchQuery}
+                    onChange={(e) => setTableSearchQuery(e.target.value)}
+                    className="relative pl-11 pr-11 h-11 text-sm bg-slate-700/80 border-2 border-slate-600/70 text-white placeholder:text-slate-400 focus:border-primary/80 focus:ring-2 focus:ring-primary/30 focus:bg-slate-700/95 transition-all duration-200 shadow-xl hover:border-slate-500/80 w-full backdrop-blur-sm rounded-lg"
+                  />
+                  {tableSearchQuery && (
+                    <button
+                      onClick={() => setTableSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-600/80 rounded-md transition-all duration-200 hover:scale-110 z-10 group/clear active:scale-95"
+                      aria-label="Clear search"
+                    >
+                      <X className="w-4 h-4 text-[#9CA3AF] group-hover/clear:text-white transition-colors" />
+                    </button>
+                  )}
+                </div>
+                
+                {/* Result count and hint */}
+                {tableSearchQuery && (
+                  <div className="mt-2 flex items-center justify-between px-1">
+                    <div className="text-xs text-primary/90 font-medium flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse"></div>
+                      {filteredLeads.length} résultat{filteredLeads.length > 1 ? 's' : ''} trouvé{filteredLeads.length > 1 ? 's' : ''}
+                    </div>
+                    <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                      <kbd className="px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 bg-slate-800/50 border border-slate-700/50 rounded">Échap</kbd>
+                      <span>pour effacer</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -484,6 +573,7 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
                   {/* Actions - no text, just icons */}
                 </th>
               </tr>
+            
             </thead>
             <tbody className="divide-y divide-[#1F2937]">
               <AnimatePresence mode="popLayout">

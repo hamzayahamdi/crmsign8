@@ -164,6 +164,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Prepare contact data with campaignName and commercialMagasin
+    // IMPORTANT: Status must always be 'qualifie' when converting from lead
     const contactData: any = {
       nom: lead.nom,
       telephone: lead.telephone,
@@ -175,13 +176,19 @@ export async function POST(request: NextRequest) {
       source: lead.source, // Store source directly on contact
       architecteAssigne: architecteName || undefined,
       tag: 'converted',
-      status: 'qualifie', // Automatically set to 'qualifie' when converting from lead
+      status: 'qualifie', // Automatically set to 'qualifie' when converting from lead (REQUIRED)
       notes: lead.message || undefined,
       magasin: lead.magasin || undefined,
       leadStatus: 'qualifie', // Store the updated lead status (now 'qualifie')
       createdBy: userId,
       convertedBy: userId, // Track who converted the lead
     };
+    
+    // Validation: Ensure status is always 'qualifie' for converted contacts
+    if (contactData.status !== 'qualifie') {
+      console.warn(`[Convert Lead] ⚠️ Status was not 'qualifie', forcing it to 'qualifie'. Was: ${contactData.status}`);
+      contactData.status = 'qualifie';
+    }
 
     // Only add campaignName and commercialMagasin if they exist (to avoid null issues)
     if (lead.campaignName) {
@@ -194,9 +201,13 @@ export async function POST(request: NextRequest) {
     console.log(`[Convert Lead] Creating contact with data:`, {
       nom: contactData.nom,
       source: contactData.source,
+      status: contactData.status, // Should be 'qualifie'
+      tag: contactData.tag, // Should be 'converted'
+      typeBien: contactData.typeBien,
       campaignName: contactData.campaignName,
       commercialMagasin: contactData.commercialMagasin,
       magasin: contactData.magasin,
+      leadStatus: contactData.leadStatus, // Should be 'qualifie'
     });
 
     const contact = await prisma.contact.create({
@@ -207,9 +218,12 @@ export async function POST(request: NextRequest) {
       contactId: contact.id,
       nom: contact.nom,
       telephone: contact.telephone,
-      tag: contact.tag,
+      tag: contact.tag, // Should be 'converted'
+      status: contact.status, // Should be 'qualifie'
+      leadStatus: contact.leadStatus, // Should be 'qualifie'
       architecteAssigne: contact.architecteAssigne,
       leadId: contact.leadId,
+      typeBien: contact.typeBien,
       campaignName: (contact as any).campaignName,
       commercialMagasin: (contact as any).commercialMagasin,
     });
