@@ -31,15 +31,71 @@ export const useClientStore = create<ClientStore>((set, get) => ({
   lastUpdate: null,
 
   setClients: (clients) => {
+    // Safety check: ensure clients is an array
+    if (!Array.isArray(clients)) {
+      console.error(`[Client Store] ❌ setClients called with non-array:`, typeof clients)
+      return
+    }
+    
+    // Remove duplicates by ID before setting
+    const uniqueClients = clients.reduce((acc, client) => {
+      // Safety check: ensure client has an ID
+      if (!client || !client.id) {
+        console.warn(`[Client Store] ⚠️ Skipping client without ID:`, client)
+        return acc
+      }
+      
+      const existingIndex = acc.findIndex(c => c.id === client.id)
+      if (existingIndex === -1) {
+        acc.push(client)
+      } else {
+        // If duplicate found, prefer the one with nomProjet set (opportunity-based)
+        const existing = acc[existingIndex]
+        const existingHasNomProjet = existing.nomProjet && existing.nomProjet.trim()
+        const newHasNomProjet = client.nomProjet && client.nomProjet.trim()
+        
+        // Prefer opportunity-based client (has nomProjet) over legacy client
+        if (newHasNomProjet && !existingHasNomProjet) {
+          acc[existingIndex] = client
+        } else if (!newHasNomProjet && existingHasNomProjet) {
+          // Keep existing if it has nomProjet and new doesn't
+          // Do nothing
+        } else {
+          // Both have or both don't have nomProjet - keep the one with more recent update
+          const existingDate = new Date(existing.updatedAt || existing.derniereMaj || 0).getTime()
+          const newDate = new Date(client.updatedAt || client.derniereMaj || 0).getTime()
+          if (newDate > existingDate) {
+            acc[existingIndex] = client
+          }
+        }
+      }
+      return acc
+    }, [] as Client[])
+    
+    if (uniqueClients.length !== clients.length) {
+      console.warn(`[Client Store] ⚠️ Removed ${clients.length - uniqueClients.length} duplicate clients`)
+    }
+    
     set({ 
-      clients, 
+      clients: uniqueClients, 
       lastUpdate: new Date().toISOString() 
     })
-    console.log(`[Client Store] ✅ Set ${clients.length} clients in store`)
+    console.log(`[Client Store] ✅ Set ${uniqueClients.length} unique clients in store`)
   },
 
   addClient: (client) => {
-    const newClients = [...get().clients, client]
+    const existingClients = get().clients
+    // Check if client already exists
+    const existingIndex = existingClients.findIndex(c => c.id === client.id)
+    
+    if (existingIndex !== -1) {
+      console.warn(`[Client Store] ⚠️ Client ${client.id} already exists, updating instead of adding`)
+      // Update instead of adding
+      get().updateClient(client.id, client)
+      return
+    }
+    
+    const newClients = [...existingClients, client]
     set({ 
       clients: newClients,
       lastUpdate: new Date().toISOString()
@@ -49,30 +105,66 @@ export const useClientStore = create<ClientStore>((set, get) => ({
 
   updateClient: (id, updates) => {
     const now = new Date().toISOString()
-    const updatedClients = get().clients.map(client => {
-      if (client.id === id) {
-        const updatedClient = {
-          ...client,
-          ...updates,
-          derniereMaj: now,
-          updatedAt: now,
-        }
-        
-        // Update selected client if it's the one being updated
-        if (get().selectedClient?.id === id) {
-          set({ selectedClient: updatedClient })
-        }
-        
-        return updatedClient
-      }
-      return client
-    })
+    const existingClients = get().clients
+    
+    // Safety check: ensure we have an array
+    if (!Array.isArray(existingClients)) {
+      console.error(`[Client Store] ❌ Existing clients is not an array:`, typeof existingClients)
+      return
+    }
+    
+    // Safety check: ensure updates is an object
+    if (!updates || typeof updates !== 'object') {
+      console.error(`[Client Store] ❌ Updates is not an object:`, typeof updates)
+      return
+    }
+    
+    const clientIndex = existingClients.findIndex(c => c && c.id === id)
+    
+    if (clientIndex === -1) {
+      console.warn(`[Client Store] ⚠️ Client not found: ${id}, adding to store (current count: ${existingClients.length})`)
+      // If client doesn't exist, add it
+      const newClient = { ...updates, id } as Client
+      set({ 
+        clients: [...existingClients, newClient],
+        lastUpdate: now
+      })
+      console.log(`[Client Store] ✅ Added new client: ${id} (total: ${existingClients.length + 1})`)
+      return
+    }
+    
+    // Replace existing client at exact index to prevent duplicates
+    const updatedClients = [...existingClients]
+    const existingClient = updatedClients[clientIndex]
+    
+    if (!existingClient) {
+      console.error(`[Client Store] ❌ Existing client at index ${clientIndex} is null/undefined`)
+      return
+    }
+    
+    // Merge updates, preserving all existing fields (only update defined fields)
+    const mergedClient = {
+      ...existingClient,
+      ...Object.fromEntries(
+        Object.entries(updates).filter(([_, value]) => value !== undefined)
+      ),
+      id: id, // Ensure ID is always correct
+      derniereMaj: updates.derniereMaj || existingClient.derniereMaj || now,
+      updatedAt: updates.updatedAt || existingClient.updatedAt || now,
+    }
+    
+    updatedClients[clientIndex] = mergedClient
+    
+    // Update selected client if it's the one being updated
+    if (get().selectedClient?.id === id) {
+      set({ selectedClient: mergedClient })
+    }
     
     set({ 
       clients: updatedClients,
       lastUpdate: now
     })
-    console.log(`[Client Store] ✅ Updated client: ${id}`)
+    console.log(`[Client Store] ✅ Updated client: ${id} (replaced at index ${clientIndex}, total clients: ${updatedClients.length})`)
   },
 
   updateClientStatus: (id, status) => {
@@ -156,9 +248,17 @@ export const useClientStore = create<ClientStore>((set, get) => ({
       const result = await response.json()
       const clients = result.data || []
       
+      // Safety check: if we get an empty array but had clients before, log a warning
+      const existingCount = get().clients.length
+      if (clients.length === 0 && existingCount > 0) {
+        console.warn(`[Client Store] ⚠️ API returned 0 clients but we had ${existingCount} clients before. Keeping existing clients.`)
+        set({ isLoading: false })
+        return
+      }
+      
+      // Use setClients to ensure proper deduplication
+      get().setClients(clients)
       set({ 
-        clients,
-        lastUpdate: new Date().toISOString(),
         isLoading: false
       })
       
@@ -200,12 +300,17 @@ if (typeof window !== 'undefined') {
           
           if (payload.eventType === 'INSERT') {
             const newClient = payload.new as any
-            console.log(`[Client Store] ➕ New client added: ${newClient.id}`)
+            console.log(`[Client Store] ➕ New client added: ${newClient.id}`, {
+              nom: newClient.nom,
+              nom_projet: newClient.nom_projet,
+              statut_projet: newClient.statut_projet
+            })
             
             // Transform and add to store
             const transformedClient = {
               id: newClient.id,
               nom: newClient.nom,
+              nomProjet: newClient.nom_projet || '', // CRITICAL: Map nom_projet to nomProjet
               telephone: newClient.telephone,
               ville: newClient.ville,
               typeProjet: newClient.type_projet,
@@ -223,18 +328,34 @@ if (typeof window !== 'undefined') {
               updatedAt: newClient.updated_at
             }
             
-            // Only add if not already in store
-            if (!store.clients.find(c => c.id === newClient.id)) {
+            // Only add if client has nomProjet (required for opportunities table)
+            if (!transformedClient.nomProjet || !transformedClient.nomProjet.trim()) {
+              console.warn(`[Client Store] ⚠️ Skipping client ${newClient.id} - missing nomProjet`)
+              return
+            }
+            
+            // Check if client already exists to prevent duplicates
+            const existingClient = store.clients.find(c => c.id === newClient.id)
+            if (!existingClient) {
+              console.log(`[Client Store] ✅ Adding new client to store: ${newClient.id} (${transformedClient.nomProjet})`)
               store.addClient(transformedClient as any)
+            } else {
+              // Update existing client instead of adding duplicate
+              console.log(`[Client Store] 🔄 Client ${newClient.id} already exists, updating instead`)
+              store.updateClient(newClient.id, transformedClient as any)
             }
             
           } else if (payload.eventType === 'UPDATE') {
             const updatedClient = payload.new as any
-            console.log(`[Client Store] 🔄 Client updated: ${updatedClient.id}`)
+            console.log(`[Client Store] 🔄 Client updated: ${updatedClient.id}`, {
+              nom_projet: updatedClient.nom_projet,
+              statut_projet: updatedClient.statut_projet
+            })
             
             // Transform and update in store
             const transformedUpdates = {
               nom: updatedClient.nom,
+              nomProjet: updatedClient.nom_projet || '', // CRITICAL: Map nom_projet to nomProjet
               telephone: updatedClient.telephone,
               ville: updatedClient.ville,
               typeProjet: updatedClient.type_projet,
@@ -249,6 +370,18 @@ if (typeof window !== 'undefined') {
               magasin: updatedClient.magasin,
               commercialAttribue: updatedClient.commercial_attribue,
               updatedAt: updatedClient.updated_at
+            }
+            
+            // Only update if client has nomProjet (required for opportunities table)
+            // If nomProjet is missing, we might want to remove it from the store
+            if (!transformedUpdates.nomProjet || !transformedUpdates.nomProjet.trim()) {
+              const existingClient = store.clients.find(c => c.id === updatedClient.id)
+              if (existingClient && existingClient.nomProjet) {
+                // Keep existing nomProjet if update doesn't have it
+                transformedUpdates.nomProjet = existingClient.nomProjet
+              } else {
+                console.warn(`[Client Store] ⚠️ Client ${updatedClient.id} update missing nomProjet`)
+              }
             }
             
             store.updateClient(updatedClient.id, transformedUpdates)

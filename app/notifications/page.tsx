@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Check, CheckCheck, Trash2, Filter, X } from 'lucide-react';
+import { Bell, CheckCheck, Trash2, MoreVertical } from 'lucide-react';
 import { useNotifications } from '@/contexts/notification-context';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -13,7 +13,6 @@ import {
   getNotificationLink,
 } from '@/lib/notification-utils';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -21,7 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Sidebar } from '@/components/sidebar';
 import { AuthGuard } from '@/components/auth-guard';
 
@@ -60,129 +64,117 @@ function NotificationsPageContent() {
   const groupedNotifications = groupNotificationsByDate(filteredNotifications);
 
   return (
-    <div className="flex-1 overflow-auto p-3 sm:p-6 lg:p-8">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-4 sm:mb-6 lg:mb-8"
-        >
-          <div className="flex items-center justify-between mb-2 flex-wrap gap-3">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <Bell className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Notifications</h1>
-                <p className="text-sm sm:text-base text-slate-400 mt-0.5">
-                  {unreadCount > 0 ? `${unreadCount} non lue${unreadCount > 1 ? 's' : ''}` : 'Tout est à jour'}
-                </p>
-              </div>
+    <div className="flex-1 overflow-auto bg-background">
+      <div className="max-w-3xl mx-auto">
+        {/* Compact Header */}
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-slate-800/50">
+          <div className="px-4 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-base font-semibold text-white">Notifications</h1>
+              {unreadCount > 0 && (
+                <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-500 text-white rounded-full">
+                  {unreadCount}
+                </span>
+              )}
             </div>
             {unreadCount > 0 && (
               <Button
                 onClick={markAllAsRead}
-                variant="outline"
-                className="gap-2 h-10 sm:h-11 px-4 sm:px-5 text-sm sm:text-base"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2.5 text-[11px] text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
               >
-                <CheckCheck className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Tout marquer comme lu</span>
-                <span className="sm:hidden">Tout lire</span>
+                <CheckCheck className="w-3 h-3 mr-1" />
+                Tout marquer comme lu
               </Button>
             )}
           </div>
-        </motion.div>
 
-        {/* Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="glass rounded-2xl border border-slate-700/40 p-3 sm:p-4 mb-4 sm:mb-6"
-        >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
-              <span className="text-sm sm:text-base font-medium text-slate-300">Filtres:</span>
-            </div>
-
-            <Tabs value={filter} onValueChange={(v) => setFilter(v as 'all' | 'unread')} className="w-full sm:flex-1">
-              <TabsList className="glass w-full sm:w-auto">
-                <TabsTrigger value="all" className="flex-1 sm:flex-none text-sm sm:text-base px-4 sm:px-6">
-                  Toutes
-                </TabsTrigger>
-                <TabsTrigger value="unread" className="flex-1 sm:flex-none text-sm sm:text-base px-4 sm:px-6">
-                  Non lues
-                  {unreadCount > 0 && (
-                    <span className="ml-2 px-2 py-0.5 text-xs sm:text-sm font-bold bg-primary text-white rounded-full">
-                      {unreadCount}
-                    </span>
-                  )}
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
+          {/* Compact Filters */}
+          <div className="px-4 pb-2 flex items-center gap-1.5 border-b border-slate-800/30">
+            <button
+              onClick={() => setFilter('all')}
+              className={cn(
+                'px-2.5 py-1 text-[11px] font-medium rounded transition-colors',
+                filter === 'all'
+                  ? 'bg-blue-500/20 text-blue-400'
+                  : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/50'
+              )}
+            >
+              Toutes
+            </button>
+            <button
+              onClick={() => setFilter('unread')}
+              className={cn(
+                'px-2.5 py-1 text-[11px] font-medium rounded transition-colors relative',
+                filter === 'unread'
+                  ? 'bg-blue-500/20 text-blue-400'
+                  : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/50'
+              )}
+            >
+              Non lues
+              {unreadCount > 0 && (
+                <span className="ml-1 px-1 py-0.5 text-[9px] font-bold bg-blue-500 text-white rounded-full">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            <div className="flex-1" />
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full sm:w-[220px] glass h-10 sm:h-11 text-sm sm:text-base">
+              <SelectTrigger className="h-6 w-auto px-2 text-[11px] border-0 bg-transparent hover:bg-slate-800/50 text-slate-400 focus:ring-0">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
-              <SelectContent className="glass border-slate-700/40">
-                <SelectItem value="all" className="text-sm sm:text-base">Tous les types</SelectItem>
-                <SelectItem value="rdv_created" className="text-sm sm:text-base">RDV créés</SelectItem>
-                <SelectItem value="rdv_reminder" className="text-sm sm:text-base">Rappels RDV</SelectItem>
-                <SelectItem value="devis_created" className="text-sm sm:text-base">Devis créés</SelectItem>
-                <SelectItem value="stage_changed" className="text-sm sm:text-base">Changements d'étape</SelectItem>
-                <SelectItem value="payment_received" className="text-sm sm:text-base">Paiements reçus</SelectItem>
-                <SelectItem value="task_assigned" className="text-sm sm:text-base">Tâches assignées</SelectItem>
+              <SelectContent className="min-w-[140px]">
+                <SelectItem value="all" className="text-[11px]">Tous les types</SelectItem>
+                <SelectItem value="rdv_created" className="text-[11px]">RDV créés</SelectItem>
+                <SelectItem value="rdv_reminder" className="text-[11px]">Rappels RDV</SelectItem>
+                <SelectItem value="devis_created" className="text-[11px]">Devis créés</SelectItem>
+                <SelectItem value="stage_changed" className="text-[11px]">Changements d'étape</SelectItem>
+                <SelectItem value="payment_received" className="text-[11px]">Paiements reçus</SelectItem>
+                <SelectItem value="task_assigned" className="text-[11px]">Tâches assignées</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </motion.div>
+        </div>
 
         {/* Notifications List */}
         {isLoading ? (
-          <div className="glass rounded-2xl border border-slate-700/40 p-8 sm:p-12 text-center">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-4 border-primary/30 border-t-primary animate-spin mx-auto mb-4" />
-            <p className="text-sm sm:text-base text-slate-400">Chargement des notifications...</p>
+          <div className="flex items-center justify-center py-12">
+            <div className="w-5 h-5 rounded-full border-2 border-blue-500/30 border-t-blue-500 animate-spin" />
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass rounded-2xl border border-slate-700/40 p-8 sm:p-12 text-center"
-          >
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-800/50 flex items-center justify-center mx-auto mb-4">
-              <Bell className="w-10 h-10 sm:w-12 sm:h-12 text-slate-600" />
-            </div>
-            <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">Aucune notification</h3>
-            <p className="text-sm sm:text-base text-slate-400">
+          <div className="py-16 text-center">
+            <Bell className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+            <p className="text-xs text-slate-400">
               {filter === 'unread'
                 ? 'Toutes vos notifications sont lues'
                 : 'Vous n\'avez pas encore de notifications'}
             </p>
-          </motion.div>
+          </div>
         ) : (
-          <div className="space-y-4 sm:space-y-6">
+          <div>
             <AnimatePresence mode="popLayout">
-              {Object.entries(groupedNotifications).map(([dateGroup, notifs]) => (
-                <motion.div
-                  key={dateGroup}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
+              {Object.entries(groupedNotifications).map(([dateGroup, notifs], groupIdx) => (
+                <motion.div 
+                  key={dateGroup} 
+                  className="py-1"
+                  initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="space-y-2 sm:space-y-3"
+                  transition={{ delay: groupIdx * 0.05, duration: 0.2 }}
                 >
                   {/* Date Header */}
-                  <div className="flex items-center gap-3 px-2">
-                    <h3 className="text-sm sm:text-base font-semibold text-slate-400">{dateGroup}</h3>
-                    <div className="flex-1 h-px bg-slate-700/40" />
-                  </div>
+                  <motion.div 
+                    className="px-4 py-1.5"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <h3 className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">{dateGroup}</h3>
+                  </motion.div>
 
                   {/* Notifications in this group */}
-                  <div className="space-y-2 sm:space-y-3">
-                    {notifs.map((notification) => {
+                  <div>
+                    {notifs.map((notification, idx) => {
                       const iconConfig = getNotificationIcon(notification.type);
                       const Icon = iconConfig.icon;
 
@@ -190,79 +182,225 @@ function NotificationsPageContent() {
                         <motion.div
                           key={notification.id}
                           layout
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ 
+                            opacity: 1, 
+                            x: 0,
+                          }}
                           exit={{ opacity: 0, x: 100 }}
+                          transition={{ 
+                            duration: 0.2,
+                            layout: { duration: 0.3 }
+                          }}
                           onClick={() => handleNotificationClick(notification)}
                           className={cn(
-                            'group glass rounded-xl sm:rounded-2xl border cursor-pointer transition-all hover:shadow-lg active:scale-[0.98]',
-                            notification.isRead
-                              ? 'border-slate-700/40 hover:border-slate-600/60'
-                              : 'border-primary/30 bg-primary/5 hover:border-primary/50'
+                            'group relative flex items-start gap-3 px-4 py-2.5 cursor-pointer transition-all duration-300 overflow-hidden',
+                            notification.isRead 
+                              ? 'bg-blue-500/5 hover:bg-blue-500/10' 
+                              : 'bg-blue-500/15 hover:bg-blue-500/20',
+                            idx !== notifs.length - 1 && 'border-b border-slate-800/30'
                           )}
                         >
-                          <div className="flex gap-3 sm:gap-4 p-4 sm:p-5">
-                            {/* Icon */}
-                            <div className={cn(
-                              'shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center',
-                              iconConfig.bgColor
-                            )}>
-                              <Icon className={cn('w-7 h-7 sm:w-8 sm:h-8', iconConfig.color)} />
-                            </div>
+                          {/* Animated left border accent for unread */}
+                          {!notification.isRead && (
+                            <>
+                              <motion.div
+                                className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500"
+                                initial={{ scaleY: 0 }}
+                                animate={{ 
+                                  scaleY: 1,
+                                }}
+                                transition={{ 
+                                  scaleY: { duration: 0.3, ease: "easeOut" }
+                                }}
+                              />
+                              {/* Glow effect for border */}
+                              <motion.div
+                                className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500/40 blur-sm"
+                                initial={{ scaleY: 0, opacity: 0 }}
+                                animate={{ 
+                                  scaleY: 1,
+                                  opacity: [0.4, 0.6, 0.4],
+                                }}
+                                transition={{ 
+                                  scaleY: { duration: 0.3, ease: "easeOut" },
+                                  opacity: {
+                                    duration: 2.5,
+                                    repeat: Infinity,
+                                    ease: "easeInOut"
+                                  }
+                                }}
+                              />
+                            </>
+                          )}
+                          {/* Unread background highlight */}
+                          {!notification.isRead && (
+                            <motion.div
+                              className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-blue-500/10 to-blue-500/5 pointer-events-none"
+                              initial={{ opacity: 0 }}
+                              animate={{ 
+                                opacity: [0.6, 0.8, 0.6],
+                              }}
+                              transition={{
+                                duration: 3,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                              }}
+                            />
+                          )}
 
-                            {/* Content */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-2">
-                                <h4 className={cn(
-                                  'text-base sm:text-lg font-semibold leading-tight',
-                                  notification.isRead ? 'text-slate-300' : 'text-white'
-                                )}>
-                                  {notification.title}
-                                </h4>
+                          {/* Icon */}
+                          <motion.div 
+                            className={cn(
+                              'shrink-0 w-8 h-8 rounded-lg flex items-center justify-center relative z-10 transition-colors duration-300',
+                              notification.isRead 
+                                ? 'bg-blue-500/15' 
+                                : 'bg-blue-500/25 ring-2 ring-blue-500/30'
+                            )}
+                            animate={{
+                              scale: notification.isRead ? 1 : [1, 1.08, 1],
+                            }}
+                            transition={{
+                              duration: 2,
+                              repeat: notification.isRead ? 0 : Infinity,
+                              repeatDelay: 3,
+                              scale: { duration: 0.3 }
+                            }}
+                          >
+                            <motion.div
+                              animate={{
+                                scale: notification.isRead ? [1, 1.1, 1] : 1,
+                              }}
+                              transition={{
+                                duration: 0.4,
+                                times: [0, 0.5, 1]
+                              }}
+                            >
+                              <Icon className={cn(
+                                'w-4 h-4 transition-colors duration-300',
+                                notification.isRead ? 'text-blue-400' : 'text-blue-400'
+                              )} />
+                            </motion.div>
+                          </motion.div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0 relative z-10">
+                            <div className="flex items-start justify-between gap-2 mb-0.5">
+                              <motion.h4 
+                                className={cn(
+                                  'text-xs leading-snug transition-colors duration-300',
+                                  notification.isRead 
+                                    ? 'text-blue-200 font-medium' 
+                                    : 'text-white font-bold'
+                                )}
+                                animate={{
+                                  color: notification.isRead 
+                                    ? 'rgb(191, 219, 254)' 
+                                    : 'rgb(255, 255, 255)',
+                                }}
+                                transition={{ duration: 0.3 }}
+                              >
+                                {notification.title}
+                              </motion.h4>
+                              <AnimatePresence>
                                 {!notification.isRead && (
-                                  <span className="shrink-0 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-primary shadow-lg shadow-primary/50 mt-1" />
+                                  <motion.span 
+                                    className="shrink-0 w-2.5 h-2.5 rounded-full bg-blue-500 mt-1 shadow-lg shadow-blue-500/50"
+                                    initial={{ scale: 0, opacity: 0 }}
+                                    animate={{ 
+                                      scale: [1, 1.4, 1],
+                                      opacity: [1, 0.8, 1],
+                                    }}
+                                    exit={{ scale: 0, opacity: 0 }}
+                                    transition={{
+                                      scale: {
+                                        duration: 1.5,
+                                        repeat: Infinity,
+                                        ease: "easeInOut"
+                                      },
+                                      opacity: {
+                                        duration: 1.5,
+                                        repeat: Infinity,
+                                        ease: "easeInOut"
+                                      },
+                                      exit: { duration: 0.2 }
+                                    }}
+                                  />
                                 )}
-                              </div>
-                              <p className="text-sm sm:text-base text-slate-400 mb-3 sm:mb-4 leading-relaxed">
-                                {notification.message}
-                              </p>
-                              <div className="flex items-center justify-between flex-wrap gap-2">
-                                <span className="text-xs sm:text-sm text-slate-500">
-                                  {formatNotificationTime(notification.createdAt)}
-                                </span>
-                                {notification.linkedName && (
-                                  <span className="text-xs sm:text-sm text-primary/70 font-medium">
-                                    {notification.linkedName}
-                                  </span>
-                                )}
-                              </div>
+                              </AnimatePresence>
                             </div>
+                            <motion.p 
+                              className={cn(
+                                'text-[11px] leading-relaxed mb-1.5 line-clamp-2 transition-colors duration-300',
+                                notification.isRead 
+                                  ? 'text-blue-300/70' 
+                                  : 'text-slate-200 font-medium'
+                              )}
+                              animate={{
+                                color: notification.isRead 
+                                  ? 'rgba(147, 197, 253, 0.7)' 
+                                  : 'rgb(226, 232, 240)',
+                              }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              {notification.message}
+                            </motion.p>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className={cn(
+                                'text-[10px]',
+                                notification.isRead 
+                                  ? 'text-blue-400/60' 
+                                  : 'text-slate-300 font-medium'
+                              )}>
+                                {formatNotificationTime(notification.createdAt)}
+                              </span>
+                              {notification.linkedName && (
+                                <span className={cn(
+                                  'text-[10px] font-medium truncate max-w-[120px]',
+                                  notification.isRead 
+                                    ? 'text-blue-300/80' 
+                                    : 'text-blue-400 font-semibold'
+                                )}>
+                                  {notification.linkedName}
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
-                            {/* Actions */}
-                            <div className="shrink-0 flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                          {/* Actions Menu */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity p-0 hover:bg-slate-700/50"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="w-3.5 h-3.5 text-slate-400" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
                               {!notification.isRead && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-10 w-10 sm:h-11 sm:w-11 hover:bg-slate-700/50"
+                                <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     markAsRead(notification.id);
                                   }}
+                                  className="text-xs"
                                 >
-                                  <Check className="w-5 h-5 sm:w-5 sm:h-5 text-slate-400" />
-                                </Button>
+                                  <CheckCheck className="w-3.5 h-3.5 mr-2" />
+                                  Marquer comme lu
+                                </DropdownMenuItem>
                               )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-10 w-10 sm:h-11 sm:w-11 hover:bg-red-500/20 hover:text-red-400"
+                              <DropdownMenuItem
                                 onClick={(e) => handleDelete(e, notification.id)}
+                                className="text-xs text-red-400"
                               >
-                                <Trash2 className="w-5 h-5 sm:w-5 sm:h-5" />
-                              </Button>
-                            </div>
-                          </div>
+                                <Trash2 className="w-3.5 h-3.5 mr-2" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </motion.div>
                       );
                     })}

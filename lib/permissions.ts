@@ -42,7 +42,7 @@ export const sidebarPermissions: SidebarItem[] = [
   {
     id: "clients",
     label: "Opportunités",
-    href: "/clients",
+    href: "/opportunites",
     icon: "Target",
     roles: ["Admin", "Operator", "Gestionnaire", "Architect"],
   },
@@ -51,7 +51,7 @@ export const sidebarPermissions: SidebarItem[] = [
     label: "Architectes",
     href: "/architectes",
     icon: "Compass",
-    roles: ["Admin", "Operator"], // Only Admin and Operator can access
+    roles: ["Admin", "Operator", "Architect"], // Admin, Operator, and Architect can access
   },
   {
     id: "tasks",
@@ -147,8 +147,8 @@ export const modulePermissions = {
   },
   calendar: {
     view: ["Admin", "Operator", "Gestionnaire", "Architect"],
-    viewAll: ["Admin", "Operator"], // Only Admin/Operator can see all events
-    viewOwn: ["Gestionnaire", "Architect"], // Gestionnaire/Architect see only their own
+    viewAll: ["Admin", "Operator", "Architect"], // Admin/Operator/Architect can see all events
+    viewOwn: ["Gestionnaire"], // Only Gestionnaire sees only their own
     create: ["Admin", "Operator", "Gestionnaire"],
     edit: ["Admin", "Operator", "Gestionnaire"],
     delete: ["Admin", "Operator", "Gestionnaire"],
@@ -292,15 +292,16 @@ export function getRoleLabel(role: string | undefined): string {
 
 /**
  * Check if user role should only see their own data (tasks/calendar)
- * Gestionnaire and Architect roles have restricted visibility
+ * Gestionnaire has restricted visibility for tasks/calendar
+ * Architects can see all calendars (all architects' calendars are visible to everyone)
  */
 export function canViewAllData(userRole: string | undefined): boolean {
   if (!userRole) return false;
 
   const normalizedRole = normalizeRole(userRole);
 
-  // Only Admin and Operator can see all data
-  return normalizedRole === "Admin" || normalizedRole === "Operator";
+  // Admin, Operator, and Architect can see all data
+  return normalizedRole === "Admin" || normalizedRole === "Operator" || normalizedRole === "Architect";
 }
 
 /**
@@ -311,6 +312,7 @@ export function shouldViewOwnDataOnly(userRole: string | undefined): boolean {
 
   const normalizedRole = normalizeRole(userRole);
 
-  // Gestionnaire and Architect see only their own tasks/calendar
-  return normalizedRole === "Gestionnaire" || normalizedRole === "Architect";
+  // Only Gestionnaire sees only their own tasks/calendar
+  // Architects can see all calendars (all architects' calendars are visible to everyone)
+  return normalizedRole === "Gestionnaire";
 }

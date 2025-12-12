@@ -129,7 +129,7 @@ function CalendarProfessionalContent() {
     loadUserInfo();
   }, []);
 
-  // Load architects for filter
+  // Load architects for filter - Available for Admin, Gestionnaire, and Architects
   useEffect(() => {
     const loadArchitects = async () => {
       try {
@@ -143,7 +143,12 @@ function CalendarProfessionalContent() {
       }
     };
 
-    if (currentUserRole === 'admin' || currentUserRole === 'gestionnaire') {
+    if (currentUserRole === 'admin' || 
+        currentUserRole === 'gestionnaire' || 
+        currentUserRole === 'Gestionnaire' ||
+        currentUserRole === 'architect' ||
+        currentUserRole === 'Architect' ||
+        currentUserRole === 'architecte') {
       loadArchitects();
     }
   }, [currentUserRole]);

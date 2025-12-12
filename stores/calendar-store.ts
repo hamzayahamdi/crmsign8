@@ -130,13 +130,27 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
     const { currentUserId, currentUserRole } = get();
     if (!currentUserId) return false;
 
-    // Admins and gestionnaires can see all events
-    const isAdmin = currentUserRole === 'admin' || 
-                    currentUserRole === 'gestionnaire' || 
-                    currentUserRole === 'Gestionnaire';
+    // Admins, Operators, and Architects can see all events
+    const canSeeAll = currentUserRole === 'admin' || 
+                      currentUserRole === 'operator' ||
+                      currentUserRole === 'Admin' ||
+                      currentUserRole === 'Operator' ||
+                      currentUserRole === 'architect' ||
+                      currentUserRole === 'Architect' ||
+                      currentUserRole === 'architecte';
     
-    if (isAdmin) {
+    if (canSeeAll) {
       return true;
+    }
+
+    // Gestionnaire: restricted view (only their own + invited + public)
+    if (currentUserRole === 'gestionnaire' || currentUserRole === 'Gestionnaire') {
+      if (event.visibility === 'all') return true;
+      return (
+        event.createdBy === currentUserId ||
+        event.assignedTo === currentUserId ||
+        event.participants.includes(currentUserId)
+      );
     }
 
     // Check visibility

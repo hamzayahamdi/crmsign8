@@ -59,30 +59,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    // 4.5 Determine architect assignment
+    // 4.5 Determine architect assignment (optimized: fetch user and architect in parallel)
     let architecteName: string | undefined = undefined;
     let finalArchitectId: string | undefined = architectId;
 
-    if (architectId) {
-      // If architectId is explicitly provided, use it
-      const architect = await prisma.user.findUnique({ where: { id: architectId } });
-      if (architect) {
-        architecteName = architect.name;
-      }
+    // Fetch architect and assigned user in parallel for better performance
+    const [architect, assignedUser] = await Promise.all([
+      architectId ? prisma.user.findUnique({ where: { id: architectId } }) : Promise.resolve(null),
+      lead.assignePar && lead.assignePar !== "Non assigné" 
+        ? prisma.user.findFirst({
+            where: {
+              name: {
+                equals: lead.assignePar,
+                mode: 'insensitive'
+              }
+            }
+          })
+        : Promise.resolve(null)
+    ]);
+
+    if (architect) {
+      architecteName = architect.name;
     } else if (lead.assignePar && lead.assignePar !== "Non assigné") {
       // If no architectId provided, automatically assign to the lead's assignee (gestionnaire de projet)
       architecteName = lead.assignePar;
-
-      // Find the user ID for notification purposes
-      const assignedUser = await prisma.user.findFirst({
-        where: {
-          name: {
-            equals: lead.assignePar,
-            mode: 'insensitive'
-          }
-        }
-      });
-
       if (assignedUser) {
         finalArchitectId = assignedUser.id;
       }
@@ -140,11 +140,24 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 6. Create Contact from Lead (no automatic opportunities)
+    // 6. Update lead status to 'qualifie' BEFORE creating contact
+    // This ensures the lead status is updated when converting to contact
+    const previousLeadStatus = lead.statut;
+    if (lead.statut !== 'qualifie') {
+      console.log(`[Convert Lead] Updating lead status from "${previousLeadStatus}" to "qualifie"`);
+      await prisma.lead.update({
+        where: { id: lead.id },
+        data: { statut: 'qualifie' }
+      });
+      console.log(`[Convert Lead] ✅ Lead status updated to "qualifie"`);
+    }
+
+    // 7. Create Contact from Lead (no automatic opportunities)
     console.log(`[Convert Lead] Creating contact from lead:`, {
       leadId: lead.id,
       leadNom: lead.nom,
       leadTelephone: lead.telephone,
+      leadStatus: 'qualifie', // Lead status is now 'qualifie'
       architecteName: architecteName || 'none',
       userId: userId,
       userName: user.name,
@@ -165,7 +178,7 @@ export async function POST(request: NextRequest) {
       status: 'qualifie', // Automatically set to 'qualifie' when converting from lead
       notes: lead.message || undefined,
       magasin: lead.magasin || undefined,
-      leadStatus: lead.statut, // Preserve the original lead status for reference
+      leadStatus: 'qualifie', // Store the updated lead status (now 'qualifie')
       createdBy: userId,
       convertedBy: userId, // Track who converted the lead
     };
@@ -201,86 +214,97 @@ export async function POST(request: NextRequest) {
       commercialMagasin: (contact as any).commercialMagasin,
     });
 
-    // 7. Create timeline entries for conversion (and optional architect assignment)
+    // 8. Create timeline entries for conversion (and optional architect assignment)
+    // Optimized: Create timeline entries in parallel if architect is assigned
     const timelineEntries: any[] = [];
 
-    const conversionEvent = await prisma.timeline.create({
-      data: {
-        contactId: contact.id,
-        eventType: 'contact_converted_from_lead',
-        title: 'Contact créé depuis Lead',
-        description: `Lead "${lead.nom}" a été converti en Contact par ${user.name}`,
-        metadata: {
-          leadId: lead.id,
-          leadStatut: lead.statut,
-          source: lead.source,
-          typeBien: lead.typeBien,
-          leadTypeBien: lead.typeBien,
-          leadSource: lead.source,
-          convertedByUserId: userId,
-          convertedByUserName: user.name,
-        },
-        author: userId,
-      },
-    });
-    timelineEntries.push(conversionEvent);
-
-    if (finalArchitectId && architecteName) {
-      const architectEvent = await prisma.timeline.create({
+    const timelinePromises = [
+      prisma.timeline.create({
         data: {
           contactId: contact.id,
-          eventType: 'architect_assigned',
-          title: 'Gestionnaire assigné',
-          description: `${architecteName} a été assigné au contact`,
+          eventType: 'contact_converted_from_lead',
+          title: 'Contact créé depuis Lead',
+          description: `Lead "${lead.nom}" a été converti en Contact par ${user.name}. Statut Lead mis à jour à "Qualifié".`,
           metadata: {
-            architectId: finalArchitectId,
-            architectName: architecteName,
+            leadId: lead.id,
+            leadStatut: 'qualifie', // Updated status
+            previousLeadStatut: previousLeadStatus, // Preserve previous status
+            source: lead.source,
+            typeBien: lead.typeBien,
+            leadTypeBien: lead.typeBien,
+            leadSource: lead.source,
+            convertedByUserId: userId,
+            convertedByUserName: user.name,
           },
           author: userId,
         },
-      });
-      timelineEntries.push(architectEvent);
+      })
+    ];
+
+    if (finalArchitectId && architecteName) {
+      timelinePromises.push(
+        prisma.timeline.create({
+          data: {
+            contactId: contact.id,
+            eventType: 'architect_assigned',
+            title: 'Gestionnaire assigné',
+            description: `${architecteName} a été assigné au contact`,
+            metadata: {
+              architectId: finalArchitectId,
+              architectName: architecteName,
+            },
+            author: userId,
+          },
+        })
+      );
     }
 
-    // 8. Copy all lead notes to unified Note table BEFORE deleting lead
+    const createdTimelineEvents = await Promise.all(timelinePromises);
+    timelineEntries.push(...createdTimelineEvents);
+
+    // 9. Copy all lead notes to unified Note table BEFORE deleting lead
     // This preserves full history and traceability
+    // Optimized: Batch note creation for better performance
     try {
       const leadNotes = await prisma.leadNote.findMany({
         where: { leadId: lead.id },
         orderBy: { createdAt: 'asc' },
       });
 
-      console.log(`[Convert Lead] Copying ${leadNotes.length} lead notes to unified Note table...`);
+      if (leadNotes.length > 0) {
+        console.log(`[Convert Lead] Copying ${leadNotes.length} lead notes to unified Note table...`);
 
-      for (const leadNote of leadNotes) {
-        // Create note linked to the contact (preserving lead history)
-        await prisma.note.create({
-          data: {
-            content: leadNote.content,
-            author: leadNote.author,
-            entityType: 'contact',
-            entityId: contact.id,
-            sourceType: 'lead', // Original source
-            sourceId: lead.id, // Original lead ID
-            createdAt: leadNote.createdAt, // Preserve original date
-          },
-        });
+        // Create all notes in parallel for better performance
+        const notePromises = leadNotes.map(leadNote =>
+          prisma.note.create({
+            data: {
+              content: leadNote.content,
+              author: leadNote.author,
+              entityType: 'contact',
+              entityId: contact.id,
+              sourceType: 'lead', // Original source
+              sourceId: lead.id, // Original lead ID
+              createdAt: leadNote.createdAt, // Preserve original date
+            },
+          })
+        );
+
+        await Promise.all(notePromises);
+        console.log(`[Convert Lead] ✅ Copied ${leadNotes.length} notes to contact ${contact.id}`);
       }
-
-      console.log(`[Convert Lead] ✅ Copied ${leadNotes.length} notes to contact ${contact.id}`);
     } catch (noteError) {
       console.error(`[Convert Lead] ⚠️ Error copying lead notes:`, noteError);
       // Continue even if note copying fails - don't block conversion
     }
 
-    // 9. Update the lead's convertedToContactId field before deleting
+    // 10. Update the lead's convertedToContactId field (status already updated to 'qualifie' in step 6)
     // This ensures consistency if the deletion fails
     await prisma.lead.update({
       where: { id: lead.id },
       data: { convertedToContactId: contact.id }
     });
 
-    // 10. Delete the lead from the database (since it's now a contact)
+    // 11. Delete the lead from the database (since it's now a contact)
     // Note: We delete the lead notes first due to foreign key constraints
     // (They're already copied to unified Note table above)
     await prisma.leadNote.deleteMany({
@@ -291,9 +315,9 @@ export async function POST(request: NextRequest) {
       where: { id: lead.id },
     });
     
-    console.log(`[Convert Lead] ✅ Lead ${lead.id} deleted from leads table`);
+    console.log(`[Convert Lead] ✅ Lead ${lead.id} deleted from leads table (status was updated to 'qualifie' before deletion)`);
 
-    // 11. Create notification for the assigned gestionnaire/architect
+    // 12. Create notification for the assigned gestionnaire/architect
     if (finalArchitectId && architecteName) {
       // Send notification to the person who was assigned the lead
       await prisma.notification.create({

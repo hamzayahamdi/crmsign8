@@ -1,8 +1,49 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/database"
+import { verify } from "jsonwebtoken"
+import { cookies } from "next/headers"
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production"
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+interface JWTPayload {
+  userId: string
+  email: string
+  role: string
+  name?: string
+}
+
+async function getUserFromToken(request?: NextRequest): Promise<JWTPayload | null> {
+  try {
+    let token: string | undefined
+
+    // First, try to get token from Authorization header
+    if (request) {
+      const authHeader = request.headers.get('authorization')
+      if (authHeader?.startsWith('Bearer ')) {
+        token = authHeader.substring(7)
+      }
+    }
+
+    // Fall back to cookies if no Authorization header
+    if (!token) {
+      const cookieStore = await cookies()
+      token = cookieStore.get('token')?.value
+    }
+
+    if (!token) {
+      return null
+    }
+
+    const decoded = verify(token, JWT_SECRET) as JWTPayload
+    return decoded
+  } catch (error) {
+    console.error('[Architects API] Token verification failed:', error)
+    return null
+  }
+}
 
 /**
  * Helper function to check if a dossier is assigned to an architect
@@ -51,18 +92,25 @@ function isAssignedToArchitect(
  * Helper function to determine dossier status category
  * IMPORTANT: "perdu" (lost) and "refuse" (refused) are excluded from all categories
  * as they represent closed/lost projects that should not be counted as active.
+ * 
+ * CATEGORIZATION LOGIC:
+ * - Projet livré (termine): livraison_termine, livraison, termine
+ * - Projet en cours (en_cours): accepte (devis accepté) + premier_depot, projet_en_cours, chantier, facture_reglee
+ * - Projet en attente (en_attente): acompte_recu, conception, devis_negociation, prise_de_besoin, qualifie, nouveau
+ *   (NOT accepte - if devis is accepted, it's en cours)
  */
 function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_attente' | null {
   // Exclude lost/refused projects - these should not be counted in any active category
   if (
     statut === 'perdu' ||
     statut === 'refuse' ||
-    statut === 'annule'
+    statut === 'annule' ||
+    statut === 'suspendu'
   ) {
     return null // Excluded from all counts
   }
 
-  // Terminés - completed projects
+  // Projet livré - completed/delivered projects
   if (
     statut === 'termine' ||
     statut === 'livraison_termine' ||
@@ -71,19 +119,38 @@ function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_
     return 'termine'
   }
 
-  // En attente - new or qualified projects waiting to start
+  // Projet en cours - devis accepted and working on project
+  // Includes: accepte (devis accepté), premier_depot, projet_en_cours, chantier, facture_reglee
   if (
-    statut === 'nouveau' ||
+    statut === 'accepte' ||
+    statut === 'premier_depot' ||
+    statut === 'projet_en_cours' ||
+    statut === 'chantier' ||
+    statut === 'facture_reglee' ||
+    statut === 'en_chantier'
+  ) {
+    return 'en_cours'
+  }
+
+  // Projet en attente - acompte reçu but devis not yet accepted
+  // Includes: acompte_recu, conception, devis_negociation, prise_de_besoin, qualifie, nouveau
+  // Also includes legacy statuses: acompte_verse, en_conception, en_validation
+  if (
+    statut === 'acompte_recu' ||
+    statut === 'acompte_verse' ||
+    statut === 'conception' ||
+    statut === 'en_conception' ||
+    statut === 'devis_negociation' ||
+    statut === 'en_validation' ||
+    statut === 'prise_de_besoin' ||
     statut === 'qualifie' ||
-    statut === 'prise_de_besoin'
+    statut === 'nouveau'
   ) {
     return 'en_attente'
   }
 
-  // En cours - all active projects
-  // Includes: acompte_recu, conception, devis_negociation, accepte, premier_depot, 
-  // projet_en_cours, chantier, facture_reglee, en_conception, en_validation, en_chantier
-  return 'en_cours'
+  // Default fallback for any unknown status
+  return 'en_attente'
 }
 
 /**
@@ -102,11 +169,33 @@ function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_
  */
 export async function GET(request: NextRequest) {
   try {
-    // Fetch all users with architect role
+    // Get current user from token
+    const currentUser = await getUserFromToken(request)
+    const isArchitect = currentUser?.role?.toLowerCase() === 'architect'
+    const isAdmin = currentUser?.role?.toLowerCase() === 'admin' || currentUser?.role?.toLowerCase() === 'operator'
+
+    // Build where clause - architects only see themselves, admins see all
+    const whereClause: any = {
+      role: 'architect'
+    }
+
+    // If user is an architect (not admin), only show their own profile
+    if (isArchitect && !isAdmin && currentUser?.userId) {
+      whereClause.id = currentUser.userId
+      console.log(`[GET /api/architects] Architect user - filtering to own profile: ${currentUser.userId}`)
+    } else if (isAdmin) {
+      console.log(`[GET /api/architects] Admin user - showing all architects`)
+    } else {
+      console.log(`[GET /api/architects] No user or unauthorized - returning empty`)
+      return NextResponse.json({
+        success: true,
+        data: []
+      })
+    }
+
+    // Fetch users with architect role (filtered by role)
     const architects = await prisma.user.findMany({
-      where: {
-        role: 'architect'
-      },
+      where: whereClause,
       orderBy: {
         createdAt: 'desc'
       },
@@ -194,24 +283,28 @@ export async function GET(request: NextRequest) {
       const allDossiers = [
         ...architectClients.map(c => ({ type: 'client' as const, statut: c.statutProjet })),
         // Extract all opportunities from contacts - each opportunity is a separate dossier
+        // IMPORTANT: projet_accepte means devis accepté, so it should map to 'accepte' (PROJET EN COURS)
+        // acompte_recu means deposit received but devis not yet accepted (PROJET EN ATTENTE)
         ...architectContacts.flatMap(c =>
           c.opportunities.map(o => ({
             type: 'contact_opportunity' as const,
             statut: o.pipelineStage === 'perdue' ? 'perdu' :
-              o.pipelineStage === 'gagnee' ? 'termine' :
+              o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
                 o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
                   o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                    o.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
+                    o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
                       'projet_en_cours'
           }))
         ),
         ...architectOpportunities.map(o => ({
           type: 'opportunity' as const,
-          statut: o.statut === 'won' ? 'termine' : o.statut === 'lost' ? 'perdu' :
+          statut: o.statut === 'won' ? 'projet_en_cours' : o.statut === 'lost' ? 'perdu' :
             o.pipelineStage === 'perdue' ? 'perdu' :
-              o.pipelineStage === 'gagnee' ? 'termine' :
-                o.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
-                  'projet_en_cours'
+              o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
+                o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
+                  o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                    o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                      'projet_en_cours'
         }))
       ]
 

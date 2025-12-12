@@ -117,23 +117,25 @@ export async function POST(
     });
 
     // 🎯 NEW LOGIC: Contact becomes Client ONLY if opportunity has 'acompte_recu' status
+    // CRITICAL: This must happen BEFORE creating the Supabase client record
     // If all opportunities are 'perdu', the client should NOT appear in the clients table
     const isAcompteRecu = defaultPipelineStage === 'acompte_recu'
     
     if (isAcompteRecu) {
-      // Only set contact tag to 'client' if opportunity has 'acompte_recu' status
-      if (contact.tag !== 'client') {
-        await prisma.contact.update({
-          where: { id: contactId },
-          data: {
-            tag: 'client',
-            clientSince: new Date(),
-            // We don't change the 'status' field here (it remains 'acompte_recu' or whatever it was)
-            // The 'tag' is what determines if they show up in the Clients page
-          }
-        });
+      // CRITICAL: Always set contact tag to 'client' if opportunity has 'acompte_recu' status
+      // This ensures the contact appears in the opportunities table immediately
+      await prisma.contact.update({
+        where: { id: contactId },
+        data: {
+          tag: 'client',
+          clientSince: contact.clientSince || new Date(),
+          // We don't change the 'status' field here (it remains 'acompte_recu' or whatever it was)
+          // The 'tag' is what determines if they show up in the Clients/Opportunities page
+        }
+      });
 
-        // Log conversion to client
+      // Log conversion to client (only if it was a change)
+      if (contact.tag !== 'client') {
         await prisma.timeline.create({
           data: {
             contactId,
@@ -264,11 +266,13 @@ export async function POST(
         });
 
         // Create or update client record
+        // CRITICAL: Include nom_projet field so the opportunity appears in the opportunities table
         const { error: clientError } = await supabase
           .from('clients')
           .upsert({
             id: clientId,
             nom: contact.nom || 'Client',
+            nom_projet: titre, // CRITICAL: Set project name from opportunity title
             telephone: contact.telephone || '',
             ville: contact.ville || '',
             email: contact.email || null,

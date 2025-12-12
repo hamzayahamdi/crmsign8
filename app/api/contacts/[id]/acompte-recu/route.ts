@@ -31,11 +31,11 @@ export async function POST(
 
         const { id: contactId } = await params;
         const body = await request.json();
-        const { montant, methode, reference, description } = body;
+        const { montant, methode, reference, description, updateExisting, paymentId } = body;
 
-        if (!montant || !methode) {
+        if (!montant) {
             return NextResponse.json(
-                { error: 'Montant et méthode de paiement sont requis' },
+                { error: 'Montant est requis' },
                 { status: 400 }
             );
         }
@@ -49,7 +49,7 @@ export async function POST(
             return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
         }
 
-        // Update contact status to acompte_recu
+        // Update contact status to acompte_recu (if not already)
         const updatedContact = await prisma.contact.update({
             where: { id: contactId },
             data: {
@@ -57,41 +57,82 @@ export async function POST(
             },
         });
 
-        // Create payment record with type "accompte"
-        await prisma.contactPayment.create({
-            data: {
-                contactId,
-                montant: parseFloat(montant),
-                methode,
-                reference: reference || undefined,
-                description: description || 'Acompte initial',
-                type: 'accompte', // Tag this payment as "accompte"
-                createdBy: decoded.userId,
-            },
-        });
-
-        // Create timeline entry
-        await prisma.timeline.create({
-            data: {
-                contactId,
-                eventType: 'status_changed',
-                title: 'Acompte reçu',
-                description: `Statut mis à jour: Prise de besoin → Acompte reçu. Montant: ${montant} MAD`,
-                metadata: {
-                    previousStatus: 'prise_de_besoin',
-                    newStatus: 'acompte_recu',
+        // Check if we should update existing payment or create new one
+        if (updateExisting && paymentId) {
+            // Update existing payment
+            await prisma.contactPayment.update({
+                where: { id: paymentId },
+                data: {
                     montant: parseFloat(montant),
-                    methode,
-                    reference,
+                    methode: methode || undefined,
+                    reference: reference || undefined,
+                    description: description || undefined,
+                    updatedAt: new Date(),
                 },
-                author: decoded.userId,
-            },
-        });
+            });
+        } else {
+            // Check if acompte payment already exists
+            const existingAcompte = await prisma.contactPayment.findFirst({
+                where: {
+                    contactId,
+                    type: 'accompte',
+                },
+            });
+
+            if (existingAcompte) {
+                // Update existing acompte payment
+                await prisma.contactPayment.update({
+                    where: { id: existingAcompte.id },
+                    data: {
+                        montant: parseFloat(montant),
+                        methode: methode || existingAcompte.methode || 'virement',
+                        reference: reference || existingAcompte.reference || undefined,
+                        description: description || existingAcompte.description || 'Acompte initial',
+                        updatedAt: new Date(),
+                    },
+                });
+            } else {
+                // Create new payment record with type "accompte"
+                await prisma.contactPayment.create({
+                    data: {
+                        contactId,
+                        montant: parseFloat(montant),
+                        methode: methode || 'virement',
+                        reference: reference || undefined,
+                        description: description || 'Acompte initial',
+                        type: 'accompte', // Tag this payment as "accompte"
+                        createdBy: decoded.userId,
+                    },
+                });
+            }
+        }
+
+        // Create timeline entry only if this is a new payment (not an update)
+        if (!updateExisting) {
+            await prisma.timeline.create({
+                data: {
+                    contactId,
+                    eventType: 'status_changed',
+                    title: updateExisting ? 'Acompte mis à jour' : 'Acompte reçu',
+                    description: updateExisting 
+                        ? `Montant de l'acompte mis à jour: ${montant} MAD`
+                        : `Statut mis à jour: Prise de besoin → Acompte reçu. Montant: ${montant} MAD`,
+                    metadata: {
+                        previousStatus: contact.status || 'prise_de_besoin',
+                        newStatus: 'acompte_recu',
+                        montant: parseFloat(montant),
+                        methode: methode || 'virement',
+                        reference,
+                    },
+                    author: decoded.userId,
+                },
+            });
+        }
 
         return NextResponse.json({
             success: true,
             contact: updatedContact,
-            message: 'Acompte enregistré avec succès',
+            message: updateExisting ? 'Acompte mis à jour avec succès' : 'Acompte enregistré avec succès',
         });
 
     } catch (error) {

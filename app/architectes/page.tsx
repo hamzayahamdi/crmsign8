@@ -35,15 +35,20 @@ export default function ArchitectesPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   
-  // Check if current user is an architect
+  // Check if current user is an architect or admin
   const isArchitect = user?.role?.toLowerCase() === "architect"
+  const isAdmin = user?.role?.toLowerCase() === "admin" || user?.role?.toLowerCase() === "operator"
 
   // Fetch architects from API
   useEffect(() => {
     const fetchArchitects = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch('/api/architects')
+        const token = localStorage.getItem("token")
+        const response = await fetch('/api/architects', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: 'include'
+        })
         
         if (!response.ok) {
           throw new Error('Failed to fetch architects')
@@ -53,7 +58,16 @@ export default function ArchitectesPage() {
         
         if (result.success && result.data) {
           setArchitects(result.data)
-          console.log(`✅ Loaded ${result.data.length} architects from API`)
+          console.log(`✅ Loaded ${result.data.length} architect(s) from API`)
+          
+          // If architect viewing their own profile, redirect to detail page
+          if (isArchitect && !isAdmin && result.data.length === 1) {
+            const ownProfile = result.data[0]
+            if (ownProfile.id === user?.id) {
+              // Optionally redirect to detail page, or keep on list page
+              console.log(`[Architectes Page] Architect viewing own profile`)
+            }
+          }
         }
       } catch (error) {
         console.error('Error fetching architects:', error)
@@ -63,8 +77,10 @@ export default function ArchitectesPage() {
       }
     }
 
-    fetchArchitects()
-  }, [])
+    if (user) {
+      fetchArchitects()
+    }
+  }, [user, isArchitect, isAdmin])
 
   // Architects already have statistics from API
   const architectsWithStats = architects
@@ -93,9 +109,11 @@ export default function ArchitectesPage() {
     })
   }, [architectsWithStats, searchQuery, filters])
 
-  // Calculate statistics
-  const totalArchitects = architectsWithStats.length
-  const activeArchitects = architectsWithStats.filter(a => a.statut === "actif").length
+  // Calculate statistics - for architects, show only their own stats
+  const totalArchitects = isArchitect && !isAdmin ? 1 : architectsWithStats.length
+  const activeArchitects = isArchitect && !isAdmin 
+    ? (architectsWithStats[0]?.statut === "actif" ? 1 : 0)
+    : architectsWithStats.filter(a => a.statut === "actif").length
   const totalDossiers = architectsWithStats.reduce((sum, a) => sum + (a.totalDossiers || 0), 0)
   const avgDossiersPerArchitect = totalArchitects > 0 ? Math.round(totalDossiers / totalArchitects) : 0
 
@@ -159,19 +177,26 @@ export default function ArchitectesPage() {
 
   return (
     <AuthGuard>
-      <RoleGuard allowedRoles={['Admin', 'Operator']}>
+      <RoleGuard allowedRoles={['Admin', 'Operator', 'Architect']}>
         <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
           <Sidebar />
           <main className="flex-1 flex flex-col">
             <Header />
+            {/* Page Title for Architects */}
+            {isArchitect && !isAdmin && (
+              <div className="px-3 md:px-4 pt-3 md:pt-4 pb-2">
+                <h1 className="text-lg md:text-xl font-bold text-white">Mes Projets</h1>
+                <p className="text-xs md:text-sm text-slate-400">Gérez vos projets et dossiers</p>
+              </div>
+            )}
           
           {/* Stats Cards - Compact */}
-          <div className="px-3 md:px-4 pt-2 md:pt-3 pb-1">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="px-3 md:px-4 pt-3 md:pt-4 pb-4 md:pb-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-blue-500/30 transition-all duration-300"
+                className="group relative overflow-hidden rounded-lg md:rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 md:p-4 hover:border-blue-500/30 transition-all duration-300"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
@@ -191,7 +216,7 @@ export default function ArchitectesPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-green-500/30 transition-all duration-300"
+                className="group relative overflow-hidden rounded-lg md:rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 md:p-4 hover:border-green-500/30 transition-all duration-300"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
@@ -211,7 +236,7 @@ export default function ArchitectesPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-purple-500/30 transition-all duration-300"
+                className="group relative overflow-hidden rounded-lg md:rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 md:p-4 hover:border-purple-500/30 transition-all duration-300"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
@@ -231,7 +256,7 @@ export default function ArchitectesPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-orange-500/30 transition-all duration-300"
+                className="group relative overflow-hidden rounded-lg md:rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 md:p-4 hover:border-orange-500/30 transition-all duration-300"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
@@ -249,7 +274,8 @@ export default function ArchitectesPage() {
             </div>
           </div>
 
-          {/* Search and Filters */}
+          {/* Search and Filters - Only show for admins */}
+          {isAdmin && (
           <div className="px-3 md:px-4 pb-2 space-y-1.5">
             {/* Search Bar and Actions */}
             <div className="flex gap-2">
@@ -289,14 +315,17 @@ export default function ArchitectesPage() {
                 </Button>
               </div>
 
-              <Button
-                onClick={() => setIsAddModalOpen(true)}
-                className="h-8 px-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium text-xs"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                <span className="hidden sm:inline">Ajouter</span>
-                <span className="sm:hidden">+</span>
-              </Button>
+              {/* Only show Add button for admins */}
+              {isAdmin && (
+                <Button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="h-8 px-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium text-xs"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  <span className="hidden sm:inline">Ajouter</span>
+                  <span className="sm:hidden">+</span>
+                </Button>
+              )}
             </div>
 
             {/* Filters */}
@@ -434,9 +463,10 @@ export default function ArchitectesPage() {
               )}
             </div>
           </div>
+          )}
 
           {/* Architects Display */}
-          <div className="flex-1 px-3 md:px-4 pb-3 overflow-hidden">
+          <div className="flex-1 px-3 md:px-4 pb-4 md:pb-6 overflow-hidden">
             {isLoading ? (
               <div className="h-full flex items-center justify-center">
                 <div className="glass rounded-xl border border-slate-600/30 p-6 max-w-xl w-full text-center">
@@ -455,7 +485,7 @@ export default function ArchitectesPage() {
             ) : (
               <>
                 {viewMode === "grid" ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
                     {filteredArchitects.map((architect, index) => (
                       <ArchitectCard
                         key={architect.id}
@@ -464,36 +494,6 @@ export default function ArchitectesPage() {
                         index={index}
                         currentUserId={user?.id}
                         isArchitect={isArchitect}
-                        onStatusUpdate={async (newStatus) => {
-                          try {
-                            const token = localStorage.getItem("token")
-                            const response = await fetch(`/api/architects/${architect.id}`, {
-                              method: "PATCH",
-                              headers: {
-                                "Content-Type": "application/json",
-                                "Authorization": `Bearer ${token}`,
-                              },
-                              body: JSON.stringify({ statut: newStatus }),
-                            })
-                            
-                            if (!response.ok) {
-                              const error = await response.json()
-                              throw new Error(error.error || "Failed to update status")
-                            }
-                            
-                            const result = await response.json()
-                            if (result.success) {
-                              // Update local state
-                              setArchitects(prev => prev.map(a => 
-                                a.id === architect.id ? { ...a, statut: newStatus } : a
-                              ))
-                              toast.success("Statut mis à jour avec succès")
-                            }
-                          } catch (error: any) {
-                            console.error("Error updating architect status:", error)
-                            toast.error(error.message || "Erreur lors de la mise à jour du statut")
-                          }
-                        }}
                       />
                     ))}
                   </div>

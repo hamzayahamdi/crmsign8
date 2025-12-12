@@ -97,9 +97,9 @@ export function CreatableSelect({
           disabled={disabled}
           type="button"
           className={cn(
-            "w-full h-8 justify-between border border-slate-600/40 bg-slate-800/90 text-white hover:bg-slate-700/90 hover:border-blue-500/60 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all duration-200 font-light px-3 text-xs",
+            "w-full h-8 justify-between border border-slate-600/40 bg-slate-800/60 text-white hover:bg-slate-800/70 hover:border-slate-500/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/30 focus:bg-slate-800/60 transition-all duration-200 font-normal px-3 text-xs",
             !value && "text-slate-400",
-            open && "border-blue-500/60 ring-2 ring-blue-500/20",
+            open && "border-primary/50 ring-1 ring-primary/20",
             className
           )}
         >

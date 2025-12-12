@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
     console.log('[Calendar API] Role check - isRestrictedRole:', isRestrictedRole, 'role:', user.role);
 
     if (isRestrictedRole) {
-      // Gestionnaire, Architects and commercials see: their own events + events they're invited to + public events
+      // Only Gestionnaire is restricted: their own events + events they're invited to + public events
       where.AND.push({
         OR: [
           { createdBy: user.userId },
@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
         ]
       });
     }
-    // Admins and Operators see all events (no additional filter needed)
+    // Admins, Operators, and Architects see all events (no additional filter needed)
 
     // Filter by assigned user or participants (additional filter on top of visibility)
     if (assignedTo && assignedTo !== 'all') {

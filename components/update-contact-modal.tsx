@@ -148,7 +148,7 @@ export function UpdateContactModal({
         priorite: calculatePriority(contact?.source || "site_web") as ContactPriority,
     }
 
-    const [formData, setFormData] = useState(initialForm)
+    const [formData, setFormData] = useState(initialForm);
 
     // Load project managers (gestionnaires) and architects from Users API
     useEffect(() => {

@@ -391,9 +391,9 @@ export function QuickActionsSidebar({
           />
 
           <ActionButton
-            icon={Plus}
-            label="Créer devis"
-            description="Générez un nouveau devis"
+            icon={Paperclip}
+            label="Attacher devis"
+            description="Joignez un fichier de devis"
             accent="from-amber-400 to-orange-500"
             onClick={() => setIsDevisModalOpen(true)}
           />

@@ -19,6 +19,7 @@ import {
   Building2,
   Store,
   User,
+  DollarSign,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -504,6 +505,33 @@ export function ContactsTable({
                   </span>
                 </div>
               </div>
+
+              {/* Accompte Reçu - Professional CRM Style */}
+              {contact.status === 'acompte_recu' && (contact as any).payments && (() => {
+                const payments = (contact as any).payments || []
+                const acompte = payments.find((p: any) => p.type === 'accompte')
+                if (acompte) {
+                  return (
+                    <div className="mt-2 mb-2 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500/20 to-emerald-500/10 border border-emerald-500/40 shadow-sm backdrop-blur-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3.5 h-3.5 rounded bg-emerald-500/30 flex items-center justify-center">
+                            <DollarSign className="w-2.5 h-2.5 text-emerald-300" />
+                          </div>
+                          <span className="text-[10px] font-medium text-emerald-200/90 uppercase tracking-wide">
+                            Acompte
+                          </span>
+                        </div>
+                        <div className="h-2.5 w-px bg-emerald-500/30" />
+                        <span className="text-xs font-bold text-emerald-100">
+                          {acompte.montant?.toLocaleString('fr-FR') || '0'} MAD
+                        </span>
+                      </div>
+                    </div>
+                  )
+                }
+                return null
+              })()}
 
               {/* Opportunities */}
               <div className="flex items-center justify-between pt-3 border-t border-slate-600/20">

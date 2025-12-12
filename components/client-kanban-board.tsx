@@ -469,6 +469,7 @@ export function ClientKanbanBoard({
                             color={column.color}
                             clients={getClientsByStatus(column.id)}
                             onClientClick={onClientClick}
+                            onUpdate={onUpdateClient}
                             pendingId={pendingId}
                             architectNameMap={architectNameMap}
                             isDraggedOver={draggedOverColumn === column.id}

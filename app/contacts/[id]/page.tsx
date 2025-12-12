@@ -28,10 +28,15 @@ import {
   History,
   Activity,
   Trash2,
-  Home
+  Home,
+  DollarSign,
+  Wallet,
+  Edit
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Sidebar } from '@/components/sidebar'
 import { Header } from '@/components/header'
 import { AuthGuard } from '@/components/auth-guard'
@@ -504,6 +509,27 @@ export default function ContactPage() {
                             </div>
                           )}
                         </div>
+
+                        {/* Accompte Reçu Badge in Header - Clean & Thin */}
+                        {contact.status === 'acompte_recu' && (contact as any).payments && (() => {
+                          const payments = (contact as any).payments || []
+                          const acompte = payments.find((p: any) => p.type === 'accompte')
+                          if (acompte) {
+                            return (
+                              <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/15 hover:border-emerald-500/40 transition-all">
+                                <DollarSign className="w-3 h-3 text-emerald-400" />
+                                <span className="text-[10px] font-medium text-emerald-300 uppercase tracking-wide">
+                                  Acompte
+                                </span>
+                                <div className="h-2.5 w-px bg-emerald-500/30" />
+                                <span className="text-xs font-semibold text-emerald-200">
+                                  {acompte.montant?.toLocaleString('fr-FR') || '0'} MAD
+                                </span>
+                              </div>
+                            )
+                          }
+                          return null
+                        })()}
                       </div>
                     </div>
 
@@ -765,7 +791,7 @@ interface ContactNote {
   source?: string
 }
 
-function OverviewTab({ contact, architectName, architectNameMap, userNameMap, onUpdate }: { contact: ContactWithDetails; architectName: string | null; architectNameMap: Record<string, string>; userNameMap: Record<string, string>; onUpdate: () => void }) {
+function OverviewTab({ contact, architectName, architectNameMap, userNameMap, onUpdate, onEditAcompte }: { contact: ContactWithDetails; architectName: string | null; architectNameMap: Record<string, string>; userNameMap: Record<string, string>; onUpdate: () => void; onEditAcompte?: () => void }) {
   const [notes, setNotes] = useState<ContactNote[]>([])
   const [isAddingNote, setIsAddingNote] = useState(false)
   const [newNoteContent, setNewNoteContent] = useState('')
@@ -782,6 +808,12 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeletingNote, setIsDeletingNote] = useState(false)
+
+  // Accompte reçu editing state
+  const [isEditingAcompte, setIsEditingAcompte] = useState(false)
+  const [acompteMontant, setAcompteMontant] = useState('')
+  const [isSavingAcompte, setIsSavingAcompte] = useState(false)
+  const [acomptePayment, setAcomptePayment] = useState<any>(null)
 
   // Display notes from contact
   const displayNotes = typeof contact.notes === 'string' ? contact.notes : ''
@@ -933,6 +965,87 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
   }
 
   const converterName = getConverterName()
+
+  // Load accompte payment when contact changes
+  useEffect(() => {
+    if (contact && (contact as any).payments) {
+      const payments = (contact as any).payments || []
+      const acompte = payments.find((p: any) => p.type === 'accompte')
+      if (acompte) {
+        setAcomptePayment(acompte)
+        setAcompteMontant(acompte.montant?.toString() || '')
+      } else {
+        setAcomptePayment(null)
+        setAcompteMontant('')
+      }
+    } else {
+      setAcomptePayment(null)
+      setAcompteMontant('')
+    }
+  }, [contact])
+
+  const handleUpdateAcompte = async () => {
+    if (!acompteMontant || isNaN(Number(acompteMontant))) {
+      toast.error('Veuillez saisir un montant valide')
+      return
+    }
+
+    try {
+      setIsSavingAcompte(true)
+      const token = localStorage.getItem('token')
+
+      if (acomptePayment) {
+        // Update existing payment via acompte-recu endpoint (it will update if payment exists)
+        const response = await fetch(`/api/contacts/${contact.id}/acompte-recu`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            montant: Number(acompteMontant),
+            methode: acomptePayment.methode || 'virement',
+            reference: acomptePayment.reference || undefined,
+            description: acomptePayment.description || 'Acompte initial',
+            updateExisting: true,
+            paymentId: acomptePayment.id,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Erreur lors de la mise à jour')
+        }
+        toast.success('Montant de l\'acompte mis à jour avec succès')
+      } else {
+        // Create new payment via acompte-recu endpoint
+        const response = await fetch(`/api/contacts/${contact.id}/acompte-recu`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            montant: Number(acompteMontant),
+            methode: 'virement',
+            description: 'Acompte initial',
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Erreur lors de l\'enregistrement')
+        }
+        toast.success('Acompte enregistré avec succès')
+      }
+
+      setIsEditingAcompte(false)
+      await onUpdate()
+    } catch (error) {
+      console.error('Error updating acompte:', error)
+      toast.error('Une erreur est survenue')
+    } finally {
+      setIsSavingAcompte(false)
+    }
+  }
 
   const handleAddNote = async () => {
     if (!newNoteContent.trim()) return
@@ -1151,25 +1264,25 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
 
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-3">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5 mt-2">
       {/* Left Column - Main Content */}
-      <div className="lg:col-span-2 space-y-3">
+      <div className="lg:col-span-2 space-y-2.5">
         {/* Contact Information - Enhanced */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass rounded-lg border border-slate-600/40 p-4 shadow-lg shadow-slate-900/20"
+          className="glass rounded-lg border border-slate-600/40 p-3 shadow-lg shadow-slate-900/20"
         >
-          <h2 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-600/10 flex items-center justify-center border border-blue-500/30">
-              <User className="w-3.5 h-3.5 text-blue-400" />
+          <h2 className="text-xs font-medium text-white mb-2.5 flex items-center gap-2">
+            <div className="w-5 h-5 rounded-lg bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+              <User className="w-3 h-3 text-blue-400" />
             </div>
             Informations
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="group relative p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-blue-500/30 transition-all">
-              <div className="flex items-center justify-between mb-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="group relative p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-blue-500/30 transition-all">
+              <div className="flex items-center justify-between mb-1">
                 <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide flex items-center gap-1">
                   <User className="w-3 h-3 text-blue-400" />
                   Nom
@@ -1189,8 +1302,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               <p className="text-xs font-light text-white">{contact.nom}</p>
             </div>
 
-            <div className="group relative p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-green-500/30 transition-all">
-              <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+            <div className="group relative p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-green-500/30 transition-all">
+              <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
                 <Phone className="w-3 h-3 text-green-400" />
                 Téléphone
               </p>
@@ -1204,8 +1317,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
             </div>
 
             {contact.email && (
-              <div className="group relative p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-purple-500/30 transition-all">
-                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+              <div className="group relative p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-purple-500/30 transition-all">
+                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
                   <Mail className="w-3 h-3 text-purple-400" />
                   Email
                 </p>
@@ -1220,8 +1333,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
             )}
 
             {contact.ville && (
-              <div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all">
-                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+              <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all">
+                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
                   <MapPin className="w-3 h-3 text-emerald-400" />
                   Ville
                 </p>
@@ -1230,8 +1343,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
             )}
 
             {leadData?.typeBien && (
-              <div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-red-500/30 transition-all">
-                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+              <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-red-500/30 transition-all">
+                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
                   <Home className="w-3 h-3 text-red-400" />
                   Type de bien
                 </p>
@@ -1240,8 +1353,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
             )}
 
             {leadData?.source && (
-              <div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-cyan-500/30 transition-all">
-                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+              <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-cyan-500/30 transition-all">
+                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
                   <ExternalLink className="w-3 h-3 text-cyan-400" />
                   Source
                 </p>
@@ -1256,16 +1369,16 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="glass rounded-lg border border-slate-600/40 p-4 shadow-lg shadow-slate-900/20"
+          className="glass rounded-lg border border-slate-600/40 p-3 shadow-lg shadow-slate-900/20"
         >
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-white flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+          <div className="flex items-center justify-between mb-2.5">
+            <h2 className="text-xs font-medium text-white flex items-center gap-2">
+              <div className="w-5 h-5 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                <MessageSquare className="w-3 h-3 text-amber-400" />
               </div>
               Notes & Observations
               {notes.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded text-xs font-light bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-light bg-amber-500/15 text-amber-300 border border-amber-500/25">
                   {notes.length}
                 </span>
               )}
@@ -1274,9 +1387,9 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               <Button
                 onClick={() => setIsAddingNote(true)}
                 size="sm"
-                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 h-7 px-2.5 text-xs font-light"
+                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 h-6 px-2 text-[10px] font-light"
               >
-                <Plus className="w-3 h-3 mr-1.5" />
+                <Plus className="w-3 h-3 mr-1" />
                 Ajouter
               </Button>
             )}
@@ -1334,7 +1447,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
 
           {/* Notes List - Enhanced, Clean, Readable */}
           {notes.length > 0 ? (
-            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
               {notes.map((note, index) => {
                 // Use note ID as primary key, fallback to content+date+index for uniqueness
                 const uniqueKey = note.id || `note-${note.content.substring(0, 30)}-${note.createdAt}-${index}`;
@@ -1346,7 +1459,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.015 }}
-                    className={`group relative pl-3 pr-2 py-2 rounded-lg border-l-2 transition-all ${
+                    className={`group relative pl-2.5 pr-2 py-1.5 rounded-lg border-l-2 transition-all ${
                       isLeadNote
                         ? 'bg-slate-800/30 border-l-purple-500/40 hover:bg-slate-800/50 hover:border-l-purple-500/60'
                         : 'bg-slate-800/20 border-l-slate-600/30 hover:bg-slate-800/40 hover:border-l-slate-500/50'
@@ -1405,22 +1518,22 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
       </div>
 
       {/* Right Column - Summary */}
-      <div className="lg:col-span-1 space-y-3">
+      <div className="lg:col-span-1 space-y-2.5">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="glass rounded-lg border border-slate-600/40 p-4 shadow-lg shadow-slate-900/20"
+          className="glass rounded-lg border border-slate-600/40 p-3 shadow-lg shadow-slate-900/20"
         >
-          <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-600/10 flex items-center justify-center border border-purple-500/30">
-              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+          <h3 className="text-xs font-medium text-white mb-2.5 flex items-center gap-2">
+            <div className="w-5 h-5 rounded-lg bg-purple-500/20 flex items-center justify-center border border-purple-500/30">
+              <Sparkles className="w-3 h-3 text-purple-400" />
             </div>
             Résumé
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {/* Contact Status */}
-            <div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50">
-              <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+            <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
+              <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
                 <div className={`w-1.5 h-1.5 rounded-full ${contact.tag === 'client' ? 'bg-green-400 animate-pulse' :
                   contact.status === 'perdu' ? 'bg-red-400' :
                     'bg-blue-400'
@@ -1443,8 +1556,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
             </div>
 
             {isConverted && converterName && (
-              <div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50">
-                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+              <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
+                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3 text-yellow-400" />
                   Converti par
                 </p>
@@ -1453,8 +1566,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
             )}
 
             {architectName && (
-              <div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50">
-                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+              <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
+                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
                   <Briefcase className="w-3 h-3 text-purple-400" />
                   Architecte
                 </p>
@@ -1462,8 +1575,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               </div>
             )}
 
-            <div className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/50">
-              <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+            <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
+              <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
                 <Calendar className="w-3 h-3 text-blue-400" />
                 Contact créé le
               </p>
@@ -1471,6 +1584,99 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
             </div>
           </div>
         </motion.div>
+
+        {/* Accompte Reçu Section - Clean, Thin & Intuitive */}
+        {(contact.status === 'acompte_recu' || acomptePayment) && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.15 }}
+            data-acompte-section
+            className="rounded-lg border border-emerald-500/30 bg-emerald-500/8 p-3 hover:border-emerald-500/40 hover:bg-emerald-500/12 transition-all group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                <h3 className="text-xs font-medium text-white">Acompte Reçu</h3>
+                <span className="w-1 h-1 rounded-full bg-emerald-400" />
+              </div>
+              {!isEditingAcompte && (
+                <button
+                  onClick={() => setIsEditingAcompte(true)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 hover:border-emerald-500/50 transition-all group/edit"
+                  title="Modifier le montant"
+                >
+                  <Edit className="w-3 h-3 text-emerald-300 group-hover/edit:text-emerald-200" />
+                  <span className="text-[10px] font-medium text-emerald-200 group-hover/edit:text-emerald-100">
+                    Modifier
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {isEditingAcompte ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={acompteMontant}
+                    onChange={(e) => setAcompteMontant(e.target.value)}
+                    placeholder="0.00"
+                    className="flex-1 bg-slate-900/50 border-emerald-500/40 text-white placeholder:text-slate-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 h-7 text-xs"
+                    autoFocus
+                  />
+                  <span className="text-xs text-slate-400">MAD</span>
+                </div>
+                <div className="flex items-center gap-1.5 justify-end">
+                  <Button
+                    onClick={() => {
+                      setIsEditingAcompte(false)
+                      setAcompteMontant(acomptePayment?.montant?.toString() || '')
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-[10px] px-2 text-slate-400 hover:text-white"
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    onClick={handleUpdateAcompte}
+                    disabled={isSavingAcompte || !acompteMontant}
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white h-6 text-[10px] px-2"
+                  >
+                    {isSavingAcompte ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Save className="w-3 h-3" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-baseline justify-between">
+                <div className="flex-1">
+                  <p className="text-base font-bold text-emerald-300 leading-tight">
+                    {acomptePayment?.montant?.toLocaleString('fr-FR') || '0'} MAD
+                  </p>
+                  {acomptePayment?.methode && (
+                    <p className="text-[10px] text-slate-400 mt-0.5 capitalize">
+                      {acomptePayment.methode}
+                    </p>
+                  )}
+                </div>
+                {acomptePayment?.date && (
+                  <p className="text-[10px] text-slate-500">
+                    {new Date(acomptePayment.date).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
+                      month: 'short'
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* Quick Actions */}
 

@@ -186,9 +186,9 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
       <div className="bg-slate-800/30 px-3 py-2 border-b border-slate-200/10">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xs font-semibold text-white">Liste des Clients</h3>
+            <h3 className="text-xs font-semibold text-white">Liste des Opportunités</h3>
             <p className="text-[10px] text-muted-foreground">
-              {sortedClients.length} client{sortedClients.length > 1 ? 's' : ''}
+              {sortedClients.length} opportunité{sortedClients.length > 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -402,14 +402,14 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
                     <div className="w-12 h-12 rounded-full border-4 border-slate-700"></div>
                     <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin absolute top-0 left-0"></div>
                   </div>
-                  <p className="text-white font-medium">Chargement des clients...</p>
+                  <p className="text-white font-medium">Chargement des opportunités...</p>
                   <p className="text-sm text-muted-foreground">Veuillez patienter</p>
                 </div>
               </div>
             ) : (
               <div className="glass rounded-lg p-8 max-w-md mx-auto">
                 <User className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-white font-semibold text-lg mb-2">Aucun client pour le moment</p>
+                <p className="text-white font-semibold text-lg mb-2">Aucune opportunité pour le moment</p>
                 <p className="text-sm text-muted-foreground">
                   Essayez de modifier vos filtres ou votre recherche
                 </p>

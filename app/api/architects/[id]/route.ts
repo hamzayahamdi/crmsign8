@@ -55,18 +55,25 @@ function isAssignedToArchitect(
  * Helper function to determine dossier status category
  * IMPORTANT: "perdu" (lost) and "refuse" (refused) are excluded from all categories
  * as they represent closed/lost projects that should not be counted as active.
+ * 
+ * CATEGORIZATION LOGIC:
+ * - Projet livré (termine): livraison_termine, livraison, termine
+ * - Projet en cours (en_cours): accepte (devis accepté) + premier_depot, projet_en_cours, chantier, facture_reglee
+ * - Projet en attente (en_attente): acompte_recu, conception, devis_negociation, prise_de_besoin, qualifie, nouveau
+ *   (NOT accepte - if devis is accepted, it's en cours)
  */
 function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_attente' | null {
   // Exclude lost/refused projects - these should not be counted in any active category
   if (
     statut === 'perdu' ||
     statut === 'refuse' ||
-    statut === 'annule'
+    statut === 'annule' ||
+    statut === 'suspendu'
   ) {
     return null // Excluded from all counts
   }
 
-  // Terminés - completed projects
+  // Projet livré - completed/delivered projects
   if (
     statut === 'termine' ||
     statut === 'livraison_termine' ||
@@ -75,19 +82,38 @@ function getDossierStatusCategory(statut: string): 'en_cours' | 'termine' | 'en_
     return 'termine'
   }
 
-  // En attente - new or qualified projects waiting to start
+  // Projet en cours - devis accepted and working on project
+  // Includes: accepte (devis accepté), premier_depot, projet_en_cours, chantier, facture_reglee
   if (
-    statut === 'nouveau' ||
+    statut === 'accepte' ||
+    statut === 'premier_depot' ||
+    statut === 'projet_en_cours' ||
+    statut === 'chantier' ||
+    statut === 'facture_reglee' ||
+    statut === 'en_chantier'
+  ) {
+    return 'en_cours'
+  }
+
+  // Projet en attente - acompte reçu but devis not yet accepted
+  // Includes: acompte_recu, conception, devis_negociation, prise_de_besoin, qualifie, nouveau
+  // Also includes legacy statuses: acompte_verse, en_conception, en_validation
+  if (
+    statut === 'acompte_recu' ||
+    statut === 'acompte_verse' ||
+    statut === 'conception' ||
+    statut === 'en_conception' ||
+    statut === 'devis_negociation' ||
+    statut === 'en_validation' ||
+    statut === 'prise_de_besoin' ||
     statut === 'qualifie' ||
-    statut === 'prise_de_besoin'
+    statut === 'nouveau'
   ) {
     return 'en_attente'
   }
 
-  // En cours - all active projects
-  // Includes: acompte_recu, conception, devis_negociation, accepte, premier_depot, 
-  // projet_en_cours, chantier, facture_reglee, en_conception, en_validation, en_chantier
-  return 'en_cours'
+  // Default fallback for any unknown status
+  return 'en_attente'
 }
 
 /**
@@ -251,28 +277,33 @@ export async function GET(
       !contactOpportunityIds.has(opportunity.id)
     )
 
-    // Combine all dossiers for statistics
-    const allDossiers = [
-      ...architectClients.map(c => ({ type: 'client' as const, statut: c.statutProjet })),
-      ...architectContacts.flatMap(c =>
-        c.opportunities.map(o => ({
-          type: 'contact_opportunity' as const,
-          statut: o.pipelineStage === 'perdue' ? 'perdu' :
-            o.pipelineStage === 'gagnee' ? 'termine' :
-              o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                  'projet_en_cours'
+      // Combine all dossiers for statistics
+      // IMPORTANT: projet_accepte means devis accepté, so it should map to 'accepte' (PROJET EN COURS)
+      // acompte_recu means deposit received but devis not yet accepted (PROJET EN ATTENTE)
+      const allDossiers = [
+        ...architectClients.map(c => ({ type: 'client' as const, statut: c.statutProjet })),
+        ...architectContacts.flatMap(c =>
+          c.opportunities.map(o => ({
+            type: 'contact_opportunity' as const,
+            statut: o.pipelineStage === 'perdue' ? 'perdu' :
+              o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
+                o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                  o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                    o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
+                      'projet_en_cours'
+          }))
+        ),
+        ...architectOpportunities.map(o => ({
+          type: 'opportunity' as const,
+          statut: o.statut === 'won' ? 'projet_en_cours' : o.statut === 'lost' ? 'perdu' :
+            o.pipelineStage === 'perdue' ? 'perdu' :
+              o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
+                o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
+                  o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                    o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                      'projet_en_cours'
         }))
-      ),
-      ...architectOpportunities.map(o => ({
-        type: 'opportunity' as const,
-        statut: o.statut === 'won' ? 'termine' : o.statut === 'lost' ? 'perdu' :
-          o.pipelineStage === 'perdue' ? 'perdu' :
-            o.pipelineStage === 'gagnee' ? 'termine' :
-              o.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
-                'projet_en_cours'
-      }))
-    ]
+      ]
 
     // Calculate statistics (exclude null/refused/lost projects from active counts)
     const totalDossiers = allDossiers.length
@@ -352,10 +383,10 @@ export async function GET(
           typeProjet: opportunity.type as any,
           architecteAssigne: contact.architecteAssigne || '',
           statutProjet: opportunity.pipelineStage === 'perdue' ? 'perdu' :
-            opportunity.pipelineStage === 'gagnee' ? 'termine' :
+            opportunity.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
               opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
                 opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                  opportunity.pipelineStage === 'projet_accepte' ? 'acompte_recu' :
+                  opportunity.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
                     'projet_en_cours',
           derniereMaj: opportunity.updatedAt ? opportunity.updatedAt.toISOString() : contact.updatedAt.toISOString(),
           leadId: contact.leadId || undefined,
@@ -381,13 +412,14 @@ export async function GET(
         ville: opportunity.contact.ville || '',
         typeProjet: opportunity.type as any,
         architecteAssigne: opportunity.architecteAssigne || '',
-        statutProjet: opportunity.statut === 'won' ? 'termine' :
+        statutProjet: opportunity.statut === 'won' ? 'projet_en_cours' :
           opportunity.statut === 'lost' ? 'perdu' :
             opportunity.pipelineStage === 'perdue' ? 'perdu' :
-              opportunity.pipelineStage === 'gagnee' ? 'termine' :
-                opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                  opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                    'projet_en_cours',
+              opportunity.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
+                opportunity.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
+                  opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                    opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                      'projet_en_cours',
         derniereMaj: opportunity.updatedAt.toISOString(),
         leadId: undefined,
         email: opportunity.contact.email || undefined,

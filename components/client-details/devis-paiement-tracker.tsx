@@ -12,6 +12,7 @@ import {
   Calendar,
   Trash2,
   Loader2,
+  Pencil,
 } from "lucide-react";
 import type { Client, Devis } from "@/types/client";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { calculatePaymentMetrics, formatCurrency } from "@/lib/payment-calculations";
+import { EditMontantModal } from "./edit-montant-modal";
 
 interface DevisPaiementTrackerProps {
   client: Client;
@@ -48,6 +50,7 @@ export function DevisPaiementTracker({
 }: DevisPaiementTrackerProps) {
   const { toast } = useToast();
   const [updatingDevisId, setUpdatingDevisId] = useState<string | null>(null);
+  const [editingMontantDevis, setEditingMontantDevis] = useState<Devis | null>(null);
   const devisList = client.devis || [];
 
   // Use the new payment calculation utility
@@ -376,9 +379,23 @@ export function DevisPaiementTracker({
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <p className="text-sm font-bold text-white">
-                        {formatCurrency(devis.montant)}
-                      </p>
+                      <div className="flex items-center gap-2 group/montant">
+                        <p className="text-sm font-bold text-white">
+                          {formatCurrency(devis.montant)}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditingMontantDevis(devis)
+                          }}
+                          className="h-6 w-6 opacity-0 group-hover/montant:opacity-100 transition-opacity text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                          title="Modifier le montant"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                       {devis.statut === "accepte" && (
                         <span className="text-xs text-white/50">
                           {devis.facture_reglee ? "✓ Réglé" : "En attente"}
@@ -600,6 +617,19 @@ export function DevisPaiementTracker({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {editingMontantDevis && (
+        <EditMontantModal
+          isOpen={!!editingMontantDevis}
+          onClose={() => setEditingMontantDevis(null)}
+          client={client}
+          devis={editingMontantDevis}
+          onSave={(updatedClient, skipApiCall) => {
+            onUpdate(updatedClient, skipApiCall)
+            setEditingMontantDevis(null)
+          }}
+        />
+      )}
     </div>
   );
 }

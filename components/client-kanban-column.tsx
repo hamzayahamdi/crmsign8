@@ -1,10 +1,12 @@
 "use client"
 
+import { useMemo } from "react"
 import type { Client } from "@/types/client"
 import { ClientKanbanCard } from "@/components/client-kanban-card"
 import { useDroppable } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { cn } from "@/lib/utils"
+import { DollarSign } from "lucide-react"
 
 interface ClientKanbanColumnProps {
     id: string
@@ -12,6 +14,7 @@ interface ClientKanbanColumnProps {
     color: string
     clients: Client[]
     onClientClick: (client: Client) => void
+    onUpdate?: (client: Client) => void
     pendingId?: string | null
     architectNameMap?: Record<string, string>
     isDraggedOver?: boolean
@@ -24,12 +27,33 @@ export function ClientKanbanColumn({
     color,
     clients,
     onClientClick,
+    onUpdate,
     pendingId,
     architectNameMap = {},
     isDraggedOver = false,
     placeholderId
 }: ClientKanbanColumnProps) {
     const { setNodeRef, isOver } = useDroppable({ id })
+
+    // Calculate total budget for all clients in this column
+    const totalBudget = useMemo(() => {
+        return clients
+            .filter(c => !c.id.startsWith('placeholder-'))
+            .reduce((sum, client) => {
+                const budget = client.budget || 0
+                return sum + budget
+            }, 0)
+    }, [clients])
+
+    // Format currency
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat("fr-MA", {
+            style: "currency",
+            currency: "MAD",
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(amount)
+    }
 
     return (
         <div className="flex flex-col shrink-0 w-[280px]">
@@ -41,11 +65,29 @@ export function ClientKanbanColumn({
                     borderColor: color + '60'
                 }}
             >
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-white">
-                    {label}
-                </span>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-white truncate">
+                        {label}
+                    </span>
+                    {totalBudget > 0 && (
+                        <span 
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 whitespace-nowrap flex-shrink-0 border"
+                            style={{ 
+                                backgroundColor: color + '60', 
+                                borderColor: color + '80',
+                                color: '#fff',
+                                boxShadow: `0 0 10px ${color}50, inset 0 1px 0 rgba(255,255,255,0.1)`,
+                                textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                            }}
+                            title={`Total budget: ${formatCurrency(totalBudget)}`}
+                        >
+                            <DollarSign className="w-2.5 h-2.5" style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.3))' }} />
+                            <span className="font-extrabold">{formatCurrency(totalBudget)}</span>
+                        </span>
+                    )}
+                </div>
                 <span 
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[24px] text-center"
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[24px] text-center flex-shrink-0"
                     style={{ backgroundColor: color + '40', color: '#fff' }}
                 >
                     {clients.length}
@@ -75,6 +117,7 @@ export function ClientKanbanColumn({
                                 key={client.id}
                                 client={client}
                                 onClick={onClientClick}
+                                onUpdate={onUpdate}
                                 isPending={isPending}
                                 isPlaceholder={false}
                                 architectNameMap={architectNameMap}

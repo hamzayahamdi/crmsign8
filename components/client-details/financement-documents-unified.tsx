@@ -16,6 +16,10 @@ import {
   Info,
   Clock,
   Wallet,
+  Pencil,
+  File,
+  Image,
+  ExternalLink,
 } from "lucide-react";
 import type { Client, Devis } from "@/types/client";
 import { Button } from "@/components/ui/button";
@@ -40,6 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { EditMontantModal } from "./edit-montant-modal";
 
 interface FinancementDocumentsUnifiedProps {
   client: Client;
@@ -52,6 +57,7 @@ export function FinancementDocumentsUnified({
 }: FinancementDocumentsUnifiedProps) {
   const { toast } = useToast();
   const [updatingDevisId, setUpdatingDevisId] = useState<string | null>(null);
+  const [editingMontantDevis, setEditingMontantDevis] = useState<Devis | null>(null);
   const [activeTab, setActiveTab] = useState<"devis" | "paiements">("devis");
   const devisList = client.devis || [];
   const paymentsList = client.payments || [];
@@ -389,153 +395,269 @@ export function FinancementDocumentsUnified({
             {/* Devis List - Simplified */}
             {devisList.length > 0 ? (
               <div className="space-y-2.5">
-                {devisList.map((devis) => (
-                  <motion.div
-                    key={devis.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className={cn(
-                      "p-3.5 rounded-lg border transition-all hover:shadow-lg hover:shadow-white/5 relative group",
-                      devis.statut === "accepte" &&
-                      "border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent",
-                      devis.statut === "refuse" &&
-                      "border-red-500/20 bg-gradient-to-br from-red-500/5 to-transparent",
-                      devis.statut === "en_attente" &&
-                      "border-white/10 bg-gradient-to-br from-white/5 to-transparent hover:border-blue-500/30",
-                      updatingDevisId === devis.id &&
-                      "opacity-60 pointer-events-none",
-                    )}
-                  >
-                    {/* Loading overlay */}
-                    {updatingDevisId === devis.id && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg backdrop-blur-sm z-10">
-                        <div className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-lg shadow-lg">
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span className="text-xs font-medium">
-                            Mise à jour...
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                {devisList.map((devis) => {
+                  // Extract file name from fichier path or use title
+                  const getFileName = () => {
+                    if (devis.fichier) {
+                      const parts = devis.fichier.split('/')
+                      return parts[parts.length - 1] || devis.title
+                    }
+                    return devis.title
+                  }
+                  
+                  const fileName = getFileName()
+                  const fileExt = fileName.split('.').pop()?.toLowerCase() || ''
+                  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)
+                  const isPdf = fileExt === 'pdf'
+                  const isDoc = ['doc', 'docx'].includes(fileExt)
+                  const isExcel = ['xls', 'xlsx'].includes(fileExt)
+                  
+                  const getFileIcon = () => {
+                    if (isPdf) return <FileText className="w-5 h-5 text-red-400" />
+                    if (isImage) return <Image className="w-5 h-5 text-blue-400" />
+                    if (isDoc) return <FileText className="w-5 h-5 text-blue-500" />
+                    if (isExcel) return <FileText className="w-5 h-5 text-green-500" />
+                    return <File className="w-5 h-5 text-amber-400" />
+                  }
 
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <h4 className="text-sm font-semibold text-white truncate">
-                            {devis.title}
-                          </h4>
-                          {devis.statut === "accepte" && (
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 border border-green-500/30">
-                              <CheckCircle className="w-3 h-3 text-green-400" />
-                              <span className="text-[10px] font-medium text-green-400">
-                                Accepté
-                              </span>
-                            </div>
-                          )}
-                          {devis.statut === "refuse" && (
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/30">
-                              <XCircle className="w-3 h-3 text-red-400" />
-                              <span className="text-[10px] font-medium text-red-400">
-                                Refusé
-                              </span>
-                            </div>
-                          )}
-                          {devis.statut === "en_attente" && (
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/30">
-                              <Clock className="w-3 h-3 text-blue-400" />
-                              <span className="text-[10px] font-medium text-blue-400">
-                                En attente
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                  const handleOpenFile = async (e: React.MouseEvent) => {
+                    e.stopPropagation()
+                    if (!devis.fichier || updatingDevisId) return
 
-                        <div className="flex items-center gap-3">
-                          <p className="text-base font-bold text-white">
-                            {formatCurrency(devis.montant)}
-                          </p>
-                          {devis.statut === "accepte" && (
-                            <span
-                              className={cn(
-                                "text-xs font-medium",
-                                devis.facture_reglee
-                                  ? "text-green-400"
-                                  : "text-orange-400",
-                              )}
-                            >
-                              {devis.facture_reglee
-                                ? "✓ Réglé"
-                                : "⏳ En attente"}
+                    try {
+                      let fileUrl = devis.fichier
+
+                      // If it's a path (not a full URL), get signed URL
+                      if (!fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
+                        const response = await fetch(`/api/storage/signed-url?path=${encodeURIComponent(fileUrl)}`)
+                        const data = await response.json()
+                        if (data.url) {
+                          fileUrl = data.url
+                        } else {
+                          throw new Error('Impossible d\'obtenir l\'URL du fichier')
+                        }
+                      }
+
+                      // Open in new tab
+                      window.open(fileUrl, '_blank', 'noopener,noreferrer')
+                    } catch (error: any) {
+                      console.error('[Open Devis File] Error:', error)
+                      toast({
+                        title: "Erreur",
+                        description: "Impossible d'ouvrir le fichier. Veuillez réessayer.",
+                        variant: "destructive",
+                      })
+                    }
+                  }
+
+                  return (
+                    <motion.div
+                      key={devis.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className={cn(
+                        "p-4 rounded-xl border transition-all hover:shadow-lg hover:shadow-white/5 relative group",
+                        devis.statut === "accepte" &&
+                        "border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent hover:border-green-500/30",
+                        devis.statut === "refuse" &&
+                        "border-red-500/20 bg-gradient-to-br from-red-500/5 to-transparent hover:border-red-500/30",
+                        devis.statut === "en_attente" &&
+                        "border-white/10 bg-gradient-to-br from-white/5 to-transparent hover:border-amber-500/30",
+                        updatingDevisId === devis.id &&
+                        "opacity-60 pointer-events-none"
+                      )}
+                    >
+                      {/* Loading overlay */}
+                      {updatingDevisId === devis.id && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg backdrop-blur-sm z-10">
+                          <div className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-lg shadow-lg">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span className="text-xs font-medium">
+                              Mise à jour...
                             </span>
-                          )}
+                          </div>
                         </div>
-                      </div>
+                      )}
 
-                      {/* Minimal Actions */}
-                      <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {devis.statut === "accepte" &&
-                          !devis.facture_reglee && (
+                      <div className="flex items-center gap-4">
+                        {/* File Icon */}
+                        <div className={cn(
+                          "flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center border-2 transition-all",
+                          devis.statut === "accepte" && "bg-green-500/10 border-green-500/30",
+                          devis.statut === "refuse" && "bg-red-500/10 border-red-500/30",
+                          devis.statut === "en_attente" && "bg-amber-500/10 border-amber-500/30"
+                        )}>
+                          {getFileIcon()}
+                        </div>
+
+                        {/* File Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <h4 className="text-sm font-semibold text-white truncate">
+                              {devis.title}
+                            </h4>
+                          </div>
+                          
+                          {devis.fichier && (
+                            <p className="text-xs text-white/60 truncate mb-2 flex items-center gap-1.5">
+                              <File className="w-3 h-3" />
+                              {fileName}
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {devis.statut === "accepte" && (
+                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 border border-green-500/30">
+                                <CheckCircle className="w-3 h-3 text-green-400" />
+                                <span className="text-[10px] font-medium text-green-400">
+                                  Accepté
+                                </span>
+                              </div>
+                            )}
+                            {devis.statut === "refuse" && (
+                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/30">
+                                <XCircle className="w-3 h-3 text-red-400" />
+                                <span className="text-[10px] font-medium text-red-400">
+                                  Refusé
+                                </span>
+                              </div>
+                            )}
+                            {devis.statut === "en_attente" && (
+                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
+                                <Clock className="w-3 h-3 text-amber-400" />
+                                <span className="text-[10px] font-medium text-amber-400">
+                                  En attente
+                                </span>
+                              </div>
+                            )}
+                            
+                            {devis.montant > 0 && (
+                              <div className="flex items-center gap-1.5 group/montant">
+                                <DollarSign className="w-3.5 h-3.5 text-white/40" />
+                                <span className="text-xs text-white/70 font-medium">
+                                  {formatCurrency(devis.montant)}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setEditingMontantDevis(devis)
+                                  }}
+                                  className="h-5 w-5 opacity-0 group-hover/montant:opacity-100 transition-opacity text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                                  title="Modifier le montant"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {devis.statut === "accepte" && (
+                              <span
+                                className={cn(
+                                  "text-xs font-medium",
+                                  devis.facture_reglee
+                                    ? "text-green-400"
+                                    : "text-orange-400",
+                                )}
+                              >
+                                {devis.facture_reglee
+                                  ? "✓ Réglé"
+                                  : "⏳ En attente"}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div 
+                          className="flex items-center gap-2 shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {/* Visualiser File Button - Always visible if file exists */}
+                          {devis.fichier && (
                             <Button
                               size="sm"
-                              onClick={() => handleMarkPaid(devis.id)}
-                              className="h-7 px-3 text-xs bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                              onClick={handleOpenFile}
+                              disabled={updatingDevisId === devis.id}
+                              className="h-8 px-3 text-xs bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/20 border border-amber-400/30"
                             >
-                              Régler
+                              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                              Visualiser
                             </Button>
                           )}
 
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-white/50 hover:text-white hover:bg-white/10"
+                          {devis.statut === "accepte" &&
+                            !devis.facture_reglee && (
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleMarkPaid(devis.id)
+                                }}
+                                disabled={updatingDevisId === devis.id}
+                                className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                              >
+                                Régler
+                              </Button>
+                            )}
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => e.stopPropagation()}
+                                disabled={updatingDevisId === devis.id}
+                                className="h-8 w-8 text-white/50 hover:text-white hover:bg-white/10"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="min-w-[160px] bg-[#171B22] border-white/10"
                             >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="min-w-[160px]"
-                          >
-                            {devis.statut !== "accepte" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  updateDevisStatus(devis.id, "accepte")
-                                }
-                                className="text-sm"
-                              >
-                                <CheckCircle className="w-3.5 h-3.5 mr-2" />
-                                Accepter
-                              </DropdownMenuItem>
-                            )}
-                            {devis.statut !== "refuse" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  updateDevisStatus(devis.id, "refuse")
-                                }
-                                className="text-sm"
-                              >
-                                <XCircle className="w-3.5 h-3.5 mr-2" />
-                                Refuser
-                              </DropdownMenuItem>
-                            )}
-                            {devis.statut !== "en_attente" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  updateDevisStatus(devis.id, "en_attente")
-                                }
-                                className="text-sm"
-                              >
-                                En attente
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              {devis.statut !== "accepte" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    updateDevisStatus(devis.id, "accepte")
+                                  }
+                                  className="text-sm text-white hover:bg-white/10"
+                                >
+                                  <CheckCircle className="w-3.5 h-3.5 mr-2" />
+                                  Accepter
+                                </DropdownMenuItem>
+                              )}
+                              {devis.statut !== "refuse" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    updateDevisStatus(devis.id, "refuse")
+                                  }
+                                  className="text-sm text-white hover:bg-white/10"
+                                >
+                                  <XCircle className="w-3.5 h-3.5 mr-2" />
+                                  Refuser
+                                </DropdownMenuItem>
+                              )}
+                              {devis.statut !== "en_attente" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    updateDevisStatus(devis.id, "en_attente")
+                                  }
+                                  className="text-sm text-white hover:bg-white/10"
+                                >
+                                  <Clock className="w-3.5 h-3.5 mr-2" />
+                                  En attente
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  )
+                })}
               </div>
             ) : (
               <div className="text-center py-8">
@@ -687,6 +809,19 @@ export function FinancementDocumentsUnified({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {editingMontantDevis && (
+        <EditMontantModal
+          isOpen={!!editingMontantDevis}
+          onClose={() => setEditingMontantDevis(null)}
+          client={client}
+          devis={editingMontantDevis}
+          onSave={(updatedClient, skipApiCall) => {
+            onUpdate(updatedClient, skipApiCall)
+            setEditingMontantDevis(null)
+          }}
+        />
+      )}
     </div>
   );
 }

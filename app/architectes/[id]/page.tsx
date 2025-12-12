@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Mail, Phone, MapPin, Briefcase, Calendar, TrendingUp, FolderOpen, Clock, CheckCircle2, AlertCircle, Plus, Filter, X } from "lucide-react"
-import { motion } from "framer-motion"
+import { ArrowLeft, Mail, Phone, MapPin, FolderOpen, Clock, CheckCircle2, TrendingUp, Filter, X } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import type { Architect } from "@/types/architect"
 import type { Client, ProjectStatus } from "@/types/client"
 import { Sidebar } from "@/components/sidebar"
@@ -12,7 +12,6 @@ import { RoleGuard } from "@/components/role-guard"
 import { Header } from "@/components/header"
 import { DossierCardEnhanced } from "@/components/dossier-card-enhanced"
 import { ClientDetailPanelRedesigned } from "@/components/client-detail-panel-redesigned"
-import { AssignDossierModal } from "@/components/assign-dossier-modal"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -36,19 +35,31 @@ export default function ArchitectDetailPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false)
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [filterStatus, setFilterStatus] = useState<"all" | ProjectStatus>("all")
   const [filterVille, setFilterVille] = useState<string>("all")
+  const [activeStatFilter, setActiveStatFilter] = useState<"total" | "enCours" | "termines" | "revenue" | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   
-  const isAdmin = user?.role?.toLowerCase() === "admin"
+  const isAdmin = user?.role?.toLowerCase() === "admin" || user?.role?.toLowerCase() === "operator"
+  const isArchitect = user?.role?.toLowerCase() === "architect"
 
   // Fetch architect and their clients from API
   useEffect(() => {
     const fetchArchitectData = async () => {
       try {
+        // If architect is trying to view another architect's profile, redirect to their own
+        if (isArchitect && !isAdmin && architectId !== user?.id) {
+          console.log(`[Architect Detail] Architect trying to view other architect - redirecting to own profile`)
+          router.push(`/architectes/${user.id}`)
+          return
+        }
+
         setIsLoading(true)
-        const response = await fetch(`/api/architects/${architectId}`)
+        const token = localStorage.getItem("token")
+        const response = await fetch(`/api/architects/${architectId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: 'include'
+        })
         
         const result = await response.json()
         
@@ -147,6 +158,41 @@ export default function ArchitectDetailPage() {
       return true
     })
 
+    // Apply stat filter (from clicking on KPI cards)
+    if (activeStatFilter) {
+      // Filter out refused, lost, and cancelled projects first
+      filtered = filtered.filter(c => 
+        c.statutProjet !== "refuse" &&
+        c.statutProjet !== "perdu" &&
+        c.statutProjet !== "annule" &&
+        c.statutProjet !== "suspendu"
+      )
+
+      if (activeStatFilter === "enCours") {
+        // Projet en cours - devis accepted and working on project
+        filtered = filtered.filter(c => {
+          const statut = c.statutProjet
+          return statut === "accepte" ||
+            statut === "premier_depot" ||
+            statut === "projet_en_cours" ||
+            statut === "chantier" ||
+            statut === "facture_reglee" ||
+            statut === "en_chantier"
+        })
+      } else if (activeStatFilter === "termines") {
+        // Projet livré - completed/delivered projects
+        filtered = filtered.filter(c => 
+          c.statutProjet === "termine" || 
+          c.statutProjet === "livraison_termine" ||
+          c.statutProjet === "livraison"
+        )
+      } else if (activeStatFilter === "revenue") {
+        // Revenue filter - show all active projects (already filtered above)
+        // No additional filtering needed
+      }
+      // "total" filter shows all active projects (already filtered above)
+    }
+
     // Apply status filter
     if (filterStatus !== "all") {
       filtered = filtered.filter(c => c.statutProjet === filterStatus)
@@ -161,37 +207,56 @@ export default function ArchitectDetailPage() {
     filtered.sort((a, b) => new Date(b.derniereMaj).getTime() - new Date(a.derniereMaj).getTime())
 
     return filtered
-  }, [clients, filterStatus, filterVille])
+  }, [clients, filterStatus, filterVille, activeStatFilter])
 
   // Calculate KPIs - Exclude refused/lost/cancelled projects from active counts
+  // CATEGORIZATION LOGIC:
+  // - Projet livré: livraison_termine, livraison, termine
+  // - Projet en cours: accepte (devis accepté) + premier_depot, projet_en_cours, chantier, facture_reglee
+  // - Projet en attente: acompte_recu, conception, devis_negociation, prise_de_besoin, qualifie, nouveau (NOT accepte)
   const kpis = useMemo(() => {
     // Filter out refused, lost, and cancelled projects from all calculations
     const activeProjects = architectClients.filter(c => 
       c.statutProjet !== "refuse" &&
       c.statutProjet !== "perdu" &&
-      c.statutProjet !== "annule"
+      c.statutProjet !== "annule" &&
+      c.statutProjet !== "suspendu"
     )
     
     const total = activeProjects.length
-    const enCours = activeProjects.filter(c => {
-      const statut = c.statutProjet
-      // Exclude completed, refused, lost, cancelled, and waiting statuses
-      return statut !== "termine" && 
-        statut !== "livraison" && 
-        statut !== "livraison_termine" &&
-        statut !== "nouveau" &&
-        statut !== "qualifie" &&
-        statut !== "prise_de_besoin"
-    }).length
+    
+    // Projet livré - completed/delivered projects
     const termines = activeProjects.filter(c => 
       c.statutProjet === "termine" || 
-      c.statutProjet === "livraison_termine"
+      c.statutProjet === "livraison_termine" ||
+      c.statutProjet === "livraison"
     ).length
-    const enAttente = activeProjects.filter(c => 
-      c.statutProjet === "nouveau" || 
-      c.statutProjet === "qualifie" ||
-      c.statutProjet === "prise_de_besoin"
-    ).length
+    
+    // Projet en cours - devis accepted and working on project
+    const enCours = activeProjects.filter(c => {
+      const statut = c.statutProjet
+      return statut === "accepte" ||
+        statut === "premier_depot" ||
+        statut === "projet_en_cours" ||
+        statut === "chantier" ||
+        statut === "facture_reglee" ||
+        statut === "en_chantier"
+    }).length
+    
+    // Projet en attente - acompte reçu but devis not yet accepted
+    const enAttente = activeProjects.filter(c => {
+      const statut = c.statutProjet
+      return statut === "acompte_recu" ||
+        statut === "acompte_verse" ||
+        statut === "conception" ||
+        statut === "en_conception" ||
+        statut === "devis_negociation" ||
+        statut === "en_validation" ||
+        statut === "prise_de_besoin" ||
+        statut === "qualifie" ||
+        statut === "nouveau"
+    }).length
+    
     // Only count revenue from active projects (exclude refused/lost)
     const totalRevenue = activeProjects.reduce((sum, c) => sum + (c.budget || 0), 0)
 
@@ -210,21 +275,16 @@ export default function ArchitectDetailPage() {
     // Note: Client updates should be handled by the client detail page API
   }
 
-  const handleAssignDossiers = async (clientIds: string[]) => {
-    try {
-      // Refresh data after assignment
-      const response = await fetch(`/api/architects/${architectId}`)
-      if (response.ok) {
-        const result = await response.json()
-        if (result.success && result.data) {
-          setClients(result.data.clients)
-        }
-      }
-      toast.success(`${clientIds.length} dossier${clientIds.length > 1 ? 's' : ''} attribué${clientIds.length > 1 ? 's' : ''} avec succès`)
-    } catch (error) {
-      console.error('Error refreshing data:', error)
+
+  const handleStatCardClick = (statType: "total" | "enCours" | "termines" | "revenue") => {
+    // Toggle filter: if clicking the same stat, clear it; otherwise set it
+    if (activeStatFilter === statType) {
+      setActiveStatFilter(null)
+      setFilterStatus("all") // Also clear status filter when clearing stat filter
+    } else {
+      setActiveStatFilter(statType)
+      setFilterStatus("all") // Clear status filter when applying stat filter
     }
-    setIsAssignModalOpen(false)
   }
 
   const uniqueVilles = Array.from(new Set(architectClients.map(c => c.ville).filter(v => v && v.trim() !== ""))).sort()
@@ -242,29 +302,6 @@ export default function ArchitectDetailPage() {
     }).format(amount)
   }
 
-  const statusConfig = {
-    actif: {
-      label: "Actif",
-      color: "bg-green-500/20 text-green-400 border-green-500/30"
-    },
-    inactif: {
-      label: "Inactif",
-      color: "bg-slate-500/20 text-slate-400 border-slate-500/30"
-    },
-    conge: {
-      label: "En congé",
-      color: "bg-orange-500/20 text-orange-400 border-orange-500/30"
-    }
-  }
-
-  const specialtyLabels = {
-    residentiel: "Résidentiel",
-    commercial: "Commercial",
-    industriel: "Industriel",
-    renovation: "Rénovation",
-    luxe: "Luxe",
-    mixte: "Mixte"
-  }
 
   if (isLoading) {
     return (
@@ -315,74 +352,63 @@ export default function ArchitectDetailPage() {
           <Header />
           
           {/* Back Button */}
-          <div className="px-3 md:px-4 pt-2 md:pt-3 pb-1">
+          <div className="px-3 md:px-4 pt-3 md:pt-4 pb-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.push("/architectes")}
-              className="text-slate-400 hover:text-white hover:bg-slate-800/50 -ml-1 h-7 text-xs"
+              className="text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-lg h-8 px-3 text-xs font-medium transition-all duration-200 group"
             >
-              <ArrowLeft className="w-3 h-3 mr-1" />
+              <ArrowLeft className="w-3.5 h-3.5 mr-1.5 group-hover:-translate-x-0.5 transition-transform" />
               Retour
             </Button>
           </div>
 
           {/* Architect Header */}
-          <div className="px-3 md:px-4 pb-2">
+          <div className="px-3 md:px-4 pb-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glass rounded-xl p-3 border border-slate-700/40"
+              className="glass rounded-2xl p-4 md:p-6 border border-slate-700/40 bg-gradient-to-br from-slate-800/60 to-slate-900/40 backdrop-blur-xl shadow-xl"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-4 md:gap-5">
                 {/* Avatar */}
-                <Avatar className="h-12 w-12 border-2 border-primary/40 shadow-lg shadow-primary/20">
+                <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-primary/50 shadow-lg shadow-primary/20 ring-2 ring-primary/10">
                   {architect.photo ? (
                     <AvatarImage src={architect.photo} alt={`${architect.prenom} ${architect.nom}`} />
                   ) : null}
-                  <AvatarFallback className="bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-white font-bold text-sm">
+                  <AvatarFallback className="bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-white font-bold text-lg md:text-xl">
                     {getInitials(architect.nom, architect.prenom)}
                   </AvatarFallback>
                 </Avatar>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <h1 className="text-base font-bold text-white">
-                      {architect.prenom} {architect.nom}
-                    </h1>
-                    <span className={cn(
-                      "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border",
-                      statusConfig[architect.statut].color
-                    )}>
-                      <span className="relative flex h-1.5 w-1.5 mr-1">
-                        <span className={cn(
-                          "absolute inline-flex h-full w-full rounded-full opacity-75",
-                          architect.statut === "actif" ? "animate-ping bg-current" : ""
-                        )}></span>
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
-                      </span>
-                      {statusConfig[architect.statut].label}
-                    </span>
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-700/50 text-slate-300 border border-slate-600/50">
-                      <Briefcase className="w-2.5 h-2.5 mr-1" />
-                      {specialtyLabels[architect.specialite]}
-                    </span>
-                  </div>
+                  <h1 className="text-xl md:text-2xl font-bold text-white mb-3">
+                    {architect.prenom} {architect.nom}
+                  </h1>
 
                   {/* Contact Info */}
-                  <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-slate-400">
-                    <div className="flex items-center gap-1">
-                      <Mail className="w-3 h-3" />
-                      <span>{architect.email}</span>
+                  <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs md:text-sm text-slate-300">
+                    <div className="flex items-center gap-1.5 group">
+                      <div className="p-1.5 rounded-lg bg-slate-700/30 group-hover:bg-primary/20 transition-colors">
+                        <Mail className="w-3.5 h-3.5 text-slate-400 group-hover:text-primary transition-colors" />
+                      </div>
+                      <span className="font-medium">{architect.email}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Phone className="w-3 h-3" />
-                      <span>{architect.telephone}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      <span>{architect.ville}</span>
+                    {architect.telephone && (
+                      <div className="flex items-center gap-1.5 group">
+                        <div className="p-1.5 rounded-lg bg-slate-700/30 group-hover:bg-primary/20 transition-colors">
+                          <Phone className="w-3.5 h-3.5 text-slate-400 group-hover:text-primary transition-colors" />
+                        </div>
+                        <span className="font-medium">{architect.telephone}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5 group">
+                      <div className="p-1.5 rounded-lg bg-slate-700/30 group-hover:bg-primary/20 transition-colors">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 group-hover:text-primary transition-colors" />
+                      </div>
+                      <span className="font-medium">{architect.ville}</span>
                     </div>
                   </div>
                 </div>
@@ -391,157 +417,373 @@ export default function ArchitectDetailPage() {
           </div>
 
           {/* KPI Cards */}
-          <div className="px-3 md:px-4 pb-2">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="px-3 md:px-4 pb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-blue-500/30 transition-all duration-300"
+                animate={{ 
+                  opacity: 1, 
+                  y: 0,
+                  scale: activeStatFilter === "total" ? 1.02 : 1,
+                  borderColor: activeStatFilter === "total" ? "rgba(59, 130, 246, 0.5)" : undefined
+                }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ delay: 0.05, type: "spring", stiffness: 300, damping: 20 }}
+                onClick={() => handleStatCardClick("total")}
+                className={cn(
+                  "group relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/70 to-slate-900/50 border p-4 cursor-pointer transition-all duration-300 backdrop-blur-sm",
+                  activeStatFilter === "total" 
+                    ? "border-blue-500/50 shadow-xl shadow-blue-500/20 ring-2 ring-blue-500/30 bg-gradient-to-br from-blue-500/15 to-slate-900/50" 
+                    : "border-slate-700/50 hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/10"
+                )}
               >
-                <div className="flex items-center justify-between">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Total</p>
-                    <p className="text-2xl font-bold text-white leading-tight">{kpis.total}</p>
+                    <motion.p 
+                      key={kpis.total}
+                      initial={{ scale: 1.2, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="text-2xl font-bold text-white leading-tight"
+                    >
+                      {kpis.total}
+                    </motion.p>
                     <p className="text-[10px] text-slate-500 mt-0.5">Dossiers</p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                    <motion.div 
+                      animate={{ 
+                        scale: activeStatFilter === "total" ? 1.1 : 1,
+                        rotate: activeStatFilter === "total" ? [0, -5, 5, -5, 0] : 0
+                      }}
+                      transition={{ duration: 0.5 }}
+                      className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center"
+                    >
                       <FolderOpen className="w-5 h-5 text-blue-400" />
-                    </div>
+                    </motion.div>
                   </div>
                 </div>
+                {activeStatFilter === "total" && (
+                  <>
+                    <motion.div
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-blue-400"
+                    />
+                    <motion.div
+                      animate={{ 
+                        opacity: [0.5, 1, 0.5],
+                        scale: [1, 1.05, 1]
+                      }}
+                      transition={{ 
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                      className="absolute inset-0 bg-blue-500/5 rounded-lg pointer-events-none"
+                    />
+                  </>
+                )}
               </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-orange-500/30 transition-all duration-300"
+                animate={{ 
+                  opacity: 1, 
+                  y: 0,
+                  scale: activeStatFilter === "enCours" ? 1.02 : 1,
+                  borderColor: activeStatFilter === "enCours" ? "rgba(59, 130, 246, 0.5)" : undefined
+                }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 20 }}
+                onClick={() => handleStatCardClick("enCours")}
+                className={cn(
+                  "group relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/70 to-slate-900/50 border p-4 cursor-pointer transition-all duration-300 backdrop-blur-sm",
+                  activeStatFilter === "enCours" 
+                    ? "border-blue-500/50 shadow-xl shadow-blue-500/20 ring-2 ring-blue-500/30 bg-gradient-to-br from-blue-500/15 to-slate-900/50" 
+                    : "border-slate-700/50 hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/10"
+                )}
               >
-                <div className="flex items-center justify-between">
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">En cours</p>
-                    <p className="text-2xl font-bold text-orange-400 leading-tight">{kpis.enCours}</p>
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Projet en cours</p>
+                    <motion.p 
+                      key={kpis.enCours}
+                      initial={{ scale: 1.2, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="text-2xl font-bold text-blue-400 leading-tight"
+                    >
+                      {kpis.enCours}
+                    </motion.p>
                     <p className="text-[10px] text-slate-500 mt-0.5">Dossiers</p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-                      <Clock className="w-5 h-5 text-orange-400" />
-                    </div>
+                    <motion.div 
+                      animate={{ 
+                        scale: activeStatFilter === "enCours" ? 1.1 : 1,
+                        rotate: activeStatFilter === "enCours" ? [0, -5, 5, -5, 0] : 0
+                      }}
+                      transition={{ duration: 0.5 }}
+                      className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center"
+                    >
+                      <Clock className="w-5 h-5 text-blue-400" />
+                    </motion.div>
                   </div>
                 </div>
+                {activeStatFilter === "enCours" && (
+                  <>
+                    <motion.div
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-blue-400"
+                    />
+                    <motion.div
+                      animate={{ 
+                        opacity: [0.5, 1, 0.5],
+                        scale: [1, 1.05, 1]
+                      }}
+                      transition={{ 
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                      className="absolute inset-0 bg-blue-500/5 rounded-lg pointer-events-none"
+                    />
+                  </>
+                )}
               </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-green-500/30 transition-all duration-300"
+                animate={{ 
+                  opacity: 1, 
+                  y: 0,
+                  scale: activeStatFilter === "termines" ? 1.02 : 1,
+                  borderColor: activeStatFilter === "termines" ? "rgba(34, 197, 94, 0.5)" : undefined
+                }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ delay: 0.15, type: "spring", stiffness: 300, damping: 20 }}
+                onClick={() => handleStatCardClick("termines")}
+                className={cn(
+                  "group relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/70 to-slate-900/50 border p-4 cursor-pointer transition-all duration-300 backdrop-blur-sm",
+                  activeStatFilter === "termines" 
+                    ? "border-green-500/50 shadow-xl shadow-green-500/20 ring-2 ring-green-500/30 bg-gradient-to-br from-green-500/15 to-slate-900/50" 
+                    : "border-slate-700/50 hover:border-green-500/40 hover:shadow-lg hover:shadow-green-500/10"
+                )}
               >
-                <div className="flex items-center justify-between">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Terminés</p>
-                    <p className="text-2xl font-bold text-green-400 leading-tight">{kpis.termines}</p>
+                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Projet livré</p>
+                    <motion.p 
+                      key={kpis.termines}
+                      initial={{ scale: 1.2, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="text-2xl font-bold text-green-400 leading-tight"
+                    >
+                      {kpis.termines}
+                    </motion.p>
                     <p className="text-[10px] text-slate-500 mt-0.5">Dossiers</p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                    <motion.div 
+                      animate={{ 
+                        scale: activeStatFilter === "termines" ? 1.1 : 1,
+                        rotate: activeStatFilter === "termines" ? [0, -5, 5, -5, 0] : 0
+                      }}
+                      transition={{ duration: 0.5 }}
+                      className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center"
+                    >
                       <CheckCircle2 className="w-5 h-5 text-green-400" />
-                    </div>
+                    </motion.div>
                   </div>
                 </div>
+                {activeStatFilter === "termines" && (
+                  <>
+                    <motion.div
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-green-500 to-green-400"
+                    />
+                    <motion.div
+                      animate={{ 
+                        opacity: [0.5, 1, 0.5],
+                        scale: [1, 1.05, 1]
+                      }}
+                      transition={{ 
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                      className="absolute inset-0 bg-green-500/5 rounded-lg pointer-events-none"
+                    />
+                  </>
+                )}
               </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-purple-500/30 transition-all duration-300"
+                animate={{ 
+                  opacity: 1, 
+                  y: 0,
+                  scale: activeStatFilter === "revenue" ? 1.02 : 1,
+                  borderColor: activeStatFilter === "revenue" ? "rgba(168, 85, 247, 0.5)" : undefined
+                }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 300, damping: 20 }}
+                onClick={() => handleStatCardClick("revenue")}
+                className={cn(
+                  "group relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/70 to-slate-900/50 border p-4 cursor-pointer transition-all duration-300 backdrop-blur-sm",
+                  activeStatFilter === "revenue" 
+                    ? "border-purple-500/50 shadow-xl shadow-purple-500/20 ring-2 ring-purple-500/30 bg-gradient-to-br from-purple-500/15 to-slate-900/50" 
+                    : "border-slate-700/50 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/10"
+                )}
               >
-                <div className="flex items-center justify-between">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Revenu</p>
-                    <p className="text-lg font-bold text-purple-400 leading-tight">{formatCurrency(kpis.totalRevenue)}</p>
+                    <motion.p 
+                      key={kpis.totalRevenue}
+                      initial={{ scale: 1.2, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="text-lg font-bold text-purple-400 leading-tight"
+                    >
+                      {formatCurrency(kpis.totalRevenue)}
+                    </motion.p>
                     <p className="text-[10px] text-slate-500 mt-0.5">Total</p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                    <motion.div 
+                      animate={{ 
+                        scale: activeStatFilter === "revenue" ? 1.1 : 1,
+                        rotate: activeStatFilter === "revenue" ? [0, -5, 5, -5, 0] : 0
+                      }}
+                      transition={{ duration: 0.5 }}
+                      className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center"
+                    >
                       <TrendingUp className="w-5 h-5 text-purple-400" />
-                    </div>
+                    </motion.div>
                   </div>
                 </div>
+                {activeStatFilter === "revenue" && (
+                  <>
+                    <motion.div
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 to-purple-400"
+                    />
+                    <motion.div
+                      animate={{ 
+                        opacity: [0.5, 1, 0.5],
+                        scale: [1, 1.05, 1]
+                      }}
+                      transition={{ 
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                      className="absolute inset-0 bg-purple-500/5 rounded-lg pointer-events-none"
+                    />
+                  </>
+                )}
               </motion.div>
             </div>
           </div>
 
           {/* Dossiers Section */}
-          <div className="px-3 md:px-4 pb-3">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-              <div>
-                <h2 className="text-base font-bold text-white">Dossiers</h2>
+          <div className="px-3 md:px-4 pb-4">
+            <div className="flex flex-col gap-3 mb-3">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg md:text-xl font-bold text-white">Dossiers</h2>
+                {activeStatFilter && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8, x: -10 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, x: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className={cn(
+                      "inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border backdrop-blur-sm",
+                      activeStatFilter === "total" && "bg-blue-500/20 text-blue-400 border-blue-500/30",
+                      activeStatFilter === "enCours" && "bg-blue-500/20 text-blue-400 border-blue-500/30",
+                      activeStatFilter === "termines" && "bg-green-500/20 text-green-400 border-green-500/30",
+                      activeStatFilter === "revenue" && "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                    )}
+                  >
+                    {activeStatFilter === "total" && `Filtré: Total (${architectClients.length})`}
+                    {activeStatFilter === "enCours" && `Filtré: Projet en cours (${architectClients.length})`}
+                    {activeStatFilter === "termines" && `Filtré: Projet livré (${architectClients.length})`}
+                    {activeStatFilter === "revenue" && `Filtré: Revenu (${architectClients.length})`}
+                  </motion.div>
+                )}
+                {!activeStatFilter && architectClients.length > 0 && (
+                  <span className="text-sm text-slate-400 font-medium">
+                    {architectClients.length} {architectClients.length === 1 ? 'dossier' : 'dossiers'}
+                  </span>
+                )}
               </div>
-              {isAdmin && (
-                <Button
-                  onClick={() => setIsAssignModalOpen(true)}
-                  size="sm"
-                  className="h-7 px-2.5 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white rounded-lg font-medium shadow-md shadow-primary/20 text-xs"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  Attribuer
-                </Button>
-              )}
             </div>
 
             {/* Filters */}
             {architectClients.length > 0 && (
-              <div className="glass rounded-lg p-2 border border-slate-700/40 mb-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Filter className="w-3 h-3 text-slate-500 flex-shrink-0" />
+              <div className="glass rounded-xl p-3 border border-slate-700/40 bg-gradient-to-br from-slate-800/40 to-slate-900/20 mb-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
                   
                   <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
-                    <SelectTrigger className="h-7 w-auto min-w-[120px] bg-slate-800/50 border-slate-700/50 text-white rounded-md text-[11px] px-2">
+                    <SelectTrigger className="h-8 w-auto min-w-[140px] bg-slate-800/60 border-slate-600/50 text-white rounded-lg text-xs px-3 hover:border-primary/50 transition-colors">
                       <SelectValue placeholder="État" />
                     </SelectTrigger>
-                    <SelectContent className="glass border-slate-600/30">
-                      <SelectItem value="all" className="text-white text-[11px]">Tous les états</SelectItem>
-                      <SelectItem value="qualifie" className="text-white text-[11px]">Qualifié</SelectItem>
-                      <SelectItem value="prise_de_besoin" className="text-white text-[11px]">Prise de besoin</SelectItem>
-                      <SelectItem value="acompte_recu" className="text-white text-[11px]">Acompte reçu</SelectItem>
-                      <SelectItem value="conception" className="text-white text-[11px]">Conception</SelectItem>
-                      <SelectItem value="projet_en_cours" className="text-white text-[11px]">Projet en cours</SelectItem>
-                      <SelectItem value="accepte" className="text-white text-[11px]">Accepté</SelectItem>
-                      <SelectItem value="livraison_termine" className="text-white text-[11px]">Terminé</SelectItem>
-                      <SelectItem value="refuse" className="text-white text-[11px]">Refusé</SelectItem>
-                      <SelectItem value="perdu" className="text-white text-[11px]">Perdu</SelectItem>
-                      <SelectItem value="annule" className="text-white text-[11px]">Annulé</SelectItem>
-                      <SelectItem value="suspendu" className="text-white text-[11px]">Suspendu</SelectItem>
+                    <SelectContent className="glass border-slate-600/30 bg-slate-800/95 backdrop-blur-xl">
+                      <SelectItem value="all" className="text-white text-xs">Tous les états</SelectItem>
+                      <SelectItem value="qualifie" className="text-white text-xs">Qualifié</SelectItem>
+                      <SelectItem value="prise_de_besoin" className="text-white text-xs">Prise de besoin</SelectItem>
+                      <SelectItem value="acompte_recu" className="text-white text-xs">Acompte reçu</SelectItem>
+                      <SelectItem value="conception" className="text-white text-xs">Conception</SelectItem>
+                      <SelectItem value="projet_en_cours" className="text-white text-xs">Projet en cours</SelectItem>
+                      <SelectItem value="accepte" className="text-white text-xs">Accepté</SelectItem>
+                      <SelectItem value="livraison_termine" className="text-white text-xs">Terminé</SelectItem>
+                      <SelectItem value="refuse" className="text-white text-xs">Refusé</SelectItem>
+                      <SelectItem value="perdu" className="text-white text-xs">Perdu</SelectItem>
+                      <SelectItem value="annule" className="text-white text-xs">Annulé</SelectItem>
+                      <SelectItem value="suspendu" className="text-white text-xs">Suspendu</SelectItem>
                     </SelectContent>
                   </Select>
 
                   <Select value={filterVille} onValueChange={setFilterVille}>
-                    <SelectTrigger className="h-7 w-auto min-w-[100px] bg-slate-800/50 border-slate-700/50 text-white rounded-md text-[11px] px-2">
+                    <SelectTrigger className="h-8 w-auto min-w-[120px] bg-slate-800/60 border-slate-600/50 text-white rounded-lg text-xs px-3 hover:border-primary/50 transition-colors">
                       <SelectValue placeholder="Ville" />
                     </SelectTrigger>
-                    <SelectContent className="glass border-slate-600/30">
-                      <SelectItem value="all" className="text-white text-[11px]">Toutes</SelectItem>
+                    <SelectContent className="glass border-slate-600/30 bg-slate-800/95 backdrop-blur-xl">
+                      <SelectItem value="all" className="text-white text-xs">Toutes</SelectItem>
                       {uniqueVilles.map(ville => (
-                        <SelectItem key={ville} value={ville} className="text-white text-[11px]">{ville}</SelectItem>
+                        <SelectItem key={ville} value={ville} className="text-white text-xs">{ville}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
 
-                  {(filterStatus !== "all" || filterVille !== "all") && (
+                  {(filterStatus !== "all" || filterVille !== "all" || activeStatFilter !== null) && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => {
                         setFilterStatus("all")
                         setFilterVille("all")
+                        setActiveStatFilter(null)
                       }}
-                      className="h-7 px-1.5 text-slate-400 hover:text-white hover:bg-slate-800/50 text-[11px]"
+                      className="h-8 px-3 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg text-xs transition-colors"
                     >
-                      <X className="w-3 h-3 mr-0.5" />
+                      <X className="w-3.5 h-3.5 mr-1.5" />
                       Effacer
                     </Button>
                   )}
@@ -550,22 +792,46 @@ export default function ArchitectDetailPage() {
             )}
 
             {architectClients.length === 0 ? (
-              <div className="glass rounded-xl border border-slate-700/40 p-6 text-center">
-                <FolderOpen className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-                <h3 className="text-base font-bold text-white mb-1">Aucun dossier</h3>
-                <p className="text-xs text-slate-400">Cet architecte n'a pas encore de dossiers clients assignés.</p>
+              <div className="glass rounded-2xl border border-slate-700/40 bg-gradient-to-br from-slate-800/40 to-slate-900/20 p-8 md:p-12 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-700/30 flex items-center justify-center">
+                  <FolderOpen className="w-8 h-8 text-slate-500" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Aucun dossier</h3>
+                <p className="text-sm text-slate-400">Cet architecte n'a pas encore de dossiers clients assignés.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                {architectClients.map((client, index) => (
-                  <DossierCardEnhanced
-                    key={client.id}
-                    client={client}
-                    onOpen={handleClientClick}
-                    index={index}
-                  />
-                ))}
-              </div>
+              <AnimatePresence mode="popLayout">
+                <motion.div
+                  key={`${activeStatFilter || "all"}-${filterStatus}-${filterVille}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4"
+                >
+                  {architectClients.map((client, index) => (
+                    <motion.div
+                      key={client.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      transition={{ 
+                        delay: Math.min(index * 0.02, 0.2),
+                        duration: 0.25,
+                        ease: "easeOut",
+                        layout: { duration: 0.25 }
+                      }}
+                    >
+                      <DossierCardEnhanced
+                        client={client}
+                        onOpen={handleClientClick}
+                        index={index}
+                      />
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
             )}
           </div>
         </main>
@@ -578,15 +844,6 @@ export default function ArchitectDetailPage() {
           onUpdate={handleUpdateClient}
         />
 
-        {/* Assign Dossier Modal */}
-        {architect && (
-          <AssignDossierModal
-            isOpen={isAssignModalOpen}
-            onClose={() => setIsAssignModalOpen(false)}
-            architect={architect}
-            onAssign={handleAssignDossiers}
-          />
-        )}
         </div>
       </RoleGuard>
     </AuthGuard>

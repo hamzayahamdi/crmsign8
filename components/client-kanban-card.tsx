@@ -1,21 +1,26 @@
 "use client"
 
+import { useState } from "react"
 import type { Client } from "@/types/client"
-import { MapPin, User, Briefcase, DollarSign } from "lucide-react"
+import { MapPin, User, Briefcase, DollarSign, Pencil } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { EditBudgetModal } from "@/components/edit-budget-modal"
 
 interface ClientKanbanCardProps {
     client: Client
     onClick: (client: Client) => void
+    onUpdate?: (client: Client) => void
     isPending?: boolean
     architectNameMap?: Record<string, string>
     isDragging?: boolean
     isPlaceholder?: boolean
 }
 
-export function ClientKanbanCard({ client, onClick, isPending, architectNameMap = {}, isDragging: isDraggingProp, isPlaceholder = false }: ClientKanbanCardProps) {
+export function ClientKanbanCard({ client, onClick, onUpdate, isPending, architectNameMap = {}, isDragging: isDraggingProp, isPlaceholder = false }: ClientKanbanCardProps) {
+    const [isEditBudgetOpen, setIsEditBudgetOpen] = useState(false)
     // Use sortable hook conditionally
     const sortable = useSortable({ 
         id: client.id,
@@ -120,11 +125,25 @@ export function ClientKanbanCard({ client, onClick, isPending, architectNameMap 
                         <span className="truncate text-[9px] font-normal">{client.ville}</span>
                     </div>
 
-                    {/* Budget - Compact */}
+                    {/* Budget - Compact with Edit */}
                     {client.budget && client.budget > 0 && (
-                        <div className="flex items-center gap-1 text-emerald-400 bg-emerald-500/10 rounded px-1.5 py-0.5">
-                            <DollarSign className="w-2.5 h-2.5 shrink-0" />
-                            <span className="font-medium text-[10px]">{client.budget.toLocaleString()} DH</span>
+                        <div className="flex items-center justify-between gap-1 text-emerald-400 bg-emerald-500/10 rounded px-1.5 py-0.5">
+                            <div className="flex items-center gap-1 flex-1 min-w-0">
+                                <DollarSign className="w-2.5 h-2.5 shrink-0" />
+                                <span className="font-light text-[9px] truncate">{client.budget.toLocaleString()} DH</span>
+                            </div>
+                            {onUpdate && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        setIsEditBudgetOpen(true)
+                                    }}
+                                    className="h-3.5 w-3.5 flex items-center justify-center text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 shrink-0 transition-all rounded"
+                                    title="Modifier le budget"
+                                >
+                                    <Pencil className="w-2.5 h-2.5" />
+                                </button>
+                            )}
                         </div>
                     )}
 
@@ -135,6 +154,19 @@ export function ClientKanbanCard({ client, onClick, isPending, architectNameMap 
                     </div>
                 </div>
             </div>
+
+            {/* Edit Budget Modal */}
+            {onUpdate && (
+                <EditBudgetModal
+                    isOpen={isEditBudgetOpen}
+                    onClose={() => setIsEditBudgetOpen(false)}
+                    client={client}
+                    onSave={(updatedClient) => {
+                        onUpdate(updatedClient)
+                        setIsEditBudgetOpen(false)
+                    }}
+                />
+            )}
         </div>
     )
 }

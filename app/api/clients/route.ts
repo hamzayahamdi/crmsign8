@@ -19,30 +19,29 @@ async function getClientStatus(clientId: string, pipelineStage: string | null): 
   if (supabaseUrl && supabaseServiceKey) {
     try {
       const supabase = createClient(supabaseUrl, supabaseServiceKey)
-      const { data: clientRecord } = await supabase
+      const { data: clientRecord, error } = await supabase
         .from('clients')
         .select('statut_projet')
         .eq('id', clientId)
-        .single()
+        .maybeSingle() // Use maybeSingle instead of single to avoid errors if not found
       
-      if (clientRecord?.statut_projet) {
+      if (!error && clientRecord?.statut_projet) {
         status = clientRecord.statut_projet
-        console.log(`[Client API] Using status from clients table: ${status}`)
         return status
       }
-    } catch (supabaseError) {
-      console.warn(`[Client API] Could not fetch from clients table, using fallback:`, supabaseError)
+    } catch (supabaseError: any) {
+      // Silently fail and use fallback - this is expected if client doesn't exist in Supabase
+      // Opportunities are stored in Prisma, not Supabase clients table
     }
   }
   
   // Fallback: Map Status from opportunity pipeline stage if not found in clients table
-  if (status === 'nouveau' && pipelineStage) {
+  if (pipelineStage) {
     if (pipelineStage === 'prise_de_besoin') status = 'prise_de_besoin'
-    if (pipelineStage === 'projet_accepte') status = 'acompte_recu'
-    if (pipelineStage === 'acompte_recu') status = 'acompte_recu'
-    if (pipelineStage === 'gagnee') status = 'projet_en_cours'
-    if (pipelineStage === 'perdue') status = 'annule'
-    console.log(`[Client API] Using status from pipeline stage mapping: ${status}`)
+    else if (pipelineStage === 'projet_accepte') status = 'acompte_recu'
+    else if (pipelineStage === 'acompte_recu') status = 'acompte_recu'
+    else if (pipelineStage === 'gagnee') status = 'projet_en_cours'
+    else if (pipelineStage === 'perdue') status = 'annule'
   }
   
   return status
@@ -126,66 +125,94 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Fetch Contacts that are Clients (Unified model)
-    // 🎯 NEW LOGIC: Only show contacts that have at least one opportunity with 'acompte_recu' status
-    // If all opportunities are 'perdu' (lost), the client should NOT appear
+    // 🎯 SIMPLIFIED LOGIC: Show ALL contacts that have opportunities (except perdue/lost)
+    // CRITICAL: Include ALL opportunities except those with status "perdue" (lost)
+    // This includes: acompte_recu, projet_accepte, gagnee (won), prise_de_besoin, etc.
     const contactWhere: any = {
-      tag: 'client', // Always filter for clients
-      // CRITICAL: Only include contacts with at least one opportunity that has 'acompte_recu' status
+      // Include contacts that have at least one opportunity that is NOT lost (perdue)
       opportunities: {
         some: {
-          // Opportunity must have pipelineStage === 'acompte_recu' AND not be lost/won
-          pipelineStage: 'acompte_recu',
+          // Only exclude lost opportunities - include ALL other statuses (won, open, etc.)
           statut: {
-            not: 'lost' // Exclude lost opportunities
+            not: 'lost'
+          },
+          pipelineStage: {
+            not: 'perdue'
           }
         }
       }
     }
+    
+    // Use the simplified query
+    const contactWhereWithTag = contactWhere
 
     if (user?.role?.toLowerCase() === 'architect' && user.name) {
-      // Architect sees contacts where:
-      // 1. Tagged as 'client' AND
-      // 2. Has at least one opportunity with 'acompte_recu' status AND
-      // 3. (Contact is assigned to them OR has at least one opportunity assigned to them)
-      // Note: architecteAssigne can be either user ID or user name, so we check both
-      contactWhere.AND = [
-        {
-          opportunities: {
-            some: {
-              pipelineStage: 'acompte_recu',
-              statut: { not: 'lost' },
-              OR: [
-                { architecteAssigne: user.id },
-                { architecteAssigne: user.name }
-              ]
-            }
-          }
-        },
+      // Architect sees contacts with opportunities assigned to them
+      contactWhereWithTag.AND = [
         {
           OR: [
-            { architecteAssigne: user.id },
-            { architecteAssigne: user.name },
+            // Contacts with opportunities assigned to architect (all except perdue)
             {
               opportunities: {
                 some: {
+                  statut: { not: 'lost' },
+                  pipelineStage: { not: 'perdue' },
                   OR: [
                     { architecteAssigne: user.id },
                     { architecteAssigne: user.name }
                   ]
                 }
               }
+            },
+            // Contacts assigned to architect (with or without opportunities)
+            {
+              OR: [
+                { architecteAssigne: user.id },
+                { architecteAssigne: user.name }
+              ]
             }
           ]
         }
       ]
     }
 
-    console.log('[Client API] Contact filter:', JSON.stringify(contactWhere, null, 2))
+    console.log('[Client API] Contact filter:', JSON.stringify(contactWhereWithTag, null, 2))
 
-    const contactClients = await prisma.contact.findMany({
-      where: contactWhere,
-      include: { opportunities: true },
-      orderBy: { createdAt: 'desc' }
+    let contactClients: any[] = []
+    try {
+      contactClients = await prisma.contact.findMany({
+        where: contactWhereWithTag,
+        include: { opportunities: true },
+        orderBy: { createdAt: 'desc' }
+      })
+    } catch (prismaError: any) {
+      console.error('[Client API] Prisma query error:', prismaError)
+      // If query fails, try a simpler query - get all contacts with opportunities (except perdue)
+      contactClients = await prisma.contact.findMany({
+        where: {
+          opportunities: {
+            some: {
+              statut: { not: 'lost' },
+              pipelineStage: { not: 'perdue' }
+            }
+          }
+        },
+        include: { opportunities: true },
+        orderBy: { createdAt: 'desc' }
+      })
+      console.log('[Client API] Using fallback query, found:', contactClients.length, 'contacts')
+    }
+    
+    console.log(`[Client API] ✅ Found ${contactClients.length} contacts with opportunities`)
+    contactClients.forEach(c => {
+      const validOpps = c.opportunities.filter((opp: any) => {
+        const isWon = opp.statut === 'won' || opp.pipelineStage === 'gagnee'
+        const isLost = opp.statut === 'lost' || opp.pipelineStage === 'perdue'
+        return !isWon && !isLost
+      })
+      if (validOpps.length > 0) {
+        console.log(`[Client API]   - ${c.nom}: ${validOpps.length} opportunities (${validOpps.map((o: any) => o.titre + ' [' + o.pipelineStage + ']').join(', ')})`)
+      }
     })
 
     // 4. Map Contacts to Client interface - CREATE ONE ROW PER OPPORTUNITY
@@ -252,15 +279,12 @@ export async function GET(request: NextRequest) {
       }
 
       // Create ONE row for EACH opportunity
-      // 🎯 NEW LOGIC: Only show opportunities with 'acompte_recu' status
-      // Multiple opportunities with 'acompte_recu' are fine - all should appear
+      // 🎯 CRITICAL: Show ALL opportunities EXCEPT those with status "perdue" (lost)
+      // This includes: won (gagnée), acompte_recu, projet_accepte, prise_de_besoin, etc.
       let opportunitiesToShow = c.opportunities.filter((opp: any) => {
-        // Only include opportunities with 'acompte_recu' status
-        const hasAcompteRecu = opp.pipelineStage === 'acompte_recu'
-        // Exclude lost/won opportunities
-        const isWon = opp.statut === 'won' || opp.pipelineStage === 'gagnee'
+        // Only exclude lost (perdue) opportunities - include ALL other statuses
         const isLost = opp.statut === 'lost' || opp.pipelineStage === 'perdue'
-        return hasAcompteRecu && !isWon && !isLost
+        return !isLost
       })
 
       // Filter by architect if user is architect (check both ID and name)
@@ -320,12 +344,18 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        // CRITICAL: Ensure nomProjet is always set from opportunity title
+        const nomProjet = opp.titre || ''
+        if (!nomProjet) {
+          console.warn(`[Client API] ⚠️ Opportunity ${opp.id} has no titre (nomProjet will be empty)`)
+        }
+
         return {
           id: `${c.id}-${opp.id}`, // Unique ID combining contact + opportunity
           contactId: c.id, // Store original contact ID
           opportunityId: opp.id, // Store opportunity ID
           nom: c.nom,
-          nomProjet: opp.titre, // Opportunity title
+          nomProjet: nomProjet, // CRITICAL: Opportunity title - must be set for table display
           telephone: c.telephone,
           ville: c.ville || '',
           typeProjet: type,
@@ -351,6 +381,19 @@ export async function GET(request: NextRequest) {
     // Wait for all async operations to complete and flatten the results
     const mappedContactsArrays = await Promise.all(mappedContactsPromises);
     const mappedContacts = mappedContactsArrays.flat();
+    
+    // Log opportunities with nomProjet for debugging
+    const opportunitiesWithNomProjet = mappedContacts.filter((c: any) => c.nomProjet && c.nomProjet.trim())
+    const opportunitiesWithoutNomProjet = mappedContacts.filter((c: any) => !c.nomProjet || !c.nomProjet.trim())
+    console.log(`[Client API] 📊 Opportunities summary:`)
+    console.log(`   ✅ With nomProjet (will appear in table): ${opportunitiesWithNomProjet.length}`)
+    console.log(`   ⚠️  Without nomProjet (filtered out): ${opportunitiesWithoutNomProjet.length}`)
+    if (opportunitiesWithNomProjet.length > 0) {
+      console.log(`   📋 Sample opportunities that will appear:`)
+      opportunitiesWithNomProjet.slice(0, 5).forEach((c: any) => {
+        console.log(`      - ${c.nomProjet} (${c.statutProjet}, pipeline: ${c.contactId ? 'opportunity-based' : 'legacy'})`)
+      })
+    }
 
     // 5. Map legacy clients to include nomProjet field (empty for legacy) and map architect names
     const mappedLegacyClients = clients.map((c: any) => {
@@ -388,20 +431,22 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 6. Merge lists (exclude opportunity-based clients if the contact also exists as legacy client)
-    const legacyClientIds = new Set(clients.map((c: any) => c.id))
-    const uniqueMappedContacts = mappedContacts.filter((c: any) => {
-      // Check if this contact exists as a legacy client (by contactId)
-      return !legacyClientIds.has(c.contactId || '')
+    // 6. Merge lists - CRITICAL: Prefer opportunity-based clients over legacy clients
+    // If both exist with the same ID, keep the opportunity-based one (has nomProjet)
+    const opportunityClientIds = new Set(mappedContacts.map((c: any) => c.id))
+    const uniqueLegacyClients = mappedLegacyClients.filter((c: any) => {
+      // Exclude legacy clients that have a corresponding opportunity-based client
+      // Opportunity-based clients have nomProjet set and are more accurate
+      return !opportunityClientIds.has(c.id)
     })
 
-    const allClients = [...mappedLegacyClients, ...uniqueMappedContacts]
+    const allClients = [...uniqueLegacyClients, ...mappedContacts]
 
     // Sort by createdAt desc
     allClients.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
     const roleInfo = user?.role ? ` (Role: ${user.role})` : ''
-    console.log(`[GET /api/clients] ✅ Fetched ${allClients.length} clients (${clients.length} legacy, ${uniqueMappedContacts.length} contacts)${roleInfo}`)
+    console.log(`[GET /api/clients] ✅ Fetched ${allClients.length} clients (${clients.length} legacy, ${mappedContacts.length} opportunity-based)${roleInfo}`)
 
     return NextResponse.json({
       success: true,
@@ -410,8 +455,11 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('[GET /api/clients] Error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorStack = error instanceof Error ? error.stack : undefined
+    console.error('[GET /api/clients] Error details:', { errorMessage, errorStack })
     return NextResponse.json(
-      { error: 'Erreur serveur' },
+      { error: 'Erreur serveur', details: errorMessage },
       { status: 500 }
     )
   }
@@ -518,3 +566,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

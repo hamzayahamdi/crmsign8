@@ -428,8 +428,13 @@ function CalendrierContent() {
                       </SelectContent>
                     </Select>
 
-                    {/* Architect Filter - Only for Gestionnaire/Admin */}
-                    {(currentUserRole === 'admin' || currentUserRole === 'gestionnaire') && (
+                    {/* Architect Filter - Available for Admin, Gestionnaire, and Architects */}
+                    {(currentUserRole === 'admin' || 
+                      currentUserRole === 'gestionnaire' || 
+                      currentUserRole === 'Gestionnaire' ||
+                      currentUserRole === 'architect' ||
+                      currentUserRole === 'Architect' ||
+                      currentUserRole === 'architecte') && (
                       <Select value={architectFilter} onValueChange={setArchitectFilter}>
                         <SelectTrigger className="w-full md:w-[300px] h-9 md:h-12 px-2.5 md:px-4 bg-background/50 border-border/60 rounded-lg md:rounded-xl hover:border-primary/50 transition-all duration-300 text-xs md:text-sm">
                           <SelectValue placeholder="Voir les RDV de" />

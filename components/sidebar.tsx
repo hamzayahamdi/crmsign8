@@ -1,24 +1,17 @@
 "use client"
 
-import { Home, Users, LogOut, Settings, CalendarDays, Compass, Calendar, Briefcase, Bell, Menu, X, MoreVertical, Check, Target } from "lucide-react"
+import { Home, Users, LogOut, Settings, CalendarDays, Compass, Calendar, Briefcase, Bell, Menu, X, Target } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Signature8Logo } from "@/components/signature8-logo"
 import { useAuth } from "@/contexts/auth-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { useMemo, useEffect, useState, useCallback, memo } from "react"
 import { motion, LayoutGroup, AnimatePresence } from "framer-motion"
 import { TasksService } from "@/lib/tasks-service"
 import { toast } from "sonner"
 import { getVisibleSidebarItems, getRoleLabel } from "@/lib/permissions"
-import type { ArchitectStatus } from "@/types/architect"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,9 +49,6 @@ const SidebarComponent = () => {
   const [myNewTasks, setMyNewTasks] = useState<number>(0)
   const [adminUpdatesCount, setAdminUpdatesCount] = useState<number>(0)
   
-  // Architect status state
-  const [architectStatus, setArchitectStatus] = useState<ArchitectStatus>("actif")
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const isArchitect = user?.role?.toLowerCase() === "architect"
 
   // Close mobile menu when route changes
@@ -163,66 +153,6 @@ const SidebarComponent = () => {
     loadAdminUpdates()
   }, [user?.name, pathname])
 
-  // Load architect status for architects
-  useEffect(() => {
-    const loadArchitectStatus = async () => {
-      if (!isArchitect || !user?.id) return
-
-      try {
-        const token = localStorage.getItem("token")
-        const response = await fetch(`/api/architects/${user.id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-
-        if (response.ok) {
-          const result = await response.json()
-          if (result.success && result.data?.architect?.statut) {
-            setArchitectStatus(result.data.architect.statut)
-          }
-        }
-      } catch (error) {
-        console.error("Error loading architect status:", error)
-      }
-    }
-
-    loadArchitectStatus()
-  }, [isArchitect, user?.id])
-
-  // Handle status change
-  const handleStatusChange = async (newStatus: ArchitectStatus) => {
-    if (!isArchitect || !user?.id || isUpdatingStatus) return
-
-    try {
-      setIsUpdatingStatus(true)
-      const token = localStorage.getItem("token")
-      const response = await fetch(`/api/architects/${user.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ statut: newStatus }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to update status")
-      }
-
-      const result = await response.json()
-      if (result.success) {
-        setArchitectStatus(newStatus)
-        toast.success("Statut mis à jour avec succès")
-      }
-    } catch (error: any) {
-      console.error("Error updating architect status:", error)
-      toast.error(error.message || "Erreur lors de la mise à jour du statut")
-    } finally {
-      setIsUpdatingStatus(false)
-    }
-  }
 
   const getInitials = (name: string) => {
     return name
@@ -275,6 +205,9 @@ const SidebarComponent = () => {
               let displayLabel = item.label
               if (role?.toLowerCase() === 'architect' && item.id === 'contacts') {
                 displayLabel = "Mes Contacts Assignés"
+              }
+              if (role?.toLowerCase() === 'architect' && item.id === 'architectes') {
+                displayLabel = "Architecte & Projet"
               }
 
               return {
@@ -442,96 +375,6 @@ const SidebarComponent = () => {
                         <span className="inline-flex items-center gap-1 text-[9px] md:text-[10px] font-medium px-1.5 md:px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30">
                           {getRoleLabel(user.role)}
                         </span>
-                      )}
-                      {/* Status Badge for Architects - Always visible */}
-                      {isArchitect && (
-                        <span className={cn(
-                          "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border h-[22px]",
-                          architectStatus === "actif" && "bg-green-500/20 text-green-400 border-green-500/30",
-                          architectStatus === "inactif" && "bg-slate-500/20 text-slate-400 border-slate-500/30",
-                          architectStatus === "conge" && "bg-orange-500/20 text-orange-400 border-orange-500/30"
-                        )}>
-                          <span className={cn(
-                            "w-1.5 h-1.5 rounded-full mr-1 flex-shrink-0",
-                            architectStatus === "actif" && "bg-green-400",
-                            architectStatus === "inactif" && "bg-slate-400",
-                            architectStatus === "conge" && "bg-orange-400"
-                          )} />
-                          {architectStatus === "actif" ? "Actif" : architectStatus === "inactif" ? "Inactif" : "En congé"}
-                        </span>
-                      )}
-                      {/* 3-dot Menu for Status Actions - Only for architects */}
-                      {isArchitect && (
-                        <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              disabled={isUpdatingStatus}
-                              className={cn(
-                                "p-1 rounded-md hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50",
-                                isUpdatingStatus && "opacity-50 cursor-not-allowed"
-                              )}
-                            >
-                              <MoreVertical className="w-3.5 h-3.5 text-slate-400 hover:text-white transition-colors" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="end"
-                              className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50 min-w-[140px] p-1.5"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="px-2 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                                Changer le statut
-                              </div>
-                              <DropdownMenuItem
-                                onClick={() => handleStatusChange("actif")}
-                                disabled={isUpdatingStatus || architectStatus === "actif"}
-                                className={cn(
-                                  "text-xs text-white cursor-pointer rounded-md px-2 py-1.5 hover:bg-slate-700/70 focus:bg-slate-700/70 transition-colors",
-                                  architectStatus === "actif" && "bg-green-500/20 hover:bg-green-500/20"
-                                )}
-                              >
-                                <div className="flex items-center gap-2 w-full">
-                                  <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></span>
-                                  <span className="flex-1">Actif</span>
-                                  {architectStatus === "actif" && (
-                                    <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                                  )}
-                                </div>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleStatusChange("inactif")}
-                                disabled={isUpdatingStatus || architectStatus === "inactif"}
-                                className={cn(
-                                  "text-xs text-white cursor-pointer rounded-md px-2 py-1.5 hover:bg-slate-700/70 focus:bg-slate-700/70 transition-colors",
-                                  architectStatus === "inactif" && "bg-slate-500/20 hover:bg-slate-500/20"
-                                )}
-                              >
-                                <div className="flex items-center gap-2 w-full">
-                                  <span className="w-2 h-2 rounded-full bg-slate-400 flex-shrink-0"></span>
-                                  <span className="flex-1">Inactif</span>
-                                  {architectStatus === "inactif" && (
-                                    <Check className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                                  )}
-                                </div>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleStatusChange("conge")}
-                                disabled={isUpdatingStatus || architectStatus === "conge"}
-                                className={cn(
-                                  "text-xs text-white cursor-pointer rounded-md px-2 py-1.5 hover:bg-slate-700/70 focus:bg-slate-700/70 transition-colors",
-                                  architectStatus === "conge" && "bg-orange-500/20 hover:bg-orange-500/20"
-                                )}
-                              >
-                                <div className="flex items-center gap-2 w-full">
-                                  <span className="w-2 h-2 rounded-full bg-orange-400 flex-shrink-0"></span>
-                                  <span className="flex-1">En congé</span>
-                                  {architectStatus === "conge" && (
-                                    <Check className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
-                                  )}
-                                </div>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
                       )}
                     </div>
                   )}

@@ -3,7 +3,7 @@
 import type { Client, ProjectStatus, ProjectType } from "@/types/client"
 import type { Lead } from "@/types/lead"
 import { useState, useEffect } from "react"
-import { X, Save, User, Phone, Mail, MapPin, Building2, FileText, Sparkles } from "lucide-react"
+import { X, Save, User, Phone, MapPin, Sparkles, Target, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,42 +21,53 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { LeadAutocomplete } from "@/components/lead-autocomplete"
+} from "@/components/ui/dialog";
+import { LeadAutocomplete } from "@/components/lead-autocomplete";
+import { CreatableSelect } from "@/components/creatable-select"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
+
+// Liste des villes du Maroc
+const MOROCCAN_CITIES = [
+  "Casablanca", "Rabat", "Marrakech", "Fès", "Tanger", "Agadir", "Meknès",
+  "Oujda", "Kenitra", "Tétouan", "Safi", "Temara", "Mohammedia", "Khouribga",
+  "El Jadida", "Béni Mellal", "Nador", "Taza", "Settat", "Ksar El Kebir",
+  "Larache", "Khemisset", "Guelmim", "Berrechid", "Berkane", "Taourirt",
+  "Bouskoura", "Dar Bouazza", "Ifrane", "Azrou", "Errachidia", "Ouarzazate",
+  "Taroudant", "Essaouira", "El Kelaa des Sraghna", "Sidi Kacem", "Sidi Slimane",
+  "Skhirat", "Benslimane", "Bouznika", "Zagora", "Tinghir", "Midelt", "Azilal"
+]
 
 interface AddClientModalImprovedProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (client: Omit<Client, "id" | "createdAt" | "updatedAt" | "derniereMaj">) => void
+  onSave: (client: Omit<Client, "id" | "createdAt" | "updatedAt" | "derniereMaj">) => Promise<void>
   editingClient?: Client | null
 }
 
 export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient }: AddClientModalImprovedProps) {
   const [mode, setMode] = useState<"search" | "manual">("search")
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
-  const [showAdvanced, setShowAdvanced] = useState(false)
   const [formData, setFormData] = useState({
     nom: "",
+    nomProjet: "",
     telephone: "",
-    email: "",
     ville: "",
-    adresse: "",
     typeProjet: "appartement" as ProjectType,
     architecteAssigne: "",
-    statutProjet: "en_conception" as ProjectStatus,
+    statutProjet: "qualifie" as ProjectStatus,
     budget: "",
-    notes: "",
   })
 
   const [architects, setArchitects] = useState<string[]>([])
+  const [villes, setVilles] = useState<string[]>(MOROCCAN_CITIES)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Load architects
   useEffect(() => {
     const loadArchitects = async () => {
       try {
-        const res = await fetch('/api/users')
+        const res = await fetch('/api/users');
         if (res.ok) {
           const users = await res.json()
           const architectList = users
@@ -74,74 +85,166 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
     loadArchitects()
   }, [])
 
+  // Load existing cities from opportunities/clients
+  useEffect(() => {
+    const loadExistingCities = async () => {
+      try {
+        const res = await fetch('/api/clients', {
+          credentials: 'include'
+        })
+        if (res.ok) {
+          const result = await res.json()
+          const clients = result.data || []
+          // Extract unique cities from clients
+          const existingCities = Array.from(new Set(
+            clients
+              .map((c: any) => c.ville)
+              .filter((v: string) => v && v.trim())
+          )) as string[]
+          
+          // Merge with Moroccan cities, avoiding duplicates
+          const allCities = [...MOROCCAN_CITIES]
+          existingCities.forEach((city: string) => {
+            if (!allCities.includes(city)) {
+              allCities.push(city)
+            }
+          })
+          
+          // Sort: Moroccan cities first, then custom cities
+          const moroccanSet = new Set(MOROCCAN_CITIES)
+          const sortedCities = [
+            ...MOROCCAN_CITIES,
+            ...allCities.filter(c => !moroccanSet.has(c)).sort()
+          ]
+          
+          setVilles(sortedCities)
+        }
+      } catch (error) {
+        console.error('[AddClientModal] Error loading cities:', error)
+        // Keep default cities on error
+      }
+    }
+    
+    if (isOpen) {
+      loadExistingCities()
+    }
+  }, [isOpen])
+
   // Populate form when editing or lead selected
   useEffect(() => {
     if (editingClient) {
       setMode("manual")
       setFormData({
         nom: editingClient.nom,
+        nomProjet: editingClient.nomProjet || "",
         telephone: editingClient.telephone,
-        email: editingClient.email || "",
         ville: editingClient.ville,
-        adresse: editingClient.adresse || "",
         typeProjet: editingClient.typeProjet,
         architecteAssigne: editingClient.architecteAssigne,
         statutProjet: editingClient.statutProjet,
         budget: editingClient.budget?.toString() || "",
-        notes: editingClient.notes || "",
       })
     } else if (selectedLead) {
       setMode("manual")
+      const typeProjet = (selectedLead.typeBien?.toLowerCase() as ProjectType) || "appartement"
+      const typeLabels: Record<string, string> = {
+        villa: 'Villa',
+        appartement: 'Appartement',
+        magasin: 'Magasin',
+        bureau: 'Bureau',
+        riad: 'Riad',
+        studio: 'Studio',
+        autre: 'Autre'
+      }
+      const typeLabel = typeLabels[typeProjet] || 'Projet'
+      const defaultNomProjet = `${typeLabel} - ${selectedLead.ville || selectedLead.nom}`
+      
       setFormData({
         nom: selectedLead.nom,
+        nomProjet: defaultNomProjet,
         telephone: selectedLead.telephone,
-        email: "",
         ville: selectedLead.ville,
-        adresse: "",
-        typeProjet: (selectedLead.typeBien?.toLowerCase() as ProjectType) || "appartement",
+        typeProjet: typeProjet,
         architecteAssigne: architects[0] || "TAZI",
-        statutProjet: "en_conception",
+        statutProjet: "qualifie",
         budget: "",
-        notes: selectedLead.message || "",
       })
     } else if (!editingClient) {
       setMode("search")
       setSelectedLead(null)
       setFormData({
         nom: "",
+        nomProjet: "",
         telephone: "",
-        email: "",
         ville: "",
-        adresse: "",
         typeProjet: "appartement",
         architecteAssigne: architects[0] || "TAZI",
-        statutProjet: "en_conception",
+        statutProjet: "qualifie",
         budget: "",
-        notes: "",
       })
     }
   }, [editingClient, selectedLead, isOpen, architects])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const clientData: any = {
-      nom: formData.nom.trim(),
-      telephone: formData.telephone.trim(),
-      ville: formData.ville.trim(),
-      typeProjet: formData.typeProjet,
-      architecteAssigne: formData.architecteAssigne,
-      statutProjet: formData.statutProjet,
-      historique: editingClient?.historique || [],
+    // Prevent double submission
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+
+    try {
+      // Generate nomProjet if not provided
+      let nomProjet = formData.nomProjet.trim()
+      if (!nomProjet) {
+        const typeLabels: Record<string, string> = {
+          villa: 'Villa',
+          appartement: 'Appartement',
+          magasin: 'Magasin',
+          bureau: 'Bureau',
+          riad: 'Riad',
+          studio: 'Studio',
+          autre: 'Autre'
+        }
+        const typeLabel = typeLabels[formData.typeProjet] || 'Projet'
+        nomProjet = `${typeLabel} - ${formData.ville || formData.nom}`
+      }
+
+      const clientData: any = {
+        nom: formData.nom.trim(),
+        nomProjet: nomProjet, // CRITICAL: Include nomProjet for opportunity identification
+        telephone: formData.telephone.trim(),
+        ville: formData.ville.trim() || "", // Ensure ville is always a string, never empty
+        typeProjet: formData.typeProjet,
+        architecteAssigne: formData.architecteAssigne,
+        statutProjet: formData.statutProjet,
+        historique: editingClient?.historique || [],
+      }
+
+      // Always include ville even if empty to ensure it's saved
+      if (!clientData.ville) {
+        clientData.ville = ""
+      }
+
+      if (formData.budget) clientData.budget = parseFloat(formData.budget)
+      
+      console.log('[AddClientModal] 💾 Saving client data:', {
+        ville: clientData.ville,
+        nomProjet: clientData.nomProjet,
+        nom: clientData.nom
+      })
+
+      // Wait for save to complete (including API call and table refresh)
+      await onSave(clientData)
+      
+      // Only close modal after successful save
+      handleClose()
+    } catch (error) {
+      console.error('[AddClientModal] ❌ Error saving client:', error)
+      // Don't close modal on error, let user see the error and retry
+    } finally {
+      setIsSubmitting(false)
     }
-
-    if (formData.email.trim()) clientData.email = formData.email.trim()
-    if (formData.adresse.trim()) clientData.adresse = formData.adresse.trim()
-    if (formData.budget) clientData.budget = parseFloat(formData.budget)
-    if (formData.notes.trim()) clientData.notes = formData.notes.trim()
-
-    onSave(clientData)
-    handleClose()
   }
 
   const handleChange = (field: string, value: string) => {
@@ -164,17 +267,26 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-[96vw] !max-w-4xl max-h-[90vh] overflow-y-auto bg-[oklch(22%_0.03_260)] border-slate-600/30 rounded-xl md:rounded-2xl p-4 md:p-6">
-        <DialogHeader>
-          <DialogTitle className="text-xl md:text-3xl font-bold text-white flex items-center gap-2 md:gap-3">
-            <User className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-            {editingClient ? "Modifier le client" : "Nouveau client"}
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      // Prevent closing during submission
+      if (!open && isSubmitting) {
+        console.log('[AddClientModal] ⚠️ Cannot close modal during submission')
+        return
+      }
+      if (!open) {
+        handleClose()
+      }
+    }}>
+      <DialogContent className="w-[95vw] !max-w-3xl max-h-[88vh] overflow-y-auto bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-lg shadow-2xl p-4">
+        <DialogHeader className="pb-3 border-b border-slate-700/50">
+          <DialogTitle className="text-base font-semibold text-white flex items-center gap-2">
+            <Target className="w-4 h-4 text-primary" />
+            {editingClient ? "Modifier l'opportunité" : "Nouvelle opportunité"}
           </DialogTitle>
-          <DialogDescription className="text-slate-400 text-sm md:text-base">
+          <DialogDescription className="text-[11px] text-slate-400 mt-1">
             {editingClient
-              ? "Modifiez les informations du client"
-              : "Recherchez un lead existant ou complétez les informations du client"}
+              ? "Modifiez les informations de l'opportunité"
+              : "Créez une nouvelle opportunité depuis un contact"}
           </DialogDescription>
         </DialogHeader>
         <AnimatePresence mode="wait">
@@ -256,195 +368,200 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
             {/* Form */}
             <motion.form
               onSubmit={handleSubmit}
-              className="space-y-8"
+              className="space-y-2.5 mt-2"
             >
 
-              {/* Informations principales */}
-              <div className="glass rounded-xl md:rounded-2xl p-4 md:p-6 border border-slate-600/30 space-y-4 md:space-y-6">
-                <h3 className="text-xs md:text-sm font-semibold text-white uppercase tracking-wider">
-                  Informations principales
+              {/* Informations du contact */}
+              <div className="rounded-lg p-2.5 border border-slate-700/40 bg-slate-800/30 space-y-2.5">
+                <h3 className="text-[10px] font-medium text-slate-300 uppercase tracking-wider">
+                  Contact
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <Label htmlFor="nom" className="text-slate-200 font-medium">
-                      Nom du client *
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                  <div className="space-y-1">
+                    <Label htmlFor="nom" className="text-[10px] text-slate-400 font-medium">
+                      Nom *
                     </Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <User className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" />
                       <Input
                         id="nom"
                         value={formData.nom}
                         onChange={(e) => handleChange("nom", e.target.value)}
-                        placeholder="Ex: Ahmed Benali"
+                        placeholder="Ahmed Benali"
                         required
-                        disabled={!editingClient && mode === "search" && !selectedLead}
-                        className="pl-10 h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white placeholder:text-slate-500 text-base disabled:opacity-60 disabled:cursor-not-allowed"
+                        disabled={isSubmitting || (!editingClient && mode === "search" && !selectedLead)}
+                        className="pl-8 h-8 rounded-md bg-slate-800/60 border-slate-600/40 text-white placeholder:text-slate-500 text-xs disabled:opacity-60 disabled:cursor-not-allowed focus:border-primary/50"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="telephone" className="text-slate-200 font-medium">
+                  <div className="space-y-1">
+                    <Label htmlFor="telephone" className="text-[10px] text-slate-400 font-medium">
                       Téléphone *
                     </Label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Phone className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" />
                       <Input
                         id="telephone"
                         value={formData.telephone}
                         onChange={(e) => handleChange("telephone", e.target.value)}
-                        placeholder="Ex: 212 661-234567"
+                        placeholder="0620778325"
                         required
-                        disabled={!editingClient && mode === "search" && !selectedLead}
-                        className="pl-10 h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white placeholder:text-slate-500 text-base disabled:opacity-60 disabled:cursor-not-allowed"
+                        disabled={isSubmitting || (!editingClient && mode === "search" && !selectedLead)}
+                        className="pl-8 h-8 rounded-md bg-slate-800/60 border-slate-600/40 text-white placeholder:text-slate-500 text-xs disabled:opacity-60 disabled:cursor-not-allowed focus:border-primary/50"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-slate-200 font-medium">
-                      Email
-                    </Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
-                        placeholder="Ex: client@example.com"
-                        disabled={!editingClient && mode === "search" && !selectedLead}
-                        className="pl-10 h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white placeholder:text-slate-500 text-base disabled:opacity-60 disabled:cursor-not-allowed"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="ville" className="text-slate-200 font-medium">
+                  <div className="space-y-1">
+                    <Label htmlFor="ville" className="text-[10px] text-slate-400 font-medium">
                       Ville *
                     </Label>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <Input
-                        id="ville"
-                        value={formData.ville}
-                        onChange={(e) => handleChange("ville", e.target.value)}
-                        placeholder="Ex: Casablanca"
-                        required
-                        disabled={!editingClient && mode === "search" && !selectedLead}
-                        className="pl-10 h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white placeholder:text-slate-500 text-base disabled:opacity-60 disabled:cursor-not-allowed"
-                      />
+                      <MapPin className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500 z-10 pointer-events-none" />
+                      <div className="pl-8">
+                        <CreatableSelect
+                          value={formData.ville}
+                          onValueChange={(value) => handleChange("ville", value)}
+                          options={villes}
+                          placeholder="Sélectionner une ville"
+                          searchPlaceholder="Rechercher une ville..."
+                          emptyText="Tapez pour créer une nouvelle ville"
+                          disabled={isSubmitting || (!editingClient && mode === "search" && !selectedLead)}
+                          onCreateNew={(newCity) => {
+                            if (!villes.includes(newCity)) {
+                              setVilles([...villes, newCity])
+                            }
+                          }}
+                          className="h-8 rounded-md bg-slate-800/60 border-slate-600/40 text-white text-xs font-normal disabled:opacity-60 disabled:cursor-not-allowed focus:border-primary/50 hover:border-slate-500/50"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Détails du projet (essentiels) */}
-              <div className="glass rounded-xl md:rounded-2xl p-4 md:p-6 border border-slate-600/30 space-y-4 md:space-y-6">
-                <h3 className="text-xs md:text-sm font-semibold text-white uppercase tracking-wider">
-                  Détails du projet
+              {/* Détails de l'opportunité */}
+              <div className="rounded-lg p-2.5 border border-slate-700/40 bg-slate-800/30 space-y-2.5">
+                <h3 className="text-[10px] font-medium text-slate-300 uppercase tracking-wider">
+                  Opportunité
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <Label htmlFor="typeProjet" className="text-slate-200 font-medium">
-                      Type de projet *
+                <div className="space-y-2.5">
+                  <div className="space-y-1">
+                    <Label htmlFor="nomProjet" className="text-[10px] text-slate-400 font-medium">
+                      Nom de l'opportunité *
                     </Label>
-                    <Select
-                      value={formData.typeProjet}
-                      onValueChange={(value) => handleChange("typeProjet", value)}
-                    >
-                      <SelectTrigger className="h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white text-base disabled:opacity-60 disabled:cursor-not-allowed" disabled={!editingClient && mode === "search" && !selectedLead}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent position="popper" sideOffset={8} className="bg-slate-800 border-slate-600/50 z-[90]">
-                        <SelectItem value="appartement">Appartement</SelectItem>
-                        <SelectItem value="villa">Villa</SelectItem>
-                        <SelectItem value="magasin">Magasin</SelectItem>
-                        <SelectItem value="bureau">Bureau</SelectItem>
-                        <SelectItem value="riad">Riad</SelectItem>
-                        <SelectItem value="studio">Studio</SelectItem>
-                        <SelectItem value="autre">Autre</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <Input
+                        id="nomProjet"
+                        value={formData.nomProjet}
+                        onChange={(e) => handleChange("nomProjet", e.target.value)}
+                        placeholder="Villa - Casablanca"
+                        required
+                        disabled={isSubmitting || (!editingClient && mode === "search" && !selectedLead)}
+                        className="h-8 rounded-md bg-slate-800/60 border-slate-600/40 text-white placeholder:text-slate-500 text-xs disabled:opacity-60 disabled:cursor-not-allowed focus:border-primary/50"
+                      />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="architecteAssigne" className="text-slate-200 font-medium">
-                      Architecte assigné *
-                    </Label>
-                    <Select
-                      value={formData.architecteAssigne}
-                      onValueChange={(value) => handleChange("architecteAssigne", value)}
-                    >
-                      <SelectTrigger className="h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white text-base disabled:opacity-60 disabled:cursor-not-allowed" disabled={!editingClient && mode === "search" && !selectedLead}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent position="popper" sideOffset={8} className="bg-slate-800 border-slate-600/50 z-[90]">
-                        {architects.map((arch) => (
-                          <SelectItem key={arch} value={arch}>
-                            {arch.toUpperCase()}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                    <div className="space-y-1">
+                      <Label htmlFor="typeProjet" className="text-[10px] text-slate-400 font-medium">
+                        Type *
+                      </Label>
+                      <Select
+                        value={formData.typeProjet}
+                        onValueChange={(value) => handleChange("typeProjet", value)}
+                      >
+                        <SelectTrigger className="h-8 rounded-md bg-slate-800/60 border-slate-600/40 text-white text-xs disabled:opacity-60 disabled:cursor-not-allowed focus:border-primary/50" disabled={isSubmitting || (!editingClient && mode === "search" && !selectedLead)}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent position="popper" sideOffset={4} className="bg-slate-800 border-slate-600/50 z-[90] text-xs">
+                          <SelectItem value="appartement">Appartement</SelectItem>
+                          <SelectItem value="villa">Villa</SelectItem>
+                          <SelectItem value="magasin">Magasin</SelectItem>
+                          <SelectItem value="bureau">Bureau</SelectItem>
+                          <SelectItem value="riad">Riad</SelectItem>
+                          <SelectItem value="studio">Studio</SelectItem>
+                          <SelectItem value="autre">Autre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="architecteAssigne" className="text-[10px] text-slate-400 font-medium">
+                        Architecte *
+                      </Label>
+                      <Select
+                        value={formData.architecteAssigne}
+                        onValueChange={(value) => handleChange("architecteAssigne", value)}
+                      >
+                        <SelectTrigger className="h-8 rounded-md bg-slate-800/60 border-slate-600/40 text-white text-xs disabled:opacity-60 disabled:cursor-not-allowed focus:border-primary/50" disabled={isSubmitting || (!editingClient && mode === "search" && !selectedLead)}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent position="popper" sideOffset={4} className="bg-slate-800 border-slate-600/50 z-[90] text-xs">
+                          {architects.map((arch) => (
+                            <SelectItem key={arch} value={arch}>
+                              {arch.toUpperCase()}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="statutProjet" className="text-[10px] text-slate-400 font-medium">
+                        Statut *
+                      </Label>
+                      <Select
+                        value={formData.statutProjet}
+                        onValueChange={(value) => handleChange("statutProjet", value)}
+                      >
+                        <SelectTrigger className="h-8 rounded-md bg-slate-800/60 border-slate-600/40 text-white text-xs disabled:opacity-60 disabled:cursor-not-allowed focus:border-primary/50" disabled={isSubmitting || (!editingClient && mode === "search" && !selectedLead)}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent position="popper" sideOffset={4} className="bg-slate-800 border-slate-600/50 z-[90] text-xs max-h-[200px] overflow-y-auto">
+                          {/* Statuts principaux (sans doublons) */}
+                          <SelectItem value="qualifie">Qualifié</SelectItem>
+                          <SelectItem value="prise_de_besoin">Prise de besoin</SelectItem>
+                          <SelectItem value="acompte_recu">Acompte reçu</SelectItem>
+                          <SelectItem value="conception">Conception</SelectItem>
+                          <SelectItem value="devis_negociation">Devis / Négociation</SelectItem>
+                          <SelectItem value="accepte">Accepté</SelectItem>
+                          <SelectItem value="premier_depot">1er Dépôt</SelectItem>
+                          <SelectItem value="projet_en_cours">Projet en cours</SelectItem>
+                          <SelectItem value="chantier">Chantier</SelectItem>
+                          <SelectItem value="facture_reglee">Facture réglée</SelectItem>
+                          <SelectItem value="livraison_termine">Livraison & Terminé</SelectItem>
+                          <SelectItem value="refuse">Refusé</SelectItem>
+                          <SelectItem value="perdu">Perdu</SelectItem>
+                          <SelectItem value="annule">Annulé</SelectItem>
+                          <SelectItem value="suspendu">Suspendu</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="statutProjet" className="text-slate-200 font-medium">
-                      Statut du projet *
+                  <div className="space-y-1">
+                    <Label htmlFor="budget" className="text-[10px] text-slate-400 font-medium">
+                      Budget (DH)
                     </Label>
-                    <Select
-                      value={formData.statutProjet}
-                      onValueChange={(value) => handleChange("statutProjet", value)}
-                    >
-                      <SelectTrigger className="h-12 rounded-xl bg-slate-700/60 border-slate-500/50 text-white text-base disabled:opacity-60 disabled:cursor-not-allowed" disabled={!editingClient && mode === "search" && !selectedLead}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent position="popper" sideOffset={8} className="bg-slate-800 border-slate-600/50 z-[90]">
-                        <SelectItem value="nouveau">Nouveau</SelectItem>
-                        <SelectItem value="acompte_verse">Acompte versé</SelectItem>
-                        <SelectItem value="en_conception">En conception</SelectItem>
-                        <SelectItem value="en_chantier">En chantier</SelectItem>
-                        <SelectItem value="livraison">Livraison</SelectItem>
-                        <SelectItem value="termine">Terminé</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <Input
+                        id="budget"
+                        type="number"
+                        value={formData.budget}
+                        onChange={(e) => handleChange("budget", e.target.value)}
+                        placeholder="0"
+                        disabled={isSubmitting || (!editingClient && mode === "search" && !selectedLead)}
+                        className="h-8 rounded-md bg-slate-800/60 border-slate-600/40 text-white placeholder:text-slate-500 text-xs disabled:opacity-60 disabled:cursor-not-allowed focus:border-primary/50"
+                      />
                   </div>
                 </div>
               </div>
 
-              {/* Section avancée (optionnelle) */}
-              <div className="glass rounded-xl md:rounded-2xl p-4 md:p-6 border border-slate-600/30 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs md:text-sm font-semibold text-white uppercase tracking-wider">Options avancées</h3>
-                  <Button type="button" variant="outline" onClick={() => setShowAdvanced(v => !v)} className="h-9 px-3 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 text-xs">
-                    {showAdvanced ? "Masquer" : "Afficher"}
-                  </Button>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="notes" className="text-slate-200 font-medium">
-                    Notes
-                  </Label>
-                  <div className="relative">
-                    <FileText className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                    <Textarea
-                      id="notes"
-                      value={formData.notes}
-                      onChange={(e) => handleChange("notes", e.target.value)}
-                      placeholder="Ajoutez des notes sur le client ou le projet..."
-                      rows={5}
-                      disabled={!editingClient && mode === "search" && !selectedLead}
-                      className="pl-10 rounded-xl bg-slate-700/60 border-slate-500/50 text-white placeholder:text-slate-500 resize-none text-base disabled:opacity-60 disabled:cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-              </div>
 
               {/* Actions */}
-              <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 justify-end pt-4 border-t border-slate-600/30">
+              <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2 border-t border-slate-700/50">
                 {!editingClient && (
                   <Button
                     type="button"
@@ -457,27 +574,39 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
                         handleCreateNew()
                       }
                     }}
-                    className="h-10 md:h-12 px-4 md:px-6 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 text-sm md:text-base w-full sm:w-auto"
+                    disabled={isSubmitting}
+                    className="h-7 px-2.5 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 text-[10px] w-full sm:w-auto disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    <X className="w-4 h-4 mr-2" />
-                    {mode === "manual" ? "Retour à la recherche" : "Saisir manuellement"}
+                    <X className="w-3 h-3 mr-1" />
+                    {mode === "manual" ? "Retour" : "Manuel"}
                   </Button>
                 )}
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleClose}
-                  className="h-10 md:h-12 px-4 md:px-6 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 text-sm md:text-base w-full sm:w-auto"
+                  disabled={isSubmitting}
+                  className="h-7 px-2.5 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 text-[10px] w-full sm:w-auto disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <X className="w-4 h-4 mr-2" />
+                  <X className="w-3 h-3 mr-1" />
                   Annuler
                 </Button>
                 <Button
                   type="submit"
-                  className="h-10 md:h-12 px-4 md:px-6 bg-primary hover:bg-primary/90 text-white text-sm md:text-base w-full sm:w-auto"
+                  disabled={isSubmitting}
+                  className="h-7 px-2.5 bg-primary hover:bg-primary/90 text-white text-[10px] w-full sm:w-auto shadow-[0_2px_8px_-2px_rgba(59,130,246,0.3)] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <Save className="w-4 h-4 mr-2" />
-                  {editingClient ? "Enregistrer" : "Créer le client"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      {editingClient ? "Enregistrement..." : "Création..."}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3 h-3 mr-1" />
+                      {editingClient ? "Enregistrer" : "Créer"}
+                    </>
+                  )}
                 </Button>
               </div>
             </motion.form>

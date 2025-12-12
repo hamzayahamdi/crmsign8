@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Plus, CheckCircle, XCircle, Clock, DollarSign, Calendar, AlertTriangle, Loader2 } from "lucide-react"
+import { FileText, Plus, CheckCircle, XCircle, Clock, DollarSign, Calendar, AlertTriangle, Loader2, Pencil } from "lucide-react"
 import type { Client, Devis } from "@/types/client"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { AddDevisModal } from "./add-devis-modal"
+import { EditMontantModal } from "./edit-montant-modal"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -19,6 +20,7 @@ interface DevisListSectionProps {
 export function DevisListSection({ client, onUpdate }: DevisListSectionProps) {
   const [isAddingDevis, setIsAddingDevis] = useState(false)
   const [updatingDevisId, setUpdatingDevisId] = useState<string | null>(null)
+  const [editingMontantDevis, setEditingMontantDevis] = useState<Devis | null>(null)
   const { toast } = useToast()
   const { user } = useAuth()
 
@@ -241,9 +243,21 @@ export function DevisListSection({ client, onUpdate }: DevisListSectionProps) {
                       )}
 
                       <div className="flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 group/montant">
                           <DollarSign className="w-4 h-4 text-green-400" />
                           <span className="text-white font-semibold">{formatCurrency(devis.montant)}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingMontantDevis(devis)
+                            }}
+                            className="h-6 w-6 opacity-0 group-hover/montant:opacity-100 transition-opacity text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                            title="Modifier le montant"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
                         <div className="flex items-center gap-2 text-white/50">
                           <Calendar className="w-4 h-4" />
@@ -348,6 +362,19 @@ export function DevisListSection({ client, onUpdate }: DevisListSectionProps) {
         client={client}
         onSave={handleSaveDevis}
       />
+
+      {editingMontantDevis && (
+        <EditMontantModal
+          isOpen={!!editingMontantDevis}
+          onClose={() => setEditingMontantDevis(null)}
+          client={client}
+          devis={editingMontantDevis}
+          onSave={(updatedClient) => {
+            onUpdate(updatedClient)
+            setEditingMontantDevis(null)
+          }}
+        />
+      )}
     </>
   )
 }

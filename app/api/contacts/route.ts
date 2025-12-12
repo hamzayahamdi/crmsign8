@@ -107,6 +107,7 @@ export async function GET(request: NextRequest) {
             take: 1,
             orderBy: { createdAt: 'desc' } 
           },
+          payments: true, // Include payments
         },
         // typeBien and source are now direct fields on Contact model, so they're automatically included
         orderBy: { createdAt: 'desc' },

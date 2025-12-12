@@ -263,16 +263,25 @@ export function CreateOpportunityModal({
         }))
         
         // Also try to refresh clients store if available
-        try {
-          const { useClientStore } = await import('@/stores/client-store')
-          const store = useClientStore.getState()
-          if (store.refreshClients) {
-            store.refreshClients()
+        // Add a small delay to ensure Supabase record is created first
+        setTimeout(async () => {
+          try {
+            const { useClientStore } = await import('@/stores/client-store')
+            const store = useClientStore.getState()
+            if (store.refreshClients) {
+              console.log('[Create Opportunity] Refreshing clients store after opportunity creation...')
+              await store.refreshClients()
+              console.log('[Create Opportunity] ✅ Clients store refreshed')
+            }
+            if (store.fetchClients) {
+              // Also fetch from API to ensure we have the latest data
+              await store.fetchClients()
+            }
+          } catch (e) {
+            // Store might not be available, that's okay
+            console.log('[Create Opportunity] Could not refresh clients store:', e)
           }
-        } catch (e) {
-          // Store might not be available, that's okay
-          console.log('[Create Opportunity] Could not refresh clients store:', e)
-        }
+        }, 500) // Wait 500ms for Supabase record to be created
       }
 
       // Call success callback

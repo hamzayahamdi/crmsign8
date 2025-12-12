@@ -83,7 +83,7 @@ export function ClientsListMobile({ clients, onClientClick, onDeleteClient, sear
 
   if (items.length === 0) {
     return (
-      <div className="p-6 text-center text-slate-400">Aucun client trouvé</div>
+      <div className="p-6 text-center text-slate-400">Aucune opportunité trouvée</div>
     )
   }
 

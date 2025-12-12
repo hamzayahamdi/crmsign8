@@ -792,9 +792,11 @@ export async function PATCH(
     if (body.nom !== undefined) updateData.nom = body.nom;
     if (body.telephone !== undefined) updateData.telephone = body.telephone;
     if (body.ville !== undefined) updateData.ville = body.ville;
+    if (body.nomProjet !== undefined) updateData.nom_projet = body.nomProjet; // CRITICAL: Update project name
     if (body.typeProjet !== undefined) updateData.type_projet = body.typeProjet;
     if (body.architecteAssigne !== undefined)
       updateData.architecte_assigne = body.architecteAssigne;
+    if (body.statutProjet !== undefined) updateData.statut_projet = body.statutProjet; // CRITICAL: Update status
     if (body.email !== undefined) updateData.email = body.email;
     if (body.adresse !== undefined) updateData.adresse = body.adresse;
     if (body.budget !== undefined) updateData.budget = body.budget;
@@ -803,20 +805,180 @@ export async function PATCH(
     if (body.commercialAttribue !== undefined)
       updateData.commercial_attribue = body.commercialAttribue;
 
+    // Check if this is an opportunity-based client (ID format: contactId-opportunityId)
+    const isOpportunityBased = clientId.includes('-') && clientId.split('-').length === 2;
+    
+    // CRITICAL: Check if nom_projet column exists in Supabase
+    // If it doesn't exist, remove it from updateData to avoid errors
+    // We'll handle nom_projet separately for opportunity-based clients
+    const updateDataForSupabase = { ...updateData };
+    
+    // For opportunity-based clients, we'll update nom_projet via the opportunity table
+    // For legacy clients, we'll try to update it, but if the column doesn't exist, we'll skip it
+    if (isOpportunityBased && updateDataForSupabase.nom_projet) {
+      // Remove nom_projet from Supabase update for opportunity-based clients
+      // We'll update it via the opportunity table instead
+      delete updateDataForSupabase.nom_projet;
+    }
+    
     // Update client
     const { data: updatedClient, error: updateError } = await supabase
       .from("clients")
-      .update(updateData)
+      .update(updateDataForSupabase)
       .eq("id", clientId)
       .select()
       .single();
 
     if (updateError) {
       console.error("[PATCH /api/clients/[id]] Update error:", updateError);
+      console.error("[PATCH /api/clients/[id]] Update data sent:", updateData);
+      console.error("[PATCH /api/clients/[id]] Client ID:", clientId);
+      
+      // Return detailed error for debugging
       return NextResponse.json(
-        { error: "Erreur lors de la mise à jour du client" },
+        { 
+          error: "Erreur lors de la mise à jour du client",
+          details: updateError.message,
+          code: updateError.code,
+          hint: updateError.hint
+        },
         { status: 500 },
       );
+    }
+
+    // CRITICAL: If this is an opportunity-based client, also update the contact and opportunity
+    // This ensures all fields are synced across contact, opportunity, and client tables
+    if (isOpportunityBased) {
+      try {
+        const [contactId, opportunityId] = clientId.split('-');
+        const { JWT_SECRET } = process.env;
+        const { verify } = await import('jsonwebtoken');
+        
+        // Verify token to get user info
+        let decoded: any;
+        try {
+          const token = authCookie.value;
+          decoded = verify(token, JWT_SECRET!) as any;
+        } catch (err) {
+          console.error("[PATCH /api/clients/[id]] Token verification failed:", err);
+        }
+
+        // Update contact and opportunity if user has permission
+        if (decoded) {
+          const { PrismaClient } = await import('@prisma/client');
+          const prisma = new PrismaClient();
+          
+          try {
+            // Build contact update data
+            const contactUpdateData: any = {};
+            if (body.ville !== undefined) contactUpdateData.ville = body.ville;
+            if (body.nom !== undefined) contactUpdateData.nom = body.nom;
+            if (body.telephone !== undefined) contactUpdateData.telephone = body.telephone;
+            if (body.email !== undefined) contactUpdateData.email = body.email;
+            if (body.adresse !== undefined) contactUpdateData.adresse = body.adresse;
+            if (body.architecteAssigne !== undefined) contactUpdateData.architecteAssigne = body.architecteAssigne;
+
+            // Update contact if there are fields to update
+            if (Object.keys(contactUpdateData).length > 0) {
+              await prisma.contact.update({
+                where: { id: contactId },
+                data: contactUpdateData
+              });
+              console.log(`[PATCH /api/clients/[id]] ✅ Updated contact ${contactId}:`, Object.keys(contactUpdateData));
+            }
+
+            // Build opportunity update data
+            const opportunityUpdateData: any = {};
+            if (body.nomProjet !== undefined) opportunityUpdateData.titre = body.nomProjet; // nomProjet maps to titre in opportunities
+            if (body.budget !== undefined) opportunityUpdateData.budget = body.budget;
+            if (body.architecteAssigne !== undefined) opportunityUpdateData.architecteAssigne = body.architecteAssigne;
+            if (body.typeProjet !== undefined) {
+              // Map ProjectType to OpportunityType
+              const typeMap: Record<string, string> = {
+                'villa': 'villa',
+                'appartement': 'appartement',
+                'magasin': 'magasin',
+                'bureau': 'bureau',
+                'riad': 'riad',
+                'studio': 'studio',
+                'autre': 'autre'
+              };
+              opportunityUpdateData.type = typeMap[body.typeProjet] || 'autre';
+            }
+            if (body.statutProjet !== undefined) {
+              // Map ProjectStatus to OpportunityPipelineStage if needed
+              // For now, we'll keep the status in the clients table and sync pipelineStage separately if needed
+              // This is a complex mapping, so we'll handle it case by case
+            }
+
+            // Update opportunity if there are fields to update
+            if (Object.keys(opportunityUpdateData).length > 0) {
+              await prisma.opportunity.update({
+                where: { id: opportunityId },
+                data: opportunityUpdateData
+              });
+              console.log(`[PATCH /api/clients/[id]] ✅ Updated opportunity ${opportunityId}:`, Object.keys(opportunityUpdateData));
+              
+              // CRITICAL: Also try to update nom_projet in Supabase clients table if nomProjet was updated
+              // This column may not exist, so we catch errors gracefully
+              if (body.nomProjet !== undefined) {
+                try {
+                  const { error: nomProjetUpdateError } = await supabase
+                    .from("clients")
+                    .update({ nom_projet: body.nomProjet })
+                    .eq("id", clientId);
+                  
+                  if (nomProjetUpdateError) {
+                    // Column might not exist, log but don't fail
+                    console.warn(`[PATCH /api/clients/[id]] ⚠️ Could not update nom_projet in clients table (column may not exist):`, nomProjetUpdateError.message);
+                  } else {
+                    console.log(`[PATCH /api/clients/[id]] ✅ Updated nom_projet in clients table: ${body.nomProjet}`);
+                  }
+                } catch (err) {
+                  console.warn(`[PATCH /api/clients/[id]] ⚠️ Error updating nom_projet in clients table:`, err);
+                }
+              }
+            }
+          } catch (updateError) {
+            console.error("[PATCH /api/clients/[id]] Error updating contact/opportunity:", updateError);
+            // Don't fail the request if contact/opportunity update fails, just log it
+          } finally {
+            await prisma.$disconnect();
+          }
+        }
+      } catch (err) {
+        console.error("[PATCH /api/clients/[id]] Error in contact/opportunity update logic:", err);
+        // Don't fail the request if contact/opportunity update fails
+      }
+    }
+
+    // Get nomProjet from opportunity if this is an opportunity-based client and nomProjet was updated
+    let nomProjetValue = "";
+    if (isOpportunityBased && body.nomProjet !== undefined) {
+      // Use the value from body since we just updated it
+      nomProjetValue = body.nomProjet;
+    } else {
+      // Try to get from updatedClient, or from opportunity if opportunity-based
+      nomProjetValue = updatedClient.nom_projet || "";
+      
+      // If still empty and opportunity-based, fetch from opportunity
+      if (!nomProjetValue && isOpportunityBased) {
+        try {
+          const [contactId, opportunityId] = clientId.split('-');
+          const { PrismaClient } = await import('@prisma/client');
+          const prisma = new PrismaClient();
+          const opportunity = await prisma.opportunity.findUnique({
+            where: { id: opportunityId },
+            select: { titre: true }
+          });
+          if (opportunity?.titre) {
+            nomProjetValue = opportunity.titre;
+          }
+          await prisma.$disconnect();
+        } catch (err) {
+          console.warn(`[PATCH /api/clients/[id]] Could not fetch nomProjet from opportunity:`, err);
+        }
+      }
     }
 
     // Transform response
@@ -824,7 +986,7 @@ export async function PATCH(
       id: updatedClient.id,
       nom: updatedClient.nom,
       telephone: updatedClient.telephone,
-      ville: updatedClient.ville,
+      ville: updatedClient.ville || "", // Ensure ville is always a string, never null/undefined
       typeProjet: updatedClient.type_projet,
       architecteAssigne: updatedClient.architecte_assigne,
       statutProjet: updatedClient.statut_projet,
@@ -838,9 +1000,13 @@ export async function PATCH(
       commercialAttribue: updatedClient.commercial_attribue,
       createdAt: updatedClient.created_at,
       updatedAt: updatedClient.updated_at,
+      nomProjet: nomProjetValue, // Use the value we determined above
     };
 
-    console.log(`[PATCH /api/clients/[id]] ✅ Updated client: ${clientId}`);
+    console.log(`[PATCH /api/clients/[id]] ✅ Updated client: ${clientId}`, {
+      ville: transformedClient.ville,
+      nomProjet: transformedClient.nomProjet
+    });
 
     return NextResponse.json({
       success: true,
