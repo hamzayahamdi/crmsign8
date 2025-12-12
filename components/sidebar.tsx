@@ -171,7 +171,7 @@ const SidebarComponent = () => {
   const SidebarContent = ({ isCollapsed }: { isCollapsed: boolean }) => (
     <>
       {/* Logo & Toggle Button */}
-      <div className="relative border-b border-border/40 shrink-0 overflow-visible" style={{ padding: isCollapsed ? '1.25rem 0.5rem' : '1.5rem' }}>
+      <div className="relative border-b border-border/40 shrink-0" style={{ padding: isCollapsed ? '1.25rem 0.5rem' : '1.5rem', overflow: 'visible', zIndex: 10000, position: 'relative' }}>
         {/* Logo Container - Centered when collapsed, left-aligned when expanded */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -244,13 +244,15 @@ const SidebarComponent = () => {
                 damping: 25,
               }}
               className={cn(
-                "absolute top-1/2 z-[60] rounded-full bg-slate-800/95 border-2 border-sky-500/40 shadow-xl backdrop-blur-sm flex items-center justify-center text-sky-400 hover:text-sky-300 hover:bg-slate-700/95 transition-all duration-200",
+                "absolute top-1/2 rounded-full bg-slate-800/95 border-2 border-sky-500/40 shadow-xl backdrop-blur-sm flex items-center justify-center text-sky-400 hover:text-sky-300 hover:bg-slate-700/95 transition-all duration-200",
                 "hover:border-sky-400 hover:shadow-sky-500/30",
                 isCollapsed ? "-right-3 w-6 h-6" : "-right-3.5 w-7 h-7"
               )}
               style={{
                 transform: 'translateY(-50%)',
                 pointerEvents: 'auto',
+                zIndex: 10000,
+                position: 'absolute',
               }}
               aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
@@ -690,7 +692,7 @@ const SidebarComponent = () => {
       </AnimatePresence>
 
       {/* Desktop Sidebar - Collapsible with smooth animations */}
-      <div className="hidden lg:block fixed top-0 left-0 z-30" style={{ overflow: 'visible' }}>
+      <div className="hidden lg:block fixed top-0 left-0" style={{ overflow: 'visible', zIndex: 9999 }}>
         <motion.aside
           initial={false}
           animate={{
@@ -703,7 +705,7 @@ const SidebarComponent = () => {
             mass: 0.8,
           }}
           className="glass border-r border-border/40 flex flex-col h-screen backdrop-blur-2xl bg-slate-950/95 relative"
-          style={{ overflow: 'visible' }}
+          style={{ overflow: 'visible', zIndex: 9999 }}
         >
           <SidebarContent isCollapsed={isSidebarCollapsed} />
         </motion.aside>
