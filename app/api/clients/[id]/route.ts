@@ -136,10 +136,43 @@ export async function GET(
         ? userNameMap[architectId] || architectId
         : "";
 
-      const commercialId = contact.createdBy || "";
-      const commercialName = commercialId
-        ? userNameMap[commercialId] || commercialId
+      // Get opportunity creator (who created the opportunity)
+      const opportunityCreatorId = opportunity.createdBy || "";
+      let opportunityCreatorName = "";
+      if (opportunityCreatorId) {
+        // Try to get name from user map
+        opportunityCreatorName = userNameMap[opportunityCreatorId] || "";
+        // If not found in map, try to fetch from database
+        if (!opportunityCreatorName && opportunityCreatorId.length > 10) {
+          try {
+            const creator = await prisma.user.findUnique({
+              where: { id: opportunityCreatorId },
+              select: { name: true },
+            });
+            if (creator?.name) {
+              opportunityCreatorName = creator.name;
+              // Cache it in the map for future use
+              userNameMap[opportunityCreatorId] = creator.name;
+            }
+          } catch (err) {
+            console.error("[GET /api/clients/[id]] Error fetching opportunity creator:", err);
+          }
+        }
+        // Fallback to ID if name still not found
+        if (!opportunityCreatorName) {
+          opportunityCreatorName = opportunityCreatorId;
+        }
+      }
+
+      // Get contact creator (who created the contact, might be different from opportunity creator)
+      const contactCreatorId = contact.createdBy || "";
+      const contactCreatorName = contactCreatorId
+        ? userNameMap[contactCreatorId] || contactCreatorId
         : "";
+
+      // Use opportunity creator as the main creator, fallback to contact creator
+      const commercialId = opportunityCreatorId || contactCreatorId;
+      const commercialName = opportunityCreatorName || contactCreatorName;
 
       // Transform to client format
       client = {
@@ -175,7 +208,7 @@ export async function GET(
             })
             .join("\n\n") || "", // Combine contact notes, opportunity notes, and description
         magasin: contact.magasin,
-        commercial_attribue: commercialName, // Use mapped name instead of ID
+        commercial_attribue: commercialName, // Use opportunity creator name (who created the opportunity)
         created_at: opportunity.createdAt,
         updated_at: opportunity.updatedAt,
         is_contact: true,
@@ -183,6 +216,9 @@ export async function GET(
         contactId: contactId, // Also add camelCase version for frontend
         opportunity_id: opportunityId,
         opportunityId: opportunityId, // Also add camelCase version for frontend
+        // Add opportunity creator info for better traceability
+        opportunityCreatedBy: opportunityCreatorName,
+        contactCreatedBy: contactCreatorName,
       };
     } else {
       // Legacy client - fetch from Supabase
@@ -652,6 +688,10 @@ export async function GET(
       magasin: client.magasin,
       commercialAttribue:
         client.commercial_attribue || client.commercialAttribue || "",
+      opportunityCreatedBy:
+        client.opportunityCreatedBy || client.opportunity_created_by || "",
+      contactCreatedBy:
+        client.contactCreatedBy || client.contact_created_by || "",
       createdAt: client.created_at || client.createdAt,
       updatedAt: client.updated_at || client.updatedAt,
       isContact: isOpportunityClient,

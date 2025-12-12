@@ -49,8 +49,8 @@ export function EditBudgetModal({
     // Validation
     if (isNaN(newBudget) || newBudget < 0) {
       toast({
-        title: "Budget invalide",
-        description: "Veuillez saisir un budget valide (supérieur ou égal à 0)",
+        title: "Estimation Montant invalide",
+        description: "Veuillez saisir une estimation montant valide (supérieur ou égal à 0)",
         variant: "destructive",
       })
       return
@@ -59,7 +59,7 @@ export function EditBudgetModal({
     if (newBudget === (client.budget || 0)) {
       toast({
         title: "Aucun changement",
-        description: "Le budget n'a pas été modifié",
+        description: "L'estimation montant n'a pas été modifiée",
       })
       onClose()
       return
@@ -101,7 +101,7 @@ export function EditBudgetModal({
 
       // Show success toast immediately with better formatting
       toast({
-        title: "✅ Budget modifié avec succès",
+        title: "✅ Estimation Montant modifiée avec succès",
         description: (
           <div className="flex items-center gap-2 mt-1">
             <span className="text-white/70">{formatCurrency(oldBudget)}</span>
@@ -120,7 +120,7 @@ export function EditBudgetModal({
       console.error('[Edit Budget] Error:', error)
       toast({
         title: "Erreur",
-        description: error.message || 'Impossible de modifier le budget. Veuillez réessayer.',
+        description: error.message || 'Impossible de modifier l\'estimation montant. Veuillez réessayer.',
         variant: "destructive",
       })
     } finally {

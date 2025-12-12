@@ -79,7 +79,7 @@ export function ClientKanbanColumn({
                                 boxShadow: `0 0 10px ${color}50, inset 0 1px 0 rgba(255,255,255,0.1)`,
                                 textShadow: '0 1px 2px rgba(0,0,0,0.3)'
                             }}
-                            title={`Total budget: ${formatCurrency(totalBudget)}`}
+                            title={`Estimation Montant total: ${formatCurrency(totalBudget)}`}
                         >
                             <DollarSign className="w-2.5 h-2.5" style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.3))' }} />
                             <span className="font-extrabold">{formatCurrency(totalBudget)}</span>

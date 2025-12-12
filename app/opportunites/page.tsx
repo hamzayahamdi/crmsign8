@@ -224,7 +224,7 @@ export default function OpportunitiesPage() {
         updatedFields.push(`architecte: "${clientData.architecteAssigne}"`)
       }
       if (clientData.budget !== undefined && clientData.budget !== editingClient.budget) {
-        updatedFields.push(`budget: "${clientData.budget} DH"`)
+        updatedFields.push(`estimation montant: "${clientData.budget} DH"`)
       }
 
       const descriptionText = updatedFields.length > 0

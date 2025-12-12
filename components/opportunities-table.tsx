@@ -257,7 +257,7 @@ export function OpportunitiesTable({
                   Nom de l'opportunité
                 </th>
                 <th className="px-6 py-2.5 text-left text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
-                  Budget
+                  Estimation Montant
                 </th>
                 <th className="px-6 py-2.5 text-left text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
                   État Pipeline

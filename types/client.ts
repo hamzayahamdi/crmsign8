@@ -58,6 +58,8 @@ export interface Client {
   notes?: string
   magasin?: string // Magasin assignment (Rabat, Casa, Tanger, etc.)
   commercialAttribue?: string // Commercial who created/owns this client
+  opportunityCreatedBy?: string // Who created the opportunity (more specific than commercialAttribue)
+  contactCreatedBy?: string // Who created the contact (if different from opportunity creator)
   historique?: ClientHistoryEntry[]
   documents?: ClientDocument[]
   stages?: ProjectStage[]

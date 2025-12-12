@@ -306,7 +306,7 @@ export function AddClientModal({ isOpen, onClose, onSave, editingClient }: AddCl
 
               <div className="space-y-2">
                 <Label htmlFor="budget" className="text-slate-200 font-medium">
-                  Budget (MAD)
+                  Estimation Montant (MAD)
                 </Label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />

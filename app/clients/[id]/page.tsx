@@ -684,11 +684,11 @@ export default function ClientDetailsPage() {
           <Header />
 
           {/* Back Button */}
-          <div className="px-3 md:px-4 lg:px-6 pt-2 md:pt-3 pb-1">
+          <div className="px-4 md:px-5 lg:px-8 pt-3 md:pt-4 pb-2">
             <Button
               variant="ghost"
               onClick={() => router.push("/clients")}
-              className="group inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.03] text-slate-300 transition-colors hover:bg-white/[0.08] hover:text-white/90 shadow-lg shadow-black/10 text-xs px-2 py-1 h-7">
+              className="group inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-slate-300 transition-colors hover:bg-white/[0.08] hover:text-white/90 shadow-sm text-[11px] px-2.5 py-1.5 h-7 font-light">
               <ArrowLeft className="w-3 h-3 transition-transform group-hover:-translate-x-0.5" />
               Retour aux clients
             </Button>
@@ -696,13 +696,13 @@ export default function ClientDetailsPage() {
 
           {/* Upcoming RDV Banner */}
           {client.rendezVous && client.rendezVous.length > 0 && (
-            <div className="px-3 md:px-4 lg:px-6 pt-2">
+            <div className="px-4 md:px-5 lg:px-8 pt-2">
               <UpcomingRdvBanner appointments={client.rendezVous} />
             </div>
           )}
 
           {/* Sticky Header */}
-          <div className="z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-2xl shadow-[0_12px_50px_rgba(15,23,42,0.35)]">
+          <div className="z-40 border-b border-white/5 bg-slate-950/95 backdrop-blur-xl shadow-sm">
             <ClientDetailsHeader
               client={client}
               onUpdate={handleUpdateClient}
@@ -717,10 +717,10 @@ export default function ClientDetailsPage() {
               <div className="absolute bottom-[-25%] left-16 h-72 w-72 rounded-full bg-purple-600/12 blur-[140px]" />
             </div>
 
-            <div className="relative z-10 px-3 md:px-4 lg:px-6 py-2 md:py-3">
-              <div className="grid grid-cols-1 gap-2.5 md:gap-3 lg:grid-cols-3 lg:gap-3">
+            <div className="relative z-10 px-4 md:px-5 lg:px-8 py-3 md:py-4">
+              <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-3 lg:gap-4">
                 {/* Left Column - Main Content (70%) */}
-                <div className="space-y-2.5 md:space-y-3 lg:space-y-3 lg:col-span-2">
+                <div className="space-y-3 md:space-y-4 lg:space-y-4 lg:col-span-2">
                   {/* Quick Actions - Mobile Only (Top Priority) */}
                   <div className="lg:hidden">
                     <QuickActionsSidebar
@@ -790,7 +790,7 @@ export default function ClientDetailsPage() {
                 </div>
 
                 {/* Right Column - Sidebar (30%) */}
-                <div className="space-y-2.5 md:space-y-3 lg:space-y-3">
+                <div className="space-y-3 md:space-y-4 lg:space-y-4">
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}

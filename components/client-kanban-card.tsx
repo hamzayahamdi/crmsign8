@@ -125,7 +125,7 @@ export function ClientKanbanCard({ client, onClick, onUpdate, isPending, archite
                         <span className="truncate text-[9px] font-normal">{client.ville}</span>
                     </div>
 
-                    {/* Budget - Compact with Edit */}
+                    {/* Estimation Montant - Compact with Edit */}
                     {client.budget && client.budget > 0 && (
                         <div className="flex items-center justify-between gap-1 text-emerald-400 bg-emerald-500/10 rounded px-1.5 py-0.5">
                             <div className="flex items-center gap-1 flex-1 min-w-0">
@@ -139,7 +139,7 @@ export function ClientKanbanCard({ client, onClick, onUpdate, isPending, archite
                                         setIsEditBudgetOpen(true)
                                     }}
                                     className="h-3.5 w-3.5 flex items-center justify-center text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 shrink-0 transition-all rounded"
-                                    title="Modifier le budget"
+                                    title="Modifier l'estimation montant"
                                 >
                                     <Pencil className="w-2.5 h-2.5" />
                                 </button>

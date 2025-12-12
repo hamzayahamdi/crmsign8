@@ -19,6 +19,15 @@ if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error("Missing Supabase environment variables");
 }
 
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat("fr-MA", {
+    style: "currency",
+    currency: "MAD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
 // POST /api/clients/[id]/payments - Add a payment to a client
 export async function POST(
   request: NextRequest,
@@ -261,6 +270,7 @@ export async function POST(
       method: newPayment.methode,
       reference: newPayment.reference,
       notes: newPayment.description,
+      type: newPayment.type || paymentType, // Include payment type
       createdBy: newPayment.created_by,
       createdAt: newPayment.created_at,
     };
@@ -272,6 +282,145 @@ export async function POST(
     });
   } catch (error: any) {
     console.error("[Add Payment] Error:", error);
+    return NextResponse.json(
+      { error: "Internal server error", details: error.message },
+      { status: 500 },
+    );
+  }
+}
+
+// PATCH /api/clients/[id]/payments - Update a payment
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> | { id: string } },
+) {
+  try {
+    const resolvedParams = await Promise.resolve(params);
+    const clientId = resolvedParams.id;
+    const body = await request.json();
+    const { paymentId, montant, date, methode, reference, description, type, updatedBy } = body;
+
+    if (!paymentId) {
+      return NextResponse.json(
+        { error: "Payment ID is required" },
+        { status: 400 },
+      );
+    }
+
+    console.log("[Update Payment] Request for client:", clientId, "payment:", paymentId);
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // 1. Get current payment for traceability
+    const { data: currentPayment, error: fetchError } = await supabase
+      .from("payments")
+      .select("*")
+      .eq("id", paymentId)
+      .eq("client_id", clientId)
+      .single();
+
+    if (fetchError || !currentPayment) {
+      console.error("[Update Payment] Payment not found:", fetchError);
+      return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+    }
+
+    // 2. Update payment
+    const now = new Date().toISOString();
+    const updateData: any = {
+      updated_at: now,
+    };
+
+    if (montant !== undefined) updateData.montant = parseFloat(montant);
+    if (date !== undefined) updateData.date = date;
+    if (methode !== undefined) updateData.methode = methode;
+    if (reference !== undefined) updateData.reference = reference || null;
+    if (description !== undefined) updateData.description = description || "";
+    if (type !== undefined) updateData.type = type;
+
+    const { data: updatedPayment, error: updateError } = await supabase
+      .from("payments")
+      .update(updateData)
+      .eq("id", paymentId)
+      .eq("client_id", clientId)
+      .select()
+      .single();
+
+    if (updateError || !updatedPayment) {
+      console.error("[Update Payment] Update error:", updateError);
+      return NextResponse.json(
+        { error: "Failed to update payment", details: updateError?.message },
+        { status: 500 },
+      );
+    }
+
+    // 3. Create history entry for traceability
+    const changes: string[] = [];
+    if (montant !== undefined && montant !== currentPayment.montant) {
+      changes.push(`montant: ${formatCurrency(currentPayment.montant)} → ${formatCurrency(montant)}`);
+    }
+    if (date !== undefined && date !== currentPayment.date) {
+      changes.push(`date: ${new Date(currentPayment.date).toLocaleDateString("fr-FR")} → ${new Date(date).toLocaleDateString("fr-FR")}`);
+    }
+    if (methode !== undefined && methode !== currentPayment.methode) {
+      changes.push(`méthode: ${currentPayment.methode} → ${methode}`);
+    }
+    if (reference !== undefined && reference !== currentPayment.reference) {
+      changes.push(`référence: ${currentPayment.reference || "N/A"} → ${reference || "N/A"}`);
+    }
+    if (description !== undefined && description !== currentPayment.description) {
+      changes.push("description modifiée");
+    }
+    if (type !== undefined && type !== currentPayment.type) {
+      const typeLabel = type === "accompte" ? "Acompte" : "Paiement";
+      const oldTypeLabel = currentPayment.type === "accompte" ? "Acompte" : "Paiement";
+      changes.push(`type: ${oldTypeLabel} → ${typeLabel}`);
+    }
+
+    if (changes.length > 0) {
+      const paymentTypeCapitalized = updatedPayment.type === "accompte" ? "Acompte" : "Paiement";
+      await supabase.from("historique").insert({
+        id: generateCuid(),
+        client_id: clientId,
+        date: now,
+        type: updatedPayment.type,
+        description: `${paymentTypeCapitalized} modifié: ${changes.join(", ")}`,
+        auteur: updatedBy || "Utilisateur",
+        metadata: { paymentId, changes: changes },
+        created_at: now,
+        updated_at: now,
+      });
+    }
+
+    // 4. Update client's derniere_maj
+    await supabase
+      .from("clients")
+      .update({
+        derniere_maj: now,
+        updated_at: now,
+      })
+      .eq("id", clientId);
+
+    console.log("[Update Payment] ✅ Payment updated successfully");
+
+    // Transform payment to frontend format
+    const transformedPayment = {
+      id: updatedPayment.id,
+      amount: updatedPayment.montant,
+      date: updatedPayment.date,
+      method: updatedPayment.methode,
+      reference: updatedPayment.reference,
+      notes: updatedPayment.description,
+      type: updatedPayment.type,
+      createdBy: updatedPayment.created_by,
+      createdAt: updatedPayment.created_at,
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: transformedPayment,
+    });
+  } catch (error: any) {
+    console.error("[Update Payment] Error:", error);
     return NextResponse.json(
       { error: "Internal server error", details: error.message },
       { status: 500 },

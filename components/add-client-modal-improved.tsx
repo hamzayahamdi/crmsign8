@@ -544,7 +544,7 @@ export function AddClientModalImproved({ isOpen, onClose, onSave, editingClient 
 
                   <div className="space-y-1">
                     <Label htmlFor="budget" className="text-[10px] text-slate-400 font-medium">
-                      Budget (DH)
+                      Estimation Montant (DH)
                     </Label>
                       <Input
                         id="budget"

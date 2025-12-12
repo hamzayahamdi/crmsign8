@@ -1,13 +1,14 @@
 "use client"
 
 import { useRef, useState, useEffect } from "react"
-import { X, FolderOpen, File, FileText, Image, Download, Plus, Calendar, User, Search, Loader2 } from "lucide-react"
+import { X, FolderOpen, File, FileText, Image, Download, Plus, Calendar, User, Search, Loader2, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import type { Client } from "@/types/client"
-import { toast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
+import { cleanFileName, getDevisDisplayName } from "@/lib/file-utils"
 
 interface DocumentsModalProps {
   isOpen: boolean
@@ -52,6 +53,7 @@ export function DocumentsModal({
   client,
   onDocumentsAdded
 }: DocumentsModalProps) {
+  const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [uploading, setUploading] = useState(false)
@@ -60,23 +62,74 @@ export function DocumentsModal({
   const [hasInitialized, setHasInitialized] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  // Sync local documents with client.documents prop
+  // Convert devis files to document format for traceability
+  const convertDevisToDocuments = (devisList: any[]): any[] => {
+    if (!devisList || devisList.length === 0) return []
+    
+    return devisList
+      .filter(devis => devis.fichier) // Only devis with files
+      .map(devis => {
+        // Get clean, readable display name
+        const displayName = getDevisDisplayName(devis)
+        
+        // Extract file extension from cleaned filename
+        const fileExt = displayName.split('.').pop()?.toLowerCase() || 'pdf'
+        
+        // Determine file type
+        let docType = 'pdf'
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) {
+          docType = 'image'
+        } else if (['doc', 'docx'].includes(fileExt)) {
+          docType = 'doc'
+        } else if (['xls', 'xlsx'].includes(fileExt)) {
+          docType = 'xls'
+        }
+        
+        return {
+          id: `devis-${devis.id}`, // Unique ID for devis documents
+          name: displayName, // Use clean, readable name
+          type: docType,
+          category: 'devis',
+          size: 0, // Size not available from devis
+          uploadedBy: devis.createdBy || 'Système',
+          uploadedAt: devis.createdAt || devis.date || new Date().toISOString(),
+          url: null, // Will be generated when needed
+          path: devis.fichier,
+          bucket: null,
+          isDevis: true, // Flag to identify devis documents
+          devisId: devis.id,
+          devisTitle: devis.title,
+        }
+      })
+  }
+
+  // Sync local documents with client.documents prop and include devis
   // Only update if we have more documents from server (to prevent disappearing)
   useEffect(() => {
     const serverDocs = client.documents || []
+    const devisDocs = convertDevisToDocuments(client.devis || [])
+    
+    // Combine regular documents and devis documents
+    // Remove duplicates by checking if a devis document already exists as a regular document
+    const allDocs = [
+      ...serverDocs,
+      ...devisDocs.filter(devisDoc => 
+        !serverDocs.some(doc => doc.path === devisDoc.path || doc.name === devisDoc.name)
+      )
+    ]
     
     // Initialize on first load or when modal opens
     if (!hasInitialized && isOpen) {
-      setLocalDocuments(serverDocs)
+      setLocalDocuments(allDocs)
       setHasInitialized(true)
       return
     }
     
     // Update only if server has more or different documents
-    if (serverDocs.length >= localDocuments.length) {
-      setLocalDocuments(serverDocs)
+    if (allDocs.length >= localDocuments.length) {
+      setLocalDocuments(allDocs)
     }
-  }, [client.documents, isOpen, hasInitialized, localDocuments.length])
+  }, [client.documents, client.devis, isOpen, hasInitialized, localDocuments.length])
 
   // Reset initialization when modal closes
   useEffect(() => {
@@ -87,24 +140,55 @@ export function DocumentsModal({
 
   const documents = localDocuments
   
+  // Calculate category counts including devis
   const categories = [
     { value: "all", label: "Tous", count: documents.length },
     { value: "plan", label: "Plans", count: documents.filter(d => d.category === 'plan').length },
-    { value: "devis", label: "Devis", count: documents.filter(d => d.category === 'devis').length },
+    { 
+      value: "devis", 
+      label: "Devis", 
+      count: documents.filter(d => d.category === 'devis' || d.isDevis).length 
+    },
     { value: "photo", label: "Photos", count: documents.filter(d => d.category === 'photo').length },
     { value: "contrat", label: "Contrats", count: documents.filter(d => d.category === 'contrat').length },
     { value: "autre", label: "Autres", count: documents.filter(d => d.category === 'autre').length },
   ]
 
   const filteredDocuments = documents.filter(doc => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = selectedCategory === "all" || doc.category === selectedCategory
+    const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (doc.devisTitle && doc.devisTitle.toLowerCase().includes(searchQuery.toLowerCase()))
+    const matchesCategory = selectedCategory === "all" || 
+                           doc.category === selectedCategory || 
+                           (selectedCategory === "devis" && doc.isDevis)
     return matchesSearch && matchesCategory
   })
 
   const handleDownload = async (doc: any) => {
     try {
-      if (!doc?.url) {
+      let fileUrl = doc.url
+
+      // If it's a devis document, get signed URL from path
+      if (doc.isDevis && doc.path) {
+        if (!fileUrl || !fileUrl.startsWith('http')) {
+          try {
+            const response = await fetch(`/api/storage/signed-url?path=${encodeURIComponent(doc.path)}`)
+            const data = await response.json()
+            if (data.url) {
+              fileUrl = data.url
+            } else {
+              throw new Error('Impossible d\'obtenir l\'URL du fichier')
+            }
+          } catch (error) {
+            toast({
+              title: "Erreur",
+              description: "Impossible d'obtenir l'URL du fichier devis.",
+            })
+            return
+          }
+        }
+      }
+
+      if (!fileUrl) {
         toast({
           title: "Téléchargement indisponible",
           description: "Aucun lien trouvé pour ce fichier.",
@@ -117,7 +201,7 @@ export function DocumentsModal({
         description: doc.name,
       })
 
-      const res = await fetch(doc.url)
+      const res = await fetch(fileUrl)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
@@ -220,7 +304,14 @@ export function DocumentsModal({
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-[#EAEAEA]">Documents</h2>
-                  <p className="text-sm text-white/40">{client.nom} • {documents.length} fichier{documents.length > 1 ? 's' : ''}</p>
+                  <p className="text-sm text-white/40">
+                    {client.nom} • {documents.length} fichier{documents.length > 1 ? 's' : ''}
+                    {(client.devis?.filter(d => d.fichier).length || 0) > 0 && (
+                      <span className="text-amber-400/60">
+                        {' '}• {client.devis?.filter(d => d.fichier).length || 0} devis
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
               <motion.button
@@ -300,8 +391,8 @@ export function DocumentsModal({
                   {filteredDocuments.map((doc) => (
                     <motion.div
                       key={doc.id}
-                      whileHover={{ x: 4 }}
-                      className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-all group"
+                      whileHover={{ x: 2, scale: 1.01 }}
+                      className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/8 transition-all group cursor-pointer"
                     >
                       {/* Icon */}
                       <div className="flex-shrink-0">
@@ -310,33 +401,105 @@ export function DocumentsModal({
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-[#EAEAEA] truncate">
-                          {doc.name}
-                        </h4>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-white/40">
-                          <span className="flex items-center gap-1">
-                            <User className="w-3 h-3" />
-                            {doc.uploadedBy}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm font-medium text-[#EAEAEA] truncate">
+                            {doc.name}
+                          </h4>
+                          {doc.isDevis && (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                              Devis
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1.5 text-xs text-white/40 flex-wrap">
+                          <span className="flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5" />
+                            <span className="font-light">{doc.uploadedBy}</span>
                           </span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {formatDate(doc.uploadedAt)}
+                          <span className="text-white/20">•</span>
+                          <span className="flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span className="font-light">{formatDate(doc.uploadedAt)}</span>
                           </span>
-                          <span>•</span>
-                          <span>{formatFileSize(doc.size)}</span>
+                          {doc.size > 0 && (
+                            <>
+                              <span className="text-white/20">•</span>
+                              <span className="font-light">{formatFileSize(doc.size)}</span>
+                            </>
+                          )}
+                          {doc.devisTitle && doc.devisTitle !== doc.name && (
+                            <>
+                              <span className="text-white/20">•</span>
+                              <span className="text-amber-400/70 font-light italic">{doc.devisTitle}</span>
+                            </>
+                          )}
                         </div>
                       </div>
 
                       {/* Actions */}
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleDownload(doc)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-white/10 rounded-lg"
-                      >
-                        <Download className="w-4 h-4 text-white/60" />
-                      </motion.button>
+                      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        {doc.isDevis && (
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={async (e) => {
+                              e.stopPropagation()
+                              try {
+                                let fileUrl = doc.url
+                                if (!fileUrl || !fileUrl.startsWith('http')) {
+                                  // Show loading state
+                                  const loadingToast = toast({
+                                    title: "Chargement...",
+                                    description: "Ouverture du fichier en cours",
+                                  })
+                                  
+                                  const response = await fetch(`/api/storage/signed-url?path=${encodeURIComponent(doc.path)}`)
+                                  const data = await response.json()
+                                  
+                                  loadingToast.dismiss()
+                                  
+                                  if (data.url) {
+                                    fileUrl = data.url
+                                  } else {
+                                    throw new Error('Impossible d\'obtenir l\'URL du fichier')
+                                  }
+                                }
+                                
+                                // Open in new browser tab
+                                window.open(fileUrl, '_blank', 'noopener,noreferrer')
+                                
+                                toast({
+                                  title: "Fichier ouvert",
+                                  description: "Le devis s'ouvre dans un nouvel onglet",
+                                })
+                              } catch (error: any) {
+                                console.error('[Visualiser Devis] Error:', error)
+                                toast({
+                                  title: "Erreur",
+                                  description: error.message || "Impossible d'ouvrir le fichier devis",
+                                  variant: "destructive",
+                                })
+                              }
+                            }}
+                            className="p-2.5 hover:bg-blue-500/10 rounded-lg border border-blue-500/20 hover:border-blue-500/30 transition-all"
+                            title="Visualiser dans le navigateur"
+                          >
+                            <ExternalLink className="w-4 h-4 text-blue-400" />
+                          </motion.button>
+                        )}
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDownload(doc)
+                          }}
+                          className="p-2.5 hover:bg-white/10 rounded-lg border border-white/10 hover:border-white/20 transition-all"
+                          title="Télécharger"
+                        >
+                          <Download className="w-4 h-4 text-white/60" />
+                        </motion.button>
+                      </div>
                     </motion.div>
                   ))}
                 </div>

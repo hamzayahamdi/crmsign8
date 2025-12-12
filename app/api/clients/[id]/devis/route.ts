@@ -315,6 +315,12 @@ export async function PATCH(
     if (updates.fichier !== undefined) updateData.fichier = updates.fichier
 
     // 3. Update devis in database
+    console.log('[Update Devis] Updating devis:', {
+      devisId,
+      updateData,
+      statut: updates.statut
+    })
+    
     const { data: updatedDevis, error: updateError } = await supabase
       .from('devis')
       .update(updateData)
@@ -330,18 +336,38 @@ export async function PATCH(
       )
     }
 
+    console.log('[Update Devis] ✅ Devis updated successfully:', {
+      id: updatedDevis.id,
+      statut: updatedDevis.statut,
+      title: updatedDevis.title
+    })
+
     // 4. Check if we need to auto-update project status based on devis changes
     let stageProgressed = false
     let newStage = null
 
     if (updates.statut === 'refuse') {
       // Check if ALL devis for this client are now refused
-      const { data: allDevis } = await supabase
+      // IMPORTANT: Get all devis AFTER the update (the current devis is already updated in DB)
+      const { data: allDevis, error: devisError } = await supabase
         .from('devis')
-        .select('statut')
+        .select('statut, id, title')
         .eq('client_id', clientId)
 
+      if (devisError) {
+        console.error('[Update Devis] Error fetching all devis:', devisError)
+      }
+
+      console.log('[Update Devis] All devis for client after update:', allDevis)
+      
+      // Check if all devis are refused (including the one we just updated)
       const allRefused = allDevis && allDevis.length > 0 && allDevis.every(d => d.statut === 'refuse')
+      
+      console.log('[Update Devis] All devis refused?', allRefused, {
+        totalDevis: allDevis?.length || 0,
+        refusedCount: allDevis?.filter(d => d.statut === 'refuse').length || 0,
+        devisStatuses: allDevis?.map(d => ({ id: d.id, statut: d.statut, title: d.title }))
+      })
 
       if (allRefused) {
         console.log('[Update Devis] All devis refused, auto-progressing to "refuse" stage')

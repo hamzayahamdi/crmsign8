@@ -356,10 +356,10 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
   }
 
   return (
-    <div className="bg-[#171B22] rounded-xl border border-white/10">
+    <div className="bg-[#171B22] rounded-lg border border-white/5">
       {/* Header */}
-      <div className="p-4 border-b border-white/10">
-        <h2 className="text-base font-bold text-white mb-0.5">Timeline</h2>
+      <div className="p-4 border-b border-white/5">
+        <h2 className="text-xs font-light text-white/90 mb-0.5 tracking-wide uppercase">Timeline</h2>
       </div>
 
       {/* Two Column Layout */}
@@ -380,7 +380,7 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
 
           {/* Roadmap Timeline */}
           {!isRoadmapCollapsed && (
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {ROADMAP_STAGES.map((stage, index) => {
                 const status = getStageStatus(stage)
                 const isLast = index === ROADMAP_STAGES.length - 1
@@ -394,23 +394,23 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                   <div key={stage.id} className="relative">
                     <div
                       className={cn(
-                        "flex items-center gap-2 p-2 rounded-lg transition-all",
-                        status === 'completed' && "bg-green-500/10 border border-green-500/20",
-                        status === 'in_progress' && "bg-blue-500/10 border border-blue-500/30 ring-1 ring-blue-500/20",
-                        status === 'terminal' && "bg-red-500/10 border border-red-500/30 ring-1 ring-red-500/20",
-                        status === 'unreachable' && "bg-gray-500/5 border border-gray-500/20 opacity-60",
-                        status === 'pending' && "bg-white/5 border border-white/10"
+                        "flex items-center gap-2 p-2 rounded-md transition-all",
+                        status === 'completed' && "bg-green-500/8 border border-green-500/15",
+                        status === 'in_progress' && "bg-blue-500/12 border border-blue-500/25 ring-1 ring-blue-500/15",
+                        status === 'terminal' && "bg-red-500/12 border border-red-500/25 ring-1 ring-red-500/15",
+                        status === 'unreachable' && "bg-gray-500/5 border border-gray-500/15 opacity-50",
+                        status === 'pending' && "bg-white/3 border border-white/5"
                       )}
                     >
                       {/* Icon */}
                       <div
                         className={cn(
-                          "w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all text-sm",
-                          status === 'completed' && "bg-green-500/20",
+                          "w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all text-xs",
+                          status === 'completed' && "bg-green-500/15",
                           status === 'in_progress' && "bg-blue-500/20 animate-pulse",
                           status === 'terminal' && "bg-red-500/20",
-                          status === 'unreachable' && "bg-gray-500/15 opacity-50",
-                          status === 'pending' && "bg-white/10 opacity-50"
+                          status === 'unreachable' && "bg-gray-500/10 opacity-50",
+                          status === 'pending' && "bg-white/8 opacity-50"
                         )}
                       >
                         {stage.icon}
@@ -422,19 +422,19 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                         <div className="flex items-center gap-1.5">
                           <span
                             className={cn(
-                              "text-[11px] font-medium",
+                              "text-[10px] font-light",
                               status === 'completed' && "text-green-400",
-                              status === 'in_progress' && "text-blue-400 font-semibold",
-                              status === 'terminal' && "text-red-400 font-semibold",
-                              status === 'unreachable' && "text-gray-400/50 line-through",
-                              status === 'pending' && "text-white/40"
+                              status === 'in_progress' && "text-blue-400 font-medium",
+                              status === 'terminal' && "text-red-400 font-medium",
+                              status === 'unreachable' && "text-gray-400/40 line-through",
+                              status === 'pending' && "text-white/35"
                             )}
                           >
                             {stage.label}
                           </span>
                           {/* Show devis summary for devis_negociation stage */}
                           {stage.id === 'devis_negociation' && devisSummary.total > 0 && (
-                            <span className="text-[9px] text-white/50">
+                            <span className="text-[8px] text-white/40 font-light">
                               ({devisSummary.total} devis)
                             </span>
                           )}
@@ -447,19 +447,19 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                             <div className="flex items-center gap-0.5">
                               <Clock className={cn(
                                 "w-2.5 h-2.5",
-                                status === 'completed' && "text-emerald-400/60",
+                                status === 'completed' && "text-emerald-400/50",
                                 status === 'in_progress' && "text-sky-400",
                                 status === 'terminal' && "text-red-400",
-                                status === 'unreachable' && "text-gray-400/40",
-                                status === 'pending' && "text-white/30"
+                                status === 'unreachable' && "text-gray-400/30",
+                                status === 'pending' && "text-white/25"
                               )} />
                               <span className={cn(
-                                "text-[10px] font-semibold",
-                                status === 'completed' && "text-emerald-300/80",
+                                "text-[9px] font-light",
+                                status === 'completed' && "text-emerald-300/70",
                                 status === 'in_progress' && "text-sky-300",
                                 status === 'terminal' && "text-red-300",
-                                status === 'unreachable' && "text-gray-400/40",
-                                status === 'pending' && "text-white/40"
+                                status === 'unreachable' && "text-gray-400/30",
+                                status === 'pending' && "text-white/35"
                               )}>
                                 {getStageDuration(stage.id)}
                               </span>
@@ -467,14 +467,14 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
 
                             {/* Separator */}
                             {getStageDateRange(stage.id) && (
-                              <span className="text-white/20 text-[10px]">•</span>
+                              <span className="text-white/15 text-[9px]">•</span>
                             )}
 
                             {/* Date Range */}
                             {getStageDateRange(stage.id) && (
                               <div className="flex items-center gap-0.5">
-                                <Calendar className="w-2.5 h-2.5 text-white/30" />
-                                <span className="text-[9px] text-white/50">
+                                <Calendar className="w-2.5 h-2.5 text-white/25" />
+                                <span className="text-[8px] text-white/40 font-light">
                                   {getStageDateRange(stage.id)}
                                 </span>
                               </div>
@@ -482,12 +482,12 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
 
                             {/* Status Badges - Inline */}
                             {status === 'in_progress' && (
-                              <span className="text-[8px] px-1 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium animate-pulse">
+                              <span className="text-[7px] px-1 py-0.5 rounded-full bg-blue-500/15 text-blue-300 font-light animate-pulse">
                                 ACTIF
                               </span>
                             )}
                             {status === 'terminal' && (
-                              <span className="text-[8px] px-1 py-0.5 rounded-full bg-red-500/20 text-red-300 font-medium">
+                              <span className="text-[7px] px-1 py-0.5 rounded-full bg-red-500/15 text-red-300 font-light">
                                 TERMINAL
                               </span>
                             )}
@@ -497,12 +497,12 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
 
                       {/* Status Icon/Badge - Compact */}
                       {status === 'unreachable' && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-500/15 text-gray-400/50 font-medium">
+                        <span className="text-[8px] px-1.5 py-0.5 rounded bg-gray-500/10 text-gray-400/40 font-light">
                           Non atteint
                         </span>
                       )}
                       {status === 'completed' && (
-                        <span className="text-xs text-green-400/70">✓</span>
+                        <span className="text-[10px] text-green-400/60">✓</span>
                       )}
                     </div>
 
@@ -510,8 +510,8 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                     {!isLast && (
                       <div
                         className={cn(
-                          "w-0.5 h-1 ml-3 transition-all",
-                          status === 'completed' ? "bg-green-500/30" : "bg-white/10"
+                          "w-0.5 h-1 ml-2.5 transition-all",
+                          status === 'completed' ? "bg-green-500/20" : "bg-white/5"
                         )}
                       />
                     )}
@@ -524,19 +524,19 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
 
         {/* Right Column - Upcoming Actions */}
         <div className="flex flex-col">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2.5">
             <button
               onClick={() => setIsActionsCollapsed(!isActionsCollapsed)}
               className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
             >
-              <h3 className="text-xs font-semibold text-white/80 flex items-center gap-1.5 uppercase tracking-wide">
-                <Calendar className="w-3.5 h-3.5 text-purple-400" />
+              <h3 className="text-[10px] font-light text-white/70 flex items-center gap-1.5 uppercase tracking-wider">
+                <Calendar className="w-3 h-3 text-purple-400" />
                 Actions & RDV
               </h3>
               {isActionsCollapsed ? (
-                <Plus className="w-4 h-4 text-white/40" />
+                <Plus className="w-3.5 h-3.5 text-white/35" />
               ) : (
-                <CheckCircle2 className="w-4 h-4 text-white/40" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-white/35" />
               )}
             </button>
             {!isActionsCollapsed && (
@@ -546,9 +546,9 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                     onClick={onAddTask}
                     size="sm"
                     variant="ghost"
-                    className="h-6 px-2 text-[10px] text-white/60 hover:text-white hover:bg-white/10"
+                    className="h-5 px-2 text-[9px] text-white/50 hover:text-white/80 hover:bg-white/8 font-light"
                   >
-                    <Plus className="w-3 h-3 mr-0.5" />
+                    <Plus className="w-2.5 h-2.5 mr-0.5" />
                     Tâche
                   </Button>
                 )}
@@ -557,9 +557,9 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                     onClick={onAddRdv}
                     size="sm"
                     variant="ghost"
-                    className="h-6 px-2 text-[10px] text-white/60 hover:text-white hover:bg-white/10"
+                    className="h-5 px-2 text-[9px] text-white/50 hover:text-white/80 hover:bg-white/8 font-light"
                   >
-                    <Plus className="w-3 h-3 mr-0.5" />
+                    <Plus className="w-2.5 h-2.5 mr-0.5" />
                     RDV
                   </Button>
                 )}
@@ -576,46 +576,46 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                     <div
                       key={rdv.id}
                       className={cn(
-                        "p-3 rounded-lg border transition-all",
+                        "p-2.5 rounded-md border transition-all",
                         isUrgent(rdv.dateStart)
-                          ? "bg-gradient-to-br from-orange-500/15 to-orange-500/5 border-orange-500/30"
-                          : "bg-gradient-to-br from-purple-500/15 to-purple-500/5 border-purple-500/30"
+                          ? "bg-gradient-to-br from-orange-500/12 to-orange-500/5 border-orange-500/20"
+                          : "bg-gradient-to-br from-purple-500/12 to-purple-500/5 border-purple-500/20"
                       )}
                     >
-                      <div className="flex items-start gap-2.5">
+                      <div className="flex items-start gap-2">
                         <div
                           className={cn(
-                            "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                            "w-7 h-7 rounded-md flex items-center justify-center shrink-0",
                             isUrgent(rdv.dateStart)
-                              ? "bg-orange-500/20 text-orange-400"
-                              : "bg-purple-500/20 text-purple-400"
+                              ? "bg-orange-500/15 text-orange-400"
+                              : "bg-purple-500/15 text-purple-400"
                           )}
                         >
-                          <Calendar className="w-4 h-4" />
+                          <Calendar className="w-3.5 h-3.5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-white mb-1 truncate">
+                          <h4 className="text-xs font-light text-white/90 mb-0.5 truncate">
                             {rdv.title}
                           </h4>
                           <div
                             className={cn(
-                              "flex items-center gap-2 text-xs",
-                              isUrgent(rdv.dateStart) ? "text-orange-300" : "text-purple-300"
+                              "flex items-center gap-1.5 text-[10px] font-light",
+                              isUrgent(rdv.dateStart) ? "text-orange-300/90" : "text-purple-300/90"
                             )}
                           >
-                            <span className="font-medium">{formatDate(rdv.dateStart)}</span>
-                            <span className="text-white/30">•</span>
+                            <span>{formatDate(rdv.dateStart)}</span>
+                            <span className="text-white/25">•</span>
                             <span>{formatTime(rdv.dateStart)}</span>
                           </div>
                           {rdv.location && (
-                            <p className="text-xs text-white/50 mt-1 truncate flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
+                            <p className="text-[9px] text-white/45 mt-0.5 truncate flex items-center gap-1 font-light">
+                              <MapPin className="w-2.5 h-2.5" />
                               {rdv.location}
                             </p>
                           )}
                         </div>
                         {isUrgent(rdv.dateStart) && (
-                          <AlertCircle className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                          <AlertCircle className="w-3 h-3 text-orange-400 shrink-0" />
                         )}
                       </div>
                     </div>
@@ -630,52 +630,52 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                     <div
                       key={task.id}
                       className={cn(
-                        "p-3 rounded-lg border transition-all",
+                        "p-2.5 rounded-md border transition-all",
                         isUrgent(task.dueDate)
-                          ? "bg-gradient-to-br from-red-500/15 to-red-500/5 border-red-500/30"
+                          ? "bg-gradient-to-br from-red-500/12 to-red-500/5 border-red-500/20"
                           : task.status === 'en_cours'
-                            ? "bg-gradient-to-br from-blue-500/15 to-blue-500/5 border-blue-500/30"
-                            : "bg-gradient-to-br from-slate-500/10 to-slate-500/5 border-slate-500/20"
+                            ? "bg-gradient-to-br from-blue-500/12 to-blue-500/5 border-blue-500/20"
+                            : "bg-gradient-to-br from-slate-500/8 to-slate-500/5 border-slate-500/15"
                       )}
                     >
-                      <div className="flex items-start gap-2.5">
+                      <div className="flex items-start gap-2">
                         <div
                           className={cn(
-                            "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                            "w-7 h-7 rounded-md flex items-center justify-center shrink-0",
                             task.status === 'en_cours'
-                              ? "bg-blue-500/20 text-blue-400"
+                              ? "bg-blue-500/15 text-blue-400"
                               : isUrgent(task.dueDate)
-                                ? "bg-red-500/20 text-red-400"
-                                : "bg-slate-500/20 text-slate-400"
+                                ? "bg-red-500/15 text-red-400"
+                                : "bg-slate-500/15 text-slate-400"
                           )}
                         >
                           {task.status === 'en_cours' ? (
-                            <Clock className="w-4 h-4" />
+                            <Clock className="w-3.5 h-3.5" />
                           ) : (
-                            <CheckCircle2 className="w-4 h-4" />
+                            <CheckCircle2 className="w-3.5 h-3.5" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-white mb-1 truncate">
+                          <h4 className="text-xs font-light text-white/90 mb-0.5 truncate">
                             {task.title}
                           </h4>
                           <div
                             className={cn(
-                              "flex items-center gap-2 text-xs",
-                              task.status === 'en_cours' ? "text-blue-300" : isUrgent(task.dueDate) ? "text-red-300" : "text-slate-300"
+                              "flex items-center gap-1.5 text-[10px] font-light",
+                              task.status === 'en_cours' ? "text-blue-300/90" : isUrgent(task.dueDate) ? "text-red-300/90" : "text-slate-300/90"
                             )}
                           >
-                            <span className="font-medium">Échéance: {formatDate(task.dueDate)}</span>
+                            <span>Échéance: {formatDate(task.dueDate)}</span>
                             {task.assignedTo && (
                               <>
-                                <span className="text-white/30">•</span>
+                                <span className="text-white/25">•</span>
                                 <span className="truncate">{task.assignedTo}</span>
                               </>
                             )}
                           </div>
                         </div>
                         {isUrgent(task.dueDate) && (
-                          <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                          <AlertCircle className="w-3 h-3 text-red-400 shrink-0" />
                         )}
                       </div>
                     </div>
@@ -685,11 +685,11 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
 
               {/* Empty State */}
               {upcomingAppointments.length === 0 && clientTasks.length === 0 && !isLoadingTasks && (
-                <div className="p-4 bg-white/5 border border-white/10 rounded-lg text-center">
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-2">
-                    <Calendar className="w-5 h-5 text-white/40" />
+                <div className="p-3 bg-white/3 border border-white/5 rounded-md text-center">
+                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-2">
+                    <Calendar className="w-4 h-4 text-white/30" />
                   </div>
-                  <p className="text-xs text-white/50 mb-2">
+                  <p className="text-[10px] text-white/40 mb-2 font-light">
                     Aucune action ou RDV planifié
                   </p>
                   <div className="flex gap-1.5 justify-center">
@@ -698,9 +698,9 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                         onClick={onAddTask}
                         size="sm"
                         variant="outline"
-                        className="border-white/20 text-white hover:bg-white/10"
+                        className="border-white/10 text-white/70 hover:bg-white/8 h-6 px-2 text-[9px] font-light"
                       >
-                        <Plus className="w-4 h-4 mr-1" />
+                        <Plus className="w-3 h-3 mr-1" />
                         Créer une tâche
                       </Button>
                     )}
@@ -709,9 +709,9 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                         onClick={onAddRdv}
                         size="sm"
                         variant="outline"
-                        className="border-white/20 text-white hover:bg-white/10"
+                        className="border-white/10 text-white/70 hover:bg-white/8 h-6 px-2 text-[9px] font-light"
                       >
-                        <Plus className="w-4 h-4 mr-1" />
+                        <Plus className="w-3 h-3 mr-1" />
                         Planifier RDV
                       </Button>
                     )}
@@ -721,8 +721,8 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
 
               {/* Loading State */}
               {isLoadingTasks && (
-                <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-center">
-                  <p className="text-xs text-white/50">Chargement...</p>
+                <div className="p-2.5 bg-white/3 border border-white/5 rounded-md text-center">
+                  <p className="text-[10px] text-white/40 font-light">Chargement...</p>
                 </div>
               )}
             </div>

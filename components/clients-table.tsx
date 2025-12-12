@@ -304,7 +304,7 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
                     </div>
                   </td>
 
-                  {/* Montant/Budget */}
+                  {/* Estimation Montant */}
                   <td className="px-3 py-2">
                     <span className="text-[11px] font-semibold text-emerald-400">
                       {client.budget ? `${client.budget.toLocaleString()} DH` : '-'}

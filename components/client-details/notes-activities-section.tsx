@@ -69,18 +69,18 @@ export function NotesActivitiesSection({ client, onUpdate }: NotesActivitiesSect
     .slice(0, 10) // Show last 10 activities
 
   return (
-    <div className="bg-[#171B22] rounded-xl border border-white/10 p-4">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-[#171B22] rounded-lg border border-white/5 p-4">
+      <div className="flex items-center justify-between mb-3.5">
         <div>
-          <h2 className="text-base font-bold text-white mb-0.5">Notes & Activités</h2>
-          <p className="text-xs text-white/50">Chronologie des actions et mises à jour</p>
+          <h2 className="text-xs font-light text-white/90 mb-0.5 tracking-wide uppercase">Notes & Activités</h2>
+          <p className="text-[9px] text-white/40 font-light">Chronologie des actions et mises à jour</p>
         </div>
         <Button
           onClick={() => setIsAddingNote(!isAddingNote)}
           size="sm"
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="bg-blue-600/90 hover:bg-blue-600 text-white h-7 px-2.5 text-[10px] font-light"
         >
-          <Plus className="w-4 h-4 mr-1.5" />
+          <Plus className="w-3 h-3 mr-1" />
           Ajouter note
         </Button>
       </div>
@@ -127,24 +127,24 @@ export function NotesActivitiesSection({ client, onUpdate }: NotesActivitiesSect
       </AnimatePresence>
 
       {allHistory.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {allHistory.map((entry, index) => (
             <motion.div
               key={entry.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-white/5 border border-white/5 rounded-lg p-4 hover:bg-white/[0.07] transition-colors"
+              className="bg-white/3 border border-white/5 rounded-md p-3 hover:bg-white/5 transition-colors"
             >
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-                  <MessageSquare className="w-4 h-4 text-blue-400" />
+              <div className="flex items-start gap-2.5">
+                <div className="w-6 h-6 rounded-full bg-blue-500/15 flex items-center justify-center shrink-0">
+                  <MessageSquare className="w-3 h-3 text-blue-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium text-white/80">{entry.auteur}</span>
-                    <span className="text-xs text-white/40">•</span>
-                    <span className="text-xs text-white/40">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[10px] font-light text-white/70">{entry.auteur}</span>
+                    <span className="text-[10px] text-white/30">•</span>
+                    <span className="text-[10px] text-white/40 font-light">
                       {new Date(entry.date).toLocaleDateString('fr-FR', {
                         day: 'numeric',
                         month: 'short',
@@ -153,18 +153,18 @@ export function NotesActivitiesSection({ client, onUpdate }: NotesActivitiesSect
                       })}
                     </span>
                   </div>
-                  <p className="text-sm text-white/80 leading-relaxed">{entry.description}</p>
+                  <p className="text-xs text-white/80 leading-relaxed font-light">{entry.description}</p>
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
       ) : (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
-            <MessageSquare className="w-8 h-8 text-white/40" />
+        <div className="text-center py-10">
+          <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3">
+            <MessageSquare className="w-6 h-6 text-white/30" />
           </div>
-          <p className="text-white/60">Aucune activité pour le moment</p>
+          <p className="text-white/50 text-xs font-light">Aucune activité pour le moment</p>
         </div>
       )}
     </div>
