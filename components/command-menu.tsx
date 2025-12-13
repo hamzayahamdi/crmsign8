@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import Fuse from "fuse.js"
 import {
   Home,
   Users,
@@ -23,10 +24,12 @@ import {
   MapPin,
   Sparkles,
   ChevronDown,
+  FileText,
+  UserCircle,
+  StickyNote,
 } from "lucide-react"
 import {
   CommandDialog,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -52,11 +55,11 @@ interface CommandMenuProps {
 
 interface SearchResult {
   id: string
-  type: "page" | "client" | "contact" | "task" | "action"
+  type: "page" | "client" | "contact" | "task" | "action" | "lead" | "user" | "opportunity" | "note"
   title: string
   description?: string
   href?: string
-  icon: React.ComponentType<{ className?: string }>
+  icon?: React.ComponentType<{ className?: string }>
   keywords?: string[]
   action?: () => void
   metadata?: {
@@ -64,6 +67,8 @@ interface SearchResult {
     email?: string
     status?: string
     city?: string
+    role?: string
+    [key: string]: any
   }
   score?: number
 }
@@ -131,16 +136,18 @@ export function CommandMenu({
   const router = useRouter()
   const { user } = useAuth()
   const [search, setSearch] = React.useState("")
-  const [clients, setClients] = React.useState<any[]>([])
-  const [contacts, setContacts] = React.useState<any[]>([])
-  const [tasks, setTasks] = React.useState<any[]>([])
+  const [searchResults, setSearchResults] = React.useState<SearchResult[]>([])
   const [isLoading, setIsLoading] = React.useState(false)
   const [openSections, setOpenSections] = React.useState<Record<string, boolean>>({
     navigation: false,
     actions: false,
-    clients: false,
-    contacts: false,
-    tasks: false,
+    leads: true, // Open by default when there are results
+    contacts: true,
+    clients: true,
+    opportunities: true,
+    tasks: true,
+    users: true,
+    notes: true,
   })
   const searchTimeoutRef = React.useRef<NodeJS.Timeout>()
 
@@ -151,51 +158,49 @@ export function CommandMenu({
     return tokenCookie ? tokenCookie.split("=")[1] : ""
   }, [])
 
-  // Debounced search with smarter fetching
+  // Global search using the new API
   const fetchSearchData = React.useCallback(async (query: string) => {
     if (query.length < 2) {
-      setClients([])
-      setContacts([])
-      setTasks([])
+      setSearchResults([])
       return
     }
 
     setIsLoading(true)
     try {
-      const [clientsRes, contactsRes, tasksRes] = await Promise.all([
-        fetch("/api/clients", { credentials: "include" }),
-        fetch(`/api/contacts?search=${encodeURIComponent(query)}&limit=10`, {
-          headers: { Authorization: `Bearer ${getAuthToken()}` },
-        }),
-        fetch("/api/tasks", { credentials: "include" }),
-      ])
+      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=30`, {
+        headers: { Authorization: `Bearer ${getAuthToken()}` },
+        credentials: "include",
+      })
 
-      if (clientsRes.ok) {
-        const clientsData = await clientsRes.json()
-        const allClients = clientsData.data || []
-        const filtered = allClients.filter((c: any) => {
-          const searchText = `${c.nom || ""} ${c.nomProjet || ""} ${c.telephone || ""} ${c.statutProjet || ""} ${c.ville || ""}`.toLowerCase()
-          return searchText.includes(query.toLowerCase())
+      if (response.ok) {
+        const data = await response.json()
+        console.log('[CommandMenu] Search API response:', data)
+        const results = (data.results || []).map((result: any) => {
+          // Map API result types to icons
+          const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+            lead: Target,
+            contact: User,
+            client: Building2,
+            task: CheckSquare,
+            user: UserCircle,
+            opportunity: Briefcase,
+            note: StickyNote,
+          }
+
+          return {
+            ...result,
+            icon: iconMap[result.type] || FileText,
+          }
         })
-        setClients(filtered.slice(0, 8))
-      }
-
-      if (contactsRes.ok) {
-        const contactsData = await contactsRes.json()
-        setContacts((contactsData.data || []).slice(0, 8))
-      }
-
-      if (tasksRes.ok) {
-        const tasksData = await tasksRes.json()
-        const allTasks = tasksData.data || []
-        const filtered = allTasks.filter((t: any) => {
-          const searchText = `${t.title || ""} ${t.description || ""} ${t.clientName || ""} ${t.status || ""} ${t.assignedTo || ""}`.toLowerCase()
-          return searchText.includes(query.toLowerCase())
-        })
-        setTasks(filtered.slice(0, 8))
+        console.log('[CommandMenu] Mapped results:', results)
+        setSearchResults(results)
+      } else {
+        console.error('[CommandMenu] Search API error:', response.status, response.statusText)
+        setSearchResults([])
       }
     } catch (error) {
       console.error("Error fetching search data:", error)
+      setSearchResults([])
     } finally {
       setIsLoading(false)
     }
@@ -209,11 +214,9 @@ export function CommandMenu({
     if (open && search.length >= 2) {
       searchTimeoutRef.current = setTimeout(() => {
         fetchSearchData(search)
-      }, 200)
+      }, 300) // Slightly longer debounce for better UX
     } else if (open && search.length < 2) {
-      setClients([])
-      setContacts([])
-      setTasks([])
+      setSearchResults([])
     }
 
     return () => {
@@ -307,12 +310,13 @@ export function CommandMenu({
     return actions
   }, [user?.role, onCreateLead, onCreateTask, onCreateContact, onOpenChange])
 
-  // Build all results with smart search
+  // Build all results with smart search and Fuse.js client-side filtering
   const allResults = React.useMemo(() => {
     const results: SearchResult[] = []
 
-    const navItems = search.length === 0 
-      ? navigationItems 
+    // Always include navigation and actions (filtered if search exists)
+    const navItems = search.length === 0
+      ? navigationItems
       : smartSearch(search, navigationItems)
     results.push(...navItems)
 
@@ -321,79 +325,39 @@ export function CommandMenu({
       : smartSearch(search, actionItems)
     results.push(...filteredActions)
 
-    if (search.length >= 2) {
-      const clientResults = clients.map((client) => ({
-        id: `client-${client.id}`,
-        type: "client" as const,
-        title: client.nomProjet || client.nom || "Sans nom",
-        description: client.nom || "",
-        href: `/clients/${client.id}`,
-        icon: Building2,
-        keywords: [
-          client.nom?.toLowerCase(),
-          client.nomProjet?.toLowerCase(),
-          client.telephone,
-          client.statutProjet?.toLowerCase(),
-          client.ville?.toLowerCase(),
-        ].filter((k): k is string => typeof k === 'string' && k.length > 0),
-        metadata: {
-          phone: client.telephone,
-          status: client.statutProjet,
-          city: client.ville,
-        },
-      }))
-      results.push(...smartSearch(search, clientResults))
+    // Add API search results when searching
+    if (search.length >= 2 && searchResults.length > 0) {
+      // Apply client-side Fuse.js filtering for better matching
+      const fuse = new Fuse(searchResults, {
+        keys: [
+          { name: 'title', weight: 0.7 },
+          { name: 'description', weight: 0.3 },
+          { name: 'metadata.phone', weight: 0.2 },
+          { name: 'metadata.email', weight: 0.2 },
+          { name: 'metadata.status', weight: 0.1 },
+          { name: 'metadata.city', weight: 0.1 },
+        ],
+        threshold: 0.3, // Lower threshold for more precise matching (0 = exact match, 1 = match anything)
+        includeScore: true,
+        minMatchCharLength: 2,
+        ignoreLocation: true, // Search in entire string, not just beginning
+      })
+
+      const fuseResults = fuse.search(search)
+      const filteredResults = fuseResults
+        .map((result) => ({
+          ...result.item,
+          score: result.score ? 1 - result.score : 0, // Invert score (lower is better in Fuse)
+        }))
+        .sort((a, b) => (b.score || 0) - (a.score || 0))
+
+      console.log('[CommandMenu] Filtered results from Fuse:', filteredResults)
+      results.push(...filteredResults)
     }
 
-    if (search.length >= 2) {
-      const contactResults = contacts.map((contact) => ({
-        id: `contact-${contact.id}`,
-        type: "contact" as const,
-        title: contact.nom || "Sans nom",
-        description: contact.tag || "Contact",
-        href: `/contacts/${contact.id}`,
-        icon: User,
-        keywords: [
-          contact.nom?.toLowerCase(),
-          contact.telephone,
-          contact.email?.toLowerCase(),
-          contact.tag?.toLowerCase(),
-          contact.ville?.toLowerCase(),
-        ].filter((k): k is string => typeof k === 'string' && k.length > 0),
-        metadata: {
-          phone: contact.telephone,
-          email: contact.email,
-          status: contact.tag,
-          city: contact.ville,
-        },
-      }))
-      results.push(...smartSearch(search, contactResults))
-    }
-
-    if (search.length >= 2) {
-      const taskResults = tasks.map((task) => ({
-        id: `task-${task.id}`,
-        type: "task" as const,
-        title: task.title || "Sans titre",
-        description: task.clientName || task.assignedTo || "",
-        href: "/tasks",
-        icon: CheckSquare,
-        keywords: [
-          task.title?.toLowerCase(),
-          task.description?.toLowerCase(),
-          task.clientName?.toLowerCase(),
-          task.status?.toLowerCase(),
-          task.assignedTo?.toLowerCase(),
-        ].filter((k): k is string => typeof k === 'string' && k.length > 0),
-        metadata: {
-          status: task.status,
-        },
-      }))
-      results.push(...smartSearch(search, taskResults))
-    }
-
+    console.log('[CommandMenu] All results:', results)
     return results
-  }, [search, navigationItems, actionItems, clients, contacts, tasks])
+  }, [search, navigationItems, actionItems, searchResults])
 
   const handleSelect = (result: SearchResult) => {
     if (result.action) {
@@ -405,28 +369,86 @@ export function CommandMenu({
     }
   }
 
-  // Group results by type
+  // Group results by type with deduplication
   const groupedResults = React.useMemo(() => {
     const groups: Record<string, SearchResult[]> = {}
-    const order = ["page", "action", "client", "contact", "task"]
-    
+    const order = ["page", "action", "lead", "contact", "opportunity", "task", "user", "note"]
+    const seenIds = new Set<string>()
+    const seenNames = new Set<string>()
+
     allResults.forEach((result) => {
+      // Skip client type entirely (clients are contacts with opportunities)
+      if (result.type === 'client') {
+        return
+      }
+
+      // Deduplicate by ID
+      if (seenIds.has(result.id)) {
+        return
+      }
+
+      // Deduplicate by name (case-insensitive) to avoid showing same person multiple times
+      const normalizedName = result.title?.toLowerCase().trim()
+      if (normalizedName && seenNames.has(normalizedName)) {
+        console.log(`[CommandMenu] Skipping duplicate: ${result.title} (${result.type})`)
+        return
+      }
+
       const groupKey = result.type
       if (!groups[groupKey]) {
         groups[groupKey] = []
       }
       groups[groupKey].push(result)
+      seenIds.add(result.id)
+      if (normalizedName) {
+        seenNames.add(normalizedName)
+      }
     })
 
     const orderedGroups: Record<string, SearchResult[]> = {}
     order.forEach((key) => {
-      if (groups[key]) {
+      if (groups[key] && groups[key].length > 0) {
         orderedGroups[key] = groups[key]
       }
     })
 
+    console.log('[CommandMenu] Grouped results (deduplicated):', orderedGroups)
     return orderedGroups
   }, [allResults])
+
+
+  // Auto-open sections when search results are available
+  React.useEffect(() => {
+    if (search.length >= 2 && Object.keys(groupedResults).length > 0) {
+      console.log('[CommandMenu] Auto-opening sections for results:', groupedResults)
+      setOpenSections(prev => {
+        const updated = { ...prev }
+
+        // Map singular keys from groupedResults to plural keys in openSections
+        const keyMapping: Record<string, string> = {
+          'client': 'clients',
+          'contact': 'contacts',
+          'lead': 'leads',
+          'opportunity': 'opportunities',
+          'task': 'tasks',
+          'user': 'users',
+          'note': 'notes',
+        }
+
+        Object.keys(groupedResults).forEach((key) => {
+          if (key !== 'page' && key !== 'action' && groupedResults[key]?.length > 0) {
+            const mappedKey = keyMapping[key] || key
+            updated[mappedKey] = true
+            console.log(`[CommandMenu] Opening section: ${mappedKey} (${groupedResults[key].length} results)`)
+          }
+        })
+
+        console.log('[CommandMenu] Updated openSections:', updated)
+        return updated
+      })
+    }
+  }, [search, groupedResults])
+
 
   const hasResults = Object.keys(groupedResults).length > 0
 
@@ -441,9 +463,19 @@ export function CommandMenu({
     <CommandDialog
       open={open}
       onOpenChange={onOpenChange}
+      shouldFilter={false}
+      showCloseButton={false}
       className="[&>div>div]:bg-[rgb(15,20,32)] [&>div>div]:border-[rgb(30,41,59)] [&>div>div]:shadow-2xl [&>div>div]:backdrop-blur-xl [&>div>div]:max-w-2xl"
     >
-      <div className="border-b border-[rgb(30,41,59)] px-4 py-3.5">
+      <button
+        onClick={() => onOpenChange(false)}
+        className="absolute right-4 top-4 rounded-full bg-red-500/20 p-1.5 text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-colors z-50"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <div className="border-b border-[rgb(30,41,59)] px-4 py-2.5">
         <CommandInput
           placeholder="Rechercher des pages, clients, contacts, tâches..."
           value={search}
@@ -461,46 +493,44 @@ export function CommandMenu({
       </div>
 
       <CommandList className="max-h-[600px] overflow-y-auto pb-6">
-        <CommandEmpty>
-          {isLoading ? (
-            <div className="py-16 text-center">
-              <div className="inline-flex items-center gap-3 text-sm text-slate-400">
-                <div className="h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                <span>Recherche en cours...</span>
-              </div>
+        {isLoading ? (
+          <div className="py-16 text-center">
+            <div className="inline-flex items-center gap-3 text-sm text-slate-400">
+              <div className="h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <span>Recherche en cours...</span>
             </div>
-          ) : search.length < 2 ? (
-            <div className="py-16 text-center px-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-600/10 mb-4 border border-blue-500/20">
-                <Search className="w-8 h-8 text-blue-400" />
-              </div>
-              <p className="text-base font-medium text-white mb-2">
-                Recherche rapide
-              </p>
-              <p className="text-sm text-slate-400 mb-1">
-                Tapez au moins 2 caractères pour rechercher
-              </p>
-              <p className="text-xs text-slate-500 mt-4">
-                Utilisez <kbd className="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-xs">⌘K</kbd> pour ouvrir rapidement ce menu
-              </p>
+          </div>
+        ) : !hasResults && search.length < 2 ? (
+          <div className="py-16 text-center px-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-600/10 mb-4 border border-blue-500/20">
+              <Search className="w-8 h-8 text-blue-400" />
             </div>
-          ) : (
-            <div className="py-16 text-center px-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800/50 mb-4">
-                <Search className="w-8 h-8 text-slate-500" />
-              </div>
-              <p className="text-base font-medium text-white mb-2">
-                Aucun résultat
-              </p>
-              <p className="text-sm text-slate-400">
-                Aucun résultat trouvé pour <span className="text-white font-medium">"{search}"</span>
-              </p>
-              <p className="text-xs text-slate-500 mt-3">
-                Essayez avec d'autres mots-clés
-              </p>
+            <p className="text-base font-medium text-white mb-2">
+              Recherche rapide
+            </p>
+            <p className="text-sm text-slate-400 mb-1">
+              Tapez au moins 2 caractères pour rechercher
+            </p>
+            <p className="text-xs text-slate-500 mt-4">
+              Utilisez <kbd className="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-xs">⌘K</kbd> pour ouvrir rapidement ce menu
+            </p>
+          </div>
+        ) : !hasResults && search.length >= 2 ? (
+          <div className="py-16 text-center px-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800/50 mb-4">
+              <Search className="w-8 h-8 text-slate-500" />
             </div>
-          )}
-        </CommandEmpty>
+            <p className="text-base font-medium text-white mb-2">
+              Aucun résultat
+            </p>
+            <p className="text-sm text-slate-400">
+              Aucun résultat trouvé pour <span className="text-white font-medium">"{search}"</span>
+            </p>
+            <p className="text-xs text-slate-500 mt-3">
+              Essayez avec d'autres mots-clés
+            </p>
+          </div>
+        ) : null}
 
         {hasResults && (
           <div className="px-2 py-2 space-y-1">
@@ -609,70 +639,77 @@ export function CommandMenu({
               </>
             )}
 
-            {/* Clients */}
-            {groupedResults.client && groupedResults.client.length > 0 && (
+            {/* Leads */}
+            {groupedResults.lead && groupedResults.lead.length > 0 && (
               <>
                 <div className="h-px bg-slate-800/50 my-1.5" />
                 <Collapsible
-                  open={openSections.clients}
-                  onOpenChange={() => toggleSection("clients")}
+                  open={openSections.leads}
+                  onOpenChange={() => toggleSection("leads")}
                 >
                   <CollapsibleTrigger className="w-full">
                     <div className="flex items-center justify-between px-3 py-2.5 hover:bg-slate-800/30 rounded-lg transition-colors group">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                          <Building2 className="w-3.5 h-3.5 text-blue-400" />
+                        <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
+                          <Target className="w-3.5 h-3.5 text-orange-400" />
                         </div>
                         <span className="text-[10px] font-light text-slate-400 uppercase tracking-wider">
-                          Clients
+                          Leads
                         </span>
                         <span className="px-1.5 py-0.5 rounded-full bg-slate-800/50 text-[10px] text-slate-500 font-medium">
-                          {groupedResults.client.length}
+                          {groupedResults.lead.length}
                         </span>
                       </div>
                       <ChevronDown className={cn(
                         "w-3.5 h-3.5 text-slate-500 transition-transform duration-200",
-                        openSections.clients && "rotate-180"
+                        openSections.leads && "rotate-180"
                       )} />
                     </div>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-top-1 data-[state=open]:slide-in-from-top-1 duration-200">
-                    <div className="space-y-1.5 px-2 pt-1 pb-2">
-                      {groupedResults.client.map((item) => (
-                        <CommandItem
-                          key={item.id}
-                          value={item.id}
-                          onSelect={() => handleSelect(item)}
-                          className="data-[selected]:bg-blue-500/20 data-[selected]:text-white data-[selected]:border-l-2 data-[selected]:border-blue-500 cursor-pointer rounded-lg px-3 py-2.5 h-auto min-h-[60px] flex items-center gap-3 transition-all hover:bg-slate-800/20"
-                        >
-                          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-blue-500/10 shrink-0">
-                            <Building2 className="w-4 h-4 text-blue-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-white text-[13px] leading-tight truncate">{item.title}</div>
-                            <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
-                              {item.metadata?.phone && (
-                                <div className="flex items-center gap-1.5">
-                                  <Phone className="w-3 h-3" />
-                                  <span>{item.metadata.phone}</span>
+                  <CollapsibleContent className="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden">
+                    <div className="space-y-1 px-2 pt-1 pb-2">
+                      {groupedResults.lead && groupedResults.lead.length > 0 ? (
+                        groupedResults.lead.map((item) => {
+                          const Icon = item.icon || Target
+                          return (
+                            <CommandItem
+                              key={item.id}
+                              value={`lead-${item.id}`}
+                              onSelect={() => handleSelect(item)}
+                              className="data-[selected]:bg-orange-500/20 data-[selected]:text-white data-[selected]:border-l-2 data-[selected]:border-orange-500 cursor-pointer rounded-md px-2.5 py-2 h-auto min-h-[48px] flex items-center gap-2.5 transition-all hover:bg-slate-800/30"
+                            >
+                              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-orange-500/10 shrink-0">
+                                <Icon className="w-3.5 h-3.5 text-orange-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-white text-xs leading-tight truncate">{item.title || 'Sans nom'}</div>
+                                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
+                                  {item.metadata?.phone && (
+                                    <div className="flex items-center gap-1">
+                                      <Phone className="w-2.5 h-2.5" />
+                                      <span>{item.metadata.phone}</span>
+                                    </div>
+                                  )}
+                                  {item.metadata?.city && (
+                                    <div className="flex items-center gap-1">
+                                      <MapPin className="w-2.5 h-2.5" />
+                                      <span>{item.metadata.city}</span>
+                                    </div>
+                                  )}
+                                  {item.metadata?.status && (
+                                    <span className="px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-[9px] font-medium">
+                                      {item.metadata.status}
+                                    </span>
+                                  )}
                                 </div>
-                              )}
-                              {item.metadata?.city && (
-                                <div className="flex items-center gap-1.5">
-                                  <MapPin className="w-3 h-3" />
-                                  <span>{item.metadata.city}</span>
-                                </div>
-                              )}
-                              {item.metadata?.status && (
-                                <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px]">
-                                  {item.metadata.status}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-slate-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </CommandItem>
-                      ))}
+                              </div>
+                              <ArrowRight className="w-3.5 h-3.5 text-slate-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </CommandItem>
+                          )
+                        })
+                      ) : (
+                        <div className="px-3 py-2 text-xs text-slate-500">Aucun résultat</div>
+                      )}
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
@@ -706,43 +743,118 @@ export function CommandMenu({
                       )} />
                     </div>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-top-1 data-[state=open]:slide-in-from-top-1 duration-200">
-                    <div className="space-y-1.5 px-2 pt-1 pb-2">
-                      {groupedResults.contact.map((item) => (
-                        <CommandItem
-                          key={item.id}
-                          value={item.id}
-                          onSelect={() => handleSelect(item)}
-                          className="data-[selected]:bg-purple-500/20 data-[selected]:text-white data-[selected]:border-l-2 data-[selected]:border-purple-500 cursor-pointer rounded-lg px-3 py-2.5 h-auto min-h-[60px] flex items-center gap-3 transition-all hover:bg-slate-800/20"
-                        >
-                          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-purple-500/10 shrink-0">
-                            <User className="w-4 h-4 text-purple-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-white text-[13px] leading-tight truncate">{item.title}</div>
-                            <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
-                              {item.metadata?.phone && (
-                                <div className="flex items-center gap-1.5">
-                                  <Phone className="w-3 h-3" />
-                                  <span>{item.metadata.phone}</span>
+                  <CollapsibleContent className="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden">
+                    <div className="space-y-1 px-2 pt-1 pb-2">
+                      {groupedResults.contact && groupedResults.contact.length > 0 ? (
+                        groupedResults.contact.map((item) => {
+                          const Icon = item.icon || User
+                          return (
+                            <CommandItem
+                              key={item.id}
+                              value={`contact-${item.id}`}
+                              onSelect={() => handleSelect(item)}
+                              className="data-[selected]:bg-purple-500/20 data-[selected]:text-white data-[selected]:border-l-2 data-[selected]:border-purple-500 cursor-pointer rounded-md px-2.5 py-2 h-auto min-h-[48px] flex items-center gap-2.5 transition-all hover:bg-slate-800/30"
+                            >
+                              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-purple-500/10 shrink-0">
+                                <Icon className="w-3.5 h-3.5 text-purple-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-white text-xs leading-tight truncate">{item.title || 'Sans nom'}</div>
+                                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
+                                  {item.metadata?.phone && (
+                                    <div className="flex items-center gap-1">
+                                      <Phone className="w-2.5 h-2.5" />
+                                      <span>{item.metadata.phone}</span>
+                                    </div>
+                                  )}
+                                  {item.metadata?.email && (
+                                    <div className="flex items-center gap-1">
+                                      <Mail className="w-2.5 h-2.5" />
+                                      <span className="truncate max-w-[120px]">{item.metadata.email}</span>
+                                    </div>
+                                  )}
+                                  {item.metadata?.status && (
+                                    <span className="px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[9px] font-medium">
+                                      {item.metadata.status}
+                                    </span>
+                                  )}
                                 </div>
-                              )}
-                              {item.metadata?.email && (
-                                <div className="flex items-center gap-1.5">
-                                  <Mail className="w-3 h-3" />
-                                  <span className="truncate max-w-[150px]">{item.metadata.email}</span>
+                              </div>
+                              <ArrowRight className="w-3.5 h-3.5 text-slate-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </CommandItem>
+                          )
+                        })
+                      ) : (
+                        <div className="px-3 py-2 text-xs text-slate-500">Aucun résultat</div>
+                      )}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </>
+            )}
+
+            {/* Opportunities */}
+            {groupedResults.opportunity && groupedResults.opportunity.length > 0 && (
+              <>
+                <div className="h-px bg-slate-800/50 my-1.5" />
+                <Collapsible
+                  open={openSections.opportunities}
+                  onOpenChange={() => toggleSection("opportunities")}
+                >
+                  <CollapsibleTrigger className="w-full">
+                    <div className="flex items-center justify-between px-3 py-2.5 hover:bg-slate-800/30 rounded-lg transition-colors group">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+                          <Briefcase className="w-3.5 h-3.5 text-green-400" />
+                        </div>
+                        <span className="text-[10px] font-light text-slate-400 uppercase tracking-wider">
+                          Opportunités
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-slate-800/50 text-[10px] text-slate-500 font-medium">
+                          {groupedResults.opportunity.length}
+                        </span>
+                      </div>
+                      <ChevronDown className={cn(
+                        "w-3.5 h-3.5 text-slate-500 transition-transform duration-200",
+                        openSections.opportunities && "rotate-180"
+                      )} />
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden">
+                    <div className="space-y-1 px-2 pt-1 pb-2">
+                      {groupedResults.opportunity && groupedResults.opportunity.length > 0 ? (
+                        groupedResults.opportunity.map((item) => {
+                          const Icon = item.icon || Briefcase
+                          return (
+                            <CommandItem
+                              key={item.id}
+                              value={`opportunity-${item.id}`}
+                              onSelect={() => handleSelect(item)}
+                              className="data-[selected]:bg-green-500/20 data-[selected]:text-white data-[selected]:border-l-2 data-[selected]:border-green-500 cursor-pointer rounded-md px-2.5 py-2 h-auto min-h-[48px] flex items-center gap-2.5 transition-all hover:bg-slate-800/30"
+                            >
+                              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-green-500/10 shrink-0">
+                                <Icon className="w-3.5 h-3.5 text-green-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-white text-xs leading-tight truncate">{item.title || 'Sans titre'}</div>
+                                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
+                                  {item.description && (
+                                    <span className="truncate">{item.description}</span>
+                                  )}
+                                  {item.metadata?.status && (
+                                    <span className="px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[9px] font-medium">
+                                      {item.metadata.status}
+                                    </span>
+                                  )}
                                 </div>
-                              )}
-                              {item.metadata?.status && (
-                                <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px]">
-                                  {item.metadata.status}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-slate-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </CommandItem>
-                      ))}
+                              </div>
+                              <ArrowRight className="w-3.5 h-3.5 text-slate-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </CommandItem>
+                          )
+                        })
+                      ) : (
+                        <div className="px-3 py-2 text-xs text-slate-500">Aucun résultat</div>
+                      )}
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
@@ -776,35 +888,175 @@ export function CommandMenu({
                       )} />
                     </div>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-top-1 data-[state=open]:slide-in-from-top-1 duration-200">
-                    <div className="space-y-1.5 px-2 pt-1 pb-2">
-                      {groupedResults.task.map((item) => (
-                        <CommandItem
-                          key={item.id}
-                          value={item.id}
-                          onSelect={() => handleSelect(item)}
-                          className="data-[selected]:bg-amber-500/20 data-[selected]:text-white data-[selected]:border-l-2 data-[selected]:border-amber-500 cursor-pointer rounded-lg px-3 py-2.5 h-auto min-h-[60px] flex items-center gap-3 transition-all hover:bg-slate-800/20"
-                        >
-                          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-500/10 shrink-0">
-                            <CheckSquare className="w-4 h-4 text-amber-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-white text-[13px] leading-tight truncate">{item.title}</div>
-                            <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
-                              {item.description && (
-                                <span className="truncate">{item.description}</span>
-                              )}
-                              {item.metadata?.status && (
-                                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px]">
-                                  {item.metadata.status}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-slate-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </CommandItem>
-                      ))}
+                  <CollapsibleContent className="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden">
+                    <div className="space-y-1 px-2 pt-1 pb-2">
+                      {groupedResults.task && groupedResults.task.length > 0 ? (
+                        groupedResults.task.map((item) => {
+                          const Icon = item.icon || CheckSquare
+                          return (
+                            <CommandItem
+                              key={item.id}
+                              value={`task-${item.id}`}
+                              onSelect={() => handleSelect(item)}
+                              className="data-[selected]:bg-amber-500/20 data-[selected]:text-white data-[selected]:border-l-2 data-[selected]:border-amber-500 cursor-pointer rounded-md px-2.5 py-2 h-auto min-h-[48px] flex items-center gap-2.5 transition-all hover:bg-slate-800/30"
+                            >
+                              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-amber-500/10 shrink-0">
+                                <Icon className="w-3.5 h-3.5 text-amber-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-white text-xs leading-tight truncate">{item.title || 'Sans titre'}</div>
+                                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
+                                  {item.description && (
+                                    <span className="truncate">{item.description}</span>
+                                  )}
+                                  {item.metadata?.status && (
+                                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[9px] font-medium">
+                                      {item.metadata.status}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <ArrowRight className="w-3.5 h-3.5 text-slate-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </CommandItem>
+                          )
+                        })
+                      ) : (
+                        <div className="px-3 py-2 text-xs text-slate-500">Aucun résultat</div>
+                      )}
                     </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </>
+            )}
+
+            {/* Users */}
+            {groupedResults.user && groupedResults.user.length > 0 && (
+              <>
+                <div className="h-px bg-slate-800/50 my-1.5" />
+                <Collapsible
+                  open={openSections.users}
+                  onOpenChange={() => toggleSection("users")}
+                >
+                  <CollapsibleTrigger className="w-full">
+                    <div className="flex items-center justify-between px-3 py-2.5 hover:bg-slate-800/30 rounded-lg transition-colors group">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0">
+                          <UserCircle className="w-3.5 h-3.5 text-cyan-400" />
+                        </div>
+                        <span className="text-[10px] font-light text-slate-400 uppercase tracking-wider">
+                          Utilisateurs
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-slate-800/50 text-[10px] text-slate-500 font-medium">
+                          {groupedResults.user.length}
+                        </span>
+                      </div>
+                      <ChevronDown className={cn(
+                        "w-3.5 h-3.5 text-slate-500 transition-transform duration-200",
+                        openSections.users && "rotate-180"
+                      )} />
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden">
+                    <CommandGroup>
+                      {groupedResults.user && groupedResults.user.length > 0 ? (
+                        groupedResults.user.map((item) => (
+                          <CommandItem
+                            key={item.id}
+                            value={`user-${item.id}`}
+                            onSelect={() => handleSelect(item)}
+                            className="data-[selected]:bg-cyan-500/20 data-[selected]:text-white data-[selected]:border-l-2 data-[selected]:border-cyan-500 cursor-pointer rounded-lg px-3 py-2.5 h-auto min-h-[60px] flex items-center gap-3 transition-all hover:bg-slate-800/20"
+                          >
+                            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-cyan-500/10 shrink-0">
+                              {item.icon ? <item.icon className="w-4 h-4 text-cyan-400" /> : <UserCircle className="w-4 h-4 text-cyan-400" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-white text-[13px] leading-tight truncate">{item.title || 'Sans nom'}</div>
+                              <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
+                                {item.metadata?.email && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Mail className="w-3 h-3" />
+                                    <span className="truncate max-w-[150px]">{item.metadata.email}</span>
+                                  </div>
+                                )}
+                                {item.metadata?.role && (
+                                  <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 text-[10px]">
+                                    {item.metadata.role}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-slate-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </CommandItem>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-xs text-slate-500">Aucun résultat</div>
+                      )}
+                    </CommandGroup>
+                  </CollapsibleContent>
+                </Collapsible>
+              </>
+            )}
+
+            {/* Notes */}
+            {groupedResults.note && groupedResults.note.length > 0 && (
+              <>
+                <div className="h-px bg-slate-800/50 my-1.5" />
+                <Collapsible
+                  open={openSections.notes}
+                  onOpenChange={() => toggleSection("notes")}
+                >
+                  <CollapsibleTrigger className="w-full">
+                    <div className="flex items-center justify-between px-3 py-2.5 hover:bg-slate-800/30 rounded-lg transition-colors group">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-slate-500/10 flex items-center justify-center shrink-0">
+                          <StickyNote className="w-3.5 h-3.5 text-slate-400" />
+                        </div>
+                        <span className="text-[10px] font-light text-slate-400 uppercase tracking-wider">
+                          Notes
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-slate-800/50 text-[10px] text-slate-500 font-medium">
+                          {groupedResults.note.length}
+                        </span>
+                      </div>
+                      <ChevronDown className={cn(
+                        "w-3.5 h-3.5 text-slate-500 transition-transform duration-200",
+                        openSections.notes && "rotate-180"
+                      )} />
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden">
+                    <CommandGroup>
+                      {groupedResults.note && groupedResults.note.length > 0 ? (
+                        groupedResults.note.map((item) => (
+                          <CommandItem
+                            key={item.id}
+                            value={`note-${item.id}`}
+                            onSelect={() => handleSelect(item)}
+                            className="data-[selected]:bg-slate-500/20 data-[selected]:text-white data-[selected]:border-l-2 data-[selected]:border-slate-500 cursor-pointer rounded-lg px-3 py-2.5 h-auto min-h-[60px] flex items-center gap-3 transition-all hover:bg-slate-800/20"
+                          >
+                            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-slate-500/10 shrink-0">
+                              {item.icon ? <item.icon className="w-4 h-4 text-slate-400" /> : <StickyNote className="w-4 h-4 text-slate-400" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-white text-[13px] leading-tight truncate">{item.title || 'Sans titre'}</div>
+                              <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
+                                {item.description && (
+                                  <span className="truncate">{item.description}</span>
+                                )}
+                                {item.metadata?.author && (
+                                  <span className="text-[10px] text-slate-500">
+                                    par {item.metadata.author}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-slate-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </CommandItem>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-xs text-slate-500">Aucun résultat</div>
+                      )}
+                    </CommandGroup>
                   </CollapsibleContent>
                 </Collapsible>
               </>

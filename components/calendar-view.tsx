@@ -299,28 +299,28 @@ function DayEventsModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
+        initial={{ scale: 0.95, opacity: 0, y: 10 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 10 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-background rounded-xl border border-border/40 shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden"
+        className="bg-[#0f1117] rounded-xl border border-slate-700/50 shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col"
       >
         {/* Header */}
-        <div className="p-4 border-b border-border/20 bg-muted/10">
-          <h3 className="text-lg font-semibold text-foreground">
+        <div className="px-5 py-4 border-b border-slate-700/50 bg-slate-900/30">
+          <h3 className="text-base font-light text-slate-100 capitalize">
             {format(date, 'EEEE d MMMM yyyy', { locale: fr })}
           </h3>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-xs font-light text-slate-400 mt-1">
             {events.length} événement{events.length > 1 ? 's' : ''}
           </p>
         </div>
 
         {/* Events list */}
-        <div className="p-4 space-y-2 overflow-y-auto max-h-[calc(80vh-100px)]">
+        <div className="flex-1 p-4 space-y-3 overflow-y-auto custom-scrollbar">
           {events.map((event) => {
             const eventConfig = EVENT_TYPE_CONFIG[event.eventType];
             const startTime = format(new Date(event.startDate), 'HH:mm');
@@ -335,33 +335,45 @@ function DayEventsModal({
                   onClose();
                 }}
                 className={`
-                  p-3 rounded-lg cursor-pointer transition-all duration-150
-                  ${eventConfig.chipBg}
-                  border-l-4 ${eventConfig.borderColor}
-                  hover:shadow-md hover:scale-[1.01]
+                  relative pl-4 pr-4 py-3 rounded-lg cursor-pointer transition-all duration-200
+                  ${eventConfig.chipBg.replace('bg-', 'bg-opacity-10 bg-')} 
+                  border border-slate-700/50 hover:border-slate-600/50
+                  hover:bg-slate-800/50 group
                 `}
               >
-                <div className={`text-sm font-semibold ${eventConfig.chipText} mb-1`}>
-                  {cleanTitle}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{startTime} - {endTime}</span>
-                </div>
-                {event.location && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                    <span>📍</span>
-                    <span>{event.location}</span>
+                {/* Left accent border */}
+                <div className={`absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r ${eventConfig.badgeColor.replace('bg-', 'bg-').replace('text-', '')}`} />
+
+                <div className="flex flex-col gap-1">
+                  <div className={`text-sm font-light text-slate-100 leading-snug group-hover:text-white transition-colors`}>
+                    {cleanTitle}
                   </div>
-                )}
+
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <div className="flex items-center gap-1.5 text-xs font-light text-slate-400 group-hover:text-slate-300">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{startTime} - {endTime}</span>
+                    </div>
+                    {event.location && (
+                      <div className="flex items-center gap-1.5 text-xs font-light text-slate-400 truncate max-w-[150px] group-hover:text-slate-300">
+                        <span>📍</span>
+                        <span className="truncate">{event.location}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             );
           })}
         </div>
 
         {/* Close button */}
-        <div className="p-4 border-t border-border/20 bg-muted/10">
-          <Button onClick={onClose} variant="outline" className="w-full">
+        <div className="p-4 border-t border-slate-700/50 bg-slate-900/30">
+          <Button
+            onClick={onClose}
+            variant="ghost"
+            className="w-full h-9 text-xs font-light text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+          >
             Fermer
           </Button>
         </div>
