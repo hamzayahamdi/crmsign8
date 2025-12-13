@@ -1025,38 +1025,41 @@ export function CommandMenu({
                     </div>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden">
-                    <CommandGroup>
+                    <div className="flex flex-col gap-1 px-2 pt-1 pb-2">
                       {groupedResults.note && groupedResults.note.length > 0 ? (
-                        groupedResults.note.map((item) => (
-                          <CommandItem
-                            key={item.id}
-                            value={`note-${item.id}`}
-                            onSelect={() => handleSelect(item)}
-                            className="data-[selected]:bg-slate-500/20 data-[selected]:text-white data-[selected]:border-l-2 data-[selected]:border-slate-500 cursor-pointer rounded-lg px-3 py-2.5 h-auto min-h-[60px] flex items-center gap-3 transition-all hover:bg-slate-800/20"
-                          >
-                            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-slate-500/10 shrink-0">
-                              {item.icon ? <item.icon className="w-4 h-4 text-slate-400" /> : <StickyNote className="w-4 h-4 text-slate-400" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-white text-[13px] leading-tight truncate">{item.title || 'Sans titre'}</div>
-                              <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
-                                {item.description && (
-                                  <span className="truncate">{item.description}</span>
-                                )}
-                                {item.metadata?.author && (
-                                  <span className="text-[10px] text-slate-500">
-                                    par {item.metadata.author}
-                                  </span>
-                                )}
+                        groupedResults.note.map((item) => {
+                          const Icon = item.icon || StickyNote
+                          return (
+                            <CommandItem
+                              key={item.id}
+                              value={`note-${item.id}`}
+                              onSelect={() => handleSelect(item)}
+                              className="data-[selected]:bg-slate-500/20 data-[selected]:text-white data-[selected]:border-l-2 data-[selected]:border-slate-500 cursor-pointer rounded-md px-2.5 py-2 h-auto min-h-[48px] flex items-center gap-2.5 transition-all hover:bg-slate-800/30"
+                            >
+                              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-slate-500/10 shrink-0">
+                                <Icon className="w-3.5 h-3.5 text-slate-400" />
                               </div>
-                            </div>
-                            <ArrowRight className="w-4 h-4 text-slate-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </CommandItem>
-                        ))
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-white text-xs leading-tight truncate">{item.title || 'Sans titre'}</div>
+                                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
+                                  {item.description && (
+                                    <span className="truncate">{item.description}</span>
+                                  )}
+                                  {item.metadata?.author && (
+                                    <span className="text-[10px] text-slate-500">
+                                      par {item.metadata.author}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <ArrowRight className="w-3.5 h-3.5 text-slate-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </CommandItem>
+                          )
+                        })
                       ) : (
                         <div className="px-3 py-2 text-xs text-slate-500">Aucun résultat</div>
                       )}
-                    </CommandGroup>
+                    </div>
                   </CollapsibleContent>
                 </Collapsible>
               </>
