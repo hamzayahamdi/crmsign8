@@ -162,7 +162,7 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
     }
 
     const searchLower = debouncedTableSearch.toLowerCase().trim()
-    
+
     return safeLeads.filter(lead => {
       // Search across all relevant fields
       const searchableFields = [
@@ -185,7 +185,7 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
         sourceIcons[lead.source as keyof typeof sourceIcons]?.label || '',
       ]
 
-      return searchableFields.some(field => 
+      return searchableFields.some(field =>
         field.toLowerCase().includes(searchLower)
       )
     })
@@ -345,9 +345,9 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
       <div className="rounded-lg border border-[#1F2937] overflow-hidden bg-white/5 backdrop-blur-sm">
         {/* Table Header */}
         <div className="bg-slate-800/30 border-b border-[#1F2937]">
-          <div className="px-6 py-4 flex items-center justify-between gap-6">
+          <div className="px-4 md:px-6 py-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 md:gap-6">
             {/* Left Side - Title and Count */}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
               <h3 className="text-lg font-semibold text-[#E5E7EB]">Liste des Leads</h3>
               <p className="text-sm text-[#9CA3AF]">
                 {sortedLeads.length} lead{sortedLeads.length > 1 ? 's' : ''} trouvé{sortedLeads.length > 1 ? 's' : ''}
@@ -359,18 +359,18 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
                 )}
               </p>
             </div>
-            
+
             {/* Right Side - Search Bar - Enhanced visual design */}
-            <div className="flex-shrink-0 w-full max-w-md lg:max-w-lg xl:max-w-xl">
+            <div className="flex-shrink-0 w-full md:w-auto md:max-w-md lg:max-w-lg xl:max-w-xl">
               <div className="relative group">
                 {/* Subtle glow effect on focus */}
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"></div>
-                
+
                 <div className="relative flex items-center">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF] group-hover:text-primary/80 transition-colors z-10 pointer-events-none" />
                   <Input
                     type="text"
-                    placeholder="Rechercher rapidement (nom, téléphone, ville, statut, priorité...)"
+                    placeholder="Rechercher (nom, téléphone, ville...)"
                     value={tableSearchQuery}
                     onChange={(e) => setTableSearchQuery(e.target.value)}
                     className="relative pl-11 pr-11 h-11 text-sm bg-slate-700/80 border-2 border-slate-600/70 text-white placeholder:text-slate-400 focus:border-primary/80 focus:ring-2 focus:ring-primary/30 focus:bg-slate-700/95 transition-all duration-200 shadow-xl hover:border-slate-500/80 w-full backdrop-blur-sm rounded-lg"
@@ -385,7 +385,7 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
                     </button>
                   )}
                 </div>
-                
+
                 {/* Result count and hint */}
                 {tableSearchQuery && (
                   <div className="mt-2 flex items-center justify-between px-1">
@@ -452,6 +452,39 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => e.stopPropagation()}
+                            className="h-8 w-8 p-0 hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-all opacity-80"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Supprimer ce lead ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Cette action est irréversible. Le lead sera définitivement supprimé de la base de données.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Annuler</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDeleteLead(lead.id)
+                              }}
+                            >
+                              Supprimer
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
 
@@ -573,7 +606,7 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
                   {/* Actions - no text, just icons */}
                 </th>
               </tr>
-            
+
             </thead>
             <tbody className="divide-y divide-[#1F2937]">
               <AnimatePresence mode="popLayout">
