@@ -331,29 +331,37 @@ export async function POST(request: NextRequest) {
     
     console.log(`[Convert Lead] ✅ Lead ${lead.id} deleted from leads table (status was updated to 'qualifie' before deletion)`);
 
-    // 12. Create notification for the assigned gestionnaire/architect
+    // 12. Send comprehensive notifications to the assigned gestionnaire/architect
+    // (Platform, WhatsApp, and Email)
     if (finalArchitectId && architecteName) {
-      // Send notification to the person who was assigned the lead
-      await prisma.notification.create({
-        data: {
-          userId: finalArchitectId,
-          type: 'client_assigned',
-          priority: 'high',
-          title: 'Nouveau Contact Assigné',
-          message: `Le contact "${contact.nom}" vous a été assigné depuis le lead. Téléphone: ${contact.telephone}`,
-          linkedType: 'contact',
-          linkedId: contact.id,
-          linkedName: contact.nom,
-          metadata: {
-            contactPhone: contact.telephone,
-            contactVille: contact.ville,
-            convertedFrom: 'lead',
-            leadId: lead.id,
-            previousAssignee: lead.assignePar,
+      try {
+        const { notifyArchitectContactConvertedOrAssigned } = await import('@/lib/notification-service');
+        
+        await notifyArchitectContactConvertedOrAssigned(
+          finalArchitectId,
+          {
+            id: contact.id,
+            nom: contact.nom,
+            telephone: contact.telephone,
+            ville: contact.ville,
+            email: contact.email,
+            typeBien: contact.typeBien,
+            source: contact.source,
           },
-          createdBy: userId,
-        },
-      });
+          {
+            convertedFromLead: true,
+            leadSource: lead.source,
+            leadTypeBien: lead.typeBien,
+            previousArchitect: lead.assignePar && lead.assignePar !== "Non assigné" ? lead.assignePar : null,
+            createdBy: userId,
+          }
+        );
+        
+        console.log(`[Convert Lead] ✅ Comprehensive notifications sent to architect ${architecteName} (${finalArchitectId})`);
+      } catch (notificationError) {
+        console.error(`[Convert Lead] ⚠️ Error sending notifications to architect:`, notificationError);
+        // Don't fail the conversion if notifications fail - log and continue
+      }
     }
 
     return NextResponse.json({

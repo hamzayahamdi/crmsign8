@@ -1,6 +1,8 @@
 "use client"
 
 import React from 'react'
+import { useRouter } from 'next/navigation'
+
 import { Contact, LeadStatus } from '@/types/contact'
 import { Opportunity } from '@/types/contact'
 import {
@@ -11,15 +13,10 @@ import {
   Trash2,
   Calendar,
   Briefcase,
-  TrendingUp,
-  Trophy,
-  Flame,
-  Target,
   Home,
   Building2,
   Store,
   User,
-  DollarSign,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -50,6 +47,7 @@ export function ContactsTable({
   onDeleteContact,
   isLoading = false
 }: ContactsTableProps) {
+  const router = useRouter()
   const { user } = useAuth()
   const isAdmin = user?.role?.toLowerCase() === 'admin'
   const isGestionnaire = user?.role?.toLowerCase() === 'gestionnaire'
@@ -129,25 +127,11 @@ export function ContactsTable({
     }
   }
 
-  // Get pipeline stage badge for Admin only
-  const getPipelineBadge = (contact: Contact) => {
-    if (contact.status === 'perdu') {
-      return { label: 'Perdu', className: 'bg-red-500/20 text-red-300 border-red-500/30' }
-    }
-
-    const map: Record<string, { label: string, className: string }> = {
-      'qualifie': { label: 'Qualifié', className: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-      'prise_de_besoin': { label: 'Prise de besoin', className: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-      'acompte_recu': { label: 'Acompte reçu', className: 'bg-green-500/20 text-green-300 border-green-500/30' }
-    }
-
-    return map[contact.status] || null
-  }
 
   // Map lead typeBien to opportunity type format
   const mapTypeBienToOpportunityType = (typeBien: string | null | undefined): string | null => {
     if (!typeBien) return null
-    
+
     const typeMap: Record<string, string> = {
       'Villa': 'villa',
       'villa': 'villa',
@@ -167,7 +151,7 @@ export function ContactsTable({
       'Autre': 'autre',
       'autre': 'autre',
     }
-    
+
     return typeMap[typeBien] || typeBien.toLowerCase() || null
   }
 
@@ -178,7 +162,7 @@ export function ContactsTable({
       const mapped = mapTypeBienToOpportunityType(contactTypeBien)
       if (mapped) return mapped
     }
-    
+
     // Second priority: get from opportunities
     if (opportunities.length > 0) {
       // Count types
@@ -191,7 +175,7 @@ export function ContactsTable({
       const mostCommon = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]
       if (mostCommon) return mostCommon[0]
     }
-    
+
     return null
   }
 
@@ -236,37 +220,39 @@ export function ContactsTable({
     return labels[status] || status
   }
 
-  const getLeadStatusBadge = (status: LeadStatus | null | undefined) => {
+  // Contact Status helpers - Enhanced with distinct colors for better visual hierarchy
+  const getContactStatusBadge = (status: string | null | undefined) => {
     if (!status) return null
 
-    const badges: Record<LeadStatus, { label: string, className: string }> = {
+    const badges: Record<string, { label: string, className: string }> = {
+      // Lead Statuses with distinct, meaningful colors
       'nouveau': {
         label: 'Nouveau',
-        className: 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+        className: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-sm'
       },
       'a_recontacter': {
         label: 'À recontacter',
-        className: 'bg-orange-500/20 text-orange-300 border-orange-500/30'
+        className: 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
       },
       'sans_reponse': {
         label: 'Sans réponse',
-        className: 'bg-gray-500/20 text-gray-300 border-gray-500/30'
+        className: 'bg-slate-500/20 text-slate-300 border-slate-500/40 shadow-sm'
       },
       'non_interesse': {
         label: 'Non intéressé',
-        className: 'bg-red-500/20 text-red-300 border-red-500/30'
+        className: 'bg-red-500/20 text-red-300 border-red-500/40 shadow-sm'
       },
       'qualifie': {
         label: 'Qualifié',
-        className: 'bg-green-500/20 text-green-300 border-green-500/30'
+        className: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
       },
       'refuse': {
         label: 'Refusé',
-        className: 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-      },
+        className: 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+      }
     }
 
-    return badges[status]
+    return badges[status] || { label: status, className: 'bg-slate-500/20 text-slate-300 border-slate-500/40 shadow-sm' }
   }
 
 
@@ -432,6 +418,7 @@ export function ContactsTable({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.02, duration: 0.2 }}
               onClick={() => onRowClick(contact.id)}
+              onMouseEnter={() => router.prefetch(`/contacts/${contact.id}`)}
               className="glass rounded-xl border border-slate-600/30 p-4 hover:bg-slate-800/50 transition-all duration-150 cursor-pointer active:scale-[0.98]"
             >
               {/* Header */}
@@ -443,24 +430,22 @@ export function ContactsTable({
                   <div className="flex items-center gap-2 mb-1">
                     <p className="font-semibold text-white text-xs truncate">{contact.nom}</p>
                     {contact.tag === 'client' && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 shrink-0">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] text-emerald-300 font-bold bg-emerald-500/20 border border-emerald-500/40 shadow-sm shrink-0">
                         CLIENT
                       </span>
                     )}
                     {contact.tag === 'vip' && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 shrink-0">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] text-amber-300 font-bold bg-amber-500/20 border border-amber-500/40 shadow-sm shrink-0">
                         VIP
                       </span>
                     )}
                   </div>
-                  <a
-                    href={`tel:${contact.telephone}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-xs text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-1"
+                  <div
+                    className="text-xs text-slate-400 flex items-center gap-1"
                   >
                     <Phone className="w-3 h-3 shrink-0" />
                     {contact.telephone}
-                  </a>
+                  </div>
                 </div>
               </div>
 
@@ -506,32 +491,17 @@ export function ContactsTable({
                 </div>
               </div>
 
-              {/* Accompte Reçu - Professional CRM Style */}
-              {contact.status === 'acompte_recu' && (contact as any).payments && (() => {
-                const payments = (contact as any).payments || []
-                const acompte = payments.find((p: any) => p.type === 'accompte')
-                if (acompte) {
-                  return (
-                    <div className="mt-2 mb-2 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500/20 to-emerald-500/10 border border-emerald-500/40 shadow-sm backdrop-blur-sm">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-3.5 h-3.5 rounded bg-emerald-500/30 flex items-center justify-center">
-                            <DollarSign className="w-2.5 h-2.5 text-emerald-300" />
-                          </div>
-                          <span className="text-[10px] font-medium text-emerald-200/90 uppercase tracking-wide">
-                            Acompte
-                          </span>
-                        </div>
-                        <div className="h-2.5 w-px bg-emerald-500/30" />
-                        <span className="text-xs font-bold text-emerald-100">
-                          {acompte.montant?.toLocaleString('fr-FR') || '0'} MAD
-                        </span>
-                      </div>
-                    </div>
-                  )
-                }
-                return null
-              })()}
+              {/* Lead Status Badge - Mobile View */}
+              {contact.leadStatus && (
+                <div className="mb-3">
+                  <span className={cn(
+                    "inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-medium border",
+                    getContactStatusBadge(contact.leadStatus)?.className
+                  )}>
+                    {getContactStatusBadge(contact.leadStatus)?.label}
+                  </span>
+                </div>
+              )}
 
               {/* Opportunities */}
               <div className="flex items-center justify-between pt-3 border-t border-slate-600/20">
@@ -544,12 +514,12 @@ export function ContactsTable({
                     <>
                       <span className="text-xs font-semibold text-white">{opportunities.length}</span>
                       {opportunityCounts.won > 0 && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 text-[10px] font-semibold">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-semibold shadow-sm">
                           {opportunityCounts.won} Gagné{opportunityCounts.won > 1 ? 's' : ''}
                         </span>
                       )}
                       {opportunityCounts.open > 0 && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[10px] font-semibold">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-semibold shadow-sm">
                           {opportunityCounts.open} En cours
                         </span>
                       )}
@@ -643,7 +613,6 @@ export function ContactsTable({
                   onHold: opportunities.filter((o) => o.statut === 'on_hold').length,
                 }
                 const projectType = getProjectType(opportunities, contact.typeBien)
-                const pipelineBadge = getPipelineBadge(contact)
 
                 return (
                   <motion.tr
@@ -652,6 +621,7 @@ export function ContactsTable({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.01, duration: 0.2 }}
                     onClick={() => onRowClick(contact.id)}
+                    onMouseEnter={() => router.prefetch(`/contacts/${contact.id}`)}
                     className="group cursor-pointer hover:bg-slate-800/50 transition-all duration-150 border-b border-slate-600/5 last:border-0"
                   >
                     {/* Contact Name + Tag + Phone */}
@@ -664,24 +634,22 @@ export function ContactsTable({
                           <div className="flex items-center gap-1.5 mb-0.5">
                             <p className="font-semibold text-white text-xs truncate">{contact.nom}</p>
                             {contact.tag === 'client' && (
-                              <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 shrink-0">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] text-emerald-300 font-bold bg-emerald-500/20 border border-emerald-500/40 shadow-sm shrink-0">
                                 CLIENT
                               </span>
                             )}
                             {contact.tag === 'vip' && (
-                              <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 shrink-0">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] text-amber-300 font-bold bg-amber-500/20 border border-amber-500/40 shadow-sm shrink-0">
                                 VIP
                               </span>
                             )}
                           </div>
-                          <a
-                            href={`tel:${contact.telephone}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-[10px] text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-1"
+                          <div
+                            className="text-[10px] text-slate-400 flex items-center gap-1"
                           >
                             <Phone className="w-2.5 h-2.5 shrink-0" />
                             {contact.telephone}
-                          </a>
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -701,11 +669,11 @@ export function ContactsTable({
                     {/* Type de projet */}
                     <td className="px-3 py-2">
                       {projectType ? (
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-700/40 border border-slate-600/40">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-700/50 border border-slate-600/50 shadow-sm">
                           {React.createElement(getProjectTypeIcon(projectType), {
-                            className: "w-3 h-3 text-slate-400 shrink-0"
+                            className: "w-3.5 h-3.5 text-blue-400 shrink-0"
                           })}
-                          <span className="text-[11px] font-medium text-slate-200">
+                          <span className="text-[11px] font-semibold text-slate-200">
                             {getProjectTypeLabel(projectType)}
                           </span>
                         </div>
@@ -734,12 +702,12 @@ export function ContactsTable({
                           <>
                             <span className="text-[11px] font-semibold text-white">{opportunities.length}</span>
                             {opportunityCounts.won > 0 && (
-                              <span className="inline-flex items-center px-1 py-0.5 rounded bg-green-500/20 text-green-400 text-[9px] font-semibold">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-semibold shadow-sm">
                                 {opportunityCounts.won} Gagné{opportunityCounts.won > 1 ? 's' : ''}
                               </span>
                             )}
                             {opportunityCounts.open > 0 && (
-                              <span className="inline-flex items-center px-1 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[9px] font-semibold">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-semibold shadow-sm">
                                 {opportunityCounts.open} En cours
                               </span>
                             )}
@@ -750,14 +718,14 @@ export function ContactsTable({
                       </div>
                     </td>
 
-                    {/* Lead Status - Read-only Badge */}
+                    {/* Lead Status - Enhanced badge styling */}
                     <td className="px-3 py-2">
                       {contact.leadStatus ? (
                         <span className={cn(
-                          "inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium border",
-                          getLeadStatusBadge(contact.leadStatus)?.className
+                          "inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border shadow-sm transition-all",
+                          getContactStatusBadge(contact.leadStatus)?.className
                         )}>
-                          {getLeadStatusBadge(contact.leadStatus)?.label}
+                          {getContactStatusBadge(contact.leadStatus)?.label}
                         </span>
                       ) : (
                         <span className="text-slate-500 text-[11px]">—</span>

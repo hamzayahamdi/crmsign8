@@ -233,7 +233,8 @@ export async function PATCH(
       });
     }
 
-    // Send notification if architect was assigned or changed
+    // Send comprehensive notifications if architect was assigned or changed
+    // (Platform, WhatsApp, and Email)
     if (architecteAssigne !== undefined && architecteAssigne !== currentContact.architecteAssigne) {
       const previousArchitect = currentContact.architecteAssigne;
       
@@ -247,28 +248,33 @@ export async function PATCH(
         });
 
         if (architect) {
-          // Send notification to the new architect
-          await prisma.notification.create({
-            data: {
-              userId: architect.id,
-              type: 'client_assigned',
-              priority: 'high',
-              title: previousArchitect ? 'Contact Réassigné' : 'Nouveau Contact Assigné',
-              message: previousArchitect 
-                ? `Le contact "${contact.nom}" vous a été réassigné (précédemment: ${previousArchitect}). Téléphone: ${contact.telephone}`
-                : `Le contact "${contact.nom}" vous a été assigné. Téléphone: ${contact.telephone}`,
-              linkedType: 'contact',
-              linkedId: contact.id,
-              linkedName: contact.nom,
-              metadata: {
-                contactPhone: contact.telephone,
-                contactVille: contact.ville,
-                previousArchitect: previousArchitect,
-                assignmentType: previousArchitect ? 'reassigned' : 'new_assignment',
+          try {
+            const { notifyArchitectContactConvertedOrAssigned } = await import('@/lib/notification-service');
+            
+            await notifyArchitectContactConvertedOrAssigned(
+              architect.id,
+              {
+                id: contact.id,
+                nom: contact.nom,
+                telephone: contact.telephone,
+                ville: contact.ville,
+                email: contact.email,
+                typeBien: contact.typeBien,
+                source: contact.source,
               },
-              createdBy: decoded.userId,
-            },
-          });
+              {
+                isReassignment: !!previousArchitect,
+                previousArchitect: previousArchitect,
+                createdBy: decoded.userId,
+                convertedFromLead: false,
+              }
+            );
+            
+            console.log(`[Update Contact] ✅ Comprehensive notifications sent to architect ${architecteAssigne} (${architect.id})`);
+          } catch (notificationError) {
+            console.error(`[Update Contact] ⚠️ Error sending notifications to architect:`, notificationError);
+            // Don't fail the update if notifications fail - log and continue
+          }
         }
       }
     }

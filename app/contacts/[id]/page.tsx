@@ -65,6 +65,7 @@ import { PriseDeBesoinModal } from '@/components/prise-de-besoin-modal'
 import { AcompteRecuModal } from '@/components/acompte-recu-modal'
 import { ContactEnhancedTimeline } from '@/components/contact-enhanced-timeline'
 import { DeleteContactDialog } from '@/components/delete-contact-dialog'
+import { cn } from '@/lib/utils'
 import { UpdateContactModal } from '@/components/update-contact-modal'
 import { ConversionCelebration } from '@/components/conversion-celebration'
 
@@ -101,7 +102,7 @@ export default function ContactPage() {
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [notesValue, setNotesValue] = useState('')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
-  
+
   // Delete contact state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -122,18 +123,18 @@ export default function ContactPage() {
       // Clean up URL immediately
       const newUrl = window.location.pathname
       window.history.replaceState({}, '', newUrl)
-      
+
       // Show confetti immediately
       setShowConversionCelebration(true)
-      
+
       // Show success toast with detailed message
       toast.success('🎉 Conversion Réussie !', {
-        description: contact?.nom 
+        description: contact?.nom
           ? `${contact.nom} est maintenant un contact actif. Vous pouvez créer des opportunités et gérer le pipeline.`
           : 'Le lead a été converti en contact avec succès. Vous pouvez maintenant créer des opportunités.',
         duration: 5000,
       })
-      
+
       // Auto-hide confetti after 3 seconds
       setTimeout(() => {
         setShowConversionCelebration(false)
@@ -288,7 +289,7 @@ export default function ContactPage() {
       })
 
       console.log('[Contact Page] Contact deleted successfully, redirecting...')
-      
+
       // Redirect to contacts page immediately
       router.push('/contacts')
 
@@ -394,11 +395,27 @@ export default function ContactPage() {
     return o.statut === 'open' && !isWon && !isLost
   }).length || 0
 
-  // Allow creating opportunities if contact status is 'acompte_recu'
-  // Once a contact has paid the deposit (acompte_recu), they can create multiple opportunities
-  const canCreateOpportunity = contact.status === 'acompte_recu'
+  // Allow creating opportunities if contact status is 'qualifie' or higher
+  // Contacts can create opportunities once they're qualified
+  const canCreateOpportunity = contact.status === 'qualifie' ||
+    contact.status === 'prise_de_besoin' ||
+    contact.status === 'acompte_recu'
+
+  // Check if there's an opportunity with acompte payment
+  const hasAcomptePayment = () => {
+    const payments = (contact as any).payments || []
+    const hasAcomptePayment = payments.some((p: any) => p.type === 'accompte')
+
+    // Also check if any opportunity has acompte_recu stage
+    const hasAcompteOpportunity = contact.opportunities?.some(
+      (opp: any) => opp.pipelineStage === 'acompte_recu'
+    )
+
+    return hasAcomptePayment || hasAcompteOpportunity
+  }
 
   // Helper: Get status badge configuration
+  // Show "Qualifié" as default status, "Acompte Reçu" only appears as separate badge when there's payment
   const getStatusBadge = () => {
     if (contact.tag === 'client') {
       return {
@@ -414,6 +431,14 @@ export default function ContactPage() {
       }
     }
 
+    // If status is acompte_recu but no opportunity/payment exists, show Qualifié instead
+    if (contact.status === 'acompte_recu' && !hasAcomptePayment()) {
+      return {
+        label: 'Qualifié',
+        className: 'bg-blue-500/20 text-blue-300 border-blue-500/50'
+      }
+    }
+
     const statusMap: Record<string, { label: string, className: string }> = {
       'qualifie': {
         label: 'Qualifié',
@@ -424,14 +449,14 @@ export default function ContactPage() {
         className: 'bg-purple-500/20 text-purple-300 border-purple-500/50'
       },
       'acompte_recu': {
-        label: 'Acompte Reçu',
-        className: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+        label: 'Qualifié', // Show Qualifié instead of Acompte Reçu in main badge
+        className: 'bg-blue-500/20 text-blue-300 border-blue-500/50'
       }
     }
 
     return statusMap[contact.status] || {
-      label: 'Contact',
-      className: 'bg-slate-500/20 text-slate-300 border-slate-500/50'
+      label: 'Qualifié', // Default to Qualifié
+      className: 'bg-blue-500/20 text-blue-300 border-blue-500/50'
     }
   }
 
@@ -510,8 +535,8 @@ export default function ContactPage() {
                           )}
                         </div>
 
-                        {/* Accompte Reçu Badge in Header - Clean & Thin */}
-                        {contact.status === 'acompte_recu' && (contact as any).payments && (() => {
+                        {/* Accompte Reçu Badge in Header - Only show when there's actual payment/opportunity */}
+                        {hasAcomptePayment() && (() => {
                           const payments = (contact as any).payments || []
                           const acompte = payments.find((p: any) => p.type === 'accompte')
                           if (acompte) {
@@ -557,19 +582,21 @@ export default function ContactPage() {
                         </Button>
                       )}
 
-                      {/* Create Opportunity button - Enabled only when status is 'acompte_recu' and no opportunity has acompte reçu */}
-                      <Button
-                        onClick={() => setIsCreateOpportunityModalOpen(true)}
-                        disabled={!canCreateOpportunity}
-                        className={`h-8 px-3 rounded-lg font-light text-xs ${canCreateOpportunity
-                          ? 'bg-primary hover:bg-primary/90 text-white shadow-[0_12px_40px_-24px_rgba(59,130,246,0.9)]'
-                          : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50'
-                          }`}
-                      >
-                        <Plus className="w-3.5 h-3.5 mr-1.5" />
-                        <span className="hidden sm:inline">Créer Opportunité</span>
-                        <span className="sm:hidden">+</span>
-                      </Button>
+                      {/* Create Opportunity button - Enabled when status is 'qualifie' or higher */}
+                      {(!contact.opportunities || contact.opportunities.length === 0) && (
+                        <Button
+                          onClick={() => setIsCreateOpportunityModalOpen(true)}
+                          disabled={!canCreateOpportunity}
+                          className={`h-8 px-3 rounded-lg font-light text-xs ${canCreateOpportunity
+                            ? 'bg-primary hover:bg-primary/90 text-white shadow-[0_12px_40px_-24px_rgba(59,130,246,0.9)]'
+                            : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50'
+                            }`}
+                        >
+                          <Plus className="w-3.5 h-3.5 mr-1.5" />
+                          <span className="hidden sm:inline">Créer Opportunité</span>
+                          <span className="sm:hidden">+</span>
+                        </Button>
+                      )}
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -578,7 +605,7 @@ export default function ContactPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="glass border-slate-600/30">
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             className="text-slate-300 focus:text-white"
                             onClick={() => setIsUpdateModalOpen(true)}
                           >
@@ -589,7 +616,7 @@ export default function ContactPage() {
                             <FileText className="w-4 h-4 mr-2" />
                             Voir documents
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             className="text-red-400 focus:text-red-300 focus:bg-red-500/10"
                             onClick={() => setIsDeleteDialogOpen(true)}
                           >
@@ -622,7 +649,7 @@ export default function ContactPage() {
                       </div>
                     </div>
                   </motion.div>
-                  
+
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -642,7 +669,7 @@ export default function ContactPage() {
                       </div>
                     </div>
                   </motion.div>
-                  
+
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -815,6 +842,19 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
   const [isSavingAcompte, setIsSavingAcompte] = useState(false)
   const [acomptePayment, setAcomptePayment] = useState<any>(null)
 
+  // Check if there's an opportunity with acompte payment
+  const hasAcomptePayment = () => {
+    const payments = (contact as any).payments || []
+    const hasAcomptePayment = payments.some((p: any) => p.type === 'accompte')
+
+    // Also check if any opportunity has acompte_recu stage
+    const hasAcompteOpportunity = contact.opportunities?.some(
+      (opp: any) => opp.pipelineStage === 'acompte_recu'
+    )
+
+    return hasAcomptePayment || hasAcompteOpportunity || !!acomptePayment
+  }
+
   // Display notes from contact
   const displayNotes = typeof contact.notes === 'string' ? contact.notes : ''
 
@@ -837,14 +877,14 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
   useEffect(() => {
     // Reset notes first
     setNotes([])
-    
+
     if (contact.notes) {
       try {
         if (typeof contact.notes === 'string') {
           // Try to parse as JSON first
           try {
             const parsed = JSON.parse(contact.notes)
-            
+
             if (Array.isArray(parsed) && parsed.length > 0) {
               // Valid array of notes (may include lead notes)
               // Deduplicate on frontend as well (by content + author + date)
@@ -1082,7 +1122,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
   const handleDeleteNoteClick = (noteId: string) => {
     // Find the note to check if it's a lead note
     const note = notes.find(n => n.id === noteId)
-    
+
     // Prevent deletion of lead notes (historical records)
     if (note && (note.type === 'lead_note' || note.source === 'lead')) {
       toast.error('Impossible de supprimer une note du lead (historique)')
@@ -1098,10 +1138,10 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
     if (!noteToDelete) return
 
     setIsDeletingNote(true)
-    
+
     // Store the note ID to remove from UI immediately
     const noteIdToDelete = noteToDelete
-    
+
     try {
       const token = localStorage.getItem('token')
 
@@ -1114,24 +1154,24 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        
+
         // Handle specific error cases
         if (response.status === 404) {
           // Note not found - might be a legacy note, remove from UI anyway
           console.warn('Note not found in database, removing from UI:', noteIdToDelete)
-          
+
           // Immediately remove from UI state
           setNotes(prevNotes => prevNotes.filter(n => n.id !== noteIdToDelete))
-          
+
           setIsDeleteDialogOpen(false)
           setNoteToDelete(null)
-          
+
           // Refresh to sync with server
           await onUpdate()
           toast.success('Note supprimée de l\'affichage')
           return
         }
-        
+
         throw new Error(errorData.error || 'Failed to delete note')
       }
 
@@ -1143,20 +1183,20 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
         console.log(`[Delete Note] Removed note ${noteIdToDelete} from UI. Remaining notes: ${filtered.length}`)
         return filtered
       })
-      
+
       // Close dialog and reset state
       setIsDeleteDialogOpen(false)
       setNoteToDelete(null)
-      
+
       // Refresh notes from server to ensure consistency
       await onUpdate()
-      
+
       toast.success(responseData.message || 'Note supprimée avec succès')
     } catch (error) {
       console.error('Error deleting note:', error)
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la suppression de la note'
       toast.error(errorMessage)
-      
+
       // On error, refresh to get the correct state from server
       await onUpdate()
     } finally {
@@ -1452,18 +1492,17 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                 // Use note ID as primary key, fallback to content+date+index for uniqueness
                 const uniqueKey = note.id || `note-${note.content.substring(0, 30)}-${note.createdAt}-${index}`;
                 const isLeadNote = note.type === 'lead_note' || note.source === 'lead';
-                
+
                 return (
                   <motion.div
                     key={uniqueKey}
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.015 }}
-                    className={`group relative pl-2.5 pr-2 py-1.5 rounded-lg border-l-2 transition-all ${
-                      isLeadNote
-                        ? 'bg-slate-800/30 border-l-purple-500/40 hover:bg-slate-800/50 hover:border-l-purple-500/60'
-                        : 'bg-slate-800/20 border-l-slate-600/30 hover:bg-slate-800/40 hover:border-l-slate-500/50'
-                    }`}
+                    className={`group relative pl-2.5 pr-2 py-1.5 rounded-lg border-l-2 transition-all ${isLeadNote
+                      ? 'bg-slate-800/30 border-l-purple-500/40 hover:bg-slate-800/50 hover:border-l-purple-500/60'
+                      : 'bg-slate-800/20 border-l-slate-600/30 hover:bg-slate-800/40 hover:border-l-slate-500/50'
+                      }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0 space-y-1">
@@ -1473,7 +1512,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                             {note.content}
                           </p>
                         </div>
-                        
+
                         {/* Note Metadata - Clean and Subtle */}
                         <div className="flex items-center gap-1.5 text-[10px] text-slate-400 flex-wrap pt-0.5">
                           {isLeadNote && (
@@ -1489,7 +1528,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                           <span className="font-light text-slate-500">{formatNoteDate(note.createdAt)}</span>
                         </div>
                       </div>
-                      
+
                       {/* Delete Button - Only for non-lead notes */}
                       {!isLeadNote && (
                         <button
@@ -1531,28 +1570,48 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
             Résumé
           </h3>
           <div className="space-y-1.5">
-            {/* Contact Status */}
+            {/* Contact Status - Clean Text Design */}
             <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
               <div className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
-                <div className={`w-1.5 h-1.5 rounded-full ${contact.tag === 'client' ? 'bg-green-400 animate-pulse' :
-                  contact.status === 'perdu' ? 'bg-red-400' :
-                    'bg-blue-400'
-                  }`} />
+                <div className={cn("w-1.5 h-1.5 rounded-full",
+                  contact.status === 'acompte_recu' ? "bg-emerald-400" :
+                    contact.status === 'prise_de_besoin' ? "bg-purple-400" :
+                      contact.status === 'qualifie' ? "bg-blue-400" :
+                        contact.status === 'perdu' ? "bg-red-400" :
+                          "bg-slate-500"
+                )} />
                 Statut
               </div>
-              <p className="text-xs font-light text-white">
-                {contact.tag === 'client' 
-                  ? 'Client' 
-                  : contact.status === 'perdu'
-                    ? 'Refusé'
-                    : contact.status === 'qualifie'
-                      ? 'Qualifié'
-                      : contact.status === 'prise_de_besoin'
-                        ? 'Prise de besoin'
-                        : contact.status === 'acompte_recu'
-                          ? 'Acompte Reçu'
-                          : 'Qualifié'}
-              </p>
+
+              {(() => {
+                const getStatusConfig = (status: string) => {
+                  // If status is acompte_recu but no payment/opportunity exists, show Qualifié
+                  if (status === 'acompte_recu' && !hasAcomptePayment()) {
+                    return { label: 'Qualifié', className: 'text-blue-400' };
+                  }
+
+                  switch (status) {
+                    case 'acompte_recu':
+                      return { label: 'Qualifié', className: 'text-blue-400' }; // Show Qualifié instead
+                    case 'prise_de_besoin':
+                      return { label: 'Prise de besoin', className: 'text-purple-400' };
+                    case 'qualifie':
+                      return { label: 'Qualifié', className: 'text-blue-400' };
+                    case 'perdu':
+                      return { label: 'Refusé', className: 'text-red-400' };
+                    default:
+                      return { label: 'Qualifié', className: 'text-blue-400' }; // Default to Qualifié
+                  }
+                };
+
+                const config = getStatusConfig(contact.status);
+
+                return (
+                  <p className={cn("text-xs font-medium", config.className)}>
+                    {config.label}
+                  </p>
+                );
+              })()}
             </div>
 
             {isConverted && converterName && (
@@ -1585,8 +1644,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
           </div>
         </motion.div>
 
-        {/* Accompte Reçu Section - Clean, Thin & Intuitive */}
-        {(contact.status === 'acompte_recu' || acomptePayment) && (
+        {/* Accompte Reçu Section - Only show when there's actual payment/opportunity */}
+        {hasAcomptePayment() && (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -1752,13 +1811,13 @@ function OpportunitiesTab({ contact, onUpdate, architectNameMap, onCreateOpportu
         <div className="glass rounded-lg border border-slate-600/40 p-8 text-center">
           <Briefcase className="w-8 h-8 text-slate-500 mx-auto mb-2" />
           <p className="text-xs text-slate-300 mb-2">Aucune opportunité pour ce contact</p>
-          <Button 
-            onClick={onCreateOpportunity} 
+          <Button
+            onClick={onCreateOpportunity}
             disabled={!canCreateOpportunity}
-            className={`h-7 px-3 text-[10px] ${canCreateOpportunity 
-              ? 'bg-primary hover:bg-primary/90 text-white' 
+            className={`h-7 px-3 text-[10px] ${canCreateOpportunity
+              ? 'bg-primary hover:bg-primary/90 text-white'
               : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50'
-            }`}
+              }`}
           >
             <Plus className="w-3 h-3 mr-1.5" />
             Créer une opportunité

@@ -245,7 +245,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 6. Send notification if architect is assigned
+    // 6. Send comprehensive notifications if architect is assigned
+    // (Platform, WhatsApp, and Email)
     if (architecteAssigne) {
       // Find the architect user by name
       const architect = await prisma.user.findFirst({
@@ -256,24 +257,32 @@ export async function POST(request: NextRequest) {
       });
 
       if (architect) {
-        await prisma.notification.create({
-          data: {
-            userId: architect.id,
-            type: 'client_assigned',
-            priority: 'high',
-            title: 'Nouveau Contact Assigné',
-            message: `Le contact "${contact.nom}" vous a été assigné. Téléphone: ${contact.telephone}`,
-            linkedType: 'contact',
-            linkedId: contact.id,
-            linkedName: contact.nom,
-            metadata: {
-              contactPhone: contact.telephone,
-              contactVille: contact.ville,
-              createdManually: true,
+        try {
+          const { notifyArchitectContactConvertedOrAssigned } = await import('@/lib/notification-service');
+          
+          await notifyArchitectContactConvertedOrAssigned(
+            architect.id,
+            {
+              id: contact.id,
+              nom: contact.nom,
+              telephone: contact.telephone,
+              ville: contact.ville,
+              email: contact.email,
+              typeBien: contact.typeBien,
+              source: contact.source,
             },
-            createdBy: userId,
-          },
-        });
+            {
+              isReassignment: false,
+              createdBy: userId,
+              convertedFromLead: false,
+            }
+          );
+          
+          console.log(`[Create Contact] ✅ Comprehensive notifications sent to architect ${architecteAssigne} (${architect.id})`);
+        } catch (notificationError) {
+          console.error(`[Create Contact] ⚠️ Error sending notifications to architect:`, notificationError);
+          // Don't fail the creation if notifications fail - log and continue
+        }
       }
     }
 

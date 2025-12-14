@@ -51,13 +51,16 @@ export function CreateOpportunityModal({
     if (isOpen) {
       fetchArchitects()
       loadLeadPropertyType()
-
-      // Auto-populate title with default if empty
-      if (!nomOportunite.trim()) {
-        setNomOportunite(defaultTitle(propertyType))
-      }
     }
   }, [isOpen, contact])
+
+  // Update title when property type or contact changes
+  useEffect(() => {
+    if (isOpen && !nomOportunite.trim()) {
+      // Only set default title if field is empty
+      setNomOportunite(defaultTitle(propertyType))
+    }
+  }, [propertyType, contact.ville, contact.nom, contact.typeBien, isOpen])
 
   // Pre-select architect immediately from contact (don't wait for architects to load)
   useEffect(() => {
@@ -90,12 +93,6 @@ export function CreateOpportunityModal({
     }
   }, [architects, contact.architecteAssigne, architectId])
 
-  // Update title when property type changes
-  useEffect(() => {
-    if (isOpen && !nomOportunite.trim()) {
-      setNomOportunite(defaultTitle(propertyType))
-    }
-  }, [propertyType, isOpen])
 
   const fetchArchitects = async () => {
     try {
@@ -137,14 +134,20 @@ export function CreateOpportunityModal({
   }
 
   const mapLeadTypeToOpportunityType = (t: string | null | undefined): OpportunityType => {
-    const s = (t || "").toLowerCase()
-    if (s.includes("villa")) return "villa"
-    if (s.includes("appart")) return "appartement"
-    if (s.includes("magasin") || s.includes("local")) return "magasin"
-    if (s.includes("bureau")) return "bureau"
-    if (s.includes("riad")) return "riad"
-    if (s.includes("studio")) return "studio"
-    if (s.includes("reno") || s.includes("rénov")) return "renovation"
+    if (!t) return "autre"
+    
+    const s = t.toLowerCase().trim()
+    
+    // More comprehensive matching
+    if (s.includes("villa") || s === "v") return "villa"
+    if (s.includes("appart") || s.includes("app") || s === "a") return "appartement"
+    if (s.includes("magasin") || s.includes("local") || s.includes("commercial") || s.includes("shop")) return "magasin"
+    if (s.includes("bureau") || s.includes("office") || s === "b") return "bureau"
+    if (s.includes("riad") || s === "r") return "riad"
+    if (s.includes("studio") || s.includes("stud")) return "studio"
+    if (s.includes("reno") || s.includes("rénov") || s.includes("renovation")) return "renovation"
+    if (s.includes("terrain") || s.includes("land")) return "autre" // Terrain falls under "autre"
+    
     return "autre"
   }
 
@@ -154,7 +157,8 @@ export function CreateOpportunityModal({
       if (contact?.typeBien) {
         const pt = mapLeadTypeToOpportunityType(contact.typeBien)
         setPropertyType(pt)
-        setNomOportunite((prev) => prev || defaultTitle(pt))
+        // Don't override title if user has already entered something
+        setNomOportunite((prev) => prev.trim() || defaultTitle(pt))
         return
       }
       
@@ -162,9 +166,13 @@ export function CreateOpportunityModal({
       // Note: Lead might be deleted after conversion, so this may fail
       const leadId = contact?.leadId
       if (!leadId) {
-        setPropertyType("autre")
+        // If no typeBien and no leadId, try to infer from contact name or use "autre"
+        const pt = "autre"
+        setPropertyType(pt)
+        setNomOportunite((prev) => prev.trim() || defaultTitle(pt))
         return
       }
+      
       const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
       const res = await fetch(`/api/leads/${leadId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -173,14 +181,18 @@ export function CreateOpportunityModal({
         const lead = await res.json()
         const pt = mapLeadTypeToOpportunityType(lead?.typeBien)
         setPropertyType(pt)
-        setNomOportunite((prev) => prev || defaultTitle(pt))
+        setNomOportunite((prev) => prev.trim() || defaultTitle(pt))
       } else {
-        // Lead not found (likely deleted), default to "autre"
-        setPropertyType("autre")
+        // Lead not found (likely deleted), use "autre" but generate better title
+        const pt = "autre"
+        setPropertyType(pt)
+        setNomOportunite((prev) => prev.trim() || defaultTitle(pt))
       }
     } catch (_) {
-      // ignore errors, default to "autre"
-      setPropertyType("autre")
+      // ignore errors, use "autre" but generate better title
+      const pt = "autre"
+      setPropertyType(pt)
+      setNomOportunite((prev) => prev.trim() || defaultTitle(pt))
     }
   }
 
@@ -199,8 +211,56 @@ export function CreateOpportunityModal({
   }
 
   const defaultTitle = (t: OpportunityType) => {
-    const suffix = contact.ville || contact.nom
-    return `${typeLabel(t)}${suffix ? ` - ${suffix}` : ""}`
+    // Get city name (capitalize first letter)
+    const ville = contact.ville 
+      ? contact.ville.charAt(0).toUpperCase() + contact.ville.slice(1).toLowerCase()
+      : null
+    
+    // Get contact name for fallback
+    const contactName = contact.nom || ""
+    
+    // Generate descriptive title based on property type
+    let title = ""
+    
+    switch (t) {
+      case "villa":
+        title = ville ? `Villa à ${ville}` : `Villa - ${contactName}`
+        break
+      case "appartement":
+        title = ville ? `Appartement à ${ville}` : `Appartement - ${contactName}`
+        break
+      case "magasin":
+        title = ville ? `Magasin à ${ville}` : `Magasin - ${contactName}`
+        break
+      case "bureau":
+        title = ville ? `Bureau à ${ville}` : `Bureau - ${contactName}`
+        break
+      case "riad":
+        title = ville ? `Riad à ${ville}` : `Riad - ${contactName}`
+        break
+      case "studio":
+        title = ville ? `Studio à ${ville}` : `Studio - ${contactName}`
+        break
+      case "renovation":
+        title = ville ? `Rénovation à ${ville}` : `Rénovation - ${contactName}`
+        break
+      case "autre":
+        // For "autre", try to be more descriptive
+        if (ville && contactName) {
+          title = `Projet ${contactName} - ${ville}`
+        } else if (ville) {
+          title = `Projet à ${ville}`
+        } else if (contactName) {
+          title = `Projet ${contactName}`
+        } else {
+          title = "Nouveau Projet"
+        }
+        break
+      default:
+        title = ville ? `Projet à ${ville}` : `Projet - ${contactName}`
+    }
+    
+    return title
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

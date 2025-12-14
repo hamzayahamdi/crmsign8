@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/database";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes } from "crypto";
@@ -311,7 +312,7 @@ export async function PATCH(
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 1. Get current payment for traceability
+    // 1. Try fetching current payment from Supabase payments list (preferred)
     const { data: currentPayment, error: fetchError } = await supabase
       .from("payments")
       .select("*")
@@ -319,106 +320,158 @@ export async function PATCH(
       .eq("client_id", clientId)
       .single();
 
-    if (fetchError || !currentPayment) {
-      console.error("[Update Payment] Payment not found:", fetchError);
-      return NextResponse.json({ error: "Payment not found" }, { status: 404 });
-    }
-
-    // 2. Update payment
-    const now = new Date().toISOString();
-    const updateData: any = {
-      updated_at: now,
-    };
-
-    if (montant !== undefined) updateData.montant = parseFloat(montant);
-    if (date !== undefined) updateData.date = date;
-    if (methode !== undefined) updateData.methode = methode;
-    if (reference !== undefined) updateData.reference = reference || null;
-    if (description !== undefined) updateData.description = description || "";
-    if (type !== undefined) updateData.type = type;
-
-    const { data: updatedPayment, error: updateError } = await supabase
-      .from("payments")
-      .update(updateData)
-      .eq("id", paymentId)
-      .eq("client_id", clientId)
-      .select()
-      .single();
-
-    if (updateError || !updatedPayment) {
-      console.error("[Update Payment] Update error:", updateError);
-      return NextResponse.json(
-        { error: "Failed to update payment", details: updateError?.message },
-        { status: 500 },
-      );
-    }
-
-    // 3. Create history entry for traceability
-    const changes: string[] = [];
-    if (montant !== undefined && montant !== currentPayment.montant) {
-      changes.push(`montant: ${formatCurrency(currentPayment.montant)} → ${formatCurrency(montant)}`);
-    }
-    if (date !== undefined && date !== currentPayment.date) {
-      changes.push(`date: ${new Date(currentPayment.date).toLocaleDateString("fr-FR")} → ${new Date(date).toLocaleDateString("fr-FR")}`);
-    }
-    if (methode !== undefined && methode !== currentPayment.methode) {
-      changes.push(`méthode: ${currentPayment.methode} → ${methode}`);
-    }
-    if (reference !== undefined && reference !== currentPayment.reference) {
-      changes.push(`référence: ${currentPayment.reference || "N/A"} → ${reference || "N/A"}`);
-    }
-    if (description !== undefined && description !== currentPayment.description) {
-      changes.push("description modifiée");
-    }
-    if (type !== undefined && type !== currentPayment.type) {
-      const typeLabel = type === "accompte" ? "Acompte" : "Paiement";
-      const oldTypeLabel = currentPayment.type === "accompte" ? "Acompte" : "Paiement";
-      changes.push(`type: ${oldTypeLabel} → ${typeLabel}`);
-    }
-
-    if (changes.length > 0) {
-      const paymentTypeCapitalized = updatedPayment.type === "accompte" ? "Acompte" : "Paiement";
-      await supabase.from("historique").insert({
-        id: generateCuid(),
-        client_id: clientId,
-        date: now,
-        type: updatedPayment.type,
-        description: `${paymentTypeCapitalized} modifié: ${changes.join(", ")}`,
-        auteur: updatedBy || "Utilisateur",
-        metadata: { paymentId, changes: changes },
-        created_at: now,
+    if (currentPayment && !fetchError) {
+      // 2. Update payment in Supabase
+      const now = new Date().toISOString();
+      const updateData: any = {
         updated_at: now,
+      };
+
+      if (montant !== undefined) updateData.montant = parseFloat(montant);
+      if (date !== undefined) updateData.date = date;
+      if (methode !== undefined) updateData.methode = methode;
+      if (reference !== undefined) updateData.reference = reference || null;
+      if (description !== undefined) updateData.description = description || "";
+      if (type !== undefined) updateData.type = type;
+
+      const { data: updatedPayment, error: updateError } = await supabase
+        .from("payments")
+        .update(updateData)
+        .eq("id", paymentId)
+        .eq("client_id", clientId)
+        .select()
+        .single();
+
+      if (updateError || !updatedPayment) {
+        console.error("[Update Payment] Update error:", updateError);
+        return NextResponse.json(
+          { error: "Failed to update payment", details: updateError?.message },
+          { status: 500 },
+        );
+      }
+
+      // 3. Create history entry for traceability
+      const changes: string[] = [];
+      if (montant !== undefined && montant !== currentPayment.montant) {
+        changes.push(`montant: ${formatCurrency(currentPayment.montant)} → ${formatCurrency(montant)}`);
+      }
+      if (date !== undefined && date !== currentPayment.date) {
+        changes.push(`date: ${new Date(currentPayment.date).toLocaleDateString("fr-FR")} → ${new Date(date).toLocaleDateString("fr-FR")}`);
+      }
+      if (methode !== undefined && methode !== currentPayment.methode) {
+        changes.push(`méthode: ${currentPayment.methode} → ${methode}`);
+      }
+      if (reference !== undefined && reference !== currentPayment.reference) {
+        changes.push(`référence: ${currentPayment.reference || "N/A"} → ${reference || "N/A"}`);
+      }
+      if (description !== undefined && description !== currentPayment.description) {
+        changes.push("description modifiée");
+      }
+      if (type !== undefined && type !== currentPayment.type) {
+        const typeLabel = type === "accompte" ? "Acompte" : "Paiement";
+        const oldTypeLabel = currentPayment.type === "accompte" ? "Acompte" : "Paiement";
+        changes.push(`type: ${oldTypeLabel} → ${typeLabel}`);
+      }
+
+      if (changes.length > 0) {
+        const paymentTypeCapitalized = updatedPayment.type === "accompte" ? "Acompte" : "Paiement";
+        await supabase.from("historique").insert({
+          id: generateCuid(),
+          client_id: clientId,
+          date: now,
+          type: updatedPayment.type,
+          description: `${paymentTypeCapitalized} modifié: ${changes.join(", ")}`,
+          auteur: updatedBy || "Utilisateur",
+          metadata: { paymentId, changes: changes },
+          created_at: now,
+          updated_at: now,
+        });
+      }
+
+      // 4. Update client's derniere_maj
+      await supabase
+        .from("clients")
+        .update({
+          derniere_maj: now,
+          updated_at: now,
+        })
+        .eq("id", clientId);
+
+      console.log("[Update Payment] ✅ Payment updated successfully in Supabase");
+
+      // Transform payment to frontend format
+      const transformedPayment = {
+        id: updatedPayment.id,
+        amount: updatedPayment.montant,
+        date: updatedPayment.date,
+        method: updatedPayment.methode,
+        reference: updatedPayment.reference,
+        notes: updatedPayment.description,
+        type: updatedPayment.type,
+        createdBy: updatedPayment.created_by,
+        createdAt: updatedPayment.created_at,
+      };
+
+      return NextResponse.json({
+        success: true,
+        data: transformedPayment,
       });
     }
 
-    // 4. Update client's derniere_maj
-    await supabase
-      .from("clients")
-      .update({
-        derniere_maj: now,
-        updated_at: now,
-      })
-      .eq("id", clientId);
+    // Fallback: Check if payment exists in Prisma ContactPayment
+    const isOpportunityClient = clientId.includes("-") && clientId.split("-").length === 2;
+    if (!currentPayment && isOpportunityClient) {
+      const [contactId] = clientId.split("-");
+      console.log("[Update Payment] Checking Prisma ContactPayment for contact:", contactId);
 
-    console.log("[Update Payment] ✅ Payment updated successfully");
+      try {
+        const contactPayment = await prisma.contactPayment.findUnique({
+          where: { id: paymentId }
+        });
 
-    // Transform payment to frontend format
-    const transformedPayment = {
-      id: updatedPayment.id,
-      amount: updatedPayment.montant,
-      date: updatedPayment.date,
-      method: updatedPayment.methode,
-      reference: updatedPayment.reference,
-      notes: updatedPayment.description,
-      type: updatedPayment.type,
-      createdBy: updatedPayment.created_by,
-      createdAt: updatedPayment.created_at,
-    };
+        if (contactPayment) {
+          // Update Prisma payment
+          const updateData: any = {};
+          if (montant !== undefined) updateData.montant = parseFloat(montant);
+          if (date !== undefined) updateData.date = new Date(date);
+          if (methode !== undefined) updateData.methode = methode;
+          if (reference !== undefined) updateData.reference = reference || null;
+          if (description !== undefined) updateData.description = description || "";
+          if (type !== undefined) updateData.type = type;
 
-    return NextResponse.json({
-      success: true,
-      data: transformedPayment,
-    });
+          const updatedPrismaPayment = await prisma.contactPayment.update({
+            where: { id: paymentId },
+            data: updateData
+          });
+
+          console.log("[Update Payment] ✅ Payment updated successfully in Prisma");
+
+          // Transform for frontend
+          const transformedPrismaPayment = {
+            id: updatedPrismaPayment.id,
+            amount: updatedPrismaPayment.montant,
+            date: updatedPrismaPayment.date,
+            method: updatedPrismaPayment.methode,
+            reference: updatedPrismaPayment.reference,
+            notes: updatedPrismaPayment.description,
+            type: updatedPrismaPayment.type,
+            createdBy: updatedPrismaPayment.createdBy,
+            createdAt: updatedPrismaPayment.createdAt,
+          };
+
+          return NextResponse.json({
+            success: true,
+            data: transformedPrismaPayment,
+          });
+        }
+      } catch (prismaError) {
+        console.error("[Update Payment] Prisma error:", prismaError);
+      }
+    }
+
+    // If we're here, payment wasn't found in either place
+    console.error("[Update Payment] Payment not found:", fetchError);
+    return NextResponse.json({ error: "Payment not found" }, { status: 404 });
   } catch (error: any) {
     console.error("[Update Payment] Error:", error);
     return NextResponse.json(
@@ -455,13 +508,83 @@ export async function DELETE(
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 1. Delete payment from payments table
-    const { error: deleteError } = await supabase
+    // 1. Try deleting from Supabase payments table
+    const { data: deletedPayment, error: deleteError } = await supabase
       .from("payments")
       .delete()
       .eq("id", paymentId)
-      .eq("client_id", clientId);
+      .eq("client_id", clientId)
+      .select()
+      .single();
 
+    if (!deleteError && deletedPayment) {
+      // 2. Create history entry
+      const now = new Date().toISOString();
+      await supabase.from("historique").insert({
+        id: generateCuid(),
+        client_id: clientId,
+        date: now,
+        type: "modification",
+        description: "Paiement supprimé",
+        auteur: "Admin",
+        metadata: { paymentId },
+        created_at: now,
+        updated_at: now,
+      });
+
+      // 3. Update client's derniere_maj
+      await supabase
+        .from("clients")
+        .update({
+          derniere_maj: now,
+          updated_at: now,
+        })
+        .eq("id", clientId);
+
+      console.log("[Delete Payment] ✅ Payment deleted successfully from Supabase");
+
+      return NextResponse.json({
+        success: true,
+        message: "Payment deleted successfully",
+      });
+    }
+
+    // Fallback: Try deleting from Prisma ContactPayment (if linked to contact)
+    // Check if this is an opportunity-based client (composite ID: contactId-opportunityId)
+    const isOpportunityClient =
+      clientId.includes("-") && clientId.split("-").length === 2;
+
+    if (isOpportunityClient) {
+      const [contactId] = clientId.split("-");
+      console.log("[Delete Payment] Checking Prisma ContactPayment for contact:", contactId);
+
+      try {
+        // Verify payment belongs to contact first (optional but safer)
+        const contactPayment = await prisma.contactPayment.findFirst({
+          where: {
+            id: paymentId,
+            contactId: contactId
+          }
+        });
+
+        if (contactPayment) {
+          await prisma.contactPayment.delete({
+            where: { id: paymentId }
+          });
+
+          console.log("[Delete Payment] ✅ Payment deleted successfully from Prisma");
+
+          return NextResponse.json({
+            success: true,
+            message: "Payment deleted successfully",
+          });
+        }
+      } catch (prismaError) {
+        console.error("[Delete Payment] Prisma error:", prismaError);
+      }
+    }
+
+    // If we reached here, payment wasn't found in either place or error occurred
     if (deleteError) {
       console.error("[Delete Payment] Delete error:", deleteError);
       return NextResponse.json(
@@ -470,35 +593,11 @@ export async function DELETE(
       );
     }
 
-    // 2. Create history entry
-    const now = new Date().toISOString();
-    await supabase.from("historique").insert({
-      id: generateCuid(),
-      client_id: clientId,
-      date: now,
-      type: "modification",
-      description: "Paiement supprimé",
-      auteur: "Admin",
-      metadata: { paymentId },
-      created_at: now,
-      updated_at: now,
-    });
+    return NextResponse.json(
+      { error: "Payment not found" },
+      { status: 404 },
+    );
 
-    // 3. Update client's derniere_maj
-    await supabase
-      .from("clients")
-      .update({
-        derniere_maj: now,
-        updated_at: now,
-      })
-      .eq("id", clientId);
-
-    console.log("[Delete Payment] ✅ Payment deleted successfully");
-
-    return NextResponse.json({
-      success: true,
-      message: "Payment deleted successfully",
-    });
   } catch (error: any) {
     console.error("[Delete Payment] Error:", error);
     return NextResponse.json(

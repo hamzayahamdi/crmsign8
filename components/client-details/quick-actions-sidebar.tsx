@@ -346,7 +346,8 @@ export function QuickActionsSidebar({
 
         <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-col lg:space-y-2">
           {/* Create Opportunity - Only for opportunity-based clients */}
-          {isOpportunityClient && (
+          {/* Create Opportunity - Hidden as per user request (Client view = Active Opportunity) */}
+          {/* {isOpportunityClient && (
             <ActionButton
               icon={Briefcase}
               label="Créer opportunité"
@@ -355,7 +356,7 @@ export function QuickActionsSidebar({
               onClick={handleOpenOpportunityModal}
               disabled={loadingContact}
             />
-          )}
+          )} */}
 
           <ActionButton
             icon={MessageSquare}
@@ -459,11 +460,11 @@ export function QuickActionsSidebar({
                 title: "Opportunité créée",
                 description: "L'opportunité a été créée avec succès et le client a été mis à jour",
               });
-              
+
               // Trigger clients page refresh
               if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('opportunity-created', { 
-                  detail: { contactId: contact.id, opportunityId } 
+                window.dispatchEvent(new CustomEvent('opportunity-created', {
+                  detail: { contactId: contact.id, opportunityId }
                 }));
               }
             }

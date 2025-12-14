@@ -72,18 +72,45 @@ export function ArchitectSelectionDialog({
     setIsFetchingArchitects(true)
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('/api/architects', {
+      const response = await fetch('/api/users', {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       })
 
       if (response.ok) {
-        const data = await response.json()
-        console.log('✅ Loaded architects:', data.data?.length || 0)
-        setArchitects(data.data || [])
+        const users = await response.json()
+        // Filter users with role 'architect' or 'gestionnaire'
+        const architectUsers = users
+          .filter((u: any) => {
+            const role = (u.role || '').toLowerCase()
+            return role === 'architect' || role === 'gestionnaire'
+          })
+          .map((u: any) => {
+            // Split name into prenom and nom (or use name for both)
+            const nameParts = (u.name || '').trim().split(' ')
+            const prenom = nameParts[0] || ''
+            const nom = nameParts.slice(1).join(' ') || nameParts[0] || ''
+            
+            return {
+              id: u.id,
+              nom: nom,
+              prenom: prenom,
+              email: u.email || '',
+              telephone: u.phone || '',
+              ville: u.ville || '',
+              specialite: 'mixte' as const, // Default specialty
+              statut: 'actif' as const, // Default status
+              dateEmbauche: u.createdAt || new Date().toISOString(),
+              createdAt: u.createdAt || new Date().toISOString(),
+              updatedAt: u.updatedAt || new Date().toISOString(),
+            } as Architect
+          })
+        
+        console.log('✅ Loaded architects:', architectUsers.length)
+        setArchitects(architectUsers)
       } else {
-        console.error('❌ Failed to fetch architects')
+        console.error('❌ Failed to fetch users for architect selection')
         setArchitects([])
       }
     } catch (error) {

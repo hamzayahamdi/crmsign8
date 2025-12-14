@@ -295,5 +295,260 @@ export async function notifyArchitectContactAssigned(
   });
 }
 
+/**
+ * Enhanced notification function for architect when contact is converted from lead or assigned
+ * Sends notifications via platform, WhatsApp, and email
+ */
+export async function notifyArchitectContactConvertedOrAssigned(
+  architectId: string,
+  contact: {
+    id: string;
+    nom: string;
+    telephone: string;
+    ville?: string | null;
+    email?: string | null;
+    typeBien?: string | null;
+    source?: string | null;
+  },
+  options: {
+    isReassignment?: boolean;
+    previousArchitect?: string | null;
+    createdBy?: string;
+    convertedFromLead?: boolean;
+    leadSource?: string | null;
+    leadTypeBien?: string | null;
+  } = {}
+) {
+  const { 
+    isReassignment = false, 
+    previousArchitect, 
+    createdBy,
+    convertedFromLead = false,
+    leadSource,
+    leadTypeBien
+  } = options;
+
+  const db = getPrisma();
+  
+  // Get architect details
+  const architect = await db.user.findUnique({
+    where: { id: architectId },
+    select: { 
+      id: true, 
+      name: true, 
+      phone: true, 
+      email: true 
+    },
+  });
+
+  if (!architect) {
+    console.warn(`[Notification] Architect ${architectId} not found`);
+    return { success: false, error: 'Architect not found' };
+  }
+
+  // Build enhanced messages
+  let title: string;
+  let platformMessage: string;
+  let whatsappMessage: string;
+  let emailSubject: string;
+  let emailBody: string;
+
+  if (convertedFromLead) {
+    // Lead converted to contact
+    title = '🎯 Nouveau Contact Converti';
+    platformMessage = `Un nouveau contact "${contact.nom}" vous a été assigné depuis un lead qualifié.\n\n📞 Téléphone: ${contact.telephone}${contact.ville ? `\n📍 Ville: ${contact.ville}` : ''}${contact.typeBien || leadTypeBien ? `\n🏠 Type de bien: ${contact.typeBien || leadTypeBien}` : ''}${contact.source || leadSource ? `\n📊 Source: ${contact.source || leadSource}` : ''}`;
+    
+    whatsappMessage = `🎯 *Nouveau Contact Converti*\n\n` +
+      `Bonjour ${architect.name},\n\n` +
+      `Un nouveau contact vous a été assigné depuis un lead qualifié.\n\n` +
+      `👤 *Contact:* ${contact.nom}\n` +
+      `📞 *Téléphone:* ${contact.telephone}\n` +
+      (contact.ville ? `📍 *Ville:* ${contact.ville}\n` : '') +
+      (contact.typeBien || leadTypeBien ? `🏠 *Type de bien:* ${contact.typeBien || leadTypeBien}\n` : '') +
+      (contact.source || leadSource ? `📊 *Source:* ${contact.source || leadSource}\n` : '') +
+      `\n💼 Veuillez contacter ce prospect dans les plus brefs délais.\n\n` +
+      `Cordialement,\nL'équipe Signature8`;
+    
+    emailSubject = `🎯 Nouveau Contact Converti - ${contact.nom}`;
+    emailBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2563eb;">🎯 Nouveau Contact Converti</h2>
+        <p>Bonjour ${architect.name},</p>
+        <p>Un nouveau contact vous a été assigné depuis un lead qualifié.</p>
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Détails du Contact</h3>
+          <p><strong>👤 Nom:</strong> ${contact.nom}</p>
+          <p><strong>📞 Téléphone:</strong> ${contact.telephone}</p>
+          ${contact.ville ? `<p><strong>📍 Ville:</strong> ${contact.ville}</p>` : ''}
+          ${contact.email ? `<p><strong>📧 Email:</strong> ${contact.email}</p>` : ''}
+          ${contact.typeBien || leadTypeBien ? `<p><strong>🏠 Type de bien:</strong> ${contact.typeBien || leadTypeBien}</p>` : ''}
+          ${contact.source || leadSource ? `<p><strong>📊 Source:</strong> ${contact.source || leadSource}</p>` : ''}
+        </div>
+        <p style="color: #dc2626; font-weight: bold;">💼 Veuillez contacter ce prospect dans les plus brefs délais.</p>
+        <p>Cordialement,<br>L'équipe Signature8</p>
+      </div>
+    `;
+  } else if (isReassignment) {
+    // Contact reassigned
+    title = '🔄 Contact Réassigné';
+    platformMessage = `Le contact "${contact.nom}" vous a été réassigné${previousArchitect ? ` (précédemment: ${previousArchitect})` : ''}.\n\n📞 Téléphone: ${contact.telephone}${contact.ville ? `\n📍 Ville: ${contact.ville}` : ''}`;
+    
+    whatsappMessage = `🔄 *Contact Réassigné*\n\n` +
+      `Bonjour ${architect.name},\n\n` +
+      `Le contact "${contact.nom}" vous a été réassigné${previousArchitect ? ` (précédemment: ${previousArchitect})` : ''}.\n\n` +
+      `👤 *Contact:* ${contact.nom}\n` +
+      `📞 *Téléphone:* ${contact.telephone}\n` +
+      (contact.ville ? `📍 *Ville:* ${contact.ville}\n` : '') +
+      `\n💼 Veuillez prendre en charge ce contact.\n\n` +
+      `Cordialement,\nL'équipe Signature8`;
+    
+    emailSubject = `🔄 Contact Réassigné - ${contact.nom}`;
+    emailBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2563eb;">🔄 Contact Réassigné</h2>
+        <p>Bonjour ${architect.name},</p>
+        <p>Le contact "${contact.nom}" vous a été réassigné${previousArchitect ? ` (précédemment: ${previousArchitect})` : ''}.</p>
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Détails du Contact</h3>
+          <p><strong>👤 Nom:</strong> ${contact.nom}</p>
+          <p><strong>📞 Téléphone:</strong> ${contact.telephone}</p>
+          ${contact.ville ? `<p><strong>📍 Ville:</strong> ${contact.ville}</p>` : ''}
+          ${contact.email ? `<p><strong>📧 Email:</strong> ${contact.email}</p>` : ''}
+        </div>
+        <p style="color: #dc2626; font-weight: bold;">💼 Veuillez prendre en charge ce contact.</p>
+        <p>Cordialement,<br>L'équipe Signature8</p>
+      </div>
+    `;
+  } else {
+    // New contact assigned
+    title = '✨ Nouveau Contact Assigné';
+    platformMessage = `Le contact "${contact.nom}" vous a été assigné.\n\n📞 Téléphone: ${contact.telephone}${contact.ville ? `\n📍 Ville: ${contact.ville}` : ''}${contact.typeBien ? `\n🏠 Type de bien: ${contact.typeBien}` : ''}`;
+    
+    whatsappMessage = `✨ *Nouveau Contact Assigné*\n\n` +
+      `Bonjour ${architect.name},\n\n` +
+      `Un nouveau contact vous a été assigné.\n\n` +
+      `👤 *Contact:* ${contact.nom}\n` +
+      `📞 *Téléphone:* ${contact.telephone}\n` +
+      (contact.ville ? `📍 *Ville:* ${contact.ville}\n` : '') +
+      (contact.typeBien ? `🏠 *Type de bien:* ${contact.typeBien}\n` : '') +
+      `\n💼 Veuillez contacter ce prospect dans les plus brefs délais.\n\n` +
+      `Cordialement,\nL'équipe Signature8`;
+    
+    emailSubject = `✨ Nouveau Contact Assigné - ${contact.nom}`;
+    emailBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2563eb;">✨ Nouveau Contact Assigné</h2>
+        <p>Bonjour ${architect.name},</p>
+        <p>Un nouveau contact vous a été assigné.</p>
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Détails du Contact</h3>
+          <p><strong>👤 Nom:</strong> ${contact.nom}</p>
+          <p><strong>📞 Téléphone:</strong> ${contact.telephone}</p>
+          ${contact.ville ? `<p><strong>📍 Ville:</strong> ${contact.ville}</p>` : ''}
+          ${contact.email ? `<p><strong>📧 Email:</strong> ${contact.email}</p>` : ''}
+          ${contact.typeBien ? `<p><strong>🏠 Type de bien:</strong> ${contact.typeBien}</p>` : ''}
+        </div>
+        <p style="color: #dc2626; font-weight: bold;">💼 Veuillez contacter ce prospect dans les plus brefs délais.</p>
+        <p>Cordialement,<br>L'équipe Signature8</p>
+      </div>
+    `;
+  }
+
+  // 1. Create in-app notification
+  const notificationResult = await sendNotification({
+    userId: architectId,
+    type: 'client_assigned',
+    priority: 'high',
+    title,
+    message: platformMessage,
+    linkedType: 'contact',
+    linkedId: contact.id,
+    linkedName: contact.nom,
+    metadata: {
+      contactPhone: contact.telephone,
+      contactVille: contact.ville,
+      contactEmail: contact.email,
+      previousArchitect,
+      assignmentType: convertedFromLead ? 'converted_from_lead' : (isReassignment ? 'reassigned' : 'new_assignment'),
+      convertedFromLead,
+      leadSource: leadSource || contact.source,
+      leadTypeBien: leadTypeBien || contact.typeBien,
+    },
+    createdBy,
+    sendSMS: false, // We'll handle WhatsApp separately
+    sendEmail: false, // We'll handle email separately
+  });
+
+  // 2. Send WhatsApp notification
+  let whatsappResult = { success: false, error: 'No phone number' };
+  if (architect.phone) {
+    try {
+      const { sendWhatsAppNotification, formatPhoneForWhatsApp } = await import('./sendWhatsAppNotification');
+      const formattedPhone = formatPhoneForWhatsApp(architect.phone);
+      
+      whatsappResult = await sendWhatsAppNotification({
+        userId: architectId,
+        phone: formattedPhone,
+        title,
+        message: whatsappMessage,
+        type: 'client_assigned',
+        priority: 'high',
+        linkedType: 'contact',
+        linkedId: contact.id,
+        linkedName: contact.nom,
+        metadata: {
+          contactPhone: contact.telephone,
+          contactVille: contact.ville,
+          convertedFromLead,
+          assignmentType: convertedFromLead ? 'converted_from_lead' : (isReassignment ? 'reassigned' : 'new_assignment'),
+        },
+      });
+    } catch (error) {
+      console.error('[Notification] WhatsApp error:', error);
+      whatsappResult = { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  } else {
+    console.warn(`[Notification] No phone number for architect ${architectId}`);
+  }
+
+  // 3. Send email notification with HTML
+  let emailResult = { success: false, error: 'No email address' };
+  if (architect.email) {
+    try {
+      // Use sendEmail directly to send HTML emails
+      const resendService = await import('./resend-service');
+      
+      // Convert HTML body to plain text for text version
+      const textBody = emailBody
+        .replace(/<[^>]*>/g, '') // Remove HTML tags
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .trim();
+      
+      emailResult = await resendService.sendEmail({
+        to: architect.email,
+        subject: emailSubject,
+        html: emailBody,
+        text: textBody,
+      });
+    } catch (error) {
+      console.error('[Notification] Email error:', error);
+      emailResult = { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  } else {
+    console.warn(`[Notification] No email address for architect ${architectId}`);
+  }
+
+  return {
+    success: notificationResult.success,
+    notification: notificationResult.notification,
+    whatsapp: whatsappResult,
+    email: emailResult,
+  };
+}
+
 // Client-side methods are in lib/notification-service-client.ts
 // This file only exports server-side functions

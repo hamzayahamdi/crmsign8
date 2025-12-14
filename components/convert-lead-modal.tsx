@@ -74,13 +74,37 @@ export function ConvertLeadModal({
 
   const loadArchitects = async () => {
     try {
-      const response = await fetch('/api/architects')
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/users', {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      })
+      
       if (response.ok) {
-        const data = await response.json()
-        setArchitects(data.architects || [])
+        const users = await response.json()
+        // Filter users with role 'architect' or 'gestionnaire'
+        const architectUsers = users
+          .filter((u: any) => {
+            const role = (u.role || '').toLowerCase()
+            return role === 'architect' || role === 'gestionnaire'
+          })
+          .map((u: any) => ({
+            id: u.id,
+            name: u.name || u.email || 'Unknown',
+            ville: u.ville || '',
+            email: u.email || '',
+          }))
+        
+        setArchitects(architectUsers)
+        console.log(`[Convert Lead Modal] Loaded ${architectUsers.length} architects/gestionnaires`)
+      } else {
+        console.error('Failed to fetch users for architect selection')
+        setArchitects([])
       }
     } catch (error) {
       console.error('Error loading architects:', error)
+      setArchitects([])
     }
   }
 
