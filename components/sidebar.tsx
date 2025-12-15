@@ -7,8 +7,8 @@ import { Signature8Logo } from "@/components/signature8-logo"
 import { useAuth } from "@/contexts/auth-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { useMemo, useEffect, useState, useCallback, memo } from "react"
-import { motion, LayoutGroup, AnimatePresence } from "framer-motion"
+import { useMemo, useEffect, useState, useCallback, memo, useRef } from "react"
+import { motion, LayoutGroup, AnimatePresence, useIsPresent } from "framer-motion"
 import { TasksService } from "@/lib/tasks-service"
 import { toast } from "sonner"
 import { getVisibleSidebarItems, getRoleLabel } from "@/lib/permissions"
@@ -39,11 +39,244 @@ const iconMap: Record<string, any> = {
   Target,
 }
 
+// Optimized sidebar items component - removed memo to allow layout animations
+const SidebarNavItem = ({ 
+  item, 
+  isActive, 
+  isCollapsed, 
+  index,
+  onNavigate,
+  myPendingTasks,
+  myNewTasks,
+  adminUpdatesCount,
+  userRole
+}: {
+  item: { name: string; href: string; icon: any }
+  isActive: boolean
+  isCollapsed: boolean
+  index: number
+  onNavigate: (href: string) => void
+  myPendingTasks: number
+  myNewTasks: number
+  adminUpdatesCount: number
+  userRole?: string
+}) => {
+  const isTasksPage = item.href === "/tasks"
+  const isAdminOrOperator = (userRole || '').toLowerCase() === 'admin' || (userRole || '').toLowerCase() === 'operator'
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <motion.button
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            onNavigate(item.href)
+          }}
+          initial={false}
+          whileTap={{ scale: 0.98 }}
+          className="w-full text-left block relative group"
+          type="button"
+          whileHover={!isActive ? {
+            transition: { duration: 0.2 }
+          } : {}}
+        >
+          <motion.div
+            layout
+            className={cn(
+              "relative flex items-center rounded-2xl overflow-hidden",
+              isCollapsed
+                ? "justify-center px-2 py-2.5 md:py-3"
+                : "gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3.5",
+              isActive
+                ? "text-white"
+                : "text-white/70"
+            )}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 35,
+              mass: 0.6,
+            }}
+          >
+            {/* Hover background - Works on entire button area */}
+            <motion.div
+              className={cn(
+                "absolute inset-0 rounded-2xl pointer-events-none",
+                isActive ? "bg-sky-500/10" : "bg-white/5"
+              )}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0 }}
+              whileHover={{ opacity: 1 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            />
+
+            {/* Active pill with smooth layoutId transition - Enhanced for smooth movement */}
+            {isActive && (
+              <motion.div
+                layoutId="activeIndicator"
+                className="absolute inset-0 rounded-2xl"
+                style={{
+                  background: "linear-gradient(135deg, rgba(56,189,248,0.95) 0%, rgba(59,130,246,1) 100%)",
+                  boxShadow: "0 4px 16px rgba(56,189,248,0.4), inset 0 1px 0 rgba(255,255,255,0.25)",
+                }}
+                initial={false}
+                layout
+                transition={{
+                  layout: {
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 38,
+                    mass: 0.5,
+                  },
+                }}
+              />
+            )}
+
+            {/* Icon with enhanced hover */}
+            <motion.div
+              animate={{
+                scale: isActive ? 1.1 : 1,
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 400,
+                damping: 25,
+              }}
+              className="shrink-0 relative z-10"
+            >
+              <motion.div
+                animate={!isActive ? {
+                  opacity: 0.7,
+                } : {
+                  opacity: 1,
+                }}
+                whileHover={!isActive ? {
+                  opacity: 1,
+                } : {}}
+                transition={{ duration: 0.2 }}
+              >
+                <item.icon
+                  className={cn(
+                    "transition-all duration-200",
+                    isCollapsed ? "w-5 h-5" : "w-4 h-4 md:w-5 md:h-5"
+                  )}
+                />
+              </motion.div>
+            </motion.div>
+
+            {/* Text label with hover support */}
+            <AnimatePresence mode="wait" initial={false}>
+              {!isCollapsed && (
+                <motion.span
+                  key="nav-text"
+                  initial={{ opacity: 0, x: -10, width: 0 }}
+                  animate={{ 
+                    opacity: 1, 
+                    x: 0, 
+                    width: "auto",
+                    color: isActive ? "white" : "rgba(255, 255, 255, 0.7)",
+                  }}
+                  exit={{ opacity: 0, x: -10, width: 0 }}
+                  whileHover={!isActive ? {
+                    color: "white",
+                  } : {}}
+                  transition={{
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 30,
+                    mass: 0.8,
+                    color: { duration: 0.2 },
+                  }}
+                  className="relative z-10 flex-1 truncate text-[11px] md:text-xs font-semibold overflow-hidden whitespace-nowrap"
+                >
+                  {item.name}
+                </motion.span>
+              )}
+            </AnimatePresence>
+
+            {/* Task badges */}
+            {isTasksPage && !isCollapsed && (
+              <span className="ml-auto inline-flex items-center gap-1.5 md:gap-2 relative z-10">
+                {/* New Tasks - Red Pulse Dot */}
+                {myNewTasks > 0 && (
+                  <motion.span
+                    className="relative inline-flex h-2.5 w-2.5 md:h-3 md:w-3"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 md:h-3 md:w-3 bg-red-500 shadow-lg shadow-red-500/70"></span>
+                  </motion.span>
+                )}
+                {/* Pending Tasks - Badge */}
+                {myPendingTasks > 0 && (
+                  <motion.span
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className={cn(
+                      "min-w-6 md:min-w-7 h-5 md:h-7 px-1.5 md:px-2.5 inline-flex items-center justify-center rounded-full text-[10px] md:text-xs font-bold shadow-lg transition-all duration-200",
+                      isActive
+                        ? "bg-white text-primary shadow-white/30 font-extrabold"
+                        : "bg-gradient-to-r from-primary to-blue-500 text-white shadow-primary/50",
+                    )}>
+                    {myPendingTasks}
+                  </motion.span>
+                )}
+                {/* Admin Updates - Toaster Style Badge */}
+                {isAdminOrOperator && adminUpdatesCount > 0 && (
+                  <motion.span
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className={cn(
+                      "min-w-6 md:min-w-7 h-5 md:h-7 px-1.5 md:px-2.5 inline-flex items-center justify-center rounded-full text-[10px] md:text-xs font-bold shadow-lg border-2 transition-all duration-200",
+                      isActive
+                        ? "bg-orange-500 border-orange-300 text-white shadow-orange-500/40 font-extrabold"
+                        : "bg-gradient-to-r from-orange-400 to-amber-500 border-orange-300 text-white shadow-orange-500/50",
+                    )}>
+                    {adminUpdatesCount}
+                  </motion.span>
+                )}
+              </span>
+            )}
+
+            {/* Collapsed badge indicator */}
+            {isTasksPage && isCollapsed && (myPendingTasks > 0 || myNewTasks > 0 || adminUpdatesCount > 0) && (
+              <motion.span
+                className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-slate-950 z-20"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            )}
+          </motion.div>
+        </motion.button>
+      </TooltipTrigger>
+      {isCollapsed && (
+        <TooltipContent side="right" className="bg-slate-800 border-sky-500/30 text-white">
+          {item.name}
+          {isTasksPage && (myPendingTasks > 0 || myNewTasks > 0 || adminUpdatesCount > 0) && (
+            <span className="ml-2 text-xs">
+              {myPendingTasks > 0 && `${myPendingTasks} pending`}
+              {adminUpdatesCount > 0 && ` ${adminUpdatesCount} updates`}
+            </span>
+          )}
+        </TooltipContent>
+      )}
+    </Tooltip>
+  )
+}
+
 const SidebarComponent = () => {
   const { isMobileMenuOpen, setMobileMenuOpen, isSidebarCollapsed, toggleSidebar } = useUIStore()
   const router = useRouter()
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  
+  // Use ref to track previous pathname to prevent unnecessary re-renders
+  const prevPathnameRef = useRef(pathname)
+  const isNavigatingRef = useRef(false)
 
   // Tasks badge state
   const [myPendingTasks, setMyPendingTasks] = useState<number>(0)
@@ -52,10 +285,22 @@ const SidebarComponent = () => {
 
   const isArchitect = user?.role?.toLowerCase() === "architect"
 
+  // Track pathname changes to prevent double rendering
+  useEffect(() => {
+    if (prevPathnameRef.current !== pathname) {
+      isNavigatingRef.current = true
+      prevPathnameRef.current = pathname
+      // Reset navigation flag after a short delay
+      setTimeout(() => {
+        isNavigatingRef.current = false
+      }, 300)
+    }
+  }, [pathname])
+
   // Close mobile menu when route changes
   useEffect(() => {
-    setMobileMenuOpen(false) // Changed to setMobileMenuOpen
-  }, [pathname, setMobileMenuOpen]) // Added setMobileMenuOpen to dependencies
+    setMobileMenuOpen(false)
+  }, [pathname, setMobileMenuOpen])
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -69,15 +314,21 @@ const SidebarComponent = () => {
     }
   }, [isMobileMenuOpen])
 
-  // Optimized instant navigation - no loading states to prevent flicker
+  // Optimized instant navigation with smooth transitions
   const handleNavigation = useCallback((href: string) => {
     // Don't navigate if already on this page
-    if (href === pathname) {
+    if (href === pathname || isNavigatingRef.current) {
       return
     }
 
-    // Instant navigation without any loading state
+    isNavigatingRef.current = true
+    // Smooth navigation
     router.push(href)
+    
+    // Reset flag after navigation completes
+    setTimeout(() => {
+      isNavigatingRef.current = false
+    }, 500)
   }, [router, pathname])
 
   // Prefetch routes on mount for instant navigation
@@ -170,8 +421,19 @@ const SidebarComponent = () => {
 
   const SidebarContent = ({ isCollapsed }: { isCollapsed: boolean }) => (
     <>
-      {/* Logo & Toggle Button */}
-      <div className="relative border-b border-border/40 shrink-0" style={{ padding: isCollapsed ? '1.25rem 0.5rem' : '1.5rem', overflow: 'visible', zIndex: 10000, position: 'relative' }}>
+      {/* Logo & Toggle Button with Glassy Border Separator */}
+      <div 
+        className="relative shrink-0" 
+        style={{ 
+          padding: isCollapsed ? '1.25rem 0.5rem' : '1.5rem', 
+          overflow: 'visible', 
+          zIndex: 10000, 
+          position: 'relative',
+          borderBottom: '1px solid rgba(56, 189, 248, 0.15)',
+          background: 'linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 0%, transparent 100%)',
+          boxShadow: '0 1px 0 rgba(56, 189, 248, 0.1) inset, 0 1px 2px rgba(0, 0, 0, 0.1)',
+        }}
+      >
         {/* Logo Container - Centered when collapsed, left-aligned when expanded */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -194,7 +456,7 @@ const SidebarComponent = () => {
               mass: 0.8,
             }}
             className={cn(
-              "flex-shrink-0 z-10 flex items-center justify-center",
+              "shrink-0 z-10 flex items-center justify-center",
               isCollapsed ? "mx-auto" : ""
             )}
           >
@@ -316,192 +578,18 @@ const SidebarComponent = () => {
           }, [user?.role]).map((item, index) => {
             const isActive = pathname === item.href || (item.href === "/architectes" && pathname.startsWith("/architectes/"))
             return (
-              <Tooltip key={item.name}>
-                <TooltipTrigger asChild>
-                  <motion.button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      // Immediate navigation without delay
-                      if (item.href !== pathname) {
-                        handleNavigation(item.href)
-                      }
-                    }}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{
-                      delay: index * 0.03,
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 25,
-                    }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full text-left block"
-                    type="button"
-                  >
-                    <motion.div
-                      layout
-                      className={cn(
-                        "relative flex items-center rounded-2xl group overflow-hidden",
-                        isCollapsed
-                          ? "justify-center px-2 py-2.5 md:py-3"
-                          : "gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3.5",
-                        isActive
-                          ? "text-white"
-                          : "text-white/70 hover:text-white"
-                      )}
-                      transition={{
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 30,
-                        mass: 0.8
-                      }}
-                    >
-                      {/* Hover background */}
-                      {!isActive && (
-                        <motion.div
-                          className="absolute inset-0 rounded-2xl bg-white/5"
-                          initial={{ opacity: 0 }}
-                          whileHover={{ opacity: 1 }}
-                          transition={{ duration: 0.2 }}
-                        />
-                      )}
-
-                      {/* Active gradient background */}
-                      {isActive && (
-                        <motion.div
-                          layoutId="sidebar-active-pill"
-                          className="absolute inset-0 rounded-2xl"
-                          style={{
-                            background: "linear-gradient(135deg, rgba(56,189,248,0.9) 0%, rgba(59,130,246,1) 100%)",
-                            boxShadow: "0 4px 12px rgba(56,189,248,0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
-                          }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 500,
-                            damping: 35,
-                            mass: 0.6,
-                          }}
-                        />
-                      )}
-
-                      {/* Icon */}
-                      <motion.div
-                        animate={{
-                          scale: isCollapsed ? 1.1 : 1,
-                        }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 300,
-                          damping: 25,
-                        }}
-                        className="flex-shrink-0"
-                      >
-                        <item.icon
-                          className={cn(
-                            "relative z-10 transition-all duration-300",
-                            isCollapsed ? "w-5 h-5" : "w-4 h-4 md:w-5 md:h-5",
-                            isActive
-                              ? "opacity-100"
-                              : "opacity-70 group-hover:opacity-100"
-                          )}
-                        />
-                      </motion.div>
-
-                      {/* Text label */}
-                      <AnimatePresence mode="wait" initial={false}>
-                        {!isCollapsed && (
-                          <motion.span
-                            key="nav-text"
-                            initial={{ opacity: 0, x: -10, width: 0 }}
-                            animate={{ opacity: 1, x: 0, width: "auto" }}
-                            exit={{ opacity: 0, x: -10, width: 0 }}
-                            transition={{
-                              type: "spring",
-                              stiffness: 300,
-                              damping: 30,
-                              mass: 0.8,
-                            }}
-                            className={cn(
-                              "relative z-10 flex-1 truncate text-[11px] md:text-xs font-semibold overflow-hidden whitespace-nowrap",
-                              isActive ? "text-white" : "text-white/70 group-hover:text-white"
-                            )}
-                          >
-                            {item.name}
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-
-                      {/* Task badges */}
-                      {item.href === "/tasks" && !isCollapsed && (
-                        <span className="ml-auto inline-flex items-center gap-1.5 md:gap-2 relative z-10">
-                          {/* New Tasks - Red Pulse Dot */}
-                          {myNewTasks > 0 && (
-                            <motion.span
-                              className="relative inline-flex h-2.5 w-2.5 md:h-3 md:w-3"
-                              animate={{ scale: [1, 1.2, 1] }}
-                              transition={{ duration: 2, repeat: Infinity }}
-                            >
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 md:h-3 md:w-3 bg-red-500 shadow-lg shadow-red-500/70"></span>
-                            </motion.span>
-                          )}
-                          {/* Pending Tasks - Badge */}
-                          {myPendingTasks > 0 && (
-                            <motion.span
-                              initial={{ scale: 0.8, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                              className={cn(
-                                "min-w-[1.5rem] md:min-w-[1.75rem] h-5 md:h-7 px-1.5 md:px-2.5 inline-flex items-center justify-center rounded-full text-[10px] md:text-xs font-bold shadow-lg transition-all duration-200",
-                                isActive
-                                  ? "bg-white text-primary shadow-white/30 font-extrabold"
-                                  : "bg-gradient-to-r from-primary to-blue-500 text-white shadow-primary/50 animate-pulse",
-                              )}>
-                              {myPendingTasks}
-                            </motion.span>
-                          )}
-                          {/* Admin Updates - Toaster Style Badge */}
-                          {((user?.role || '').toLowerCase() === 'admin' || (user?.role || '').toLowerCase() === 'operator') && adminUpdatesCount > 0 && (
-                            <motion.span
-                              initial={{ scale: 0.8, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                              className={cn(
-                                "min-w-[1.5rem] md:min-w-[1.75rem] h-5 md:h-7 px-1.5 md:px-2.5 inline-flex items-center justify-center rounded-full text-[10px] md:text-xs font-bold shadow-lg border-2 transition-all duration-200",
-                                isActive
-                                  ? "bg-orange-500 border-orange-300 text-white shadow-orange-500/40 font-extrabold"
-                                  : "bg-gradient-to-r from-orange-400 to-amber-500 border-orange-300 text-white shadow-orange-500/50 animate-pulse",
-                              )}>
-                              {adminUpdatesCount}
-                            </motion.span>
-                          )}
-                        </span>
-                      )}
-
-                      {/* Collapsed badge indicator */}
-                      {item.href === "/tasks" && isCollapsed && (myPendingTasks > 0 || myNewTasks > 0 || adminUpdatesCount > 0) && (
-                        <motion.span
-                          className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-slate-950 z-20"
-                          animate={{ scale: [1, 1.2, 1] }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                        />
-                      )}
-                    </motion.div>
-                  </motion.button>
-                </TooltipTrigger>
-                {isCollapsed && (
-                  <TooltipContent side="right" className="bg-slate-800 border-sky-500/30 text-white">
-                    {item.name}
-                    {item.href === "/tasks" && (myPendingTasks > 0 || myNewTasks > 0 || adminUpdatesCount > 0) && (
-                      <span className="ml-2 text-xs">
-                        {myPendingTasks > 0 && `${myPendingTasks} pending`}
-                        {adminUpdatesCount > 0 && ` ${adminUpdatesCount} updates`}
-                      </span>
-                    )}
-                  </TooltipContent>
-                )}
-              </Tooltip>
+              <SidebarNavItem
+                key={item.href}
+                item={item}
+                isActive={isActive}
+                isCollapsed={isCollapsed}
+                index={index}
+                onNavigate={handleNavigation}
+                myPendingTasks={myPendingTasks}
+                myNewTasks={myNewTasks}
+                adminUpdatesCount={adminUpdatesCount}
+                userRole={user?.role}
+              />
             )
           })}
         </LayoutGroup>
@@ -539,7 +627,7 @@ const SidebarComponent = () => {
                         damping: 30,
                         mass: 0.8,
                       }}
-                      className="flex-shrink-0"
+                      className="shrink-0"
                     >
                       <Avatar className={cn(
                         "border-2 border-sky-400/50 ring-2 ring-sky-400/20",
@@ -620,7 +708,7 @@ const SidebarComponent = () => {
                         )}
                       >
                         <LogOut className={cn(
-                          "transition-transform group-hover:translate-x-0.5 flex-shrink-0",
+                          "transition-transform group-hover:translate-x-0.5 shrink-0",
                           isCollapsed ? "w-4 h-4" : "w-3.5 h-3.5 md:w-4 md:h-4"
                         )} />
                         {!isCollapsed && (
@@ -700,9 +788,9 @@ const SidebarComponent = () => {
           }}
           transition={{
             type: "spring",
-            stiffness: 300,
-            damping: 30,
-            mass: 0.8,
+            stiffness: 400,
+            damping: 35,
+            mass: 0.6,
           }}
           className="glass border-r border-border/40 flex flex-col h-screen backdrop-blur-2xl bg-slate-950/95 relative"
           style={{ overflow: 'visible', zIndex: 9999 }}
@@ -719,9 +807,9 @@ const SidebarComponent = () => {
         }}
         transition={{
           type: "spring",
-          stiffness: 300,
-          damping: 30,
-          mass: 0.8,
+          stiffness: 400,
+          damping: 35,
+          mass: 0.6,
         }}
         className="hidden lg:block shrink-0"
         aria-hidden="true"

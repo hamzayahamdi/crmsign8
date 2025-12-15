@@ -515,7 +515,7 @@ export function ContactsTable({
                       <span className="text-xs font-semibold text-white">{opportunities.length}</span>
                       {opportunityCounts.won > 0 && (
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-semibold shadow-sm">
-                          {opportunityCounts.won} Gagné{opportunityCounts.won > 1 ? 's' : ''}
+                          🏆 {opportunityCounts.won} Gagné{opportunityCounts.won > 1 ? 's' : ''}
                         </span>
                       )}
                       {opportunityCounts.open > 0 && (
@@ -703,7 +703,7 @@ export function ContactsTable({
                             <span className="text-[11px] font-semibold text-white">{opportunities.length}</span>
                             {opportunityCounts.won > 0 && (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-semibold shadow-sm">
-                                {opportunityCounts.won} Gagné{opportunityCounts.won > 1 ? 's' : ''}
+                                🏆 {opportunityCounts.won} Gagné{opportunityCounts.won > 1 ? 's' : ''}
                               </span>
                             )}
                             {opportunityCounts.open > 0 && (
