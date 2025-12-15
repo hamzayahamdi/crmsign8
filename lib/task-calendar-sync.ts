@@ -268,15 +268,94 @@ export async function syncTaskWithCalendar(taskId: string): Promise<CreateTaskWi
 }
 
 /**
- * Removes a task from the calendar when the task is deleted
+ * Removes calendar events associated with a task when the task is deleted
+ * Note: This function only removes calendar events, not the task itself
+ * The task deletion should be handled separately
  */
-export async function removeTaskFromCalendar(taskId: string): Promise<{ success: boolean; error?: string }> {
+export async function removeTaskFromCalendar(taskId: string): Promise<{ success: boolean; deletedCount?: number; error?: string }> {
   try {
-    // Delete the task
-    await prisma.task.delete({
-      where: { id: taskId }
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: {
+        id: true,
+        title: true,
+        dueDate: true,
+        assignedTo: true,
+        createdAt: true,
+      },
     })
-    return { success: true }
+
+    if (!task) {
+      return {
+        success: false,
+        error: `Task "${taskId}" not found`
+      }
+    }
+
+    // Get the user ID for the assignedTo name
+    const assignedUser = await prisma.user.findFirst({
+      where: { name: task.assignedTo },
+      select: { id: true },
+    })
+
+    if (!assignedUser) {
+      console.warn(`[task-calendar-sync] User "${task.assignedTo}" not found for task ${taskId}`)
+      return { success: true, deletedCount: 0 }
+    }
+
+    // Find calendar events that match this task
+    const taskStartDate = new Date(task.dueDate)
+    const taskEndDate = new Date(task.dueDate)
+    taskEndDate.setHours(taskEndDate.getHours() + 1)
+
+    const taskCreatedStart = new Date(task.createdAt)
+    taskCreatedStart.setMinutes(taskCreatedStart.getMinutes() - 5)
+    const taskCreatedEnd = new Date(task.createdAt)
+    taskCreatedEnd.setMinutes(taskCreatedEnd.getMinutes() + 5)
+
+    const associatedEvents = await prisma.calendarEvent.findMany({
+      where: {
+        eventType: 'suivi_projet',
+        assignedTo: assignedUser.id,
+        title: task.title,
+        startDate: {
+          gte: taskStartDate,
+          lte: taskEndDate,
+        },
+        createdAt: {
+          gte: taskCreatedStart,
+          lte: taskCreatedEnd,
+        },
+      },
+      select: { id: true },
+    })
+
+    if (associatedEvents.length === 0) {
+      return { success: true, deletedCount: 0 }
+    }
+
+    const eventIds = associatedEvents.map((e) => e.id)
+
+    // Delete event reminders first
+    await prisma.eventReminder.deleteMany({
+      where: {
+        eventId: { in: eventIds },
+      },
+    })
+
+    // Delete the calendar events
+    await prisma.calendarEvent.deleteMany({
+      where: {
+        id: { in: eventIds },
+      },
+    })
+
+    console.log(`[task-calendar-sync] Removed ${associatedEvents.length} calendar event(s) for task ${taskId}`)
+
+    return {
+      success: true,
+      deletedCount: associatedEvents.length,
+    }
   } catch (error: any) {
     console.error('[task-calendar-sync] Error removing task from calendar:', error)
     return {

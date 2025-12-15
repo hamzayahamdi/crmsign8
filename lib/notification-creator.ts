@@ -200,7 +200,35 @@ export async function notifyDevisCreated(params: {
 }
 
 /**
- * Create notification for stage change
+ * Stage labels for French display
+ */
+const STAGE_LABELS: Record<string, string> = {
+  qualifie: 'Qualifié',
+  nouveau: 'Nouveau',
+  prise_de_besoin: 'Prise de besoin',
+  acompte_recu: 'Acompte reçu',
+  acompte_verse: 'Acompte versé',
+  conception: 'Conception',
+  en_conception: 'En conception',
+  devis_negociation: 'Devis/Négociation',
+  en_validation: 'En validation',
+  accepte: 'Accepté',
+  refuse: 'Refusé',
+  perdu: 'Perdu',
+  annule: 'Annulé',
+  suspendu: 'Suspendu',
+  premier_depot: 'Premier dépôt',
+  projet_en_cours: 'Projet en cours',
+  chantier: 'Chantier',
+  en_chantier: 'En chantier',
+  facture_reglee: 'Facture réglée',
+  livraison_termine: 'Livraison & Terminé',
+  livraison: 'Livraison',
+  termine: 'Terminé',
+};
+
+/**
+ * Create notification for stage change with enhanced formatting
  */
 export async function notifyStageChanged(params: {
   userId: string;
@@ -209,19 +237,27 @@ export async function notifyStageChanged(params: {
   previousStage: string;
   newStage: string;
   createdBy: string;
+  projectName?: string;
 }) {
+  const previousLabel = STAGE_LABELS[params.previousStage] || params.previousStage;
+  const newLabel = STAGE_LABELS[params.newStage] || params.newStage;
+  const displayName = params.projectName || params.clientName;
+
   return createNotification({
     userId: params.userId,
     type: 'stage_changed',
     priority: 'medium',
-    title: 'Changement d\'étape',
-    message: `${params.clientName}: ${params.previousStage} → ${params.newStage}`,
+    title: '📊 Changement d\'étape',
+    message: `${displayName}\n${previousLabel} → ${newLabel}`,
     linkedType: 'client',
     linkedId: params.clientId,
-    linkedName: params.clientName,
+    linkedName: displayName,
     metadata: {
       previousStage: params.previousStage,
       newStage: params.newStage,
+      previousStageLabel: previousLabel,
+      newStageLabel: newLabel,
+      projectName: params.projectName,
     },
     createdBy: params.createdBy,
   });

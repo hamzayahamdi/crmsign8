@@ -2,14 +2,16 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { SettingsIcon, User, Database, Download, Upload, Trash2 } from "lucide-react"
+import { SettingsIcon, User, Database, Download, Upload, Trash2, Calendar, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
 import { RoleGuard } from "@/components/role-guard"
+import { toast } from "sonner"
 
 export default function SettingsPage() {
   const [showConfirm, setShowConfirm] = useState(false)
+  const [isCleaningCalendar, setIsCleaningCalendar] = useState(false)
 
   const handleExportData = () => {
     const storedLeads = localStorage.getItem("signature8-leads")
@@ -55,6 +57,47 @@ export default function SettingsPage() {
     } else {
       setShowConfirm(true)
       setTimeout(() => setShowConfirm(false), 5000)
+    }
+  }
+
+  const handleCleanupCalendar = async () => {
+    if (isCleaningCalendar) return
+
+    setIsCleaningCalendar(true)
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+      
+      const response = await fetch('/api/calendar/cleanup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors du nettoyage')
+      }
+
+      if (data.deletedCount === 0) {
+        toast.success('Aucun événement orphelin trouvé. Le calendrier est propre !')
+      } else {
+        toast.success(
+          `Nettoyage terminé : ${data.deletedCount} événement(s) orphelin(s) supprimé(s) du calendrier`
+        )
+      }
+    } catch (error) {
+      console.error('Error cleaning up calendar:', error)
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Erreur lors du nettoyage du calendrier'
+      )
+    } finally {
+      setIsCleaningCalendar(false)
     }
   }
 
@@ -119,6 +162,42 @@ export default function SettingsPage() {
                     </div>
                   </motion.div>
                 ))}
+
+                {/* Calendar Cleanup */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="glass rounded-lg md:rounded-xl p-4 md:p-6 border border-border/40"
+                >
+                  <div className="flex items-center gap-3 mb-3 md:mb-4">
+                    <Calendar className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                    <div>
+                      <h2 className="text-lg md:text-xl font-semibold text-white">Nettoyage du calendrier</h2>
+                      <p className="text-xs md:text-sm text-muted-foreground">Supprimer les événements orphelins du calendrier (événements liés à des tâches supprimées)</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <Button
+                      onClick={handleCleanupCalendar}
+                      disabled={isCleaningCalendar}
+                      className="w-full justify-start gap-2 bg-transparent h-10 md:h-11 text-sm md:text-base"
+                      variant="outline"
+                    >
+                      {isCleaningCalendar ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Nettoyage en cours...
+                        </>
+                      ) : (
+                        <>
+                          <Calendar className="w-4 h-4" />
+                          Nettoyer le calendrier
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </motion.div>
 
                 {/* Data Management */}
                 <motion.div

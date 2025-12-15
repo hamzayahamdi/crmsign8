@@ -9,7 +9,8 @@ import { Notification } from '@/types/notification';
 import { 
   getNotificationIcon, 
   shouldShowToast, 
-  getNotificationLink 
+  getNotificationLink,
+  getStageChangeData,
 } from '@/lib/notification-utils';
 import { useRouter } from 'next/navigation';
 
@@ -153,8 +154,31 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
 
     try {
+      let description: string | React.ReactNode = notification.message;
+      
+      // Format stage change notifications with enhanced display
+      if (notification.type === 'stage_changed') {
+        const stageData = getStageChangeData(notification);
+        if (stageData) {
+          description = (
+            <div className="space-y-1.5">
+              <div className="font-medium text-white/95">{stageData.projectName}</div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="px-2 py-0.5 rounded bg-slate-700/50 text-slate-300 line-through opacity-60">
+                  {stageData.previousLabel}
+                </span>
+                <span className="text-slate-400">→</span>
+                <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-medium">
+                  {stageData.newLabel}
+                </span>
+              </div>
+            </div>
+          );
+        }
+      }
+
       sonnerToast(notification.title, {
-        description: notification.message,
+        description: description,
         icon: <Icon className={`w-5 h-5 ${iconConfig.color}`} />,
         duration: notification.priority === 'high' ? 8000 : 5000,
         action: link ? {

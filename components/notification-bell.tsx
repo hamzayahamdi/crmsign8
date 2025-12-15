@@ -11,6 +11,7 @@ import {
   getNotificationIcon,
   formatNotificationTime,
   getNotificationLink,
+  getStageChangeData,
 } from '@/lib/notification-utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -213,9 +214,30 @@ export function NotificationBell() {
                               />
                             )}
                           </div>
-                          <p className="text-[12px] font-light text-slate-400 leading-relaxed line-clamp-2 mb-1">
-                            {notification.message}
-                          </p>
+                          <div className="text-[12px] font-light text-slate-400 leading-relaxed mb-1">
+                            {notification.type === 'stage_changed' ? (() => {
+                              const stageData = getStageChangeData(notification);
+                              if (stageData) {
+                                return (
+                                  <div className="space-y-1">
+                                    <div className="font-medium text-white/90">{stageData.projectName}</div>
+                                    <div className="flex items-center gap-2 text-xs">
+                                      <span className="px-2 py-0.5 rounded bg-slate-700/50 text-slate-300 line-through opacity-60">
+                                        {stageData.previousLabel}
+                                      </span>
+                                      <span className="text-slate-400">→</span>
+                                      <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-medium">
+                                        {stageData.newLabel}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return <p className="line-clamp-2">{notification.message}</p>;
+                            })() : (
+                              <p className="line-clamp-2">{notification.message}</p>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] font-light text-slate-500">
                               {formatNotificationTime(notification.createdAt)}

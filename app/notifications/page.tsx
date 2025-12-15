@@ -11,6 +11,7 @@ import {
   formatNotificationTime,
   groupNotificationsByDate,
   getNotificationLink,
+  getStageChangeData,
 } from '@/lib/notification-utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -329,9 +330,9 @@ function NotificationsPageContent() {
                                 )}
                               </AnimatePresence>
                             </div>
-                            <motion.p 
+                            <motion.div 
                               className={cn(
-                                'text-[11px] leading-relaxed mb-1.5 line-clamp-2 transition-colors duration-300',
+                                'text-[11px] leading-relaxed mb-1.5 transition-colors duration-300',
                                 notification.isRead 
                                   ? 'text-blue-300/70' 
                                   : 'text-slate-200 font-medium'
@@ -343,8 +344,29 @@ function NotificationsPageContent() {
                               }}
                               transition={{ duration: 0.3 }}
                             >
-                              {notification.message}
-                            </motion.p>
+                              {notification.type === 'stage_changed' ? (() => {
+                                const stageData = getStageChangeData(notification);
+                                if (stageData) {
+                                  return (
+                                    <div className="space-y-1">
+                                      <div className="font-medium text-white/90">{stageData.projectName}</div>
+                                      <div className="flex items-center gap-2 text-xs">
+                                        <span className="px-2 py-0.5 rounded bg-slate-700/50 text-slate-300 line-through opacity-60">
+                                          {stageData.previousLabel}
+                                        </span>
+                                        <span className="text-slate-400">→</span>
+                                        <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-medium">
+                                          {stageData.newLabel}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return <p className="line-clamp-2">{notification.message}</p>;
+                              })() : (
+                                <p className="line-clamp-2">{notification.message}</p>
+                              )}
+                            </motion.div>
                             <div className="flex items-center justify-between gap-2">
                               <span className={cn(
                                 'text-[10px]',

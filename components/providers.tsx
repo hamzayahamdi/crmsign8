@@ -11,7 +11,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <AuthProvider>
       <NotificationProvider>
         {children}
-        <Toaster position="top-right" richColors />
+        <Toaster 
+          position="top-right" 
+          richColors 
+          expand={true}
+          closeButton={true}
+          toastOptions={{
+            duration: 4000,
+          }}
+        />
         <ShadcnToaster />
         <Analytics />
       </NotificationProvider>

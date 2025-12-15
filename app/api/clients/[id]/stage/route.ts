@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/database";
+import { verify } from "jsonwebtoken";
+import { notifyStageChanged } from "@/lib/notification-creator";
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -342,6 +346,89 @@ export async function POST(
 
     if (fetchError) {
       console.error("[POST /stage] Error fetching updated client:", fetchError);
+    }
+
+    // Create notifications for relevant users (architect, commercial, etc.)
+    try {
+      // Get the user who made the change
+      let currentUserId: string | null = null;
+      try {
+        const decoded = verify(authCookie.value, JWT_SECRET) as { userId: string; email: string; name?: string };
+        currentUserId = decoded.userId;
+      } catch (tokenError) {
+        console.warn("[POST /stage] Could not decode token for notifications:", tokenError);
+      }
+
+      if (updatedClient && currentUserId) {
+        const clientName = updatedClient.nom_projet || updatedClient.nom || "Client";
+        const previousStage = currentStatusForHistory || "inconnu";
+        const newStageLabel = newStage;
+
+        // Get users to notify: architect assigned and commercial
+        const usersToNotify: string[] = [];
+        
+        // Add architect if assigned
+        if (updatedClient.architecte_assigne) {
+          try {
+            const architect = await prisma.user.findFirst({
+              where: {
+                OR: [
+                  { id: updatedClient.architecte_assigne },
+                  { name: { equals: updatedClient.architecte_assigne, mode: 'insensitive' } }
+                ]
+              },
+              select: { id: true }
+            });
+            if (architect && architect.id !== currentUserId) {
+              usersToNotify.push(architect.id);
+            }
+          } catch (architectError) {
+            console.warn("[POST /stage] Could not find architect for notification:", architectError);
+          }
+        }
+
+        // Add commercial if assigned
+        if (updatedClient.commercial_attribue) {
+          try {
+            const commercial = await prisma.user.findFirst({
+              where: {
+                OR: [
+                  { id: updatedClient.commercial_attribue },
+                  { email: updatedClient.commercial_attribue }
+                ]
+              },
+              select: { id: true }
+            });
+            if (commercial && commercial.id !== currentUserId && !usersToNotify.includes(commercial.id)) {
+              usersToNotify.push(commercial.id);
+            }
+          } catch (commercialError) {
+            console.warn("[POST /stage] Could not find commercial for notification:", commercialError);
+          }
+        }
+
+        // Create notifications for all relevant users
+        const notificationPromises = usersToNotify.map(userId =>
+          notifyStageChanged({
+            userId,
+            clientName,
+            clientId,
+            previousStage,
+            newStage: newStageLabel,
+            createdBy: changedBy,
+            projectName: updatedClient.nom_projet || undefined,
+          }).catch(error => {
+            console.error(`[POST /stage] Failed to create notification for user ${userId}:`, error);
+            return null;
+          })
+        );
+
+        await Promise.all(notificationPromises);
+        console.log(`[POST /stage] ✅ Created ${usersToNotify.length} notifications for stage change`);
+      }
+    } catch (notificationError) {
+      // Don't fail the request if notifications fail
+      console.error("[POST /stage] Error creating notifications (non-critical):", notificationError);
     }
 
     return NextResponse.json({

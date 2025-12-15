@@ -218,3 +218,26 @@ export function shouldShowToast(
   console.log('[shouldShowToast] Not showing - filtered out:', { type, priority });
   return false;
 }
+
+/**
+ * Get formatted stage change data for better readability
+ */
+export function getStageChangeData(notification: any): { projectName: string; previousLabel: string; newLabel: string } | null {
+  if (notification.type !== 'stage_changed') {
+    return null;
+  }
+
+  // Try to get stage labels from metadata
+  const previousLabel = notification.metadata?.previousStageLabel || notification.metadata?.previousStage || 'Inconnu';
+  const newLabel = notification.metadata?.newStageLabel || notification.metadata?.newStage || 'Inconnu';
+  
+  // Extract project/client name from message (format: "ProjectName\nPrevious → New")
+  const lines = notification.message.split('\n');
+  const projectName = lines[0] || notification.linkedName || 'Client';
+
+  return {
+    projectName,
+    previousLabel,
+    newLabel,
+  };
+}

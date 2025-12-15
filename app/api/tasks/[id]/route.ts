@@ -196,7 +196,6 @@ export async function DELETE(
 
     const existing = await prisma.task.findUnique({
       where: { id },
-      select: { id: true },
     })
 
     if (!existing) {
@@ -205,6 +204,84 @@ export async function DELETE(
         { success: false, error: 'Tâche non trouvée' },
         { status: 404 }
       )
+    }
+
+    // Find and delete associated calendar events
+    // Calendar events are created with eventType 'suivi_projet' and matching title/assignedTo/startDate
+    let deletedEventsCount = 0
+    try {
+      // Get the user ID for the assignedTo name
+      const assignedUser = await prisma.user.findFirst({
+        where: { name: existing.assignedTo },
+        select: { id: true },
+      })
+
+      if (assignedUser) {
+        // Find calendar events that match this task:
+        // - eventType is 'suivi_projet' (tasks create this type)
+        // - title matches (exact or similar)
+        // - assignedTo matches the user ID
+        // - startDate matches the task's dueDate (within 1 hour tolerance)
+        // - created around the same time as the task (within 5 minutes)
+        const taskStartDate = new Date(existing.dueDate)
+        const taskEndDate = new Date(existing.dueDate)
+        taskEndDate.setHours(taskEndDate.getHours() + 1)
+
+        const taskCreatedStart = new Date(existing.createdAt)
+        taskCreatedStart.setMinutes(taskCreatedStart.getMinutes() - 5)
+        const taskCreatedEnd = new Date(existing.createdAt)
+        taskCreatedEnd.setMinutes(taskCreatedEnd.getMinutes() + 5)
+
+        const associatedEvents = await prisma.calendarEvent.findMany({
+          where: {
+            eventType: 'suivi_projet',
+            assignedTo: assignedUser.id,
+            title: existing.title, // Exact title match
+            startDate: {
+              gte: taskStartDate,
+              lte: taskEndDate,
+            },
+            createdAt: {
+              gte: taskCreatedStart,
+              lte: taskCreatedEnd,
+            },
+          },
+          select: { id: true },
+        })
+
+        if (associatedEvents.length > 0) {
+          const eventIds = associatedEvents.map((e) => e.id)
+          console.log(
+            `[Task Detail API] Found ${associatedEvents.length} associated calendar event(s) to delete:`,
+            eventIds
+          )
+
+          // Delete event reminders first (cascade)
+          await prisma.eventReminder.deleteMany({
+            where: {
+              eventId: { in: eventIds },
+            },
+          })
+
+          // Delete the calendar events
+          await prisma.calendarEvent.deleteMany({
+            where: {
+              id: { in: eventIds },
+            },
+          })
+
+          deletedEventsCount = associatedEvents.length
+          console.log(
+            `[Task Detail API] Deleted ${deletedEventsCount} associated calendar event(s)`
+          )
+        }
+      }
+    } catch (calendarError) {
+      console.error(
+        '[Task Detail API] Error deleting associated calendar events:',
+        calendarError
+      )
+      // Don't fail the task deletion if calendar cleanup fails
     }
 
     await prisma.$transaction(async (tx) => {
@@ -220,7 +297,9 @@ export async function DELETE(
       })
     })
 
-    console.log('[Task Detail API] Task deleted successfully:', id)
+    console.log(
+      `[Task Detail API] Task deleted successfully: ${id} (removed ${deletedEventsCount} calendar event(s))`
+    )
 
     return NextResponse.json({
       success: true,

@@ -60,6 +60,7 @@ export function ClientKanbanBoard({
     const { user } = useAuth()
     const [activeClient, setActiveClient] = useState<Client | null>(null)
     const [pendingId, setPendingId] = useState<string | null>(null)
+    const [pendingOldStatus, setPendingOldStatus] = useState<ProjectStatus | null>(null)
     const [architectNameMap, setArchitectNameMap] = useState<Record<string, string>>({})
     
     // Local state for optimistic updates
@@ -175,20 +176,39 @@ export function ClientKanbanBoard({
 
         const validStatuses = statusMap[statusId] || []
         let clients = filteredClients.filter(c => {
-            // Filter by status
-            if (!validStatuses.includes(c.statutProjet)) return false
             // Exclude the actively dragged card from all columns
             if (activeClient && c.id === activeClient.id) return false
+            
+            // CRITICAL: Exclude pending clients from their OLD status column to prevent duplication
+            // If this is the pending client and we're looking at the OLD column, exclude it
+            if (pendingId && c.id === pendingId && pendingOldStatus) {
+                // Check if this column contains the old status (meaning this is the OLD column)
+                if (validStatuses.includes(pendingOldStatus)) {
+                    return false // Exclude from old column
+                }
+            }
+            
+            // Filter by status (after excluding from old column)
+            if (!validStatuses.includes(c.statutProjet)) return false
+            
             return true
         })
         
-        // Add placeholder if dragging over this column
-        if (placeholderClient && placeholderColumn === statusId) {
-            clients = [...clients, placeholderClient as Client]
+        // Add placeholder only during drag (not after drop)
+        // After drop, the optimistic update handles showing the client in the new column
+        // During drag, show placeholder in the target column
+        if (placeholderClient && placeholderColumn === statusId && activeClient) {
+            // Only add placeholder if we're still dragging (activeClient exists)
+            // and the client is not already in this column from optimistic update
+            const clientIdWithoutPlaceholder = placeholderClient.id.replace('placeholder-', '')
+            const alreadyHasClient = clients.some(c => c.id === clientIdWithoutPlaceholder || c.id === pendingId)
+            if (!alreadyHasClient) {
+                clients = [...clients, placeholderClient as Client]
+            }
         }
         
         return clients
-    }, [filteredClients, placeholderClient, placeholderColumn, activeClient])
+    }, [filteredClients, placeholderClient, placeholderColumn, activeClient, pendingId, pendingOldStatus])
 
     const handleDragStart = (event: DragStartEvent) => {
         const client = localClients.find(c => c.id === event.active.id)
@@ -326,10 +346,18 @@ export function ClientKanbanBoard({
             return
         }
 
+        // Clear placeholder immediately when drop happens (before API call)
+        // The optimistic update will show the client in the new column
+        setPlaceholderClient(null)
+        setPlaceholderColumn(null)
+        
         // Keep placeholder visible and set as pending
+        // CRITICAL: Track old status to exclude from old column during pending state
         setPendingId(clientId)
+        setPendingOldStatus(client.statutProjet)
         
         // Optimistic update - update local state immediately for smooth UX
+        // This moves the client to the new column visually
         const optimisticClient = { ...client, statutProjet: newStatus }
         setLocalClients(prev => 
             prev.map(c => c.id === clientId ? optimisticClient : c)
@@ -367,6 +395,8 @@ export function ClientKanbanBoard({
                 setLocalClients(prev => 
                     prev.map(c => c.id === clientId ? client : c)
                 )
+                setPendingId(null)
+                setPendingOldStatus(null)
                 throw new Error(result.details || result.error || 'Update failed')
             }
 
@@ -393,6 +423,7 @@ export function ClientKanbanBoard({
                 setPlaceholderClient(null)
                 setPlaceholderColumn(null)
                 setPendingId(null)
+                setPendingOldStatus(null)
                 
                 // Update the parent with confirmed data from API
                 onUpdateClient(result.data)
@@ -402,19 +433,74 @@ export function ClientKanbanBoard({
                     finalStatus: result.data.statutProjet
                 })
                 
-                // Show success toast with smooth animation
+                // Show enhanced success toast with stage information
+                const statusLabels: Record<string, string> = {
+                    qualifie: "Qualifié",
+                    nouveau: "Nouveau",
+                    prise_de_besoin: "Prise de besoin",
+                    acompte_recu: "Acompte reçu",
+                    acompte_verse: "Acompte versé",
+                    conception: "Conception",
+                    en_conception: "En conception",
+                    devis_negociation: "Devis/Négociation",
+                    en_validation: "En validation",
+                    accepte: "Accepté",
+                    refuse: "Refusé",
+                    perdu: "Perdu",
+                    annule: "Annulé",
+                    suspendu: "Suspendu",
+                    premier_depot: "Premier dépôt",
+                    projet_en_cours: "Projet en cours",
+                    chantier: "Chantier",
+                    en_chantier: "En chantier",
+                    facture_reglee: "Facture réglée",
+                    livraison_termine: "Livraison & Terminé",
+                    livraison: "Livraison",
+                    termine: "Terminé",
+                }
+                
+                const oldLabel = statusLabels[client.statutProjet] || client.statutProjet
+                const newLabel = statusLabels[newStatus] || newStatus
+                const projectName = client.nomProjet || client.nom
+                
+                console.log('[Kanban] 🎉 Showing success toast:', { projectName, oldLabel, newLabel })
+                
+                // Enhanced toast with better styling to match the design
                 toast.success(
-                    <div className="flex items-center gap-2">
-                        <span className="text-lg">✅</span>
-                        <div>
-                            <p className="font-semibold text-xs">{client.nomProjet || client.nom}</p>
-                            <p className="text-[10px] text-slate-400">Déplacé avec succès</p>
+                    <div className="flex flex-col gap-2.5 py-1">
+                        <div className="flex items-center gap-3">
+                            <div className="flex-shrink-0 w-6 h-6 rounded-md bg-green-500/20 flex items-center justify-center">
+                                <span className="text-green-400 text-sm">✓</span>
+                            </div>
+                            <p className="font-semibold text-sm text-white/95 leading-tight">{projectName}</p>
+                        </div>
+                        <div className="flex items-center gap-2.5 ml-9">
+                            <span className="px-2.5 py-1 rounded-md bg-slate-700/60 text-slate-300 text-xs font-medium line-through opacity-70">
+                                {oldLabel}
+                            </span>
+                            <span className="text-slate-400 text-xs">→</span>
+                            <span className="px-2.5 py-1 rounded-md bg-purple-500/25 text-purple-300 text-xs font-semibold border border-purple-500/30">
+                                {newLabel}
+                            </span>
                         </div>
                     </div>,
                     {
-                        duration: 2500,
+                        duration: 4000,
+                        className: '!bg-green-500/15 !border-green-500/30 backdrop-blur-md shadow-lg',
+                        style: {
+                            background: 'rgba(34, 197, 94, 0.15) !important',
+                            border: '1px solid rgba(34, 197, 94, 0.3) !important',
+                            borderRadius: '12px',
+                            backdropFilter: 'blur(12px)',
+                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                            zIndex: 9999,
+                        },
+                        position: 'top-right',
+                        id: `stage-change-${clientId}-${Date.now()}`,
                     }
                 )
+                
+                console.log('[Kanban] ✅ Toast triggered successfully')
             } else {
                 // Rollback on unexpected response
                 setLocalClients(prev => 
@@ -422,6 +508,8 @@ export function ClientKanbanBoard({
                 )
                 setPlaceholderClient(null)
                 setPlaceholderColumn(null)
+                setPendingId(null)
+                setPendingOldStatus(null)
                 throw new Error('No data returned from API')
             }
         } catch (error) {
@@ -431,6 +519,8 @@ export function ClientKanbanBoard({
             // Clear placeholder on error
             setPlaceholderClient(null)
             setPlaceholderColumn(null)
+            setPendingId(null)
+            setPendingOldStatus(null)
             
             toast.error(
                 <div className="flex items-center gap-2">
@@ -445,7 +535,11 @@ export function ClientKanbanBoard({
                 }
             )
         } finally {
-            setPendingId(null)
+            // Only clear pending state if not already cleared (success case clears it earlier)
+            if (pendingId === clientId) {
+                setPendingId(null)
+                setPendingOldStatus(null)
+            }
             setIsUpdating(false)
         }
     }
