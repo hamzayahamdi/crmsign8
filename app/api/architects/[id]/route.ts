@@ -306,8 +306,8 @@ export async function GET(
     // Filter contacts and ensure they have valid opportunities (not orphaned)
     const architectContacts = allContacts
       .filter(contact =>
-        isAssignedToArchitect(contact.architecteAssigne, architect.id, architectName)
-      )
+      isAssignedToArchitect(contact.architecteAssigne, architect.id, architectName)
+    )
       .map(contact => ({
         ...contact,
         // Filter out any opportunities that might be orphaned (shouldn't happen with cascade, but safety check)
@@ -362,27 +362,27 @@ export async function GET(
           return true
         })
         .map(client => ({
-          id: client.id,
-          nom: client.nom,
-          telephone: client.telephone,
-          ville: client.ville,
-          typeProjet: client.typeProjet,
-          architecteAssigne: client.architecteAssigne,
-          statutProjet: client.statutProjet,
-          derniereMaj: client.derniereMaj.toISOString(),
-          leadId: client.leadId,
-          email: client.email,
-          adresse: client.adresse,
-          budget: client.budget ? Number(client.budget) : 0,
-          notes: client.notes,
-          magasin: client.magasin,
-          commercialAttribue: client.commercialAttribue,
-          createdAt: client.createdAt.toISOString(),
-          updatedAt: client.updatedAt.toISOString(),
-          isContact: false,
-          contactId: undefined,
-          opportunityId: undefined
-        })),
+        id: client.id,
+        nom: client.nom,
+        telephone: client.telephone,
+        ville: client.ville,
+        typeProjet: client.typeProjet,
+        architecteAssigne: client.architecteAssigne,
+        statutProjet: client.statutProjet,
+        derniereMaj: client.derniereMaj.toISOString(),
+        leadId: client.leadId,
+        email: client.email,
+        adresse: client.adresse,
+        budget: client.budget ? Number(client.budget) : 0,
+        notes: client.notes,
+        magasin: client.magasin,
+        commercialAttribue: client.commercialAttribue,
+        createdAt: client.createdAt.toISOString(),
+        updatedAt: client.updatedAt.toISOString(),
+        isContact: false,
+        contactId: undefined,
+        opportunityId: undefined
+      })),
       // Contacts with opportunities (transform to opportunity-based clients)
       // Filter out any opportunities that don't have valid IDs or titles (orphaned records)
       // IMPORTANT: Verify each opportunity still exists in the database before including it
@@ -397,33 +397,33 @@ export async function GET(
             return true // The opportunity is already validated by Prisma relations
           })
           .map(opportunity => ({
-            id: `${contact.id}-${opportunity.id}`, // Composite ID format
-            nom: contact.nom,
-            telephone: contact.telephone,
-            ville: contact.ville || '',
-            typeProjet: opportunity.type as any,
-            architecteAssigne: contact.architecteAssigne || '',
-            statutProjet: opportunity.pipelineStage === 'perdue' ? 'perdu' :
-              opportunity.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
-                opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                  opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                    opportunity.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
-                      'projet_en_cours',
-            derniereMaj: opportunity.updatedAt ? opportunity.updatedAt.toISOString() : contact.updatedAt.toISOString(),
-            leadId: contact.leadId || undefined,
-            email: contact.email || undefined,
-            adresse: contact.adresse || undefined,
-            budget: opportunity.budget ? Number(opportunity.budget) : 0,
-            notes: contact.notes || undefined,
-            magasin: contact.magasin || undefined,
-            commercialAttribue: undefined,
-            createdAt: contact.createdAt.toISOString(),
-            updatedAt: contact.updatedAt.toISOString(),
-            isContact: true,
-            contactId: contact.id,
-            opportunityId: opportunity.id,
-            nomProjet: opportunity.titre
-          }))
+          id: `${contact.id}-${opportunity.id}`, // Composite ID format
+          nom: contact.nom,
+          telephone: contact.telephone,
+          ville: contact.ville || '',
+          typeProjet: opportunity.type as any,
+          architecteAssigne: contact.architecteAssigne || '',
+          statutProjet: opportunity.pipelineStage === 'perdue' ? 'perdu' :
+            opportunity.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
+              opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                  opportunity.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
+                    'projet_en_cours',
+          derniereMaj: opportunity.updatedAt ? opportunity.updatedAt.toISOString() : contact.updatedAt.toISOString(),
+          leadId: contact.leadId || undefined,
+          email: contact.email || undefined,
+          adresse: contact.adresse || undefined,
+          budget: opportunity.budget ? Number(opportunity.budget) : 0,
+          notes: contact.notes || undefined,
+          magasin: contact.magasin || undefined,
+          commercialAttribue: undefined,
+          createdAt: contact.createdAt.toISOString(),
+          updatedAt: contact.updatedAt.toISOString(),
+          isContact: true,
+          contactId: contact.id,
+          opportunityId: opportunity.id,
+          nomProjet: opportunity.titre
+        }))
       ),
       // Opportunities (as clients for display)
       // Filter out any opportunities without valid contacts (orphaned records)
@@ -435,35 +435,35 @@ export async function GET(
           opportunity.titre
         )
         .map(opportunity => ({
-          id: `${opportunity.contactId}-${opportunity.id}`, // Composite ID format for opportunity-based clients
-          nom: opportunity.contact.nom,
-          telephone: opportunity.contact.telephone,
-          ville: opportunity.contact.ville || '',
-          typeProjet: opportunity.type as any,
-          architecteAssigne: opportunity.architecteAssigne || '',
-          statutProjet: opportunity.statut === 'won' ? 'projet_en_cours' :
-            opportunity.statut === 'lost' ? 'perdu' :
-              opportunity.pipelineStage === 'perdue' ? 'perdu' :
-                opportunity.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
-                  opportunity.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
-                    opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                      opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                        'projet_en_cours',
-          derniereMaj: opportunity.updatedAt.toISOString(),
-          leadId: undefined,
-          email: opportunity.contact.email || undefined,
-          adresse: undefined,
-          budget: opportunity.budget ? Number(opportunity.budget) : 0,
-          notes: opportunity.notes || undefined,
-          magasin: undefined,
-          commercialAttribue: undefined,
-          createdAt: opportunity.createdAt.toISOString(),
-          updatedAt: opportunity.updatedAt.toISOString(),
-          isContact: true, // Mark as contact-based to distinguish from legacy clients
-          contactId: opportunity.contactId,
-          opportunityId: opportunity.id,
-          nomProjet: opportunity.titre
-        }))
+        id: `${opportunity.contactId}-${opportunity.id}`, // Composite ID format for opportunity-based clients
+        nom: opportunity.contact.nom,
+        telephone: opportunity.contact.telephone,
+        ville: opportunity.contact.ville || '',
+        typeProjet: opportunity.type as any,
+        architecteAssigne: opportunity.architecteAssigne || '',
+        statutProjet: opportunity.statut === 'won' ? 'projet_en_cours' :
+          opportunity.statut === 'lost' ? 'perdu' :
+            opportunity.pipelineStage === 'perdue' ? 'perdu' :
+              opportunity.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
+                opportunity.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
+                  opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                    opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                      'projet_en_cours',
+        derniereMaj: opportunity.updatedAt.toISOString(),
+        leadId: undefined,
+        email: opportunity.contact.email || undefined,
+        adresse: undefined,
+        budget: opportunity.budget ? Number(opportunity.budget) : 0,
+        notes: opportunity.notes || undefined,
+        magasin: undefined,
+        commercialAttribue: undefined,
+        createdAt: opportunity.createdAt.toISOString(),
+        updatedAt: opportunity.updatedAt.toISOString(),
+        isContact: true, // Mark as contact-based to distinguish from legacy clients
+        contactId: opportunity.contactId,
+        opportunityId: opportunity.id,
+        nomProjet: opportunity.titre
+      }))
     ]
 
     // Remove duplicates based on opportunityId (for opportunities) or id (for legacy clients)

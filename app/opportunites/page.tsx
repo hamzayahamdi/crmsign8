@@ -615,11 +615,17 @@ export default function OpportunitiesPage() {
                       {filters.statut !== "all" && (
                         <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5">
                           Statut: {
-                            filters.statut === "nouveau" ? "Nouveau" :
-                              filters.statut === "acompte_verse" ? "Acompte versé" :
-                                filters.statut === "en_conception" ? "En conception" :
-                                  filters.statut === "en_chantier" ? "En chantier" :
-                                    filters.statut === "livraison" ? "Livraison" : "Terminé"
+                            filters.statut === "qualifie" ? "Qualifié" :
+                              filters.statut === "prise_de_besoin" ? "Prise de besoin" :
+                                filters.statut === "acompte_recu" ? "Acompte reçu" :
+                                  filters.statut === "conception" ? "Conception" :
+                                    filters.statut === "devis_negociation" ? "Devis/Négociation" :
+                                      filters.statut === "accepte" ? "Accepté" :
+                                        filters.statut === "premier_depot" ? "1er Dépôt" :
+                                          filters.statut === "projet_en_cours" ? "Projet en cours" :
+                                            filters.statut === "chantier" ? "Chantier" :
+                                              filters.statut === "facture_reglee" ? "Facture réglée" :
+                                                filters.statut === "livraison_termine" ? "Livraison & Terminé" : filters.statut
                           }
                           <button onClick={() => removeFilter('statut')} className="hover:text-primary/70">
                             <X className="w-2.5 h-2.5" />
@@ -666,17 +672,19 @@ export default function OpportunitiesPage() {
                           <SelectTrigger className="h-7 text-xs bg-slate-800/70 border border-slate-600/40 text-white">
                             <SelectValue placeholder="Tous les statuts" />
                           </SelectTrigger>
-                          <SelectContent className="border border-slate-600/40 bg-slate-900/95 text-white">
+                          <SelectContent className="border border-slate-600/40 bg-slate-900/95 text-white max-h-[400px] overflow-y-auto">
                             <SelectItem value="all" className="text-xs">Tous les statuts</SelectItem>
-                            <SelectItem value="nouveau" className="text-xs">Nouveau</SelectItem>
-                            <SelectItem value="acompte_verse" className="text-xs">Acompte versé</SelectItem>
-                            <SelectItem value="en_conception" className="text-xs">En conception</SelectItem>
-                            <SelectItem value="en_validation" className="text-xs">En validation</SelectItem>
-                            <SelectItem value="en_chantier" className="text-xs">En chantier</SelectItem>
-                            <SelectItem value="livraison" className="text-xs">Livraison</SelectItem>
-                            <SelectItem value="termine" className="text-xs">Terminé</SelectItem>
-                            <SelectItem value="annule" className="text-xs">Annulé</SelectItem>
-                            <SelectItem value="suspendu" className="text-xs">Suspendu</SelectItem>
+                            <SelectItem value="qualifie" className="text-xs">Qualifié</SelectItem>
+                            <SelectItem value="prise_de_besoin" className="text-xs">Prise de besoin</SelectItem>
+                            <SelectItem value="acompte_recu" className="text-xs">Acompte reçu</SelectItem>
+                            <SelectItem value="conception" className="text-xs">Conception</SelectItem>
+                            <SelectItem value="devis_negociation" className="text-xs">Devis/Négociation</SelectItem>
+                            <SelectItem value="accepte" className="text-xs">Accepté</SelectItem>
+                            <SelectItem value="premier_depot" className="text-xs">1er Dépôt</SelectItem>
+                            <SelectItem value="projet_en_cours" className="text-xs">Projet en cours</SelectItem>
+                            <SelectItem value="chantier" className="text-xs">Chantier</SelectItem>
+                            <SelectItem value="facture_reglee" className="text-xs">Facture réglée</SelectItem>
+                            <SelectItem value="livraison_termine" className="text-xs">Livraison & Terminé</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

@@ -398,6 +398,21 @@
     animation: page-enter 0.3s ease-out;
   }
 
+  /* Smooth animations and transitions */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Optimize animations for performance */
+  [data-framer-motion],
+  [data-notification-dropdown] {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
   /* Responsive Modal Styles */
   [role="dialog"],
   [role="alertdialog"] {

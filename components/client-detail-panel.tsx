@@ -273,10 +273,16 @@ export function ClientDetailPanel({
 
           {/* Slide-over Panel */}
           <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            initial={{ x: '100%', opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: '100%', opacity: 0 }}
+            transition={{ 
+              type: 'spring', 
+              damping: 30, 
+              stiffness: 300,
+              mass: 0.7
+            }}
+            style={{ willChange: 'transform' }}
             className="fixed right-0 top-0 bottom-0 w-full max-w-2xl bg-[oklch(22%_0.03_260)] border-l border-slate-600/30 shadow-2xl z-50 overflow-hidden flex flex-col"
           >
             {/* Header */}

@@ -64,7 +64,7 @@ export function Header({
   }
 
   return (
-    <header className="bg-[rgb(13,17,28)]/90 backdrop-blur-xl border-b border-[rgb(30,41,59)] px-4 md:px-6 py-3 md:py-4 sticky top-0">
+    <header className="bg-[rgb(13,17,28)]/90 backdrop-blur-xl border-b border-[rgb(30,41,59)] px-4 md:px-6 py-3 md:py-4 sticky top-0 z-[100]">
       <div className="flex items-center justify-between gap-2 md:gap-4">
         {/* Mobile Menu Toggle */}
         <button

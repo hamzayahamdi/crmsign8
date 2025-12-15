@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, CheckCheck, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { useNotifications } from '@/contexts/notification-context';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -11,11 +12,6 @@ import {
   formatNotificationTime,
   getNotificationLink,
 } from '@/lib/notification-utils';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function NotificationBell() {
@@ -84,30 +80,56 @@ export function NotificationBell() {
   // Get recent notifications (last 10)
   const recentNotifications = notifications.slice(0, 10);
 
-  return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <button
-          className="relative h-9 w-9 md:h-10 md:w-10 rounded-full hover:bg-slate-800/50 transition-colors flex items-center justify-center"
-        >
-          <Bell className="h-4 w-4 md:h-5 md:w-5 text-slate-300" />
-          {unreadCount > 0 && (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 min-w-[18px] h-[18px] md:min-w-[20px] md:h-5 px-1 rounded-full bg-blue-500 text-white text-[10px] md:text-xs font-medium flex items-center justify-center shadow-lg shadow-blue-500/30 ring-2 ring-[rgb(13,17,28)]"
-            >
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </motion.span>
-          )}
-        </button>
-      </PopoverTrigger>
+  // Close on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (isOpen && !target.closest('[data-notification-dropdown]') && !target.closest('[data-notification-trigger]')) {
+        setIsOpen(false);
+      }
+    };
 
-      <PopoverContent
-        align="end"
-        className="w-[calc(100vw-2rem)] sm:w-[380px] max-w-[380px] p-0 bg-[rgb(11,14,24)] border border-slate-700/50 shadow-2xl rounded-lg overflow-hidden"
-        sideOffset={8}
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  return (
+    <div className="relative z-[10000]" data-notification-dropdown>
+      <button
+        data-notification-trigger
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative h-9 w-9 md:h-10 md:w-10 rounded-full hover:bg-slate-800/50 transition-colors flex items-center justify-center"
       >
+        <Bell className="h-4 w-4 md:h-5 md:w-5 text-slate-300" />
+        {unreadCount > 0 && (
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 min-w-[18px] h-[18px] md:min-w-[20px] md:h-5 px-1 rounded-full bg-blue-500 text-white text-[10px] md:text-xs font-medium flex items-center justify-center shadow-lg shadow-blue-500/30 ring-2 ring-[rgb(13,17,28)]"
+          >
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </motion.span>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 30,
+              mass: 0.5,
+            }}
+            className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-[380px] max-w-[380px] bg-[rgb(11,14,24)] border border-slate-700/50 shadow-2xl rounded-lg overflow-hidden z-[10000]"
+            style={{ transformOrigin: 'top right' }}
+          >
         {/* Header - Facebook style */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30 bg-[rgb(11,14,24)]">
           <h3 className="text-[15px] font-semibold text-white">Notifications</h3>
@@ -146,10 +168,14 @@ export function NotificationBell() {
                     <motion.div
                       key={notification.id}
                       layout
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.15 }}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10, height: 0 }}
+                      transition={{ 
+                        duration: 0.2,
+                        ease: [0.4, 0, 0.2, 1],
+                        layout: { duration: 0.3 }
+                      }}
                       onMouseEnter={() => handleNotificationHover(notification)}
                       onMouseLeave={() => handleNotificationLeave(notification.id)}
                       onClick={() => handleNotificationClick(notification)}
@@ -232,7 +258,9 @@ export function NotificationBell() {
             </button>
           </div>
         )}
-      </PopoverContent>
-    </Popover>
+      </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

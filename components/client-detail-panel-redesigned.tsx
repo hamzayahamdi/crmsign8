@@ -497,11 +497,12 @@ export function ClientDetailPanelRedesigned({
             exit={{ x: "100%", opacity: 0 }}
             transition={{
               type: "spring",
-              damping: 35,
-              stiffness: 350,
-              mass: 0.8,
+              damping: 30,
+              stiffness: 300,
+              mass: 0.7,
             }}
             className="fixed right-0 top-0 h-full w-full md:w-[800px] lg:w-[900px] bg-[#0D0D12] shadow-2xl z-50 flex flex-col"
+            style={{ willChange: 'transform' }}
           >
             {/* Header */}
             <div className="relative border-b border-white/5 bg-gradient-to-b from-[#171B22] to-[#0D0D12]">

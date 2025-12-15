@@ -267,8 +267,8 @@ export async function GET(request: NextRequest) {
       // Filter contacts and ensure they have valid opportunities (not orphaned)
       const architectContacts = contacts
         .filter(contact =>
-          isAssignedToArchitect(contact.architecteAssigne, architect.id, architectName)
-        )
+        isAssignedToArchitect(contact.architecteAssigne, architect.id, architectName)
+      )
         .map(contact => ({
           ...contact,
           // Filter out any opportunities that might be orphaned (shouldn't happen with cascade, but safety check)
@@ -335,28 +335,28 @@ export async function GET(request: NextRequest) {
           c.opportunities
             .filter(o => validOpportunityIds.has(o.id)) // Only include valid opportunities
             .map(o => ({
-              type: 'contact_opportunity' as const,
-              statut: o.pipelineStage === 'perdue' ? 'perdu' :
-                o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
-                  o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                    o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                      o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
-                        'projet_en_cours'
-            }))
+            type: 'contact_opportunity' as const,
+            statut: o.pipelineStage === 'perdue' ? 'perdu' :
+              o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
+                o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                  o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                    o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
+                      'projet_en_cours'
+          }))
         ),
         // Direct opportunities - already filtered to exclude those in contacts
         ...architectOpportunities
           .filter(o => validOpportunityIds.has(o.id)) // Only include valid opportunities
           .map(o => ({
-            type: 'opportunity' as const,
-            statut: o.statut === 'won' ? 'projet_en_cours' : o.statut === 'lost' ? 'perdu' :
-              o.pipelineStage === 'perdue' ? 'perdu' :
-                o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
-                  o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
-                    o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                      o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                        'projet_en_cours'
-          }))
+          type: 'opportunity' as const,
+          statut: o.statut === 'won' ? 'projet_en_cours' : o.statut === 'lost' ? 'perdu' :
+            o.pipelineStage === 'perdue' ? 'perdu' :
+              o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
+                o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
+                  o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                    o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                      'projet_en_cours'
+        }))
       ]
 
       const totalDossiers = allDossiers.length
@@ -400,8 +400,8 @@ export async function GET(request: NextRequest) {
         isDisponible, // New field to indicate availability
       // Breakdown by source (use valid clients count)
       clientsCount: validArchitectClients.length,
-      contactsCount: architectContacts.reduce((sum, c) => sum + c.opportunities.length, 0), // Count opportunities within contacts
-      opportunitiesCount: architectOpportunities.length
+        contactsCount: architectContacts.reduce((sum, c) => sum + c.opportunities.length, 0), // Count opportunities within contacts
+        opportunitiesCount: architectOpportunities.length
       }
     })
 

@@ -397,9 +397,24 @@ export default function ContactPage() {
 
   // Allow creating opportunities if contact status is 'qualifie' or higher
   // Contacts can create opportunities once they're qualified
-  const canCreateOpportunity = contact.status === 'qualifie' ||
-    contact.status === 'prise_de_besoin' ||
-    contact.status === 'acompte_recu'
+  // Check if acompte has been received
+  const hasAcompteReceived = () => {
+    const payments = (contact as any).payments || []
+    const hasAcomptePayment = payments.some((p: any) => p.type === 'accompte')
+
+    // Also check if any opportunity has acompte_recu stage
+    const hasAcompteOpportunity = contact.opportunities?.some(
+      (opp: any) => opp.pipelineStage === 'acompte_recu'
+    )
+
+    // Check if contact status is acompte_recu
+    const hasAcompteStatus = contact.status === 'acompte_recu'
+
+    return hasAcomptePayment || hasAcompteOpportunity || hasAcompteStatus
+  }
+
+  // Button is enabled only when acompte has been received
+  const canCreateOpportunity = hasAcompteReceived()
 
   // Check if there's an opportunity with acompte payment
   const hasAcomptePayment = () => {
@@ -582,21 +597,19 @@ export default function ContactPage() {
                         </Button>
                       )}
 
-                      {/* Create Opportunity button - Enabled when status is 'qualifie' or higher */}
-                      {(!contact.opportunities || contact.opportunities.length === 0) && (
-                        <Button
-                          onClick={() => setIsCreateOpportunityModalOpen(true)}
-                          disabled={!canCreateOpportunity}
-                          className={`h-8 px-3 rounded-lg font-light text-xs ${canCreateOpportunity
-                            ? 'bg-primary hover:bg-primary/90 text-white shadow-[0_12px_40px_-24px_rgba(59,130,246,0.9)]'
-                            : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50'
-                            }`}
-                        >
-                          <Plus className="w-3.5 h-3.5 mr-1.5" />
-                          <span className="hidden sm:inline">Créer Opportunité</span>
-                          <span className="sm:hidden">+</span>
-                        </Button>
-                      )}
+                      {/* Create Opportunity button - Always visible when status is 'qualifie' or higher */}
+                      <Button
+                        onClick={() => setIsCreateOpportunityModalOpen(true)}
+                        disabled={!canCreateOpportunity}
+                        className={`h-8 px-3 rounded-lg font-light text-xs ${canCreateOpportunity
+                          ? 'bg-primary hover:bg-primary/90 text-white shadow-[0_12px_40px_-24px_rgba(59,130,246,0.9)]'
+                          : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50'
+                          }`}
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1.5" />
+                        <span className="hidden sm:inline">Créer Opportunité</span>
+                        <span className="sm:hidden">+</span>
+                      </Button>
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
