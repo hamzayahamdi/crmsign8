@@ -207,6 +207,21 @@ export function ContactsTable({
     return labels[type] || type
   }
 
+  // Helper function to get contact initials for avatar
+  const getContactInitials = (nom: string | null | undefined): string => {
+    if (!nom) return '?'
+    const trimmed = nom.trim()
+    if (!trimmed) return '?'
+    // Get first character of the first word (handles names like "Omar Bouizargan" or " Omar Bouizargan ")
+    const firstChar = trimmed.charAt(0)
+    if (!firstChar || firstChar === ' ') {
+      // If first char is space, find first non-space character
+      const match = trimmed.match(/\S/)
+      return match ? match[0].toUpperCase() : '?'
+    }
+    return firstChar.toUpperCase()
+  }
+
   // Lead Status helpers
   const getLeadStatusLabel = (status: LeadStatus) => {
     const labels: Record<LeadStatus, string> = {
@@ -424,7 +439,7 @@ export function ContactsTable({
               {/* Header */}
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center shrink-0 font-bold text-primary text-xs border border-primary/30">
-                  {contact.nom.charAt(0).toUpperCase()}
+                  {getContactInitials(contact.nom)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -628,7 +643,7 @@ export function ContactsTable({
                     <td className="px-3 py-2">
                       <div className="flex items-start gap-2">
                         <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0 font-bold text-primary text-xs border border-primary/30">
-                          {contact.nom.charAt(0).toUpperCase()}
+                          {getContactInitials(contact.nom)}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 mb-0.5">

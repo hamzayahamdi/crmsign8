@@ -510,7 +510,7 @@ export default function ContactPage() {
                     <div className="flex items-start gap-3 flex-1 min-w-[200px]">
                       {/* Avatar */}
                       <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-sm font-medium shrink-0">
-                        {contact.nom.charAt(0).toUpperCase()}
+                        {contact.nom?.trim()?.charAt(0)?.toUpperCase() || '?'}
                       </div>
 
                       {/* Contact Info */}

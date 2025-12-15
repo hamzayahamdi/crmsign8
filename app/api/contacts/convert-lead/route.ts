@@ -123,8 +123,37 @@ export async function POST(request: NextRequest) {
       console.log(`[Convert Lead] Contact already exists for this leadId:`, {
         leadId: lead.id,
         contactId: existingContactByLeadId.id,
-        contactNom: existingContactByLeadId.nom
+        contactNom: existingContactByLeadId.nom,
+        currentStatus: existingContactByLeadId.status,
+        currentLeadStatus: existingContactByLeadId.leadStatus
       });
+      
+      // CRITICAL: Ensure the existing contact has the correct status
+      // Business rule: All contacts converted from leads must have status 'qualifie' and leadStatus 'qualifie'
+      if (existingContactByLeadId.status !== 'qualifie' || existingContactByLeadId.leadStatus !== 'qualifie') {
+        console.log(`[Convert Lead] ⚠️ Existing contact has incorrect status. Updating to 'qualifie'...`);
+        const updatedContact = await prisma.contact.update({
+          where: { id: existingContactByLeadId.id },
+          data: {
+            status: 'qualifie',
+            leadStatus: 'qualifie'
+          }
+        });
+        console.log(`[Convert Lead] ✅ Updated existing contact status to 'qualifie'`);
+        
+        // Update the lead's convertedToContactId field for consistency
+        await prisma.lead.update({
+          where: { id: lead.id },
+          data: { convertedToContactId: updatedContact.id }
+        });
+        
+        return NextResponse.json({
+          success: true,
+          contact: updatedContact,
+          message: `Lead "${lead.nom}" was already converted to contact "${updatedContact.nom}". Status updated to "Qualifié".`,
+          alreadyConverted: true,
+        });
+      }
       
       // Update the lead's convertedToContactId field for consistency
       await prisma.lead.update({
@@ -164,7 +193,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Prepare contact data with campaignName and commercialMagasin
-    // IMPORTANT: Status must always be 'qualifie' when converting from lead
+    // IMPORTANT: Status must ALWAYS be 'qualifie' when converting from lead to contact
+    // This is a business rule: all converted contacts start with "Qualifié" status
     const contactData: any = {
       nom: lead.nom,
       telephone: lead.telephone,
@@ -176,18 +206,23 @@ export async function POST(request: NextRequest) {
       source: lead.source, // Store source directly on contact
       architecteAssigne: architecteName || undefined,
       tag: 'converted',
-      status: 'qualifie', // Automatically set to 'qualifie' when converting from lead (REQUIRED)
+      status: 'qualifie', // ALWAYS 'qualifie' when converting from lead to contact (REQUIRED BUSINESS RULE)
       notes: lead.message || undefined,
       magasin: lead.magasin || undefined,
-      leadStatus: 'qualifie', // Store the updated lead status (now 'qualifie')
+      leadStatus: 'qualifie', // ALWAYS 'qualifie' when converting from lead (REQUIRED BUSINESS RULE)
       createdBy: userId,
       convertedBy: userId, // Track who converted the lead
     };
     
-    // Validation: Ensure status is always 'qualifie' for converted contacts
-    if (contactData.status !== 'qualifie') {
-      console.warn(`[Convert Lead] ⚠️ Status was not 'qualifie', forcing it to 'qualifie'. Was: ${contactData.status}`);
+    // CRITICAL VALIDATION: Force status and leadStatus to 'qualifie' for all converted contacts
+    // This ensures the business rule is always enforced, even if something tries to override it
+    contactData.status = 'qualifie';
+    contactData.leadStatus = 'qualifie';
+    
+    if (contactData.status !== 'qualifie' || contactData.leadStatus !== 'qualifie') {
+      console.error(`[Convert Lead] ❌ CRITICAL: Status validation failed! Forcing both to 'qualifie'. Status: ${contactData.status}, LeadStatus: ${contactData.leadStatus}`);
       contactData.status = 'qualifie';
+      contactData.leadStatus = 'qualifie';
     }
 
     // Only add campaignName and commercialMagasin if they exist (to avoid null issues)
