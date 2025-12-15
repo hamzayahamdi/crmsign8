@@ -499,6 +499,28 @@ export async function DELETE(
       return NextResponse.json({ error: 'Opportunity not found' }, { status: 404 });
     }
 
+    // Before deleting, find and delete any legacy clients with composite IDs referencing this opportunity
+    // Composite ID format: contactId-opportunityId
+    const compositeIdPattern = `${opportunity.contactId}-${id}`;
+    
+    try {
+      // Try to find and delete legacy client with this composite ID
+      const legacyClient = await prisma.client.findUnique({
+        where: { id: compositeIdPattern },
+      });
+
+      if (legacyClient) {
+        await prisma.client.delete({
+          where: { id: compositeIdPattern },
+        });
+        console.log(`[DELETE /api/opportunities/[id]] ✅ Deleted legacy client with composite ID: ${compositeIdPattern}`);
+      }
+    } catch (clientErr) {
+      // If client doesn't exist or error occurs, continue with opportunity deletion
+      console.log(`[DELETE /api/opportunities/[id]] Legacy client not found or already deleted: ${compositeIdPattern}`);
+    }
+
+    // Delete the opportunity - Prisma cascade will handle related records (tasks, documents, timeline, appointments)
     await prisma.opportunity.delete({
       where: { id },
     });

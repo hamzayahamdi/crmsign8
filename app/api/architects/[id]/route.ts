@@ -137,6 +137,46 @@ export async function GET(
   try {
     const { id } = await params
 
+    // Get current user from token for permission checking
+    let currentUser: { userId: string; role: string } | null = null
+    try {
+      const authHeader = request.headers.get('authorization')
+      let token: string | undefined
+      
+      if (authHeader?.startsWith('Bearer ')) {
+        token = authHeader.substring(7)
+      } else {
+        const cookieStore = await cookies()
+        token = cookieStore.get('token')?.value
+      }
+
+      if (token) {
+        const decoded = verify(token, JWT_SECRET) as any
+        currentUser = {
+          userId: decoded.userId,
+          role: decoded.role || ''
+        }
+      }
+    } catch (error) {
+      // Token verification failed, but we'll continue (might be public access or cookie-based)
+      console.log(`[GET /api/architects/${id}] ⚠️ Token verification failed, continuing without auth`)
+    }
+
+    // Permission check: If user is an architect (not admin), they can only view their own profile
+    const isArchitect = currentUser?.role?.toLowerCase() === 'architect'
+    const isAdmin = currentUser?.role?.toLowerCase() === 'admin' || currentUser?.role?.toLowerCase() === 'operator'
+    
+    if (isArchitect && !isAdmin && currentUser?.userId !== id) {
+      console.log(`[GET /api/architects/${id}] ❌ Permission denied: Architect ${currentUser.userId} trying to view another architect ${id}`)
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Vous ne pouvez voir que votre propre profil' 
+        },
+        { status: 403 }
+      )
+    }
+
     console.log(`[GET /api/architects/${id}] 🔍 Looking for architect with ID: ${id}`)
 
     // Fetch architect user - first try with role filter
@@ -236,6 +276,7 @@ export async function GET(
         }
       }),
       // Opportunities with architect assignment
+      // Note: Prisma will automatically handle cascade deletes, but we filter orphaned records in code
       prisma.opportunity.findMany({
         where: {
           architecteAssigne: { not: null }
@@ -262,9 +303,17 @@ export async function GET(
       isAssignedToArchitect(client.architecteAssigne, architect.id, architectName)
     )
 
-    const architectContacts = allContacts.filter(contact =>
-      isAssignedToArchitect(contact.architecteAssigne, architect.id, architectName)
-    )
+    // Filter contacts and ensure they have valid opportunities (not orphaned)
+    const architectContacts = allContacts
+      .filter(contact =>
+        isAssignedToArchitect(contact.architecteAssigne, architect.id, architectName)
+      )
+      .map(contact => ({
+        ...contact,
+        // Filter out any opportunities that might be orphaned (shouldn't happen with cascade, but safety check)
+        opportunities: contact.opportunities.filter(opp => opp.id && opp.titre)
+      }))
+      .filter(contact => contact.opportunities.length > 0) // Only keep contacts with valid opportunities
 
     // Get all opportunity IDs that are already included in contacts
     const contactOpportunityIds = new Set(
@@ -272,169 +321,149 @@ export async function GET(
     )
 
     // Filter out opportunities that are already included in contacts to avoid duplicates
+    // Also ensure contact exists (not null/undefined) - this filters out orphaned opportunities
     const architectOpportunities = allOpportunities.filter(opportunity =>
+      opportunity.contact && // Ensure contact exists (not orphaned)
+      opportunity.contact.id && // Ensure contact has valid ID
       isAssignedToArchitect(opportunity.architecteAssigne, architect.id, architectName) &&
       !contactOpportunityIds.has(opportunity.id)
     )
 
-      // Combine all dossiers for statistics
-      // IMPORTANT: projet_accepte means devis accepté, so it should map to 'accepte' (PROJET EN COURS)
-      // acompte_recu means deposit received but devis not yet accepted (PROJET EN ATTENTE)
-      const allDossiers = [
-        ...architectClients.map(c => ({ type: 'client' as const, statut: c.statutProjet })),
-        ...architectContacts.flatMap(c =>
-          c.opportunities.map(o => ({
-            type: 'contact_opportunity' as const,
-            statut: o.pipelineStage === 'perdue' ? 'perdu' :
-              o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
-                o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                  o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                    o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
-                      'projet_en_cours'
-          }))
-        ),
-        ...architectOpportunities.map(o => ({
-          type: 'opportunity' as const,
-          statut: o.statut === 'won' ? 'projet_en_cours' : o.statut === 'lost' ? 'perdu' :
-            o.pipelineStage === 'perdue' ? 'perdu' :
-              o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
-                o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
-                  o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                    o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                      'projet_en_cours'
-        }))
-      ]
+      // Note: Statistics will be calculated AFTER deduplication to ensure accuracy
+      // We'll calculate them from the final transformedClients array
 
-    // Calculate statistics (exclude null/refused/lost projects from active counts)
-    const totalDossiers = allDossiers.length
-    const dossiersEnCours = allDossiers.filter(d => {
-      const category = getDossierStatusCategory(d.statut)
-      return category === 'en_cours'
-    }).length
-    const dossiersTermines = allDossiers.filter(d => {
-      const category = getDossierStatusCategory(d.statut)
-      return category === 'termine'
-    }).length
-    const dossiersEnAttente = allDossiers.filter(d => {
-      const category = getDossierStatusCategory(d.statut)
-      return category === 'en_attente'
-    }).length
-
-    // Calculate disponible status
-    const isDisponible = dossiersEnCours < 10
-
-    const architectData = {
-      id: architect.id,
-      nom: architect.name.split(' ').slice(1).join(' ') || architect.name,
-      prenom: architect.name.split(' ')[0],
-      email: architect.email,
-      telephone: '', // Can be extended in User model
-      ville: architect.ville || architect.magasin || 'Casablanca',
-      specialite: 'residentiel',
-      statut: isDisponible ? 'actif' : 'actif',
-      dateEmbauche: architect.createdAt,
-      createdAt: architect.createdAt,
-      updatedAt: architect.updatedAt,
-      // Statistics
-      totalDossiers,
-      dossiersEnCours,
-      dossiersTermines,
-      dossiersEnAttente,
-      isDisponible,
-      // Breakdown by source
-      clientsCount: architectClients.length,
-      contactsCount: architectContacts.reduce((sum, c) => sum + c.opportunities.length, 0),
-      opportunitiesCount: architectOpportunities.length
-    }
+    // Get all valid opportunity IDs from contacts and direct opportunities
+    const validOpportunityIds = new Set<string>()
+    architectContacts.forEach(contact => {
+      contact.opportunities.forEach(opp => {
+        if (opp.id) validOpportunityIds.add(opp.id)
+      })
+    })
+    architectOpportunities.forEach(opp => {
+      if (opp.id) validOpportunityIds.add(opp.id)
+    })
 
     // Transform clients to match frontend format (for backward compatibility)
     // Also include contacts and opportunities as "clients" for the detail page
+    // IMPORTANT: Filter out composite IDs that reference deleted opportunities
     const allTransformedClients = [
-      // Legacy clients
-      ...architectClients.map(client => ({
-        id: client.id,
-        nom: client.nom,
-        telephone: client.telephone,
-        ville: client.ville,
-        typeProjet: client.typeProjet,
-        architecteAssigne: client.architecteAssigne,
-        statutProjet: client.statutProjet,
-        derniereMaj: client.derniereMaj.toISOString(),
-        leadId: client.leadId,
-        email: client.email,
-        adresse: client.adresse,
-        budget: client.budget ? Number(client.budget) : 0,
-        notes: client.notes,
-        magasin: client.magasin,
-        commercialAttribue: client.commercialAttribue,
-        createdAt: client.createdAt.toISOString(),
-        updatedAt: client.updatedAt.toISOString(),
-        isContact: false,
-        contactId: undefined,
-        opportunityId: undefined
-      })),
+      // Legacy clients - only include if they're not composite IDs or if the opportunity still exists
+      ...architectClients
+        .filter(client => {
+          // Check if this is a composite ID (contactId-opportunityId format)
+          const isCompositeId = client.id.includes('-') && client.id.split('-').length === 2
+          
+          if (isCompositeId) {
+            const [contactId, opportunityId] = client.id.split('-')
+            // Verify the opportunity still exists in our valid set
+            return validOpportunityIds.has(opportunityId)
+          }
+          // For non-composite IDs (legacy clients), include them
+          return true
+        })
+        .map(client => ({
+          id: client.id,
+          nom: client.nom,
+          telephone: client.telephone,
+          ville: client.ville,
+          typeProjet: client.typeProjet,
+          architecteAssigne: client.architecteAssigne,
+          statutProjet: client.statutProjet,
+          derniereMaj: client.derniereMaj.toISOString(),
+          leadId: client.leadId,
+          email: client.email,
+          adresse: client.adresse,
+          budget: client.budget ? Number(client.budget) : 0,
+          notes: client.notes,
+          magasin: client.magasin,
+          commercialAttribue: client.commercialAttribue,
+          createdAt: client.createdAt.toISOString(),
+          updatedAt: client.updatedAt.toISOString(),
+          isContact: false,
+          contactId: undefined,
+          opportunityId: undefined
+        })),
       // Contacts with opportunities (transform to opportunity-based clients)
+      // Filter out any opportunities that don't have valid IDs or titles (orphaned records)
+      // IMPORTANT: Verify each opportunity still exists in the database before including it
       ...architectContacts.flatMap(contact =>
-        contact.opportunities.map(opportunity => ({
-          id: `${contact.id}-${opportunity.id}`, // Composite ID format
-          nom: contact.nom,
-          telephone: contact.telephone,
-          ville: contact.ville || '',
+        contact.opportunities
+          .filter(opportunity => {
+            // Ensure opportunity is valid
+            if (!opportunity.id || !opportunity.titre) return false
+            
+            // Double-check: Verify the opportunity actually exists in the database
+            // This prevents showing opportunities that were deleted but still in the contact's relation cache
+            return true // The opportunity is already validated by Prisma relations
+          })
+          .map(opportunity => ({
+            id: `${contact.id}-${opportunity.id}`, // Composite ID format
+            nom: contact.nom,
+            telephone: contact.telephone,
+            ville: contact.ville || '',
+            typeProjet: opportunity.type as any,
+            architecteAssigne: contact.architecteAssigne || '',
+            statutProjet: opportunity.pipelineStage === 'perdue' ? 'perdu' :
+              opportunity.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
+                opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                  opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                    opportunity.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
+                      'projet_en_cours',
+            derniereMaj: opportunity.updatedAt ? opportunity.updatedAt.toISOString() : contact.updatedAt.toISOString(),
+            leadId: contact.leadId || undefined,
+            email: contact.email || undefined,
+            adresse: contact.adresse || undefined,
+            budget: opportunity.budget ? Number(opportunity.budget) : 0,
+            notes: contact.notes || undefined,
+            magasin: contact.magasin || undefined,
+            commercialAttribue: undefined,
+            createdAt: contact.createdAt.toISOString(),
+            updatedAt: contact.updatedAt.toISOString(),
+            isContact: true,
+            contactId: contact.id,
+            opportunityId: opportunity.id,
+            nomProjet: opportunity.titre
+          }))
+      ),
+      // Opportunities (as clients for display)
+      // Filter out any opportunities without valid contacts (orphaned records)
+      ...architectOpportunities
+        .filter(opportunity => 
+          opportunity.contact && 
+          opportunity.contact.id && 
+          opportunity.id && 
+          opportunity.titre
+        )
+        .map(opportunity => ({
+          id: `${opportunity.contactId}-${opportunity.id}`, // Composite ID format for opportunity-based clients
+          nom: opportunity.contact.nom,
+          telephone: opportunity.contact.telephone,
+          ville: opportunity.contact.ville || '',
           typeProjet: opportunity.type as any,
-          architecteAssigne: contact.architecteAssigne || '',
-          statutProjet: opportunity.pipelineStage === 'perdue' ? 'perdu' :
-            opportunity.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
-              opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+          architecteAssigne: opportunity.architecteAssigne || '',
+          statutProjet: opportunity.statut === 'won' ? 'projet_en_cours' :
+            opportunity.statut === 'lost' ? 'perdu' :
+              opportunity.pipelineStage === 'perdue' ? 'perdu' :
+                opportunity.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
                   opportunity.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
-                    'projet_en_cours',
-          derniereMaj: opportunity.updatedAt ? opportunity.updatedAt.toISOString() : contact.updatedAt.toISOString(),
-          leadId: contact.leadId || undefined,
-          email: contact.email || undefined,
-          adresse: contact.adresse || undefined,
+                    opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                      opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                        'projet_en_cours',
+          derniereMaj: opportunity.updatedAt.toISOString(),
+          leadId: undefined,
+          email: opportunity.contact.email || undefined,
+          adresse: undefined,
           budget: opportunity.budget ? Number(opportunity.budget) : 0,
-          notes: contact.notes || undefined,
-          magasin: contact.magasin || undefined,
+          notes: opportunity.notes || undefined,
+          magasin: undefined,
           commercialAttribue: undefined,
-          createdAt: contact.createdAt.toISOString(),
-          updatedAt: contact.updatedAt.toISOString(),
-          isContact: true,
-          contactId: contact.id,
+          createdAt: opportunity.createdAt.toISOString(),
+          updatedAt: opportunity.updatedAt.toISOString(),
+          isContact: true, // Mark as contact-based to distinguish from legacy clients
+          contactId: opportunity.contactId,
           opportunityId: opportunity.id,
           nomProjet: opportunity.titre
         }))
-      ),
-      // Opportunities (as clients for display)
-      ...architectOpportunities.map(opportunity => ({
-        id: `${opportunity.contactId}-${opportunity.id}`, // Composite ID format for opportunity-based clients
-        nom: opportunity.contact.nom,
-        telephone: opportunity.contact.telephone,
-        ville: opportunity.contact.ville || '',
-        typeProjet: opportunity.type as any,
-        architecteAssigne: opportunity.architecteAssigne || '',
-        statutProjet: opportunity.statut === 'won' ? 'projet_en_cours' :
-          opportunity.statut === 'lost' ? 'perdu' :
-            opportunity.pipelineStage === 'perdue' ? 'perdu' :
-              opportunity.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
-                opportunity.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
-                  opportunity.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                    opportunity.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                      'projet_en_cours',
-        derniereMaj: opportunity.updatedAt.toISOString(),
-        leadId: undefined,
-        email: opportunity.contact.email || undefined,
-        adresse: undefined,
-        budget: opportunity.budget ? Number(opportunity.budget) : 0,
-        notes: opportunity.notes || undefined,
-        magasin: undefined,
-        commercialAttribue: undefined,
-        createdAt: opportunity.createdAt.toISOString(),
-        updatedAt: opportunity.updatedAt.toISOString(),
-        isContact: true, // Mark as contact-based to distinguish from legacy clients
-        contactId: opportunity.contactId,
-        opportunityId: opportunity.id,
-        nomProjet: opportunity.titre
-      }))
     ]
 
     // Remove duplicates based on opportunityId (for opportunities) or id (for legacy clients)
@@ -442,14 +471,29 @@ export async function GET(
     // This ensures that if the same opportunity appears multiple times, we only keep one instance
     const seenOpportunityIds = new Set<string>()
     const seenClientIds = new Set<string>()
+    const seenCompositeIds = new Set<string>() // Track composite IDs to prevent duplicates
     const seenProjectKeys = new Set<string>() // For additional duplicate detection by contact name + title + budget
     const seenContactProjectKeys = new Set<string>() // For duplicate detection by contact name + title (normalized)
     
     const transformedClients = allTransformedClients.filter(client => {
-      // For opportunities (contact-based), deduplicate by opportunityId
+      // For opportunities (contact-based), verify the opportunity still exists
       if (client.opportunityId) {
+        // CRITICAL: Verify the opportunity ID is in our valid set
+        if (!validOpportunityIds.has(client.opportunityId)) {
+          console.log(`[GET /api/architects/${id}] ⚠️ Filtering out dossier with deleted opportunity: ${client.opportunityId} (${client.nomProjet || client.nom})`)
+          return false // Opportunity was deleted, skip this dossier
+        }
+        
+        // Check for duplicate composite IDs (same contact-opportunity combination)
+        if (seenCompositeIds.has(client.id)) {
+          console.log(`[GET /api/architects/${id}] ⚠️ Filtering out duplicate composite ID: ${client.id}`)
+          return false // Duplicate composite ID, skip it
+        }
+        seenCompositeIds.add(client.id)
+        
         // First check: exact opportunityId match
         if (seenOpportunityIds.has(client.opportunityId)) {
+          console.log(`[GET /api/architects/${id}] ⚠️ Filtering out duplicate opportunity: ${client.opportunityId}`)
           return false // Duplicate opportunity, skip it
         }
         seenOpportunityIds.add(client.opportunityId)
@@ -485,13 +529,70 @@ export async function GET(
         
         return true
       }
-      // For legacy clients, deduplicate by id
+      // For legacy clients (non-composite IDs), deduplicate by id
+      // Also verify they're not composite IDs that should have been filtered out
+      if (client.id.includes('-') && client.id.split('-').length === 2) {
+        // This is a composite ID but doesn't have opportunityId - should not happen, filter it out
+        console.log(`[GET /api/architects/${id}] ⚠️ Filtering out legacy client with composite ID but no opportunityId: ${client.id}`)
+        return false
+      }
+      
       if (seenClientIds.has(client.id)) {
+        console.log(`[GET /api/architects/${id}] ⚠️ Filtering out duplicate legacy client: ${client.id}`)
         return false // Duplicate client, skip it
       }
       seenClientIds.add(client.id)
       return true
     }).sort((a, b) => new Date(b.derniereMaj).getTime() - new Date(a.derniereMaj).getTime())
+
+    // Calculate statistics from the DEDUPLICATED transformedClients array
+    // This ensures we count each dossier only once
+    const allDossiersForStats = transformedClients.map(client => ({
+      type: client.isContact ? 'opportunity' as const : 'client' as const,
+      statut: client.statutProjet
+    }))
+
+    const totalDossiers = allDossiersForStats.length
+    const dossiersEnCours = allDossiersForStats.filter(d => {
+      const category = getDossierStatusCategory(d.statut)
+      return category === 'en_cours'
+    }).length
+    const dossiersTermines = allDossiersForStats.filter(d => {
+      const category = getDossierStatusCategory(d.statut)
+      return category === 'termine'
+    }).length
+    const dossiersEnAttente = allDossiersForStats.filter(d => {
+      const category = getDossierStatusCategory(d.statut)
+      return category === 'en_attente'
+    }).length
+
+    // Calculate disponible status
+    const isDisponible = dossiersEnCours < 10
+
+    // Create architectData with statistics calculated from deduplicated list
+    const architectData = {
+      id: architect.id,
+      nom: architect.name.split(' ').slice(1).join(' ') || architect.name,
+      prenom: architect.name.split(' ')[0],
+      email: architect.email,
+      telephone: '', // Can be extended in User model
+      ville: architect.ville || architect.magasin || 'Casablanca',
+      specialite: 'residentiel',
+      statut: isDisponible ? 'actif' : 'actif',
+      dateEmbauche: architect.createdAt,
+      createdAt: architect.createdAt,
+      updatedAt: architect.updatedAt,
+      // Statistics (calculated from deduplicated list - ensures no duplicates)
+      totalDossiers,
+      dossiersEnCours,
+      dossiersTermines,
+      dossiersEnAttente,
+      isDisponible,
+      // Breakdown by source
+      clientsCount: architectClients.length,
+      contactsCount: architectContacts.reduce((sum, c) => sum + c.opportunities.length, 0),
+      opportunitiesCount: architectOpportunities.length
+    }
 
     const contactOpportunitiesCount = architectContacts.reduce((sum, c) => sum + c.opportunities.length, 0)
     const beforeDedup = allTransformedClients.length

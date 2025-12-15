@@ -21,7 +21,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!isLoading && user?.role) {
       const role = user.role.toLowerCase()
-      
+
       if (role === "architect") {
         router.push("/contacts")
       } else if (role === "commercial") {
@@ -36,7 +36,7 @@ export default function HomePage() {
   const handleCreateLead = () => {
     // Trigger the create lead modal in KanbanBoard
     if (typeof window !== "undefined" && (window as any).__signature8CreateLead) {
-      ;(window as any).__signature8CreateLead()
+      ; (window as any).__signature8CreateLead()
     }
   }
 
@@ -70,12 +70,12 @@ export default function HomePage() {
       <div className="flex min-h-screen bg-[rgb(11,14,24)]">
         <Sidebar />
         <main className="flex-1 flex flex-col">
-          <Header 
+          <Header
             onCreateLead={handleCreateLead}
             onCreateTask={handleCreateTask}
             onImportLeads={handleImportLeads}
-            searchQuery={search} 
-            onSearchChange={setSearch} 
+            searchQuery={search}
+            onSearchChange={setSearch}
           />
           <div className="flex-1 p-3">
             <KanbanBoard key={refreshKey} onCreateLead={handleCreateLead} searchQuery={search} />

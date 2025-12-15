@@ -112,7 +112,8 @@
   body {
     @apply bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-foreground antialiased;
     min-height: 100vh;
-    font-size: 13px; /* Base font size for CRM - smaller and more professional */
+    font-size: 13px;
+    /* Base font size for CRM - smaller and more professional */
     line-height: 1.5;
   }
 
@@ -129,7 +130,9 @@
     @apply text-base font-semibold;
   }
 
-  h4, h5, h6 {
+  h4,
+  h5,
+  h6 {
     @apply text-sm font-semibold;
   }
 
@@ -155,7 +158,9 @@
   }
 
   /* Form elements - consistent sizing */
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     @apply text-xs;
   }
 
@@ -280,6 +285,7 @@
     0% {
       transform: translateX(-100%);
     }
+
     100% {
       transform: translateX(100%);
     }

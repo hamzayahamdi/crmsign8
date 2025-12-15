@@ -43,6 +43,15 @@ export function RoleGuard({
 
     if (!hasAccess) {
       console.warn(`[RoleGuard] Access denied for role "${user.role}" to path "${pathname}"`)
+      // Special handling: If architect is trying to access their own detail page, allow it
+      if (user.role?.toLowerCase() === 'architect' && pathname.startsWith('/architectes/')) {
+        // Check if they're accessing their own profile
+        const pathId = pathname.split('/architectes/')[1]?.split('/')[0]
+        if (pathId === user.id) {
+          // Allow access to own profile
+          return
+        }
+      }
       router.push(fallbackPath)
     }
   }, [user, isLoading, pathname, allowedRoles, fallbackPath, router])

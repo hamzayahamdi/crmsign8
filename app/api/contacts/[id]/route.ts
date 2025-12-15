@@ -368,8 +368,31 @@ export async function DELETE(
       appointmentsCount: contact.appointments?.length || 0,
     });
 
+    // Before deleting, find and delete any legacy clients with composite IDs referencing this contact's opportunities
+    // Composite ID format: contactId-opportunityId
+    if (contact.opportunities && contact.opportunities.length > 0) {
+      for (const opportunity of contact.opportunities) {
+        const compositeIdPattern = `${id}-${opportunity.id}`;
+        try {
+          const legacyClient = await prisma.client.findUnique({
+            where: { id: compositeIdPattern },
+          });
+
+          if (legacyClient) {
+            await prisma.client.delete({
+              where: { id: compositeIdPattern },
+            });
+            console.log(`[DELETE /api/contacts/[id]] ✅ Deleted legacy client with composite ID: ${compositeIdPattern}`);
+          }
+        } catch (clientErr) {
+          // If client doesn't exist or error occurs, continue
+          console.log(`[DELETE /api/contacts/[id]] Legacy client not found or already deleted: ${compositeIdPattern}`);
+        }
+      }
+    }
+
     // Delete the contact - Prisma will cascade delete all related records
-    // due to onDelete: Cascade in the schema
+    // due to onDelete: Cascade in the schema (opportunities, tasks, timeline, documents, payments, appointments)
     await prisma.contact.delete({
       where: { id },
     });

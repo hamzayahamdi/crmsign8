@@ -241,6 +241,7 @@ export async function GET(request: NextRequest) {
         }
       }),
       // Opportunities with architect assignment
+      // Note: Prisma will automatically handle cascade deletes, but we filter orphaned records in code
       prisma.opportunity.findMany({
         where: {
           architecteAssigne: { not: null }
@@ -263,9 +264,17 @@ export async function GET(request: NextRequest) {
         isAssignedToArchitect(client.architecteAssigne, architect.id, architectName)
       )
 
-      const architectContacts = contacts.filter(contact =>
-        isAssignedToArchitect(contact.architecteAssigne, architect.id, architectName)
-      )
+      // Filter contacts and ensure they have valid opportunities (not orphaned)
+      const architectContacts = contacts
+        .filter(contact =>
+          isAssignedToArchitect(contact.architecteAssigne, architect.id, architectName)
+        )
+        .map(contact => ({
+          ...contact,
+          // Filter out any opportunities that might be orphaned (shouldn't happen with cascade, but safety check)
+          opportunities: contact.opportunities.filter(opp => opp.id)
+        }))
+        .filter(contact => contact.opportunities.length > 0) // Only keep contacts with valid opportunities
 
       // Get all opportunity IDs that are already included in contacts
       const contactOpportunityIds = new Set(
@@ -273,39 +282,81 @@ export async function GET(request: NextRequest) {
       )
 
       // Filter out opportunities that are already included in contacts to avoid duplicates
+      // Also ensure opportunity has valid ID (filters out any orphaned records)
       const architectOpportunities = opportunities.filter(opportunity =>
+        opportunity.id && // Ensure opportunity has valid ID
         isAssignedToArchitect(opportunity.architecteAssigne, architect.id, architectName) &&
-        !contactOpportunityIds.has(opportunity.id)
+        !contactOpportunityIds.has(opportunity.id) // Exclude opportunities already in contacts
       )
+
+      // Get all valid opportunity IDs for validation
+      const validOpportunityIds = new Set<string>()
+      architectContacts.forEach(contact => {
+        contact.opportunities.forEach(opp => {
+          if (opp.id) validOpportunityIds.add(opp.id)
+        })
+      })
+      architectOpportunities.forEach(opp => {
+        if (opp.id) validOpportunityIds.add(opp.id)
+      })
+
+      // Filter legacy clients to exclude composite IDs referencing deleted opportunities
+      const validArchitectClients = architectClients.filter(client => {
+        // Check if this is a composite ID (contactId-opportunityId format)
+        const isCompositeId = client.id.includes('-') && client.id.split('-').length === 2
+        
+        if (isCompositeId) {
+          const [contactId, opportunityId] = client.id.split('-')
+          // Verify the opportunity still exists in our valid set
+          return validOpportunityIds.has(opportunityId)
+        }
+        // For non-composite IDs (legacy clients), include them
+        return true
+      })
 
       // Combine all dossiers - IMPORTANT: Count opportunities within contacts, not contacts themselves
       // A contact can have multiple opportunities (projects), so each opportunity is a dossier
+      // Only include opportunities that are in our valid set
+      // CRITICAL: Exclude composite ID legacy clients as they're duplicates of opportunities
       const allDossiers = [
-        ...architectClients.map(c => ({ type: 'client' as const, statut: c.statutProjet })),
+        // Legacy clients - EXCLUDE composite IDs (they're duplicates of opportunities)
+        ...validArchitectClients
+          .filter(client => {
+            // If it's a composite ID, it's already represented by the opportunity, so exclude it
+            const isCompositeId = client.id.includes('-') && client.id.split('-').length === 2
+            return !isCompositeId // Only include non-composite legacy clients
+          })
+          .map(c => ({ type: 'client' as const, statut: c.statutProjet })),
         // Extract all opportunities from contacts - each opportunity is a separate dossier
+        // IMPORTANT: Only include opportunities that are in our valid set
         // IMPORTANT: projet_accepte means devis accepté, so it should map to 'accepte' (PROJET EN COURS)
         // acompte_recu means deposit received but devis not yet accepted (PROJET EN ATTENTE)
         ...architectContacts.flatMap(c =>
-          c.opportunities.map(o => ({
-            type: 'contact_opportunity' as const,
-            statut: o.pipelineStage === 'perdue' ? 'perdu' :
-              o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
-                o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
-                  o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                    o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
-                      'projet_en_cours'
-          }))
-        ),
-        ...architectOpportunities.map(o => ({
-          type: 'opportunity' as const,
-          statut: o.statut === 'won' ? 'projet_en_cours' : o.statut === 'lost' ? 'perdu' :
-            o.pipelineStage === 'perdue' ? 'perdu' :
-              o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
-                o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
+          c.opportunities
+            .filter(o => validOpportunityIds.has(o.id)) // Only include valid opportunities
+            .map(o => ({
+              type: 'contact_opportunity' as const,
+              statut: o.pipelineStage === 'perdue' ? 'perdu' :
+                o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
                   o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
                     o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
-                      'projet_en_cours'
-        }))
+                      o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
+                        'projet_en_cours'
+            }))
+        ),
+        // Direct opportunities - already filtered to exclude those in contacts
+        ...architectOpportunities
+          .filter(o => validOpportunityIds.has(o.id)) // Only include valid opportunities
+          .map(o => ({
+            type: 'opportunity' as const,
+            statut: o.statut === 'won' ? 'projet_en_cours' : o.statut === 'lost' ? 'perdu' :
+              o.pipelineStage === 'perdue' ? 'perdu' :
+                o.pipelineStage === 'gagnee' ? 'projet_en_cours' : // gagnee = won, typically means project in progress
+                  o.pipelineStage === 'projet_accepte' ? 'accepte' : // devis accepté = PROJET EN COURS
+                    o.pipelineStage === 'acompte_recu' ? 'acompte_recu' :
+                      o.pipelineStage === 'prise_de_besoin' ? 'prise_de_besoin' :
+                        'projet_en_cours'
+          }))
       ]
 
       const totalDossiers = allDossiers.length
@@ -347,10 +398,10 @@ export async function GET(request: NextRequest) {
         dossiersTermines,
         dossiersEnAttente,
         isDisponible, // New field to indicate availability
-        // Breakdown by source
-        clientsCount: architectClients.length,
-        contactsCount: architectContacts.reduce((sum, c) => sum + c.opportunities.length, 0), // Count opportunities within contacts
-        opportunitiesCount: architectOpportunities.length
+      // Breakdown by source (use valid clients count)
+      clientsCount: validArchitectClients.length,
+      contactsCount: architectContacts.reduce((sum, c) => sum + c.opportunities.length, 0), // Count opportunities within contacts
+      opportunitiesCount: architectOpportunities.length
       }
     })
 

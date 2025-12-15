@@ -85,13 +85,13 @@ export function ClientsTable({ clients, onClientClick, onEditClient, onDeleteCli
     // Only show clients that have a project name (nomProjet)
     if (client.nomProjet && client.nomProjet.trim()) {
       const existingIndex = acc.findIndex(c => c.nom === client.nom && c.nomProjet === client.nomProjet)
-      
+
       // If we already have this exact client+opportunity combination, skip it
       if (existingIndex < 0) {
         acc.push(client)
       }
     }
-    
+
     return acc
   }, [] as Client[])
 

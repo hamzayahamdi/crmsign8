@@ -50,7 +50,13 @@ export default function ArchitectDetailPage() {
         // If architect is trying to view another architect's profile, redirect to their own
         if (isArchitect && !isAdmin && architectId !== user?.id) {
           console.log(`[Architect Detail] Architect trying to view other architect - redirecting to own profile`)
-          router.push(`/architectes/${user.id}`)
+          router.replace(`/architectes/${user.id}`)
+          return
+        }
+
+        // If no architectId, don't fetch
+        if (!architectId) {
+          console.error('[Architect Detail] No architect ID provided')
           return
         }
 
@@ -66,7 +72,29 @@ export default function ArchitectDetailPage() {
         if (!response.ok) {
           // Handle API error response
           const errorMsg = result.error || 'Failed to fetch architect'
-          console.error('[Architect Detail] API Error:', errorMsg)
+          console.error('[Architect Detail] API Error:', errorMsg, 'Status:', response.status)
+          
+          // If permission denied (403), redirect architect to their own profile
+          if (response.status === 403 && isArchitect && user?.id) {
+            console.log('[Architect Detail] Permission denied - redirecting to own profile')
+            router.replace(`/architectes/${user.id}`)
+            return
+          }
+          
+          // If not found (404), show error
+          if (response.status === 404) {
+            setArchitect(null)
+            setClients([])
+            toast.error(`Architecte non trouvé`)
+            // Redirect to architects list if viewing a non-existent architect
+            if (!isArchitect || isAdmin) {
+              router.push('/architectes')
+            } else if (user?.id) {
+              router.replace(`/architectes/${user.id}`)
+            }
+            return
+          }
+          
           setArchitect(null)
           setClients([])
           toast.error(`Erreur: ${errorMsg}`)
@@ -98,10 +126,10 @@ export default function ArchitectDetailPage() {
       }
     }
 
-    if (architectId) {
+    if (architectId && user) {
       fetchArchitectData()
     }
-  }, [architectId])
+  }, [architectId, user?.id, isArchitect, isAdmin, router])
 
   // Filter clients (API already returns only this architect's clients)
   // Also deduplicate by opportunityId to prevent duplicate projects
@@ -306,7 +334,7 @@ export default function ArchitectDetailPage() {
   if (isLoading) {
     return (
       <AuthGuard>
-        <RoleGuard allowedRoles={['Admin', 'Operator']}>
+        <RoleGuard allowedRoles={['Admin', 'Operator', 'Architect']}>
           <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
             <Sidebar />
             <main className="flex-1 flex items-center justify-center">
@@ -325,7 +353,7 @@ export default function ArchitectDetailPage() {
   if (!architect) {
     return (
       <AuthGuard>
-        <RoleGuard allowedRoles={['Admin', 'Operator']}>
+        <RoleGuard allowedRoles={['Admin', 'Operator', 'Architect']}>
           <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
             <Sidebar />
             <main className="flex-1 flex items-center justify-center">
@@ -345,7 +373,7 @@ export default function ArchitectDetailPage() {
 
   return (
     <AuthGuard>
-      <RoleGuard allowedRoles={['Admin', 'Operator']}>
+      <RoleGuard allowedRoles={['Admin', 'Operator', 'Architect']}>
         <div className="flex min-h-screen bg-[oklch(22%_0.03_260)]">
           <Sidebar />
         <main className="flex-1 flex flex-col">

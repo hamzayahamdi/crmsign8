@@ -132,7 +132,7 @@ export const modulePermissions = {
     delete: ["Admin", "Operator"],
   },
   architectes: {
-    view: ["Admin", "Operator"], // Gestionnaire CANNOT access
+    view: ["Admin", "Operator", "Architect"], // Architects can view their own profile
     create: ["Admin", "Operator"],
     edit: ["Admin", "Operator"],
     delete: ["Admin", "Operator"],
@@ -225,6 +225,11 @@ export function canAccessRoute(
   if (!userRole) return false;
 
   const normalizedRole = normalizeRole(userRole);
+
+  // Special case: Architects can access their own detail page (/architectes/[id])
+  if (normalizedRole === "Architect" && path.startsWith("/architectes/")) {
+    return true; // Allow architects to access architect detail pages
+  }
 
   // Check if path matches any sidebar item
   const matchingItem = sidebarPermissions.find((item) => {

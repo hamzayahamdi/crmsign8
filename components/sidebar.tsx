@@ -49,7 +49,7 @@ const SidebarComponent = () => {
   const [myPendingTasks, setMyPendingTasks] = useState<number>(0)
   const [myNewTasks, setMyNewTasks] = useState<number>(0)
   const [adminUpdatesCount, setAdminUpdatesCount] = useState<number>(0)
-  
+
   const isArchitect = user?.role?.toLowerCase() === "architect"
 
   // Close mobile menu when route changes
@@ -198,12 +198,12 @@ const SidebarComponent = () => {
               isCollapsed ? "mx-auto" : ""
             )}
           >
-            <Signature8Logo 
-              size={isCollapsed ? 32 : 40} 
+            <Signature8Logo
+              size={isCollapsed ? 32 : 40}
               className="block"
             />
           </motion.div>
-          
+
           {/* Logo Text - Only when expanded */}
           <AnimatePresence mode="wait" initial={false}>
             {!isCollapsed && (
@@ -212,7 +212,7 @@ const SidebarComponent = () => {
                 initial={{ opacity: 0, x: -10, width: 0 }}
                 animate={{ opacity: 1, x: 0, width: "auto" }}
                 exit={{ opacity: 0, x: -10, width: 0 }}
-                transition={{ 
+                transition={{
                   type: "spring",
                   stiffness: 300,
                   damping: 30,
@@ -228,7 +228,7 @@ const SidebarComponent = () => {
             )}
           </AnimatePresence>
         </motion.div>
-        
+
         {/* Toggle Button - Positioned clearly outside logo area */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -238,7 +238,7 @@ const SidebarComponent = () => {
               whileTap={{ scale: 0.9 }}
               initial={{ opacity: 1, scale: 1 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ 
+              transition={{
                 type: "spring",
                 stiffness: 400,
                 damping: 25,
@@ -258,7 +258,7 @@ const SidebarComponent = () => {
             >
               <motion.div
                 animate={{ rotate: isCollapsed ? 0 : 180 }}
-                transition={{ 
+                transition={{
                   type: "spring",
                   stiffness: 400,
                   damping: 30,
@@ -317,191 +317,191 @@ const SidebarComponent = () => {
             const isActive = pathname === item.href || (item.href === "/architectes" && pathname.startsWith("/architectes/"))
             return (
               <Tooltip key={item.name}>
-                  <TooltipTrigger asChild>
-                    <motion.button
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        // Immediate navigation without delay
-                        if (item.href !== pathname) {
-                          handleNavigation(item.href)
-                        }
-                      }}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ 
-                        delay: index * 0.03, 
+                <TooltipTrigger asChild>
+                  <motion.button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      // Immediate navigation without delay
+                      if (item.href !== pathname) {
+                        handleNavigation(item.href)
+                      }
+                    }}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{
+                      delay: index * 0.03,
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 25,
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full text-left block"
+                    type="button"
+                  >
+                    <motion.div
+                      layout
+                      className={cn(
+                        "relative flex items-center rounded-2xl group overflow-hidden",
+                        isCollapsed
+                          ? "justify-center px-2 py-2.5 md:py-3"
+                          : "gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3.5",
+                        isActive
+                          ? "text-white"
+                          : "text-white/70 hover:text-white"
+                      )}
+                      transition={{
                         type: "spring",
                         stiffness: 300,
-                        damping: 25,
+                        damping: 30,
+                        mass: 0.8
                       }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full text-left block"
-                      type="button"
                     >
-                      <motion.div
-                        layout
-                        className={cn(
-                          "relative flex items-center rounded-2xl group overflow-hidden",
-                          isCollapsed 
-                            ? "justify-center px-2 py-2.5 md:py-3" 
-                            : "gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3.5",
-                          isActive
-                            ? "text-white"
-                            : "text-white/70 hover:text-white"
-                        )}
-                        transition={{ 
-                          type: "spring", 
-                          stiffness: 300, 
-                          damping: 30, 
-                          mass: 0.8 
-                        }}
-                      >
-                        {/* Hover background */}
-                        {!isActive && (
-                          <motion.div
-                            className="absolute inset-0 rounded-2xl bg-white/5"
-                            initial={{ opacity: 0 }}
-                            whileHover={{ opacity: 1 }}
-                            transition={{ duration: 0.2 }}
-                          />
-                        )}
-
-                        {/* Active gradient background */}
-                        {isActive && (
-                          <motion.div
-                            layoutId="sidebar-active-pill"
-                            className="absolute inset-0 rounded-2xl"
-                            style={{
-                              background: "linear-gradient(135deg, rgba(56,189,248,0.9) 0%, rgba(59,130,246,1) 100%)",
-                              boxShadow: "0 4px 12px rgba(56,189,248,0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
-                            }}
-                            transition={{
-                              type: "spring",
-                              stiffness: 500,
-                              damping: 35,
-                              mass: 0.6,
-                            }}
-                          />
-                        )}
-
-                        {/* Icon */}
+                      {/* Hover background */}
+                      {!isActive && (
                         <motion.div
-                          animate={{
-                            scale: isCollapsed ? 1.1 : 1,
+                          className="absolute inset-0 rounded-2xl bg-white/5"
+                          initial={{ opacity: 0 }}
+                          whileHover={{ opacity: 1 }}
+                          transition={{ duration: 0.2 }}
+                        />
+                      )}
+
+                      {/* Active gradient background */}
+                      {isActive && (
+                        <motion.div
+                          layoutId="sidebar-active-pill"
+                          className="absolute inset-0 rounded-2xl"
+                          style={{
+                            background: "linear-gradient(135deg, rgba(56,189,248,0.9) 0%, rgba(59,130,246,1) 100%)",
+                            boxShadow: "0 4px 12px rgba(56,189,248,0.3), inset 0 1px 0 rgba(255,255,255,0.2)",
                           }}
                           transition={{
                             type: "spring",
-                            stiffness: 300,
-                            damping: 25,
+                            stiffness: 500,
+                            damping: 35,
+                            mass: 0.6,
                           }}
-                          className="flex-shrink-0"
-                        >
-                          <item.icon
-                            className={cn(
-                              "relative z-10 transition-all duration-300",
-                              isCollapsed ? "w-5 h-5" : "w-4 h-4 md:w-5 md:h-5",
-                              isActive
-                                ? "opacity-100"
-                                : "opacity-70 group-hover:opacity-100"
-                            )}
-                          />
-                        </motion.div>
+                        />
+                      )}
 
-                        {/* Text label */}
-                        <AnimatePresence mode="wait" initial={false}>
-                          {!isCollapsed && (
+                      {/* Icon */}
+                      <motion.div
+                        animate={{
+                          scale: isCollapsed ? 1.1 : 1,
+                        }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 25,
+                        }}
+                        className="flex-shrink-0"
+                      >
+                        <item.icon
+                          className={cn(
+                            "relative z-10 transition-all duration-300",
+                            isCollapsed ? "w-5 h-5" : "w-4 h-4 md:w-5 md:h-5",
+                            isActive
+                              ? "opacity-100"
+                              : "opacity-70 group-hover:opacity-100"
+                          )}
+                        />
+                      </motion.div>
+
+                      {/* Text label */}
+                      <AnimatePresence mode="wait" initial={false}>
+                        {!isCollapsed && (
+                          <motion.span
+                            key="nav-text"
+                            initial={{ opacity: 0, x: -10, width: 0 }}
+                            animate={{ opacity: 1, x: 0, width: "auto" }}
+                            exit={{ opacity: 0, x: -10, width: 0 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 300,
+                              damping: 30,
+                              mass: 0.8,
+                            }}
+                            className={cn(
+                              "relative z-10 flex-1 truncate text-[11px] md:text-xs font-semibold overflow-hidden whitespace-nowrap",
+                              isActive ? "text-white" : "text-white/70 group-hover:text-white"
+                            )}
+                          >
+                            {item.name}
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Task badges */}
+                      {item.href === "/tasks" && !isCollapsed && (
+                        <span className="ml-auto inline-flex items-center gap-1.5 md:gap-2 relative z-10">
+                          {/* New Tasks - Red Pulse Dot */}
+                          {myNewTasks > 0 && (
                             <motion.span
-                              key="nav-text"
-                              initial={{ opacity: 0, x: -10, width: 0 }}
-                              animate={{ opacity: 1, x: 0, width: "auto" }}
-                              exit={{ opacity: 0, x: -10, width: 0 }}
-                              transition={{ 
-                                type: "spring",
-                                stiffness: 300,
-                                damping: 30,
-                                mass: 0.8,
-                              }}
-                              className={cn(
-                                "relative z-10 flex-1 truncate text-[11px] md:text-xs font-semibold overflow-hidden whitespace-nowrap",
-                                isActive ? "text-white" : "text-white/70 group-hover:text-white"
-                              )}
+                              className="relative inline-flex h-2.5 w-2.5 md:h-3 md:w-3"
+                              animate={{ scale: [1, 1.2, 1] }}
+                              transition={{ duration: 2, repeat: Infinity }}
                             >
-                              {item.name}
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 md:h-3 md:w-3 bg-red-500 shadow-lg shadow-red-500/70"></span>
                             </motion.span>
                           )}
-                        </AnimatePresence>
-
-                        {/* Task badges */}
-                        {item.href === "/tasks" && !isCollapsed && (
-                          <span className="ml-auto inline-flex items-center gap-1.5 md:gap-2 relative z-10">
-                            {/* New Tasks - Red Pulse Dot */}
-                            {myNewTasks > 0 && (
-                              <motion.span
-                                className="relative inline-flex h-2.5 w-2.5 md:h-3 md:w-3"
-                                animate={{ scale: [1, 1.2, 1] }}
-                                transition={{ duration: 2, repeat: Infinity }}
-                              >
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 md:h-3 md:w-3 bg-red-500 shadow-lg shadow-red-500/70"></span>
-                              </motion.span>
-                            )}
-                            {/* Pending Tasks - Badge */}
-                            {myPendingTasks > 0 && (
-                              <motion.span
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                className={cn(
-                                  "min-w-[1.5rem] md:min-w-[1.75rem] h-5 md:h-7 px-1.5 md:px-2.5 inline-flex items-center justify-center rounded-full text-[10px] md:text-xs font-bold shadow-lg transition-all duration-200",
-                                  isActive
-                                    ? "bg-white text-primary shadow-white/30 font-extrabold"
-                                    : "bg-gradient-to-r from-primary to-blue-500 text-white shadow-primary/50 animate-pulse",
-                                )}>
-                                {myPendingTasks}
-                              </motion.span>
-                            )}
-                            {/* Admin Updates - Toaster Style Badge */}
-                            {((user?.role || '').toLowerCase() === 'admin' || (user?.role || '').toLowerCase() === 'operator') && adminUpdatesCount > 0 && (
-                              <motion.span
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                className={cn(
-                                  "min-w-[1.5rem] md:min-w-[1.75rem] h-5 md:h-7 px-1.5 md:px-2.5 inline-flex items-center justify-center rounded-full text-[10px] md:text-xs font-bold shadow-lg border-2 transition-all duration-200",
-                                  isActive
-                                    ? "bg-orange-500 border-orange-300 text-white shadow-orange-500/40 font-extrabold"
-                                    : "bg-gradient-to-r from-orange-400 to-amber-500 border-orange-300 text-white shadow-orange-500/50 animate-pulse",
-                                )}>
-                                {adminUpdatesCount}
-                              </motion.span>
-                            )}
-                          </span>
-                        )}
-                        
-                        {/* Collapsed badge indicator */}
-                        {item.href === "/tasks" && isCollapsed && (myPendingTasks > 0 || myNewTasks > 0 || adminUpdatesCount > 0) && (
-                          <motion.span
-                            className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-slate-950 z-20"
-                            animate={{ scale: [1, 1.2, 1] }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                          />
-                        )}
-                      </motion.div>
-                    </motion.button>
-                  </TooltipTrigger>
-                  {isCollapsed && (
-                    <TooltipContent side="right" className="bg-slate-800 border-sky-500/30 text-white">
-                      {item.name}
-                      {item.href === "/tasks" && (myPendingTasks > 0 || myNewTasks > 0 || adminUpdatesCount > 0) && (
-                        <span className="ml-2 text-xs">
-                          {myPendingTasks > 0 && `${myPendingTasks} pending`}
-                          {adminUpdatesCount > 0 && ` ${adminUpdatesCount} updates`}
+                          {/* Pending Tasks - Badge */}
+                          {myPendingTasks > 0 && (
+                            <motion.span
+                              initial={{ scale: 0.8, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                              className={cn(
+                                "min-w-[1.5rem] md:min-w-[1.75rem] h-5 md:h-7 px-1.5 md:px-2.5 inline-flex items-center justify-center rounded-full text-[10px] md:text-xs font-bold shadow-lg transition-all duration-200",
+                                isActive
+                                  ? "bg-white text-primary shadow-white/30 font-extrabold"
+                                  : "bg-gradient-to-r from-primary to-blue-500 text-white shadow-primary/50 animate-pulse",
+                              )}>
+                              {myPendingTasks}
+                            </motion.span>
+                          )}
+                          {/* Admin Updates - Toaster Style Badge */}
+                          {((user?.role || '').toLowerCase() === 'admin' || (user?.role || '').toLowerCase() === 'operator') && adminUpdatesCount > 0 && (
+                            <motion.span
+                              initial={{ scale: 0.8, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                              className={cn(
+                                "min-w-[1.5rem] md:min-w-[1.75rem] h-5 md:h-7 px-1.5 md:px-2.5 inline-flex items-center justify-center rounded-full text-[10px] md:text-xs font-bold shadow-lg border-2 transition-all duration-200",
+                                isActive
+                                  ? "bg-orange-500 border-orange-300 text-white shadow-orange-500/40 font-extrabold"
+                                  : "bg-gradient-to-r from-orange-400 to-amber-500 border-orange-300 text-white shadow-orange-500/50 animate-pulse",
+                              )}>
+                              {adminUpdatesCount}
+                            </motion.span>
+                          )}
                         </span>
                       )}
-                    </TooltipContent>
-                  )}
-                </Tooltip>
+
+                      {/* Collapsed badge indicator */}
+                      {item.href === "/tasks" && isCollapsed && (myPendingTasks > 0 || myNewTasks > 0 || adminUpdatesCount > 0) && (
+                        <motion.span
+                          className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-slate-950 z-20"
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        />
+                      )}
+                    </motion.div>
+                  </motion.button>
+                </TooltipTrigger>
+                {isCollapsed && (
+                  <TooltipContent side="right" className="bg-slate-800 border-sky-500/30 text-white">
+                    {item.name}
+                    {item.href === "/tasks" && (myPendingTasks > 0 || myNewTasks > 0 || adminUpdatesCount > 0) && (
+                      <span className="ml-2 text-xs">
+                        {myPendingTasks > 0 && `${myPendingTasks} pending`}
+                        {adminUpdatesCount > 0 && ` ${adminUpdatesCount} updates`}
+                      </span>
+                    )}
+                  </TooltipContent>
+                )}
+              </Tooltip>
             )
           })}
         </LayoutGroup>
@@ -519,90 +519,90 @@ const SidebarComponent = () => {
             isCollapsed ? "p-2" : "p-3 md:p-4"
           )}>
             <Tooltip>
-                <TooltipTrigger asChild>
+              <TooltipTrigger asChild>
+                <div className={cn(
+                  "rounded-2xl bg-white/5 backdrop-blur-sm shadow-lg transition-all duration-300",
+                  isCollapsed ? "p-2 flex justify-center" : "p-2 md:p-3 space-y-1.5"
+                )}>
                   <div className={cn(
-                    "rounded-2xl bg-white/5 backdrop-blur-sm shadow-lg transition-all duration-300",
-                    isCollapsed ? "p-2 flex justify-center" : "p-2 md:p-3 space-y-1.5"
+                    "flex items-center transition-all duration-300",
+                    isCollapsed ? "justify-center" : "gap-2 md:gap-3"
                   )}>
-                    <div className={cn(
-                      "flex items-center transition-all duration-300",
-                      isCollapsed ? "justify-center" : "gap-2 md:gap-3"
-                    )}>
-                      <motion.div
-                        animate={{
-                          width: isCollapsed ? 32 : 40,
-                          height: isCollapsed ? 32 : 40,
-                        }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 300,
-                          damping: 30,
-                          mass: 0.8,
-                        }}
-                        className="flex-shrink-0"
-                      >
-                        <Avatar className={cn(
-                          "border-2 border-sky-400/50 ring-2 ring-sky-400/20",
-                          isCollapsed ? "h-8 w-8" : "h-8 w-8 md:h-10 md:w-10"
-                        )}>
-                          <AvatarFallback className="bg-gradient-to-br from-sky-500 via-sky-400 to-sky-600 text-white font-bold text-xs md:text-sm">
-                            {getInitials(user.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                      </motion.div>
-                      <AnimatePresence mode="wait" initial={false}>
-                        {!isCollapsed && (
-                          <motion.div
-                            key="user-info"
-                            initial={{ opacity: 0, x: -10, width: 0 }}
-                            animate={{ opacity: 1, x: 0, width: "auto" }}
-                            exit={{ opacity: 0, x: -10, width: 0 }}
-                            transition={{ 
-                              type: "spring",
-                              stiffness: 300,
-                              damping: 30,
-                              mass: 0.8,
-                            }}
-                            className="flex-1 min-w-0 overflow-hidden"
-                          >
-                            <p className="text-[11px] md:text-xs font-semibold text-foreground truncate whitespace-nowrap">
-                              {user.name}
-                            </p>
-                            <p className="text-[9px] md:text-[10px] text-muted-foreground truncate whitespace-nowrap">
-                              {user.email}
-                            </p>
-                            {user.role && (
-                              <div className="flex items-center gap-2 mt-0.5 md:mt-1 flex-wrap">
-                                {/* Role Tag - Only show "Architecte" for architects, styled as cyan/teal pill */}
-                                {isArchitect ? (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-cyan-500/20 text-cyan-300 border-cyan-500/30 h-[22px] whitespace-nowrap">
-                                    Architecte
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-[9px] md:text-[10px] font-medium px-1.5 md:px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30 whitespace-nowrap">
-                                    {getRoleLabel(user.role)}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                </TooltipTrigger>
-                {isCollapsed && (
-                  <TooltipContent side="right" className="bg-slate-800 border-sky-500/30 text-white max-w-xs">
-                    <div>
-                      <p className="font-semibold">{user.name}</p>
-                      <p className="text-xs text-slate-400">{user.email}</p>
-                      {user.role && (
-                        <p className="text-xs mt-1 text-sky-300">{getRoleLabel(user.role)}</p>
+                    <motion.div
+                      animate={{
+                        width: isCollapsed ? 32 : 40,
+                        height: isCollapsed ? 32 : 40,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                        mass: 0.8,
+                      }}
+                      className="flex-shrink-0"
+                    >
+                      <Avatar className={cn(
+                        "border-2 border-sky-400/50 ring-2 ring-sky-400/20",
+                        isCollapsed ? "h-8 w-8" : "h-8 w-8 md:h-10 md:w-10"
+                      )}>
+                        <AvatarFallback className="bg-gradient-to-br from-sky-500 via-sky-400 to-sky-600 text-white font-bold text-xs md:text-sm">
+                          {getInitials(user.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                    </motion.div>
+                    <AnimatePresence mode="wait" initial={false}>
+                      {!isCollapsed && (
+                        <motion.div
+                          key="user-info"
+                          initial={{ opacity: 0, x: -10, width: 0 }}
+                          animate={{ opacity: 1, x: 0, width: "auto" }}
+                          exit={{ opacity: 0, x: -10, width: 0 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 300,
+                            damping: 30,
+                            mass: 0.8,
+                          }}
+                          className="flex-1 min-w-0 overflow-hidden"
+                        >
+                          <p className="text-[11px] md:text-xs font-semibold text-foreground truncate whitespace-nowrap">
+                            {user.name}
+                          </p>
+                          <p className="text-[9px] md:text-[10px] text-muted-foreground truncate whitespace-nowrap">
+                            {user.email}
+                          </p>
+                          {user.role && (
+                            <div className="flex items-center gap-2 mt-0.5 md:mt-1 flex-wrap">
+                              {/* Role Tag - Only show "Architecte" for architects, styled as cyan/teal pill */}
+                              {isArchitect ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-cyan-500/20 text-cyan-300 border-cyan-500/30 h-[22px] whitespace-nowrap">
+                                  Architecte
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[9px] md:text-[10px] font-medium px-1.5 md:px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30 whitespace-nowrap">
+                                  {getRoleLabel(user.role)}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </motion.div>
                       )}
-                    </div>
-                  </TooltipContent>
-                )}
-              </Tooltip>
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </TooltipTrigger>
+              {isCollapsed && (
+                <TooltipContent side="right" className="bg-slate-800 border-sky-500/30 text-white max-w-xs">
+                  <div>
+                    <p className="font-semibold">{user.name}</p>
+                    <p className="text-xs text-slate-400">{user.email}</p>
+                    {user.role && (
+                      <p className="text-xs mt-1 text-sky-300">{getRoleLabel(user.role)}</p>
+                    )}
+                  </div>
+                </TooltipContent>
+              )}
+            </Tooltip>
 
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -611,29 +611,29 @@ const SidebarComponent = () => {
                   whileTap={{ scale: 0.98 }}
                 >
                   <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "h-9 md:h-11 text-xs md:text-sm border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all duration-200 group",
-                            isCollapsed ? "w-full justify-center px-2" : "w-full justify-start gap-2"
-                          )}
-                        >
-                          <LogOut className={cn(
-                            "transition-transform group-hover:translate-x-0.5 flex-shrink-0",
-                            isCollapsed ? "w-4 h-4" : "w-3.5 h-3.5 md:w-4 md:h-4"
-                          )} />
-                          {!isCollapsed && (
-                            <span className="font-medium">Déconnexion</span>
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      {isCollapsed && (
-                        <TooltipContent side="right" className="bg-slate-800 border-sky-500/30 text-white">
-                          Déconnexion
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "h-9 md:h-11 text-xs md:text-sm border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all duration-200 group",
+                          isCollapsed ? "w-full justify-center px-2" : "w-full justify-start gap-2"
+                        )}
+                      >
+                        <LogOut className={cn(
+                          "transition-transform group-hover:translate-x-0.5 flex-shrink-0",
+                          isCollapsed ? "w-4 h-4" : "w-3.5 h-3.5 md:w-4 md:h-4"
+                        )} />
+                        {!isCollapsed && (
+                          <span className="font-medium">Déconnexion</span>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    {isCollapsed && (
+                      <TooltipContent side="right" className="bg-slate-800 border-sky-500/30 text-white">
+                        Déconnexion
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
                 </motion.div>
               </AlertDialogTrigger>
               <AlertDialogContent className="glass border-border/40 max-w-[90vw] md:max-w-md">

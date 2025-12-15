@@ -1417,11 +1417,11 @@ export function KanbanBoard({ onCreateLead, searchQuery = "" }: KanbanBoardProps
                 'Authorization': `Bearer ${token}`,
               },
             })
-            
+
             if (!leadResponse.ok) {
               throw new Error('Failed to fetch updated lead')
             }
-            
+
             const updatedLead = await leadResponse.json()
 
             // Update the lead in the list

@@ -28,13 +28,13 @@ interface HeaderProps {
   onSearchChange?: (q: string) => void
 }
 
-export function Header({ 
-  onCreateLead, 
-  onImportLeads, 
+export function Header({
+  onCreateLead,
+  onImportLeads,
   onCreateTask,
   onCreateContact,
-  searchQuery = "", 
-  onSearchChange 
+  searchQuery = "",
+  onSearchChange
 }: HeaderProps) {
   const [commandMenuOpen, setCommandMenuOpen] = useState(false)
   const { user, logout } = useAuth()
@@ -87,7 +87,7 @@ export function Header({
           >
             {/* Glow effect on hover */}
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl" />
-            
+
             <Search className="mr-3 h-5 w-5 shrink-0 relative z-10 text-slate-400 group-hover:text-blue-400 transition-colors" />
             <span className="flex-1 text-left text-sm relative z-10">Rechercher des pages, clients, contacts, tâches...</span>
             <div className="flex items-center gap-1 ml-3 shrink-0 relative z-10">
@@ -141,10 +141,10 @@ export function Header({
               </p>
               {user?.role && (
                 <span className="text-[10px] text-slate-400 font-medium">
-                  {user.role === "admin" ? "Administrateur" : 
-                   user.role === "operator" ? "Opérateur" :
-                   user.role === "gestionnaire" ? "Gestionnaire" :
-                   user.role === "architect" ? "Architecte" : "Utilisateur"}
+                  {user.role === "admin" ? "Administrateur" :
+                    user.role === "operator" ? "Opérateur" :
+                      user.role === "gestionnaire" ? "Gestionnaire" :
+                        user.role === "architect" ? "Architecte" : "Utilisateur"}
                 </span>
               )}
             </div>
@@ -163,37 +163,37 @@ export function Header({
                   </div>
                 </Button>
               </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 md:w-64 bg-[rgb(15,20,32)] border-[rgb(30,41,59)]">
-              <DropdownMenuLabel>
-                <div className="flex items-center gap-2 md:gap-3 py-1 md:py-2">
-                  <Avatar className="h-9 w-9 md:h-10 md:w-10">
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-xs md:text-sm">
-                      {user ? getInitials(user.name) : "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col space-y-1 flex-1 min-w-0">
-                    <p className="text-[11px] md:text-xs font-semibold leading-none truncate text-white">{user?.name}</p>
-                    <p className="text-[9px] md:text-[10px] leading-none text-gray-400 truncate">
-                      {user?.email}
-                    </p>
-                    {user?.role && (
-                      <span className="text-[9px] md:text-[10px] text-blue-400 font-medium">
-                        {user.role === "admin" ? "Administrateur" : "Utilisateur"}
-                      </span>
-                    )}
+              <DropdownMenuContent align="end" className="w-56 md:w-64 bg-[rgb(15,20,32)] border-[rgb(30,41,59)]">
+                <DropdownMenuLabel>
+                  <div className="flex items-center gap-2 md:gap-3 py-1 md:py-2">
+                    <Avatar className="h-9 w-9 md:h-10 md:w-10">
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-xs md:text-sm">
+                        {user ? getInitials(user.name) : "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col space-y-1 flex-1 min-w-0">
+                      <p className="text-[11px] md:text-xs font-semibold leading-none truncate text-white">{user?.name}</p>
+                      <p className="text-[9px] md:text-[10px] leading-none text-gray-400 truncate">
+                        {user?.email}
+                      </p>
+                      {user?.role && (
+                        <span className="text-[9px] md:text-[10px] text-blue-400 font-medium">
+                          {user.role === "admin" ? "Administrateur" : "Utilisateur"}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => logout()}
-                className="text-red-400 focus:text-red-400 focus:bg-red-500/10 cursor-pointer text-xs md:text-sm"
-              >
-                <LogOut className="w-3.5 h-3.5 md:w-4 md:h-4 mr-2" />
-                Se déconnecter
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => logout()}
+                  className="text-red-400 focus:text-red-400 focus:bg-red-500/10 cursor-pointer text-xs md:text-sm"
+                >
+                  <LogOut className="w-3.5 h-3.5 md:w-4 md:h-4 mr-2" />
+                  Se déconnecter
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
