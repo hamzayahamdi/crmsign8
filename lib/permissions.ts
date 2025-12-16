@@ -297,27 +297,30 @@ export function getRoleLabel(role: string | undefined): string {
 
 /**
  * Check if user role should only see their own data (tasks/calendar)
- * Gestionnaire has restricted visibility for tasks/calendar
- * Architects can see all calendars (all architects' calendars are visible to everyone)
+ * NOTE: Calendar is now open to everyone - all roles can see all calendars
+ * This function is kept for backward compatibility with tasks module
  */
 export function canViewAllData(userRole: string | undefined): boolean {
   if (!userRole) return false;
 
   const normalizedRole = normalizeRole(userRole);
 
-  // Admin, Operator, and Architect can see all data
+  // All roles can see all calendar data
+  // For tasks, Admin, Operator, and Architect can see all data
   return normalizedRole === "Admin" || normalizedRole === "Operator" || normalizedRole === "Architect";
 }
 
 /**
  * Check if user should see only their own data
+ * NOTE: Calendar is now open to everyone - all roles can see all calendars
+ * This function is kept for backward compatibility with tasks module
  */
 export function shouldViewOwnDataOnly(userRole: string | undefined): boolean {
-  if (!userRole) return true;
+  if (!userRole) return false; // Changed from true to false - everyone sees all calendars
 
   const normalizedRole = normalizeRole(userRole);
 
-  // Only Gestionnaire sees only their own tasks/calendar
-  // Architects can see all calendars (all architects' calendars are visible to everyone)
-  return normalizedRole === "Gestionnaire";
+  // Calendar is open to everyone - no restrictions
+  // For tasks, only Gestionnaire sees only their own
+  return false; // All roles can see all calendars
 }

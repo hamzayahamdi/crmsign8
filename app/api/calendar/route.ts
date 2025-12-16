@@ -125,23 +125,12 @@ export async function GET(request: NextRequest) {
       where.AND.push({ eventType });
     }
 
-    // Role-based visibility - MUST be applied first
-    const isRestrictedRole = shouldViewOwnDataOnly(user.role);
-
-    console.log('[Calendar API] Role check - isRestrictedRole:', isRestrictedRole, 'role:', user.role);
-
-    if (isRestrictedRole) {
-      // Only Gestionnaire is restricted: their own events + events they're invited to + public events
-      where.AND.push({
-        OR: [
-          { createdBy: user.userId },
-          { assignedTo: user.userId },
-          { participants: { has: user.userId } },
-          { visibility: 'all' }
-        ]
-      });
-    }
-    // Admins, Operators, and Architects see all events (no additional filter needed)
+    // Calendar is now open to everyone - all roles can see all calendars
+    // This allows architects to see admin calendars and vice versa
+    // All users can view all calendar events regardless of role
+    console.log('[Calendar API] Role check - All roles can see all events, role:', user.role);
+    
+    // No role-based restrictions - everyone sees all events
 
     // Filter by assigned user or participants (additional filter on top of visibility)
     if (assignedTo && assignedTo !== 'all') {

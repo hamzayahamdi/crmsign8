@@ -137,7 +137,6 @@ export function LeadModalEnhanced({
         typeBien: lead?.typeBien || "",
         statut: lead?.statut || ("nouveau" as LeadStatus),
         statutDetaille: lead?.statutDetaille || "",
-        message: lead?.message || "",
         assignePar: lead?.assignePar || "Mohamed",
         source: lead?.source || ("site_web" as LeadSource),
         priorite: lead?.priorite || ("moyenne" as LeadPriority),
@@ -200,7 +199,6 @@ export function LeadModalEnhanced({
         typeBien: "",
         statut: "nouveau" as LeadStatus,
         statutDetaille: "",
-        message: "",
         assignePar: "Mohamed",
         source: "site_web" as LeadSource,
         priorite: "moyenne" as LeadPriority,
@@ -228,7 +226,6 @@ export function LeadModalEnhanced({
                 typeBien: lead.typeBien,
                 statut: lead.statut,
                 statutDetaille: lead.statutDetaille || "",
-                message: lead.message || "",
                 assignePar: lead.assignePar || prev.assignePar || (architects[0] || 'Mohamed'),
                 source: lead.source,
                 priorite: lead.priorite,
@@ -283,8 +280,26 @@ export function LeadModalEnhanced({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         const calculatedPriority = calculatePriority(formData.source)
+        
+        // Prepare lead data without statutDetaille (we'll save it as a note)
+        const { statutDetaille, ...leadDataWithoutStatusDetails } = formData
+        
+        // Prepare notes array - include status details as a note if provided
+        const notesToInclude = [...formData.notes]
+        if (statutDetaille && statutDetaille.trim()) {
+            const statusNote: LeadNote = {
+                id: Date.now().toString(), // Temporary ID, will be replaced by API
+                leadId: lead?.id || '',
+                content: `📋 Statut détaillé: ${statutDetaille.trim()}`,
+                author: currentUserName,
+                createdAt: new Date().toISOString(),
+            }
+            notesToInclude.push(statusNote)
+        }
+        
         const leadData = {
-            ...formData,
+            ...leadDataWithoutStatusDetails,
+            notes: notesToInclude,
             priorite: calculatedPriority,
             id: lead?.id,
             derniereMaj: new Date().toISOString(),
@@ -292,12 +307,36 @@ export function LeadModalEnhanced({
             updatedAt: new Date().toISOString(),
         }
 
-        // Save the lead first
+        // Save the lead (API will handle creating notes for new leads)
         onSave(leadData)
 
-        // If this is a new lead with notes, we need to save them after the lead is created
-        // The parent component will handle the lead creation and should pass back the created lead ID
-        // For now, we'll just reset the form
+        // For existing leads, if status details are provided, save them as a note via API
+        if (lead?.id && statutDetaille && statutDetaille.trim()) {
+            try {
+                const token = localStorage.getItem('token')
+                const response = await fetch(`/api/leads/${lead.id}/notes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        content: `📋 Statut détaillé: ${statutDetaille.trim()}`
+                    })
+                })
+
+                if (response.ok) {
+                    toast({
+                        title: "Note ajoutée",
+                        description: "Les détails du statut ont été enregistrés comme note.",
+                    })
+                }
+            } catch (error) {
+                console.error('Error saving status details as note:', error)
+                // Don't show error to user, just log it
+            }
+        }
+
         resetForm()
         onOpenChange(false)
     }
@@ -545,31 +584,17 @@ export function LeadModalEnhanced({
                                     </div>
                                 </div>
 
-                                {/* Statut détaillé */}
+                                {/* Statut détaillé - Will be saved as note */}
                                 <div className="space-y-1">
                                     <Label htmlFor="statutDetaille" className="text-[10px] font-light text-slate-300">
-                                        Statut détaillé <span className="text-slate-400 font-light">(optionnel)</span>
+                                        Statut détaillé <span className="text-slate-400 font-light">(optionnel - sera enregistré comme note)</span>
                                     </Label>
                                     <Textarea
                                         id="statutDetaille"
                                         value={formData.statutDetaille}
                                         onChange={(e) => setFormData({ ...formData, statutDetaille: e.target.value })}
-                                        className="bg-slate-800/90 border-slate-600/40 text-white placeholder:text-slate-400 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 h-8 resize-none font-light text-xs transition-all"
-                                        placeholder="Ajouter des détails sur le statut..."
-                                    />
-                                </div>
-
-                                {/* Message */}
-                                <div className="space-y-1">
-                                    <Label htmlFor="message" className="text-[10px] font-light text-slate-300">
-                                        Message <span className="text-slate-400 font-light">(optionnel)</span>
-                                    </Label>
-                                    <Textarea
-                                        id="message"
-                                        value={formData.message}
-                                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                                        className="bg-slate-800/90 border-slate-600/40 text-white placeholder:text-slate-400 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 h-8 resize-none font-light text-xs transition-all"
-                                        placeholder="Message ou commentaire du lead..."
+                                        className="bg-slate-800/90 border-slate-600/40 text-white placeholder:text-slate-400 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 min-h-[80px] resize-none font-light text-xs transition-all"
+                                        placeholder="Ajouter des détails sur le statut... (sera visible dans l'historique des notes)"
                                     />
                                 </div>
 

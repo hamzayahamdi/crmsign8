@@ -360,43 +360,33 @@ export function LeadsTable({ leads, onLeadClick, onEditLead, onDeleteLead, onVie
               </p>
             </div>
 
-            {/* Right Side - Search Bar - Enhanced visual design */}
-            <div className="flex-shrink-0 w-full md:w-auto md:max-w-md lg:max-w-lg xl:max-w-xl">
-              <div className="relative group">
-                {/* Subtle glow effect on focus */}
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-primary/30 to-primary/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"></div>
-
+            {/* Right Side - Search Bar - Clean and intuitive design */}
+            <div className="flex-shrink-0 w-full md:w-auto md:min-w-[400px] lg:min-w-[500px] xl:min-w-[600px]">
+              <div className="relative">
                 <div className="relative flex items-center">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF] group-hover:text-primary/80 transition-colors z-10 pointer-events-none" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10 pointer-events-none" />
                   <Input
                     type="text"
-                    placeholder="Rechercher (nom, téléphone, ville...)"
+                    placeholder="Rechercher par nom, téléphone, ville, type de bien, source..."
                     value={tableSearchQuery}
                     onChange={(e) => setTableSearchQuery(e.target.value)}
-                    className="relative pl-11 pr-11 h-11 text-sm bg-slate-700/80 border-2 border-slate-600/70 text-white placeholder:text-slate-400 focus:border-primary/80 focus:ring-2 focus:ring-primary/30 focus:bg-slate-700/95 transition-all duration-200 shadow-xl hover:border-slate-500/80 w-full backdrop-blur-sm rounded-lg"
+                    className="relative pl-10 pr-10 h-10 text-sm bg-slate-800/50 border border-slate-600/50 text-white placeholder:text-slate-500 focus:border-primary/60 focus:ring-1 focus:ring-primary/20 focus:bg-slate-800/70 transition-all duration-200 hover:border-slate-500/60 w-full rounded-lg"
                   />
                   {tableSearchQuery && (
                     <button
                       onClick={() => setTableSearchQuery("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-600/80 rounded-md transition-all duration-200 hover:scale-110 z-10 group/clear active:scale-95"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700/50 rounded transition-colors z-10"
                       aria-label="Clear search"
                     >
-                      <X className="w-4 h-4 text-[#9CA3AF] group-hover/clear:text-white transition-colors" />
+                      <X className="w-4 h-4 text-slate-400 hover:text-slate-300" />
                     </button>
                   )}
                 </div>
 
-                {/* Result count and hint */}
+                {/* Result count - Simple and clean */}
                 {tableSearchQuery && (
-                  <div className="mt-2 flex items-center justify-between px-1">
-                    <div className="text-xs text-primary/90 font-medium flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse"></div>
-                      {filteredLeads.length} résultat{filteredLeads.length > 1 ? 's' : ''} trouvé{filteredLeads.length > 1 ? 's' : ''}
-                    </div>
-                    <div className="text-[10px] text-slate-500 flex items-center gap-1">
-                      <kbd className="px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 bg-slate-800/50 border border-slate-700/50 rounded">Échap</kbd>
-                      <span>pour effacer</span>
-                    </div>
+                  <div className="mt-2 text-xs text-slate-400 px-1">
+                    {filteredLeads.length} résultat{filteredLeads.length > 1 ? 's' : ''}
                   </div>
                 )}
               </div>

@@ -127,45 +127,13 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
 
   // Permission helpers
   canViewEvent: (event) => {
-    const { currentUserId, currentUserRole } = get();
+    const { currentUserId } = get();
     if (!currentUserId) return false;
 
-    // Admins, Operators, and Architects can see all events
-    const canSeeAll = currentUserRole === 'admin' || 
-                      currentUserRole === 'operator' ||
-                      currentUserRole === 'Admin' ||
-                      currentUserRole === 'Operator' ||
-                      currentUserRole === 'architect' ||
-                      currentUserRole === 'Architect' ||
-                      currentUserRole === 'architecte';
-    
-    if (canSeeAll) {
-      return true;
-    }
-
-    // Gestionnaire: restricted view (only their own + invited + public)
-    if (currentUserRole === 'gestionnaire' || currentUserRole === 'Gestionnaire') {
-      if (event.visibility === 'all') return true;
-      return (
-        event.createdBy === currentUserId ||
-        event.assignedTo === currentUserId ||
-        event.participants.includes(currentUserId)
-      );
-    }
-
-    // Check visibility
-    if (event.visibility === 'all') return true;
-    
-    if (event.visibility === 'private') {
-      return event.createdBy === currentUserId;
-    }
-
-    // For 'team' visibility, check if user is creator, assignee, or participant
-    return (
-      event.createdBy === currentUserId ||
-      event.assignedTo === currentUserId ||
-      event.participants.includes(currentUserId)
-    );
+    // Calendar is now open to everyone - all roles can see all calendars
+    // This allows architects to see admin calendars and vice versa
+    // All users can view all calendar events regardless of role
+    return true;
   },
 
   canEditEvent: (event) => {

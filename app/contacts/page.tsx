@@ -60,6 +60,7 @@ export default function ContactsPage() {
   const [hasOpportunitiesFilter, setHasOpportunitiesFilter] = useState<string>('all')
   const [cityFilter, setCityFilter] = useState<string>('all')
   const [projectTypeFilter, setProjectTypeFilter] = useState<string>('all')
+  const [clientFilter, setClientFilter] = useState<boolean>(false) // Filter for clients only
 
   // Architect data from API
   const [allArchitects, setAllArchitects] = useState<Array<{ id: string, name: string }>>([])
@@ -100,7 +101,7 @@ export default function ContactsPage() {
   useEffect(() => {
     setPage(1) // Reset to page 1 when filters change
     loadContacts(1)
-  }, [searchQuery, statusFilter, selectedArchitect, hasOpportunitiesFilter, cityFilter, projectTypeFilter])
+  }, [searchQuery, statusFilter, selectedArchitect, hasOpportunitiesFilter, cityFilter, projectTypeFilter, clientFilter])
 
   const loadContacts = async (pageNum: number = page) => {
     try {
@@ -143,6 +144,11 @@ export default function ContactsPage() {
           const opportunities = (c as any).opportunities || []
           return opportunities.some((opp: any) => opp.type === projectTypeFilter)
         })
+      }
+
+      // Filter by client status (tag === 'client')
+      if (clientFilter) {
+        filtered = filtered.filter(c => c.tag === 'client')
       }
 
       setContacts(filtered)
@@ -193,6 +199,27 @@ export default function ContactsPage() {
   // Calculate statistics - ONLY what's needed
   const contactsWithOpportunities = contacts.filter(c => (c as any).opportunities?.length > 0).length
   const clientsCount = contacts.filter(c => c.tag === 'client').length
+  
+  // Card click handlers to filter
+  const handleCardClick = (filterType: 'all' | 'withOpportunities' | 'clients') => {
+    if (filterType === 'all') {
+      // Reset all filters
+      setHasOpportunitiesFilter('all')
+      setStatusFilter('all')
+      setClientFilter(false)
+      setCityFilter('all')
+      setProjectTypeFilter('all')
+    } else if (filterType === 'withOpportunities') {
+      // Show only contacts with opportunities
+      setHasOpportunitiesFilter('has')
+      setClientFilter(false)
+    } else if (filterType === 'clients') {
+      // Filter to show only clients (tag === 'client')
+      setClientFilter(true)
+      setHasOpportunitiesFilter('all')
+      setStatusFilter('all')
+    }
+  }
 
   // Get unique values for filters
   const architects = Array.from(new Set(
@@ -209,7 +236,7 @@ export default function ContactsPage() {
 
   const projectTypes: OpportunityType[] = ['villa', 'appartement', 'magasin', 'bureau', 'riad', 'studio', 'renovation', 'autre']
 
-  const hasActiveFilters = statusFilter !== 'all' || (!isArchitect && selectedArchitect !== 'all') || hasOpportunitiesFilter !== 'all' || cityFilter !== 'all' || projectTypeFilter !== 'all'
+  const hasActiveFilters = statusFilter !== 'all' || (!isArchitect && selectedArchitect !== 'all') || hasOpportunitiesFilter !== 'all' || cityFilter !== 'all' || projectTypeFilter !== 'all' || clientFilter
 
   return (
     <AuthGuard>
@@ -236,77 +263,98 @@ export default function ContactsPage() {
             </div>
           )}
 
-          {/* Stats Cards - ONLY 3 ESSENTIAL CARDS */}
-          <div className="px-3 md:px-4 pt-2 md:pt-3 pb-1">
+          {/* Stats Cards - Compact design for better table visibility */}
+          <div className="px-3 md:px-4 pt-2 pb-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {/* Total Contacts */}
+              {/* Total Contacts - Clickable */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-blue-500/30 transition-all duration-300"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => handleCardClick('all')}
+                className={cn(
+                  "group relative overflow-hidden rounded-lg bg-gradient-to-br from-blue-500/10 via-slate-800/60 to-slate-900/40 border p-2.5 cursor-pointer transition-all duration-200",
+                  !hasActiveFilters ? "border-blue-500/50 shadow-md shadow-blue-500/10" : "border-slate-700/50 hover:border-blue-500/40"
+                )}
               >
-                <div className="flex items-center justify-between">
+                <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Total</p>
+                    <p className="text-[10px] font-semibold text-blue-300/70 mb-0.5 uppercase tracking-wider">
+                      Tous mes contacts
+                    </p>
                     <p className="text-2xl font-bold text-white leading-tight">{loading ? '...' : total}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Contacts</p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/10 border border-blue-500/30 flex items-center justify-center">
                       {loading ? (
-                        <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                        <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
                       ) : (
-                        <Users className="w-5 h-5 text-blue-400" />
+                        <Users className="w-4 h-4 text-blue-400" />
                       )}
                     </div>
                   </div>
                 </div>
               </motion.div>
 
-              {/* Contacts avec Opportunités */}
+              {/* Contacts avec Opportunités - Clickable */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-orange-500/30 transition-all duration-300"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => handleCardClick('withOpportunities')}
+                className={cn(
+                  "group relative overflow-hidden rounded-lg bg-gradient-to-br from-orange-500/10 via-slate-800/60 to-slate-900/40 border p-2.5 cursor-pointer transition-all duration-200",
+                  hasOpportunitiesFilter === 'has' ? "border-orange-500/50 shadow-md shadow-orange-500/10" : "border-slate-700/50 hover:border-orange-500/40"
+                )}
               >
-                <div className="flex items-center justify-between">
+                <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Avec</p>
+                    <p className="text-[10px] font-semibold text-orange-300/70 mb-0.5 uppercase tracking-wider">
+                      Contacts avec opportunités
+                    </p>
                     <p className="text-2xl font-bold text-white leading-tight">{loading ? '...' : contactsWithOpportunities}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Opportunités</p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/10 border border-orange-500/30 flex items-center justify-center">
                       {loading ? (
-                        <Loader2 className="w-5 h-5 text-orange-400 animate-spin" />
+                        <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
                       ) : (
-                        <Briefcase className="w-5 h-5 text-orange-400" />
+                        <Briefcase className="w-4 h-4 text-orange-400" />
                       )}
                     </div>
                   </div>
                 </div>
               </motion.div>
 
-              {/* Clients (with at least 1 won opportunity) */}
+              {/* Clients - Clickable */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-green-500/30 transition-all duration-300 sm:col-span-2 lg:col-span-1"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => handleCardClick('clients')}
+                className={cn(
+                  "group relative overflow-hidden rounded-lg bg-gradient-to-br from-green-500/10 via-slate-800/60 to-slate-900/40 border p-2.5 cursor-pointer transition-all duration-200 sm:col-span-2 lg:col-span-1",
+                  clientFilter ? "border-green-500/50 shadow-md shadow-green-500/10" : "border-slate-700/50 hover:border-green-500/40"
+                )}
               >
-                <div className="flex items-center justify-between">
+                <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Clients</p>
+                    <p className="text-[10px] font-semibold text-green-300/70 mb-0.5 uppercase tracking-wider">
+                      Contacts devenus clients
+                    </p>
                     <p className="text-2xl font-bold text-green-400 leading-tight">{loading ? '...' : clientsCount}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Clients</p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/30 flex items-center justify-center">
                       {loading ? (
-                        <Loader2 className="w-5 h-5 text-green-400 animate-spin" />
+                        <Loader2 className="w-4 h-4 text-green-400 animate-spin" />
                       ) : (
-                        <UserCheck className="w-5 h-5 text-green-400" />
+                        <UserCheck className="w-4 h-4 text-green-400" />
                       )}
                     </div>
                   </div>
@@ -316,7 +364,7 @@ export default function ContactsPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="px-3 md:px-4 pb-2 mb-3">
+          <div className="px-3 md:px-4 pt-3 pb-2 mb-2">
             <div className="space-y-2">
               {/* Search Bar */}
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
@@ -348,7 +396,8 @@ export default function ContactsPage() {
                           (!isArchitect && selectedArchitect !== 'all' ? 1 : 0) +
                           (hasOpportunitiesFilter !== 'all' ? 1 : 0) +
                           (cityFilter !== 'all' ? 1 : 0) +
-                          (projectTypeFilter !== 'all' ? 1 : 0)} actif{((statusFilter !== 'all' ? 1 : 0) + (!isArchitect && selectedArchitect !== 'all' ? 1 : 0) + (hasOpportunitiesFilter !== 'all' ? 1 : 0) + (cityFilter !== 'all' ? 1 : 0) + (projectTypeFilter !== 'all' ? 1 : 0)) > 1 ? 's' : ''}
+                          (projectTypeFilter !== 'all' ? 1 : 0) +
+                          (clientFilter ? 1 : 0)} actif{((statusFilter !== 'all' ? 1 : 0) + (!isArchitect && selectedArchitect !== 'all' ? 1 : 0) + (hasOpportunitiesFilter !== 'all' ? 1 : 0) + (cityFilter !== 'all' ? 1 : 0) + (projectTypeFilter !== 'all' ? 1 : 0) + (clientFilter ? 1 : 0)) > 1 ? 's' : ''}
                       </span>
                     )}
                     <ChevronDown
@@ -368,6 +417,7 @@ export default function ContactsPage() {
                         setHasOpportunitiesFilter('all')
                         setCityFilter('all')
                         setProjectTypeFilter('all')
+                        setClientFilter(false)
                       }}
                       className="text-[10px] text-muted-foreground hover:text-white flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50"
                     >
@@ -492,7 +542,7 @@ export default function ContactsPage() {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 overflow-auto px-3 md:px-4 pb-3 mt-1">
+          <div className="flex-1 overflow-auto px-3 md:px-4 pb-3 mt-2">
             <ContactsTable
               contacts={contacts}
               onRowClick={handleContactClick}

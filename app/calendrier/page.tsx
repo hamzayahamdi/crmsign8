@@ -428,53 +428,134 @@ function CalendrierContent() {
                       </SelectContent>
                     </Select>
 
-                    {/* Architect Filter - Available for Admin, Gestionnaire, and Architects */}
-                    {(currentUserRole === 'admin' || 
-                      currentUserRole === 'gestionnaire' || 
-                      currentUserRole === 'Gestionnaire' ||
-                      currentUserRole === 'architect' ||
-                      currentUserRole === 'Architect' ||
-                      currentUserRole === 'architecte') && (
-                      <Select value={architectFilter} onValueChange={setArchitectFilter}>
-                        <SelectTrigger className="w-full md:w-[300px] h-9 md:h-12 px-2.5 md:px-4 bg-background/50 border-border/60 rounded-lg md:rounded-xl hover:border-primary/50 transition-all duration-300 text-xs md:text-sm">
-                          <SelectValue placeholder="Voir les RDV de" />
-                        </SelectTrigger>
-                        <SelectContent className="min-w-[320px] rounded-xl border-border/60">
-                          <SelectItem value="all" className="py-3.5 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="p-1.5 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg">
-                                <LayoutGrid className="h-4 w-4 text-primary" />
-                              </div>
-                              <span className="font-semibold text-sm">Tous les architectes</span>
+                    {/* User Filter - Available for all roles to see all calendars */}
+                    <Select value={architectFilter} onValueChange={setArchitectFilter}>
+                      <SelectTrigger className="w-full md:w-[320px] h-9 md:h-12 px-2.5 md:px-4 bg-background/50 border-border/60 rounded-lg md:rounded-xl hover:border-primary/50 transition-all duration-300 text-xs md:text-sm">
+                        <SelectValue placeholder="Filtrer par utilisateur" />
+                      </SelectTrigger>
+                      <SelectContent className="min-w-[360px] max-h-[500px] rounded-xl border-border/60">
+                        {/* All Users Option */}
+                        <SelectItem value="all" className="py-3.5 rounded-lg font-semibold">
+                          <div className="flex items-center gap-3">
+                            <div className="p-1.5 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg">
+                              <LayoutGrid className="h-4 w-4 text-primary" />
                             </div>
-                          </SelectItem>
+                            <span className="font-semibold text-sm">Tous les utilisateurs</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium ml-auto">
+                              {users.length}
+                            </span>
+                          </div>
+                        </SelectItem>
+                        
+                        {/* My Events Only - Only show if currentUserId is set */}
+                        {currentUserId && currentUserId.trim() !== '' && (
                           <SelectItem value={currentUserId} className="py-3.5 rounded-lg">
                             <div className="flex items-center gap-3">
                               <div className="p-1.5 bg-gradient-to-br from-blue-500/20 to-blue-500/10 rounded-lg">
                                 <User className="h-4 w-4 text-blue-600" />
                               </div>
-                              <span className="text-sm font-semibold">Moi uniquement</span>
+                              <span className="text-sm font-semibold">Mes événements uniquement</span>
                             </div>
                           </SelectItem>
-                          {users
-                            .filter(u => u.role === 'architecte' || u.role === 'commercial' || u.role === 'architect')
-                            .map((user) => (
-                              <SelectItem key={user.id} value={user.id} className="py-3.5 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                  <div className="p-1.5 bg-muted/50 rounded-lg">
-                                    <User className="h-4 w-4 text-muted-foreground" />
-                                  </div>
-                                  <span className="text-sm font-medium">{user.name}</span>
-                                  <span className="text-xs px-2.5 py-1 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary font-medium ml-auto capitalize">
-                                    {user.role === 'architecte' || user.role === 'architect' ? 'Architecte' : 'Commercial'}
-                                  </span>
+                        )}
+
+                        {/* Separator */}
+                        <div className="h-px bg-border/40 my-2 mx-2" />
+
+                        {/* Group users by role */}
+                        {(() => {
+                          const roleGroups: Record<string, typeof users> = {};
+                          const roleOrder = ['admin', 'operator', 'gestionnaire', 'architect', 'architecte', 'commercial', 'magasiner', 'chef_de_chantier'];
+                          const roleLabels: Record<string, string> = {
+                            'admin': 'Administrateurs',
+                            'operator': 'Opérateurs',
+                            'gestionnaire': 'Gestionnaires',
+                            'architect': 'Architectes',
+                            'architecte': 'Architectes',
+                            'commercial': 'Commerciaux',
+                            'magasiner': 'Magasiniers',
+                            'chef_de_chantier': 'Chefs de chantier'
+                          };
+                          const roleColors: Record<string, string> = {
+                            'admin': 'from-purple-500/20 to-purple-500/10 text-purple-600',
+                            'operator': 'from-indigo-500/20 to-indigo-500/10 text-indigo-600',
+                            'gestionnaire': 'from-green-500/20 to-green-500/10 text-green-600',
+                            'architect': 'from-blue-500/20 to-blue-500/10 text-blue-600',
+                            'architecte': 'from-blue-500/20 to-blue-500/10 text-blue-600',
+                            'commercial': 'from-orange-500/20 to-orange-500/10 text-orange-600',
+                            'magasiner': 'from-cyan-500/20 to-cyan-500/10 text-cyan-600',
+                            'chef_de_chantier': 'from-red-500/20 to-red-500/10 text-red-600'
+                          };
+
+                          // Group users by role
+                          users.forEach(user => {
+                            // Normalize role: handle spaces, underscores, and case variations
+                            let roleKey = user.role?.toLowerCase().trim() || 'other';
+                            // Normalize "chef de chantier" variations
+                            if (roleKey === 'chef de chantier' || roleKey === 'chef_de_chantier') {
+                              roleKey = 'chef_de_chantier';
+                            }
+                            // Normalize "architecte" to "architect"
+                            if (roleKey === 'architecte') {
+                              roleKey = 'architect';
+                            }
+                            if (!roleGroups[roleKey]) {
+                              roleGroups[roleKey] = [];
+                            }
+                            roleGroups[roleKey].push(user);
+                          });
+
+                          // Get all role keys (including those not in roleOrder)
+                          const allRoleKeys = Array.from(new Set([
+                            ...roleOrder,
+                            ...Object.keys(roleGroups).filter(key => !roleOrder.includes(key))
+                          ]));
+
+                          // Render groups in order
+                          return allRoleKeys.map(roleKey => {
+                            const groupUsers = roleGroups[roleKey];
+                            if (!groupUsers || groupUsers.length === 0) return null;
+
+                            const normalizedRole = roleKey === 'architecte' ? 'architect' : roleKey;
+                            const label = roleLabels[normalizedRole] || roleKey.charAt(0).toUpperCase() + roleKey.slice(1);
+                            const colorClass = roleColors[normalizedRole] || 'from-muted/20 to-muted/10 text-muted-foreground';
+                            
+                            // Get badge text - use full label for "Chefs de chantier", otherwise first word
+                            const badgeText = normalizedRole === 'chef_de_chantier' ? 'Chef de chantier' : label.split(' ')[0];
+
+                            return (
+                              <div key={roleKey}>
+                                {/* Role Header */}
+                                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/20">
+                                  {label} ({groupUsers.length})
                                 </div>
-                              </SelectItem>
-                            ))
-                          }
-                        </SelectContent>
-                      </Select>
-                    )}
+                                {/* Users in this role */}
+                                {groupUsers
+                                  .filter(user => user.id && user.id.trim() !== '') // Filter out users without valid IDs
+                                  .sort((a, b) => a.name.localeCompare(b.name))
+                                  .map((user) => (
+                                    <SelectItem key={user.id} value={user.id} className="py-3 rounded-lg pl-6">
+                                      <div className="flex items-center gap-3 w-full">
+                                        <div className={`p-1.5 bg-gradient-to-br ${colorClass} rounded-lg shrink-0`}>
+                                          <User className="h-4 w-4" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="text-sm font-medium truncate">{user.name}</div>
+                                          <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+                                        </div>
+                                        <span className={`text-xs px-2.5 py-1 rounded-full bg-gradient-to-r ${colorClass} font-medium shrink-0`}>
+                                          {badgeText}
+                                        </span>
+                                      </div>
+                                    </SelectItem>
+                                  ))
+                                }
+                              </div>
+                            );
+                          });
+                        })()}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
