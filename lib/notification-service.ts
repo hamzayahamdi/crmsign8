@@ -317,6 +317,7 @@ export async function notifyArchitectContactConvertedOrAssigned(
     convertedFromLead?: boolean;
     leadSource?: string | null;
     leadTypeBien?: string | null;
+    contactId?: string; // For fetching notes when converted from lead
   } = {}
 ) {
   const { 
@@ -325,7 +326,8 @@ export async function notifyArchitectContactConvertedOrAssigned(
     createdBy,
     convertedFromLead = false,
     leadSource,
-    leadTypeBien
+    leadTypeBien,
+    contactId
   } = options;
 
   const db = getPrisma();
@@ -353,10 +355,70 @@ export async function notifyArchitectContactConvertedOrAssigned(
   let emailSubject: string;
   let emailBody: string;
 
+  // Fetch lead notes if converted from lead
+  let userNotes: Array<{ content: string; author: string; createdAt: Date }> = [];
+  if (convertedFromLead && contactId) {
+    try {
+      // Fetch notes from unified Note table that came from the lead
+      const allNotes = await db.note.findMany({
+        where: {
+          entityType: 'contact',
+          entityId: contactId,
+          sourceType: 'lead', // Only notes that came from the lead
+        },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          content: true,
+          author: true,
+          createdAt: true,
+        },
+      });
+
+      // Filter out system-generated notes
+      const systemNotePatterns = [
+        /^Lead créé par/i,
+        /statut.*mis à jour/i,
+        /déplacé/i,
+        /mouvement/i,
+        /Note de campagne/i,
+        /^📝 Note de campagne/i,
+      ];
+
+      userNotes = allNotes.filter(note => {
+        const content = note.content.trim();
+        // Exclude empty notes
+        if (!content) return false;
+        // Exclude system-generated notes
+        return !systemNotePatterns.some(pattern => pattern.test(content));
+      });
+
+      console.log(`[Notification] Found ${userNotes.length} user notes out of ${allNotes.length} total notes for contact ${contactId}`);
+    } catch (noteError) {
+      console.error('[Notification] Error fetching notes:', noteError);
+      // Continue without notes if fetch fails
+    }
+  }
+
   if (convertedFromLead) {
     // Lead converted to contact
     title = '🎯 Nouveau Contact Converti';
     platformMessage = `Un nouveau contact "${contact.nom}" vous a été assigné depuis un lead qualifié.\n\n📞 Téléphone: ${contact.telephone}${contact.ville ? `\n📍 Ville: ${contact.ville}` : ''}${contact.typeBien || leadTypeBien ? `\n🏠 Type de bien: ${contact.typeBien || leadTypeBien}` : ''}${contact.source || leadSource ? `\n📊 Source: ${contact.source || leadSource}` : ''}`;
+    
+    // Build WhatsApp message with notes section
+    let notesSection = '';
+    if (userNotes.length > 0) {
+      notesSection = `\n\n📝 *Notes du Lead:*\n` +
+        userNotes.map((note, index) => {
+          const date = new Date(note.createdAt).toLocaleDateString('fr-FR', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric' 
+          });
+          // Format note with proper spacing and indentation
+          const noteContent = note.content.split('\n').map(line => `   ${line}`).join('\n');
+          return `\n${index + 1}. *${date}* - ${note.author}\n${noteContent}`;
+        }).join('\n') + `\n`;
+    }
     
     whatsappMessage = `🎯 *Nouveau Contact Converti*\n\n` +
       `Bonjour ${architect.name},\n\n` +
@@ -366,10 +428,35 @@ export async function notifyArchitectContactConvertedOrAssigned(
       (contact.ville ? `📍 *Ville:* ${contact.ville}\n` : '') +
       (contact.typeBien || leadTypeBien ? `🏠 *Type de bien:* ${contact.typeBien || leadTypeBien}\n` : '') +
       (contact.source || leadSource ? `📊 *Source:* ${contact.source || leadSource}\n` : '') +
+      notesSection +
       `\n💼 Veuillez contacter ce prospect dans les plus brefs délais.\n\n` +
       `Cordialement,\nL'équipe Signature8`;
     
     emailSubject = `🎯 Nouveau Contact Converti - ${contact.nom}`;
+    
+    // Build notes section for email
+    let emailNotesSection = '';
+    if (userNotes.length > 0) {
+      emailNotesSection = `
+        <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+          <h3 style="margin-top: 0; color: #92400e;">📝 Notes du Lead</h3>
+          ${userNotes.map((note, index) => {
+            const date = new Date(note.createdAt).toLocaleDateString('fr-FR', { 
+              day: '2-digit', 
+              month: '2-digit', 
+              year: 'numeric' 
+            });
+            return `
+              <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: ${index < userNotes.length - 1 ? '1px solid #fde68a' : 'none'};">
+                <p style="margin: 0; font-size: 12px; color: #78350f; font-weight: bold;">${date} - ${note.author}</p>
+                <p style="margin: 5px 0 0 0; color: #1f2937;">${note.content}</p>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+    
     emailBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #2563eb;">🎯 Nouveau Contact Converti</h2>
@@ -384,6 +471,7 @@ export async function notifyArchitectContactConvertedOrAssigned(
           ${contact.typeBien || leadTypeBien ? `<p><strong>🏠 Type de bien:</strong> ${contact.typeBien || leadTypeBien}</p>` : ''}
           ${contact.source || leadSource ? `<p><strong>📊 Source:</strong> ${contact.source || leadSource}</p>` : ''}
         </div>
+        ${emailNotesSection}
         <p style="color: #dc2626; font-weight: bold;">💼 Veuillez contacter ce prospect dans les plus brefs délais.</p>
         <p>Cordialement,<br>L'équipe Signature8</p>
       </div>

@@ -72,11 +72,29 @@ export function DevisPaiementTracker({
     acceptedDevis.length > 0 && acceptedDevis.every((d) => d.facture_reglee);
 
 
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+
   const handleMarkPaid = async (devisId: string) => {
     const devis = client.devis?.find((d) => d.id === devisId);
     if (!devis) return;
 
+    // Set loading state
+    setMarkingPaidId(devisId);
     const now = new Date().toISOString();
+
+    // Check if this will make all accepted devis paid
+    const acceptedDevis = client.devis?.filter(d => d.statut === "accepte") || [];
+    const willBeAllPaid = acceptedDevis.length > 0 && 
+      acceptedDevis.filter(d => d.id === devisId || d.facture_reglee).length === acceptedDevis.length;
+
+    // Show initial toast with pending state
+    toast({
+      title: "⏳ Enregistrement du paiement...",
+      description: willBeAllPaid 
+        ? "Vérification si toutes les factures sont réglées..." 
+        : `Le paiement de ${formatCurrency(devis.montant)} est en cours d'enregistrement`,
+      duration: 3000,
+    });
 
     // Optimistic update
     const updatedDevis = client.devis?.map((d) =>
@@ -106,10 +124,13 @@ export function DevisPaiementTracker({
       if (!response.ok) {
         // Revert optimistic update on error
         onUpdate(client, true);
+        setMarkingPaidId(null);
         throw new Error("Failed to update devis");
       }
 
-      // Re-fetch client data to get updated state
+      const result = await response.json();
+
+      // Re-fetch client data to get updated state (including stage if it changed)
       const clientResponse = await fetch(`/api/clients/${client.id}`, {
         credentials: "include",
       });
@@ -117,21 +138,38 @@ export function DevisPaiementTracker({
       if (clientResponse.ok) {
         const clientResult = await clientResponse.json();
         onUpdate(clientResult.data, true);
-      }
 
-      toast({
-        title: "Facture marquée comme réglée",
-        description: `Le paiement de ${formatCurrency(devis.montant)} a été enregistré`,
-      });
+        // Show success toast with stage update info if applicable
+        if (result.stageProgressed && result.newStage === 'facture_reglee') {
+          toast({
+            title: "✅ Paiement enregistré et étape mise à jour",
+            description: `Toutes les factures sont réglées. Le projet est passé à "Facture réglée".`,
+            duration: 4000,
+          });
+        } else {
+          toast({
+            title: "✅ Facture marquée comme réglée",
+            description: `Le paiement de ${formatCurrency(devis.montant)} a été enregistré`,
+            duration: 3000,
+          });
+        }
+      }
     } catch (error) {
       console.error("[Mark Paid] Error:", error);
       // Revert to original state on error
       onUpdate(client, true);
+      setMarkingPaidId(null);
       toast({
-        title: "Erreur",
+        title: "❌ Erreur",
         description: "Impossible de marquer la facture comme réglée",
         variant: "destructive",
+        duration: 4000,
       });
+    } finally {
+      // Clear loading state after a short delay
+      setTimeout(() => {
+        setMarkingPaidId(null);
+      }, 500);
     }
   };
 
@@ -410,9 +448,17 @@ export function DevisPaiementTracker({
                       <Button
                         size="sm"
                         onClick={() => handleMarkPaid(devis.id)}
-                        className="h-7 px-2 text-xs bg-green-600 hover:bg-green-700 text-white"
+                        disabled={markingPaidId === devis.id || markingPaidId !== null}
+                        className="h-7 px-2 text-xs bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed relative"
                       >
-                        Régler
+                        {markingPaidId === devis.id ? (
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span>Enregistrement...</span>
+                          </span>
+                        ) : (
+                          "Régler"
+                        )}
                       </Button>
                     )}
 

@@ -646,9 +646,77 @@ export async function GET(
       };
     });
 
+    // Fetch notes from unified Note table if client has a contactId (converted from lead/contact)
+    let unifiedNotesEntries: any[] = [];
+    const contactIdForNotes = isOpportunityClient ? contactId : (client as any).contactId || (client as any).contact_id;
+    
+    if (contactIdForNotes) {
+      try {
+        const unifiedNotes = await prisma.note.findMany({
+          where: {
+            entityType: 'contact',
+            entityId: contactIdForNotes,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+        });
+
+        // Filter out system-generated notes
+        const systemNotePatterns = [
+          /^Lead créé par/i,
+          /statut.*mis à jour/i,
+          /déplacé/i,
+          /mouvement/i,
+          /Note de campagne/i,
+          /^📝 Note de campagne/i,
+          /Architecte assigné/i,
+          /Gestionnaire assigné/i,
+          /Opportunité créée/i,
+          /Contact converti en Client/i,
+          /Contact créé depuis Lead/i,
+          /Statut changé/i,
+          /Statut Lead mis à jour/i,
+          /^✉️ Message WhatsApp envoyé/i,
+          /^📅 Nouveau rendez-vous/i,
+          /^✅ Statut mis à jour/i,
+        ];
+
+        const userNotes = unifiedNotes.filter(note => {
+          const content = note.content.trim();
+          if (!content) return false;
+          return !systemNotePatterns.some(pattern => pattern.test(content));
+        });
+
+        unifiedNotesEntries = userNotes.map((note) => {
+          let authorName = note.author || "Système";
+          if (authorName && authorName.length > 20) {
+            authorName = userNameMap[authorName] || userNameMap[authorName.toLowerCase()] || note.author;
+          }
+          
+          return {
+            id: `unified-note-${note.id}`,
+            date: note.createdAt.toISOString(),
+            type: 'note' as const,
+            description: note.content,
+            auteur: authorName,
+            metadata: {
+              source: note.sourceType === 'lead' ? 'lead' : 'contact',
+              noteId: note.id,
+              sourceId: note.sourceId,
+            },
+          };
+        });
+        
+        console.log(`[GET /api/clients/[id]] Fetched ${unifiedNotesEntries.length} notes from unified Note table for contact ${contactIdForNotes}`);
+      } catch (error) {
+        console.error('[GET /api/clients/[id]] Error fetching unified notes:', error);
+      }
+    }
+
     const combinedHistorique = [
       ...supabaseHistorique,
       ...leadHistoriqueEntries,
+      ...unifiedNotesEntries,
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const transformedClient = {

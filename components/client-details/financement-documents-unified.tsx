@@ -114,7 +114,23 @@ export function FinancementDocumentsUnified({
     const devis = client.devis?.find((d) => d.id === devisId);
     if (!devis) return;
 
+    // Set loading state for this specific devis
+    setUpdatingDevisId(devisId);
     const now = new Date().toISOString();
+
+    // Check if this will make all accepted devis paid
+    const acceptedDevis = client.devis?.filter(d => d.statut === "accepte") || [];
+    const willBeAllPaid = acceptedDevis.length > 0 && 
+      acceptedDevis.filter(d => d.id === devisId || d.facture_reglee).length === acceptedDevis.length;
+
+    // Show initial toast with pending state
+    toast({
+      title: "⏳ Enregistrement du paiement...",
+      description: willBeAllPaid 
+        ? "Vérification si toutes les factures sont réglées..." 
+        : `Le paiement de ${formatCurrency(devis.montant)} est en cours d'enregistrement`,
+      duration: 3000,
+    });
 
     // Optimistic update
     const updatedDevis = client.devis?.map((d) =>
@@ -144,10 +160,13 @@ export function FinancementDocumentsUnified({
       if (!response.ok) {
         // Revert optimistic update on error
         onUpdate(client, true);
+        setUpdatingDevisId(null);
         throw new Error("Failed to update devis");
       }
 
-      // Re-fetch client data to get updated state
+      const result = await response.json();
+      
+      // Re-fetch client data to get updated state (including stage if it changed)
       const clientResponse = await fetch(`/api/clients/${client.id}`, {
         credentials: "include",
       });
@@ -155,21 +174,38 @@ export function FinancementDocumentsUnified({
       if (clientResponse.ok) {
         const clientResult = await clientResponse.json();
         onUpdate(clientResult.data, true);
-      }
 
-      toast({
-        title: "Facture marquée comme réglée",
-        description: `Le paiement de ${formatCurrency(devis.montant)} a été enregistré`,
-      });
+        // Show success toast with stage update info if applicable
+        if (result.stageProgressed && result.newStage === 'facture_reglee') {
+          toast({
+            title: "✅ Paiement enregistré et étape mise à jour",
+            description: `Toutes les factures sont réglées. Le projet est passé à "Facture réglée".`,
+            duration: 4000,
+          });
+        } else {
+          toast({
+            title: "✅ Facture marquée comme réglée",
+            description: `Le paiement de ${formatCurrency(devis.montant)} a été enregistré`,
+            duration: 3000,
+          });
+        }
+      }
     } catch (error) {
       console.error("[Mark Paid] Error:", error);
       // Revert to original state on error
       onUpdate(client, true);
+      setUpdatingDevisId(null);
       toast({
-        title: "Erreur",
+        title: "❌ Erreur",
         description: "Impossible de marquer la facture comme réglée",
         variant: "destructive",
+        duration: 4000,
       });
+    } finally {
+      // Clear loading state after a short delay to ensure UI updates
+      setTimeout(() => {
+        setUpdatingDevisId(null);
+      }, 500);
     }
   };
 
@@ -600,9 +636,16 @@ export function FinancementDocumentsUnified({
                                     : "text-orange-400",
                                 )}
                               >
-                                {devis.facture_reglee
-                                  ? "✓ Réglé"
-                                  : "⏳ En attente"}
+                                {updatingDevisId === devis.id ? (
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="w-2.5 h-2.5 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin" />
+                                    <span>Enregistrement...</span>
+                                  </span>
+                                ) : devis.facture_reglee ? (
+                                  "✓ Réglé"
+                                ) : (
+                                  "⏳ En attente"
+                                )}
                               </span>
                             )}
                           </div>
@@ -634,10 +677,17 @@ export function FinancementDocumentsUnified({
                                   e.stopPropagation()
                                   handleMarkPaid(devis.id)
                                 }}
-                                disabled={updatingDevisId === devis.id}
-                                className="h-7 px-2.5 text-[10px] bg-green-600/90 hover:bg-green-600 text-white shadow-sm font-light"
+                                disabled={updatingDevisId === devis.id || updatingDevisId !== null}
+                                className="h-7 px-2.5 text-[10px] bg-green-600/90 hover:bg-green-600 text-white shadow-sm font-light disabled:opacity-50 disabled:cursor-not-allowed relative"
                               >
-                                Régler
+                                {updatingDevisId === devis.id ? (
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>Enregistrement...</span>
+                                  </span>
+                                ) : (
+                                  "Régler"
+                                )}
                               </Button>
                             )}
 
@@ -713,47 +763,68 @@ export function FinancementDocumentsUnified({
             {paymentsList.length > 0 ? (
               <div className="space-y-2">
                 {paymentsList.map((payment) => {
-                  const isAcompte = payment.type === "accompte";
+                  const isAcompte = payment.type === "accompte" || payment.type === "Acompte";
                   return (
                     <motion.div
                       key={payment.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       className={cn(
-                        "p-2.5 rounded-md border transition-all group",
+                        "p-3 rounded-lg border-2 transition-all group shadow-lg",
                         isAcompte
-                          ? "border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 hover:border-emerald-500/40"
-                          : "border-green-500/15 bg-gradient-to-br from-green-500/5 to-transparent hover:border-green-500/20"
+                          ? "border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-amber-900/20 to-amber-950/30 hover:border-amber-500/60 hover:shadow-amber-500/20"
+                          : "border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent hover:border-green-500/30 hover:shadow-green-500/10"
                       )}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {/* Enhanced Icon */}
                           <div className={cn(
-                            "w-6 h-6 rounded flex items-center justify-center text-base shrink-0",
-                            isAcompte ? "bg-emerald-500/20" : "bg-green-500/15"
+                            "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border shadow-lg",
+                            isAcompte 
+                              ? "bg-amber-500/25 border-amber-500/50 shadow-amber-500/30" 
+                              : "bg-green-500/20 border-green-500/40 shadow-green-500/20"
                           )}>
-                            {getPaymentMethodIcon(payment.method)}
+                            {isAcompte ? (
+                              <Wallet className={cn(
+                                "w-5 h-5",
+                                "text-amber-300"
+                              )} />
+                            ) : (
+                              <span className="text-lg">{getPaymentMethodIcon(payment.method)}</span>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <h4 className="text-xs font-light text-white/90">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <h4 className={cn(
+                                "text-sm font-medium",
+                                isAcompte ? "text-amber-200" : "text-white/90"
+                              )}>
                                 {getPaymentMethodLabel(payment.method)}
                               </h4>
                               {isAcompte && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-light bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-amber-500/25 text-amber-200 border border-amber-500/50 shadow-sm">
                                   Acompte
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                            <div className="flex items-center gap-3 flex-wrap">
                               <p className={cn(
-                                "text-sm font-light",
-                                isAcompte ? "text-emerald-400" : "text-green-400"
+                                "text-base font-semibold",
+                                isAcompte ? "text-amber-300" : "text-green-400"
                               )}>
                                 {formatCurrency(payment.amount)}
                               </p>
-                              <div className="flex items-center gap-1 text-[9px] text-white/45 font-light">
-                                <Calendar className="w-2.5 h-2.5" />
+                              <div className={cn(
+                                "flex items-center gap-1.5 text-[10px] font-light px-2 py-1 rounded-md",
+                                isAcompte 
+                                  ? "text-amber-200/80 bg-amber-950/30 border border-amber-500/20" 
+                                  : "text-white/45 bg-slate-800/40"
+                              )}>
+                                <Calendar className={cn(
+                                  "w-3 h-3",
+                                  isAcompte ? "text-amber-300/60" : "text-white/30"
+                                )} />
                                 {new Date(payment.date).toLocaleDateString(
                                   "fr-FR",
                                   {
@@ -764,7 +835,12 @@ export function FinancementDocumentsUnified({
                                 )}
                               </div>
                               {payment.notes && (
-                                <span className="text-[9px] text-white/40 font-light flex items-center gap-0.5">
+                                <span className={cn(
+                                  "text-[10px] font-light flex items-center gap-1 px-2 py-1 rounded-md",
+                                  isAcompte
+                                    ? "text-amber-200/70 bg-amber-950/20 border border-amber-500/15"
+                                    : "text-white/40 bg-slate-800/30"
+                                )}>
                                   💬 {payment.notes}
                                 </span>
                               )}

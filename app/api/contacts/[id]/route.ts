@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verify } from 'jsonwebtoken';
 import { prisma } from '@/lib/database';
+import { createClient } from '@supabase/supabase-js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -63,20 +64,47 @@ export async function GET(
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
     }
 
-    console.log('[GET /api/contacts/[id]] Contact found, loading relations in parallel...');
+    console.log('[GET /api/contacts/[id]] Contact found, loading relations in parallel...', {
+      contactId: contact.id,
+      leadId: (contact as any).leadId,
+      tag: contact.tag,
+      convertedBy: (contact as any).convertedBy
+    });
 
+    // Check if contact has leadCreatedAt stored directly (preferred method)
+    // This is stored when the lead is converted, before the lead is deleted
+    const getLeadCreatedAt = () => {
+      if ((contact as any).leadCreatedAt) {
+        console.log('[GET /api/contacts/[id]] ✅ Using stored leadCreatedAt from contact:', (contact as any).leadCreatedAt);
+        return { createdAt: (contact as any).leadCreatedAt };
+      }
+      return null;
+    };
+
+    // Check for stored leadCreatedAt first (lead is already deleted, so we use stored value)
+    const storedLeadData = getLeadCreatedAt();
+    
     // Load all relations in parallel for faster response
     const [
       opportunities,
       tasks,
       appointments,
       documents,
+      payments,
       timeline,
     ] = await Promise.allSettled([
-      prisma.opportunity.findMany({ where: { contactId } }),
+      prisma.opportunity.findMany({ 
+        where: { contactId },
+        include: {
+          documents: true,
+          tasks: true,
+          appointments: true,
+        }
+      }),
       prisma.task.findMany({ where: { contactId } }),
       prisma.appointment.findMany({ where: { contactId } }),
       prisma.contactDocument.findMany({ where: { contactId } }),
+      prisma.contactPayment.findMany({ where: { contactId }, orderBy: { createdAt: 'desc' } }),
       prisma.timeline.findMany({ where: { contactId } }),
     ]);
 
@@ -84,29 +112,352 @@ export async function GET(
     (contact as any).opportunities = opportunities.status === 'fulfilled' ? opportunities.value : [];
     (contact as any).tasks = tasks.status === 'fulfilled' ? tasks.value : [];
     (contact as any).appointments = appointments.status === 'fulfilled' ? appointments.value : [];
-    (contact as any).documents = documents.status === 'fulfilled' ? documents.value : [];
+    
+    // Format contact documents to ensure they have all required fields
+    const contactDocs = documents.status === 'fulfilled' ? documents.value : [];
+    const formattedContactDocs = contactDocs.map((doc: any) => ({
+      id: doc.id,
+      name: doc.name || doc.filename || 'Document',
+      path: doc.path || doc.file_path || doc.url,
+      url: doc.url || doc.path || doc.file_path,
+      type: doc.type || doc.file_type || 'document',
+      category: doc.category || doc.document_category || 'Autre',
+      size: doc.size || doc.file_size || 0,
+      uploadedBy: doc.uploaded_by || doc.uploadedBy || 'Utilisateur',
+      uploadedAt: doc.uploaded_at || doc.uploadedAt || doc.created_at || doc.createdAt,
+      createdAt: doc.created_at || doc.createdAt,
+      source: 'contact',
+    }));
+    (contact as any).documents = formattedContactDocs;
+    
+    (contact as any).payments = payments.status === 'fulfilled' ? payments.value : [];
     const timelineData = timeline.status === 'fulfilled' ? timeline.value : [];
+    
+    // Use stored leadCreatedAt if available (lead was deleted after conversion)
+    // Check both the stored data and the contact object itself
+    const contactLeadCreatedAt = (contact as any).leadCreatedAt || storedLeadData?.createdAt;
+    if (contactLeadCreatedAt) {
+      (contact as any).leadCreatedAt = contactLeadCreatedAt;
+      console.log('[GET /api/contacts/[id]] ✅ Using stored leadCreatedAt:', contactLeadCreatedAt);
+    } else if ((contact as any).leadId) {
+      // Lead was deleted, but we don't have stored leadCreatedAt (old conversion)
+      console.warn('[GET /api/contacts/[id]] ⚠️ Contact has leadId but lead was deleted and no leadCreatedAt stored:', {
+        contactId: contactId,
+        leadId: (contact as any).leadId,
+        tag: contact.tag,
+        hasLeadCreatedAt: !!(contact as any).leadCreatedAt
+      });
+    }
 
-    // Build timeline - simplified for faster loading
-    // Just use timeline data directly, don't merge everything (can be done client-side if needed)
+    // Fetch client historique if contact has been converted to client
+    // Check for clients with composite IDs (contactId-opportunityId) or contactId field
+    let clientHistorique: any[] = [];
+    let clientNotes: any[] = [];
+    
     try {
-      (contact as any).timeline = timelineData || [];
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      
+      if (supabaseUrl && supabaseServiceKey) {
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        
+        // Find all clients related to this contact
+        // 1. Check for clients with composite IDs starting with contactId (format: contactId-opportunityId)
+        const { data: clientsWithCompositeId } = await supabase
+          .from('clients')
+          .select('id')
+          .like('id', `${contactId}-%`);
+        
+        // 2. Also find clients through opportunities (opportunities have contactId)
+        const opportunityIds = (contact as any).opportunities?.map((o: any) => o.id) || []
+        const clientIdsFromOpportunities: string[] = []
+        if (opportunityIds.length > 0) {
+          for (const oppId of opportunityIds) {
+            const compositeClientId = `${contactId}-${oppId}`
+            clientIdsFromOpportunities.push(compositeClientId)
+          }
+        }
+        
+        // 3. Combine all client IDs
+        const clientIds: string[] = [];
+        if (clientsWithCompositeId) {
+          clientIds.push(...clientsWithCompositeId.map(c => c.id));
+        }
+        // Add opportunity-based client IDs
+        clientIds.push(...clientIdsFromOpportunities)
+        // Remove duplicates
+        const uniqueClientIds = Array.from(new Set(clientIds))
+        
+        console.log(`[GET /api/contacts/[id]] Found ${uniqueClientIds.length} related clients:`, {
+          fromComposite: clientsWithCompositeId?.length || 0,
+          fromOpportunities: clientIdsFromOpportunities.length,
+          allIds: uniqueClientIds,
+        })
+        
+        // Fetch historique, documents, payments, appointments, and tasks from all related clients
+        // Optimized: Limit results to reduce query time and only fetch essential fields
+        if (uniqueClientIds.length > 0) {
+          console.log(`[GET /api/contacts/[id]] Fetching client data for ${uniqueClientIds.length} clients:`, uniqueClientIds)
+          const [
+            { data: historiqueData, error: historiqueError },
+            { data: clientDocumentsData, error: documentsError },
+            { data: clientDevisData, error: devisError },
+            { data: clientPaymentsData, error: paymentsError },
+            { data: clientAppointmentsData, error: appointmentsError },
+            { data: clientTasksData, error: tasksError },
+          ] = await Promise.all([
+            supabase
+              .from('historique')
+              .select('id, type, description, auteur, date, client_id, previous_status, new_status')
+              .in('client_id', uniqueClientIds)
+              .order('date', { ascending: false })
+              .limit(200), // Limit to most recent 200 entries
+            supabase
+              .from('documents')
+              .select('id, name, path, bucket, type, category, size, uploaded_by, uploaded_at, created_at')
+              .in('client_id', uniqueClientIds)
+              .order('uploaded_at', { ascending: false })
+              .limit(500), // Increased limit to show all documents
+            supabase
+              .from('devis')
+              .select('id, title, fichier, date, bucket, size, created_by, created_at')
+              .in('client_id', uniqueClientIds)
+              .order('date', { ascending: false })
+              .limit(500), // Increased limit to show all devis
+            supabase
+              .from('payments')
+              .select('id, montant, date, methode, reference, description, type, created_by, created_at')
+              .in('client_id', uniqueClientIds)
+              .order('date', { ascending: false })
+              .limit(100), // Limit to most recent 100 payments
+            supabase
+              .from('appointments')
+              .select('id, title, date_start, date_end, description, location, status, created_by, created_at')
+              .in('client_id', uniqueClientIds)
+              .order('date_start', { ascending: false })
+              .limit(100), // Limit to most recent 100 appointments
+            supabase
+              .from('tasks')
+              .select('id, title, description, status, priority, created_by, assigned_to, created_at, due_date')
+              .in('client_id', uniqueClientIds)
+              .order('created_at', { ascending: false })
+              .limit(100), // Limit to most recent 100 tasks
+          ]);
+          
+          if (historiqueData) {
+            clientHistorique = historiqueData.map((h: any) => {
+              // Handle different types of historique entries
+              let eventType = 'other'
+              if (h.type === 'note') {
+                eventType = 'note_added'
+              } else if (h.type === 'devis' || h.description?.includes('Devis attaché')) {
+                // Mark devis entries as document_uploaded so they appear in documents filter
+                eventType = 'document_uploaded'
+              } else if (h.type === 'document' || h.description?.includes('Document ajouté')) {
+                eventType = 'document_uploaded'
+              }
+              
+              return {
+                id: `client-hist-${h.id}`,
+                eventType: eventType,
+                title: h.type === 'note' 
+                  ? 'Note ajoutée' 
+                  : h.type === 'devis' || h.description?.includes('Devis attaché')
+                  ? (h.description?.replace(/^Devis attaché\s*:\s*/i, '') || 'Devis')
+                  : h.description?.substring(0, 50) || 'Activité',
+                description: h.description,
+                author: h.auteur,
+                createdAt: h.date || h.created_at,
+                metadata: {
+                  source: 'client',
+                  clientId: h.client_id,
+                  type: h.type,
+                  previousStatus: h.previous_status,
+                  newStatus: h.new_status,
+                  // Add devis metadata if it's a devis entry
+                  isDevis: h.type === 'devis' || h.description?.includes('Devis attaché'),
+                }
+              }
+            });
+            
+            // Extract notes from client historique
+            clientNotes = historiqueData
+              .filter((h: any) => h.type === 'note')
+              .map((h: any) => ({
+                id: `client-note-${h.id}`,
+                content: h.description,
+                createdAt: h.date || h.created_at,
+                createdBy: h.auteur,
+                type: 'note',
+                source: 'client',
+              }));
+          }
+
+          // Add client documents to contact documents
+          if (clientDocumentsData && clientDocumentsData.length > 0) {
+            const existingDocs = (contact as any).documents || [];
+            const clientDocs = clientDocumentsData.map((doc: any) => ({
+              id: doc.id,
+              name: doc.name || doc.filename || 'Document',
+              path: doc.path || doc.file_path,
+              bucket: doc.bucket || 'documents',
+              type: doc.type || doc.file_type || 'document',
+              category: doc.category || doc.document_category || 'Autre',
+              size: doc.size || doc.file_size || 0,
+              uploadedBy: doc.uploaded_by || doc.uploadedBy || 'Utilisateur',
+              uploadedAt: doc.uploaded_at || doc.uploadedAt || doc.created_at,
+              createdAt: doc.created_at || doc.createdAt,
+              contactId: contactId,
+              source: 'client',
+            }));
+            (contact as any).documents = [...existingDocs, ...clientDocs];
+            console.log(`[GET /api/contacts/[id]] Added ${clientDocs.length} client documents to contact`);
+          }
+
+          // Add client devis to contact documents (as devis type)
+          if (clientDevisData && clientDevisData.length > 0) {
+            const existingDocs = (contact as any).documents || [];
+            const devisDocs = clientDevisData.map((devis: any) => {
+              // Extract filename from path if title is not available
+              const filename = devis.fichier?.split('/').pop() || devis.fichier || 'Devis'
+              const devisName = devis.title || filename
+              
+              return {
+                id: `devis-${devis.id}`,
+                name: devisName,
+                path: devis.fichier || devis.path,
+                url: devis.fichier || devis.path, // Add url field for file viewing
+                bucket: devis.bucket || 'devis',
+                type: 'devis',
+                category: 'devis',
+                size: devis.size || 0,
+                uploadedBy: devis.created_by || devis.uploaded_by || 'Utilisateur',
+                uploaded_by: devis.created_by || devis.uploaded_by || 'Utilisateur',
+                uploadedAt: devis.date || devis.uploaded_at || devis.created_at,
+                uploaded_at: devis.date || devis.uploaded_at || devis.created_at,
+                createdAt: devis.date || devis.created_at || devis.uploaded_at,
+                created_at: devis.date || devis.created_at || devis.uploaded_at,
+                contactId: contactId,
+                source: 'client',
+                isDevis: true,
+                devisTitle: devis.title,
+                devisId: devis.id,
+              }
+            });
+            (contact as any).documents = [...existingDocs, ...devisDocs];
+            console.log(`[GET /api/contacts/[id]] Added ${devisDocs.length} devis files to contact documents:`, devisDocs.map(d => ({ id: d.id, name: d.name, path: d.path, date: d.uploadedAt })));
+          } else {
+            console.log(`[GET /api/contacts/[id]] No devis files found for related clients`);
+          }
+
+          // Log any errors
+          if (devisError) {
+            console.error('[GET /api/contacts/[id]] Error fetching client devis:', devisError)
+          }
+          if (paymentsError) {
+            console.error('[GET /api/contacts/[id]] Error fetching client payments:', paymentsError)
+          }
+          
+          // Add client payments to contact payments
+          if (clientPaymentsData && clientPaymentsData.length > 0) {
+            console.log(`[GET /api/contacts/[id]] Found ${clientPaymentsData.length} client payments`)
+            const existingPayments = (contact as any).payments || [];
+            const clientPayments = clientPaymentsData.map((payment: any) => ({
+              id: payment.id,
+              montant: payment.montant || payment.amount,
+              date: payment.date,
+              methode: payment.methode || payment.method,
+              reference: payment.reference || payment.ref,
+              description: payment.description || payment.notes || '',
+              type: payment.type || 'paiement',
+              createdBy: payment.created_by || payment.createdBy || 'Utilisateur',
+              createdAt: payment.created_at || payment.createdAt,
+              contactId: contactId,
+              source: 'client',
+            }));
+            // Merge and deduplicate payments by id
+            const allPayments = [...existingPayments, ...clientPayments]
+            const uniquePayments = allPayments.filter((payment, index, self) => 
+              index === self.findIndex(p => p.id === payment.id)
+            )
+            ;(contact as any).payments = uniquePayments.sort((a, b) => {
+              const dateA = new Date(a.date || a.createdAt || a.created_at || 0).getTime()
+              const dateB = new Date(b.date || b.createdAt || b.created_at || 0).getTime()
+              return dateB - dateA // Newest first
+            })
+            console.log(`[GET /api/contacts/[id]] Added ${clientPayments.length} client payments to contact. Total: ${uniquePayments.length}`)
+          } else {
+            console.log(`[GET /api/contacts/[id]] No client payments found. Contact has ${(contact as any).payments?.length || 0} contact payments.`)
+          }
+
+          // Add client appointments to contact appointments
+          if (clientAppointmentsData && clientAppointmentsData.length > 0) {
+            const existingAppointments = (contact as any).appointments || [];
+            const clientAppointments = clientAppointmentsData.map((appt: any) => ({
+              id: appt.id,
+              title: appt.title || appt.name || 'Rendez-vous',
+              dateStart: appt.date_start || appt.dateStart || appt.start_date,
+              dateEnd: appt.date_end || appt.dateEnd || appt.end_date,
+              description: appt.description || appt.notes || '',
+              location: appt.location || appt.address || '',
+              status: appt.status || appt.state || 'scheduled',
+              createdBy: appt.created_by || appt.createdBy || 'Utilisateur',
+              createdAt: appt.created_at || appt.createdAt,
+              contactId: contactId,
+              source: 'client',
+            }));
+            (contact as any).appointments = [...existingAppointments, ...clientAppointments];
+            console.log(`[GET /api/contacts/[id]] Added ${clientAppointments.length} client appointments to contact`);
+          }
+
+          // Add client tasks to contact tasks
+          if (clientTasksData && clientTasksData.length > 0) {
+            const existingTasks = (contact as any).tasks || [];
+            const clientTasks = clientTasksData.map((task: any) => ({
+              id: task.id,
+              title: task.title || task.name || 'Tâche',
+              description: task.description || task.notes || '',
+              status: task.status || task.state || 'pending',
+              priority: task.priority || 'medium',
+              dueDate: task.due_date || task.dueDate,
+              createdBy: task.created_by || task.createdBy || 'Utilisateur',
+              assignedTo: task.assigned_to || task.assignedTo,
+              createdAt: task.created_at || task.createdAt,
+              contactId: contactId,
+              source: 'client',
+            }));
+            (contact as any).tasks = [...existingTasks, ...clientTasks];
+            console.log(`[GET /api/contacts/[id]] Added ${clientTasks.length} client tasks to contact`);
+          }
+        } else {
+          console.log(`[GET /api/contacts/[id]] No related clients found for contact ${contactId}. Contact has ${(contact as any).payments?.length || 0} contact payments.`)
+        }
+      }
+    } catch (error) {
+      console.error('[GET /api/contacts/[id]] Error fetching client historique:', error);
+    }
+
+    // Build timeline - combine contact timeline with client historique
+    try {
+      const combinedTimeline = [
+        ...timelineData,
+        ...clientHistorique
+      ].sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.date || 0).getTime();
+        const dateB = new Date(b.createdAt || b.date || 0).getTime();
+        return dateB - dateA;
+      });
+      
+      (contact as any).timeline = combinedTimeline;
     } catch (e) {
       console.error('Error setting timeline:', e);
-      (contact as any).timeline = [];
+      (contact as any).timeline = timelineData || [];
     }
 
-    try {
-      const payments = await prisma.contactPayment.findMany({
-        where: { contactId },
-      });
-      (contact as any).payments = payments;
-    } catch (e) {
-      console.error('Error fetching payments:', e);
-      (contact as any).payments = [];
-    }
+    // Payments are already fetched in Promise.allSettled above
+    // Client payments will be merged later if contact has been converted to client
 
-    // Fetch notes - simplified for faster loading
+    // Fetch notes - filter out system-generated notes, only show manually added notes
     try {
       const unifiedNotes = await prisma.note.findMany({
         where: {
@@ -114,10 +465,38 @@ export async function GET(
           entityId: contactId,
         },
         orderBy: { createdAt: 'desc' },
-        take: 50, // Limit to 50 most recent notes for faster loading
+        take: 100, // Increased limit to ensure we get all notes before filtering
       });
 
-      const formattedNotes = unifiedNotes.map((note) => ({
+      // Filter out system-generated notes - only show manually added notes
+      const systemNotePatterns = [
+        /^Lead créé par/i,
+        /statut.*mis à jour/i,
+        /déplacé/i,
+        /mouvement/i,
+        /Note de campagne/i,
+        /^📝 Note de campagne/i,
+        /Architecte assigné/i,
+        /Gestionnaire assigné/i,
+        /Opportunité créée/i,
+        /Contact converti en Client/i,
+        /Contact créé depuis Lead/i,
+        /Statut changé/i,
+        /Statut Lead mis à jour/i,
+        /^✉️ Message WhatsApp envoyé/i,
+        /^📅 Nouveau rendez-vous/i,
+        /^✅ Statut mis à jour/i,
+      ];
+
+      const userNotes = unifiedNotes.filter(note => {
+        const content = note.content.trim();
+        // Exclude empty notes
+        if (!content) return false;
+        // Exclude system-generated notes
+        return !systemNotePatterns.some(pattern => pattern.test(content));
+      });
+
+      const formattedNotes = userNotes.map((note) => ({
         id: note.id,
         content: note.content,
         createdAt: note.createdAt.toISOString(),
@@ -127,8 +506,18 @@ export async function GET(
         sourceId: note.sourceId,
       }));
 
-      // Set notes for frontend (simplified - no complex deduplication)
-      (contact as any).notes = JSON.stringify(formattedNotes);
+      // Combine contact notes with client notes for full traceability
+      const allNotes = [
+        ...formattedNotes,
+        ...clientNotes
+      ].sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
+
+      // Set notes for frontend - all manually added notes (contact + client)
+      (contact as any).notes = JSON.stringify(allNotes);
     } catch (e) {
       console.error('Error loading notes:', e);
       // Keep existing notes if any
@@ -137,8 +526,58 @@ export async function GET(
       }
     }
 
-    console.log('[GET /api/contacts/[id]] Contact loaded successfully');
-    return NextResponse.json(contact);
+    // Ensure all arrays are present (even if empty) for frontend compatibility
+    if (!(contact as any).tasks) (contact as any).tasks = []
+    if (!(contact as any).appointments) (contact as any).appointments = []
+    if (!(contact as any).documents) (contact as any).documents = []
+    if (!(contact as any).payments) (contact as any).payments = []
+    if (!(contact as any).opportunities) (contact as any).opportunities = []
+    
+    // Log payment details for debugging
+    const paymentDetails = (contact as any).payments?.map((p: any) => ({
+      id: p.id,
+      montant: p.montant || p.amount,
+      methode: p.methode || p.method,
+      type: p.type,
+      source: p.source,
+      date: p.date || p.createdAt || p.created_at,
+    })) || []
+    
+    console.log('[GET /api/contacts/[id]] Contact loaded successfully', {
+      contactId: contact.id,
+      tasks: (contact as any).tasks?.length || 0,
+      appointments: (contact as any).appointments?.length || 0,
+      documents: (contact as any).documents?.length || 0,
+      payments: (contact as any).payments?.length || 0,
+      paymentDetails: paymentDetails,
+      opportunities: (contact as any).opportunities?.length || 0,
+      paymentsArray: (contact as any).payments,
+    });
+    
+    // Ensure payments and leadCreatedAt are explicitly included in response
+    const leadCreatedAtValue = (contact as any).leadCreatedAt;
+    const responseData = {
+      ...contact,
+      payments: (contact as any).payments || [],
+      leadCreatedAt: leadCreatedAtValue 
+        ? (leadCreatedAtValue instanceof Date 
+            ? leadCreatedAtValue.toISOString() 
+            : typeof leadCreatedAtValue === 'string' 
+              ? leadCreatedAtValue 
+              : new Date(leadCreatedAtValue).toISOString())
+        : null,
+    };
+    
+    console.log('[GET /api/contacts/[id]] Response data includes:', {
+      contactId: contact.id,
+      leadId: (contact as any).leadId,
+      leadCreatedAt: responseData.leadCreatedAt,
+      leadCreatedAtRaw: (contact as any).leadCreatedAt,
+      tag: contact.tag,
+      convertedBy: (contact as any).convertedBy
+    });
+    
+    return NextResponse.json(responseData);
 
   } catch (error) {
     console.error('[GET /api/contacts/[id]] Error:', error);

@@ -94,10 +94,43 @@ export function DevisFileViewerModal({
           })
       }
     } else {
-      // For other file types, just show download option
-      setLoading(false)
+      // For other file types (like .xlsx, .docx, etc.), get signed URL and open in new tab
+      const getSignedUrlAndOpen = async () => {
+        try {
+          let finalUrl = fileUrl
+          
+          // If it's a path, get signed URL
+          if (!fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
+            const res = await fetch(`/api/storage/signed-url?path=${encodeURIComponent(fileUrl)}`)
+            const data = await res.json()
+            if (data.url) {
+              finalUrl = data.url
+            } else {
+              throw new Error('Impossible d\'obtenir l\'URL du fichier')
+            }
+          }
+          
+          // Open in new tab
+          window.open(finalUrl, '_blank', 'noopener,noreferrer')
+          
+          // Close modal and show success message
+          setTimeout(() => {
+            onClose()
+            toast({
+              title: "Fichier ouvert",
+              description: "Le fichier s'ouvre dans un nouvel onglet",
+            })
+          }, 100)
+        } catch (err: any) {
+          console.error('[Devis Viewer] Error opening file in new tab:', err)
+          setError('Erreur lors de l\'ouverture du fichier')
+          setLoading(false)
+        }
+      }
+      
+      getSignedUrlAndOpen()
     }
-  }, [isOpen, fileUrl, fileName])
+  }, [isOpen, fileUrl, fileName, onClose, toast])
 
   const handleDownload = async () => {
     if (!fileUrl) {

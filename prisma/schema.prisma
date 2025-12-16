@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  directUrl = env("DIRECT_URL") // Optional: only needed for connection pooling
 }
 
 model Lead {
@@ -149,6 +149,7 @@ model Contact {
   status            ContactStatus     @default(qualifie)
   leadStatus        LeadStatus?       @map("lead_status")
   convertedBy       String?           @map("converted_by")
+  leadCreatedAt     DateTime?         @map("lead_created_at")
   appointments      Appointment[]
   documents         ContactDocument[]
   payments          ContactPayment[]

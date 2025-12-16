@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { X, Calendar as CalendarIcon, Clock, MapPin, FileText, Bell, Users, Eye, User, UserPlus, Search, Tag, Phone } from "lucide-react"
+import { X, Calendar as CalendarIcon, Clock, MapPin, FileText, Bell, Users, User, UserPlus, Search, Tag, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,7 +23,7 @@ interface AddRdvModalProps {
   isOpen: boolean
   onClose: () => void
   client: Client
-  onAddRdv: (rdv: Omit<Appointment, "id" | "createdAt" | "updatedAt">) => Promise<void>
+  onAddRdv: (rdv: Omit<Appointment, "id" | "createdAt" | "updatedAt">, options?: { participants: string[], eventType: EventType, visibility: EventVisibility }) => Promise<void>
 }
 
 export function AddRdvModal({ isOpen, onClose, client, onAddRdv }: AddRdvModalProps) {
@@ -48,7 +48,7 @@ export function AddRdvModal({ isOpen, onClose, client, onAddRdv }: AddRdvModalPr
     locationUrl: "",
     reminderType: "day_1" as ReminderType,
     participants: [] as string[],
-    visibility: "team" as EventVisibility,
+    visibility: "all" as EventVisibility, // Default to public
     status: "upcoming" as const
   })
 
@@ -73,11 +73,20 @@ export function AddRdvModal({ isOpen, onClose, client, onAddRdv }: AddRdvModalPr
       setStartDate(now)
       setEndDate(now)
 
-      setFormData(prev => ({
-        ...prev,
+      // Reset form data when modal opens, ensuring eventType is set correctly
+      setFormData({
+        title: "",
+        description: "",
         startTime: format(nextHalfHour, 'HH:mm'),
-        endTime: format(endTime, 'HH:mm')
-      }))
+        endTime: format(endTime, 'HH:mm'),
+        eventType: "rendez_vous" as EventType,
+        location: "",
+        locationUrl: "",
+        reminderType: "day_1" as ReminderType,
+        participants: [],
+        visibility: "all" as EventVisibility,
+        status: "upcoming" as const
+      })
 
       // Focus title input after modal opens
       setTimeout(() => titleInputRef.current?.focus(), 100)
@@ -162,7 +171,11 @@ export function AddRdvModal({ isOpen, onClose, client, onAddRdv }: AddRdvModalPr
         createdBy: user?.name || "Utilisateur"
       }
 
-      await onAddRdv(rdv)
+      await onAddRdv(rdv, {
+        participants: formData.participants,
+        eventType: formData.eventType,
+        visibility: formData.visibility
+      })
 
       // Success handling is done in parent or we can do it here if parent throws on error
       // But assuming parent handles success toast, we might duplicate.
@@ -189,7 +202,7 @@ export function AddRdvModal({ isOpen, onClose, client, onAddRdv }: AddRdvModalPr
       locationUrl: "",
       reminderType: "day_1",
       participants: [],
-      visibility: "team",
+      visibility: "all", // Default to public
       status: "upcoming"
     })
     setStartDate(undefined)
@@ -347,28 +360,42 @@ export function AddRdvModal({ isOpen, onClose, client, onAddRdv }: AddRdvModalPr
                   />
                 </div>
 
-                {/* Event Type */}
+                {/* Event Type - Rendez-vous client and Rendez-vous interne */}
                 <div className="space-y-1">
                   <Label htmlFor="eventType" className="flex items-center gap-1.5 text-[10px] font-light text-slate-400 uppercase tracking-wider">
                     <Tag className="w-3 h-3 text-slate-500" />
-                    Type d'événement *
+                    Type de rendez-vous *
                   </Label>
                   <Select
                     value={formData.eventType}
                     onValueChange={(value: EventType) => setFormData({ ...formData, eventType: value })}
                   >
                     <SelectTrigger className="h-8 px-2.5 text-[11px] font-light bg-transparent border border-slate-700/50 text-slate-200 focus:border-slate-600/50 focus:ring-0 rounded-md">
-                      <SelectValue />
+                      <div className="flex items-center gap-2 w-full">
+                        {formData.eventType === 'rendez_vous' && (
+                          <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                        )}
+                        {formData.eventType === 'interne' && (
+                          <span className="w-2 h-2 rounded-full bg-gray-500 flex-shrink-0" />
+                        )}
+                        <SelectValue placeholder="Sélectionner un type" className="flex-1">
+                          {formData.eventType === 'rendez_vous' ? 'Rendez-vous client' : formData.eventType === 'interne' ? 'Rendez-vous interne' : ''}
+                        </SelectValue>
+                      </div>
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border-slate-700/50 rounded-md">
-                      {Object.entries(EVENT_TYPE_CONFIG).map(([key, config]) => (
-                        <SelectItem key={key} value={key} className="text-[11px] font-light text-slate-200 hover:bg-slate-800/50 cursor-pointer">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${config.color}`} />
-                            <span>{config.label}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="rendez_vous" className="text-[11px] font-light text-slate-200 hover:bg-slate-800/50 cursor-pointer py-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0" />
+                          <span>Rendez-vous client</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="interne" className="text-[11px] font-light text-slate-200 hover:bg-slate-800/50 cursor-pointer py-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-gray-500 flex-shrink-0" />
+                          <span>Rendez-vous interne</span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -487,11 +514,11 @@ export function AddRdvModal({ isOpen, onClose, client, onAddRdv }: AddRdvModalPr
                   />
                 </div>
 
-                {/* Participants & Visibility */}
+                {/* Participants */}
                 <div className="space-y-2.5 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
                   <div className="flex items-center gap-1.5 text-xs font-light text-slate-300">
                     <Users className="h-3.5 w-3.5 text-slate-400" />
-                    <span>Participants et visibilité</span>
+                    <span>Participants</span>
                   </div>
 
                   {/* Organizer Display */}
@@ -704,41 +731,6 @@ export function AddRdvModal({ isOpen, onClose, client, onAddRdv }: AddRdvModalPr
                     )}
                   </div>
 
-                  {/* Visibility */}
-                  <div className="space-y-1.5 pt-2 border-t border-slate-700/50">
-                    <Label className="flex items-center gap-1.5 text-xs font-light text-slate-300">
-                      <Eye className="h-3.5 w-3.5 text-slate-400" />
-                      Visibilité
-                    </Label>
-                    <Select
-                      value={formData.visibility}
-                      onValueChange={(value: EventVisibility) => setFormData({ ...formData, visibility: value })}
-                    >
-                      <SelectTrigger className="h-9 px-3 text-xs font-light bg-slate-800/50 border border-slate-700/50 text-slate-200 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 rounded-lg">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-900 border-slate-700/50 rounded-lg">
-                        <SelectItem value="private" className="text-xs font-light text-slate-200 hover:bg-slate-800/50 cursor-pointer py-2">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-xs font-light">Privé</span>
-                            <span className="text-[10px] font-light text-slate-400">Visible uniquement par vous</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="team" className="text-xs font-light text-slate-200 hover:bg-slate-800/50 cursor-pointer py-2">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-xs font-light">Équipe</span>
-                            <span className="text-[10px] font-light text-slate-400">Visible par les participants et gestionnaires</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="all" className="text-xs font-light text-slate-200 hover:bg-slate-800/50 cursor-pointer py-2">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-xs font-light">Public</span>
-                            <span className="text-[10px] font-light text-slate-400">Visible par tous les utilisateurs</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
 
                 {/* Reminder */}

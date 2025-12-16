@@ -32,6 +32,7 @@ export interface Contact {
   convertedBy?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  leadCreatedAt?: Date | string | null;
 }
 
 export type OpportunityType =
@@ -153,6 +154,7 @@ export interface ContactWithDetails extends Contact {
   payments: ContactPayment[];
   tasks?: any[];
   appointments?: any[];
+  leadCreatedAt?: Date | string | null;
 }
 
 // Extended Opportunity with relations

@@ -45,6 +45,26 @@ export async function POST(
       )
     }
 
+    // Check if this is an opportunity-based client (composite ID: contactId-opportunityId)
+    const isOpportunityClient = clientId.includes('-') && clientId.split('-').length === 2
+    let contactId: string | null = null
+    
+    if (isOpportunityClient) {
+      const [contactIdPart] = clientId.split('-')
+      contactId = contactIdPart
+    } else {
+      // Check if client has a contactId field (if schema supports it)
+      const { data: clientWithContactId } = await supabase
+        .from('clients')
+        .select('contact_id')
+        .eq('id', clientId)
+        .single()
+      
+      if (clientWithContactId && (clientWithContactId as any).contact_id) {
+        contactId = (clientWithContactId as any).contact_id
+      }
+    }
+
     // 2. Create historique entry
     const now = new Date().toISOString()
     const { data: newHistorique, error: insertError } = await supabase
@@ -74,6 +94,35 @@ export async function POST(
         { error: 'Failed to create historique entry', details: insertError?.message },
         { status: 500 }
       )
+    }
+
+    // 3. If this is a note and client is related to a contact, also create timeline entry for traceability
+    if (contactId && body.type === 'note' && body.description) {
+      try {
+        const { PrismaClient } = await import('@prisma/client')
+        const prisma = new PrismaClient()
+        
+        await prisma.timeline.create({
+          data: {
+            contactId: contactId,
+            eventType: 'note_added',
+            title: 'Note ajoutée',
+            description: body.description,
+            author: body.auteur || 'Utilisateur',
+            metadata: {
+              source: 'client',
+              clientId: clientId,
+              historiqueId: newHistorique.id,
+            }
+          }
+        })
+        
+        await prisma.$disconnect()
+        console.log(`[Add Historique] ✅ Created timeline entry for contact ${contactId} (traceability)`)
+      } catch (timelineError) {
+        console.error('[Add Historique] Error creating timeline entry (non-blocking):', timelineError)
+        // Don't fail the historique creation if timeline creation fails
+      }
     }
 
     // 3. Update client's derniere_maj

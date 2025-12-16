@@ -46,7 +46,8 @@
     "import:qualified-oct-nov": "tsx scripts/import-qualified-leads-oct-nov.ts",
     "test:db-connection": "node scripts/test-db-connection.js",
     "fix:contact-typebien": "tsx scripts/fix-contact-typebien.ts",
-    "test:reminders": "tsx scripts/test-reminder-cron.ts"
+    "test:reminders": "tsx scripts/test-reminder-cron.ts",
+    "backfill:lead-created-at": "tsx scripts/backfill-lead-created-at.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",

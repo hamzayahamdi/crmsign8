@@ -386,7 +386,10 @@ export default function ClientDetailsPage() {
     }
   }
 
-  const handleAddRdv = async (rdv: Omit<import('@/types/client').Appointment, "id" | "createdAt" | "updatedAt">) => {
+  const handleAddRdv = async (
+    rdv: Omit<import('@/types/client').Appointment, "id" | "createdAt" | "updatedAt">,
+    options?: { participants: string[], eventType: string, visibility: string }
+  ) => {
     if (!client) return
 
     try {
@@ -402,11 +405,13 @@ export default function ClientDetailsPage() {
           description: rdv.notes || '',
           startDate: rdv.dateStart,
           endDate: rdv.dateEnd,
-          eventType: 'rendez_vous',
+          eventType: options?.eventType || 'rendez_vous',
           assignedTo: user?.id || '',
           location: rdv.location || '',
           reminderType: 'day_1',
           linkedClientId: client.id,
+          participants: options?.participants || [],
+          visibility: options?.visibility || 'all',
         })
       })
 

@@ -212,6 +212,7 @@ export async function POST(request: NextRequest) {
       leadStatus: 'qualifie', // ALWAYS 'qualifie' when converting from lead (REQUIRED BUSINESS RULE)
       createdBy: userId,
       convertedBy: userId, // Track who converted the lead
+      leadCreatedAt: lead.createdAt, // Store lead creation date BEFORE deleting the lead
     };
     
     // CRITICAL VALIDATION: Force status and leadStatus to 'qualifie' for all converted contacts
@@ -389,6 +390,7 @@ export async function POST(request: NextRequest) {
             leadTypeBien: lead.typeBien,
             previousArchitect: lead.assignePar && lead.assignePar !== "Non assigné" ? lead.assignePar : null,
             createdBy: userId,
+            contactId: contact.id, // Pass contactId to fetch notes
           }
         );
         

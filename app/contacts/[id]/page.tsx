@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { Search, Download, Image, FileSpreadsheet } from 'lucide-react'
 import {
   Mail,
   Phone,
@@ -89,7 +90,7 @@ export default function ContactPage() {
   const [contact, setContact] = useState<ContactWithDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'opportunities' | 'timeline' | 'tasks' | 'documents'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'opportunities' | 'notes' | 'timeline' | 'tasks' | 'documents'>('overview')
   const [architectNameMap, setArchitectNameMap] = useState<Record<string, string>>({})
   const [showConversionCelebration, setShowConversionCelebration] = useState(false)
 
@@ -239,6 +240,13 @@ export default function ContactPage() {
       }
 
       const data = await response.json()
+      console.log('[Contact Detail] Contact loaded:', {
+        id: data.id,
+        leadId: data.leadId,
+        leadCreatedAt: data.leadCreatedAt,
+        tag: data.tag,
+        convertedBy: data.convertedBy
+      })
       setContact(data)
     } catch (error) {
       console.error('[Contact Detail] Error loading contact:', error)
@@ -710,7 +718,8 @@ export default function ContactPage() {
                 {[
                   { id: 'overview', label: 'Général', icon: <User className="w-3.5 h-3.5" /> },
                   { id: 'opportunities', label: 'Opportunités', icon: <Briefcase className="w-3.5 h-3.5" /> },
-                  { id: 'timeline', label: 'Timeline', icon: <MessageSquare className="w-3.5 h-3.5" /> },
+                  { id: 'notes', label: 'Notes', icon: <MessageSquare className="w-3.5 h-3.5" /> },
+                  { id: 'timeline', label: 'Timeline', icon: <History className="w-3.5 h-3.5" /> },
                   { id: 'tasks', label: 'Tâches & RDV', icon: <Calendar className="w-3.5 h-3.5" /> },
                   { id: 'documents', label: 'Documents', icon: <FileText className="w-3.5 h-3.5" /> },
                 ].map((tab) => (
@@ -751,6 +760,13 @@ export default function ContactPage() {
                     architectNameMap={architectNameMap}
                     onCreateOpportunity={() => setIsCreateOpportunityModalOpen(true)}
                     canCreateOpportunity={canCreateOpportunity}
+                  />
+                )}
+                {activeTab === 'notes' && (
+                  <NotesTab
+                    contact={contact}
+                    onUpdate={loadContact}
+                    userNameMap={architectNameMap}
                   />
                 )}
                 {activeTab === 'timeline' && (
@@ -838,6 +854,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
   const [isSavingNote, setIsSavingNote] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [leadData, setLeadData] = useState<{ typeBien?: string; source?: string } | null>(null)
+  const [leadCreatedAt, setLeadCreatedAt] = useState<string | Date | null>(null)
 
   // Notes editing state
   const [isEditingNotes, setIsEditingNotes] = useState(false)
@@ -891,6 +908,36 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
     // Reset notes first
     setNotes([])
 
+    // Filter out system-generated notes
+    const systemNotePatterns = [
+      /^Lead créé par/i,
+      /statut.*mis à jour/i,
+      /déplacé/i,
+      /mouvement/i,
+      /Note de campagne/i,
+      /^📝 Note de campagne/i,
+      /Architecte assigné/i,
+      /Gestionnaire assigné/i,
+      /Opportunité créée/i,
+      /Contact converti en Client/i,
+      /Contact créé depuis Lead/i,
+      /Statut changé/i,
+      /Statut Lead mis à jour/i,
+      /^✉️ Message WhatsApp envoyé/i,
+      /^📅 Nouveau rendez-vous/i,
+      /^✅ Statut mis à jour/i,
+    ];
+
+    const filterSystemNotes = (notes: ContactNote[]): ContactNote[] => {
+      return notes.filter(note => {
+        const content = note.content?.trim() || '';
+        // Exclude empty notes
+        if (!content) return false;
+        // Exclude system-generated notes
+        return !systemNotePatterns.some(pattern => pattern.test(content));
+      });
+    };
+
     if (contact.notes) {
       try {
         if (typeof contact.notes === 'string') {
@@ -900,8 +947,11 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
 
             if (Array.isArray(parsed) && parsed.length > 0) {
               // Valid array of notes (may include lead notes)
+              // First filter out system-generated notes
+              const filteredNotes = filterSystemNotes(parsed);
+              
               // Deduplicate on frontend as well (by content + author + date)
-              const uniqueNotes = parsed.filter((note: ContactNote, index: number, self: ContactNote[]) => {
+              const uniqueNotes = filteredNotes.filter((note: ContactNote, index: number, self: ContactNote[]) => {
                 const normalizedContent = note.content?.trim().toLowerCase() || '';
                 const dateKey = new Date(note.createdAt).setSeconds(0, 0);
                 const uniqueKey = `${normalizedContent}|${note.createdBy}|${dateKey}`;
@@ -913,45 +963,59 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               });
               setNotes(uniqueNotes as ContactNote[])
             } else if (parsed && typeof parsed === 'string' && parsed.trim()) {
-              // Legacy single note format - convert to array
-              setNotes([{
+              // Legacy single note format - convert to array and filter
+              const legacyNote = {
                 id: `legacy-${Date.now()}`,
                 content: parsed,
                 createdAt: toISOString(contact.createdAt),
                 createdBy: contact.createdBy || 'unknown',
                 type: 'note'
-              }])
+              };
+              const filtered = filterSystemNotes([legacyNote]);
+              if (filtered.length > 0) {
+                setNotes(filtered);
+              }
             }
           } catch (parseError) {
             // Not valid JSON, treat as plain string
             if (contact.notes.trim()) {
-              setNotes([{
+              const legacyNote = {
                 id: `legacy-${Date.now()}`,
                 content: contact.notes,
                 createdAt: toISOString(contact.createdAt),
                 createdBy: contact.createdBy || 'unknown',
                 type: 'note'
-              }])
+              };
+              const filtered = filterSystemNotes([legacyNote]);
+              if (filtered.length > 0) {
+                setNotes(filtered);
+              }
             }
           }
         } else if (Array.isArray(contact.notes)) {
           // Already an array (from API merge)
           const notesArray = contact.notes as ContactNote[]
           if (notesArray.length > 0) {
-            setNotes(notesArray)
+            // Filter out system-generated notes
+            const filtered = filterSystemNotes(notesArray);
+            setNotes(filtered);
           }
         }
       } catch (e) {
         console.error('Error parsing contact notes:', e)
-        // If it's a plain string, convert to array
+        // If it's a plain string, convert to array and filter
         if (typeof contact.notes === 'string' && contact.notes.trim()) {
-          setNotes([{
+          const legacyNote = {
             id: `legacy-${Date.now()}`,
             content: contact.notes,
             createdAt: toISOString(contact.createdAt),
             createdBy: contact.createdBy || 'unknown',
             type: 'note'
-          }])
+          };
+          const filtered = filterSystemNotes([legacyNote]);
+          if (filtered.length > 0) {
+            setNotes(filtered);
+          }
         }
       }
     } else {
@@ -965,6 +1029,13 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
 
   // Fetch lead data if contact was converted from a lead
   useEffect(() => {
+    // Use stored leadCreatedAt from API (lead is deleted after conversion, so we use stored value)
+    if ((contact as any).leadCreatedAt) {
+      console.log('[Contact Detail] Using stored leadCreatedAt from contact:', (contact as any).leadCreatedAt)
+      setLeadCreatedAt((contact as any).leadCreatedAt)
+    }
+
+    // Fetch other lead data (typeBien, source) if needed
     const fetchLeadData = async () => {
       if (contact.leadId) {
         try {
@@ -979,24 +1050,6 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               typeBien: metadata.typeBien || metadata.leadTypeBien,
               source: metadata.source || metadata.leadSource
             })
-          } else {
-            // Fallback: try to fetch from API if available
-            // Note: Lead might be deleted, so this might fail
-            try {
-              const response = await fetch(`/api/leads/${contact.leadId}`, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {}
-              })
-              if (response.ok) {
-                const lead = await response.json()
-                setLeadData({
-                  typeBien: lead.typeBien,
-                  source: lead.source
-                })
-              }
-            } catch (e) {
-              // Lead might be deleted, that's okay
-              console.log('Lead not found or deleted:', e)
-            }
           }
         } catch (error) {
           console.error('Error fetching lead data:', error)
@@ -1004,7 +1057,7 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
       }
     }
     fetchLeadData()
-  }, [contact.leadId, contact.timeline])
+  }, [contact.leadId, contact.timeline, (contact as any).leadCreatedAt])
 
   // Get the converter name
   const getConverterName = () => {
@@ -1647,6 +1700,29 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               </div>
             )}
 
+            {(() => {
+              // Use state value first, then fallback to contact property
+              const leadCreatedAtValue = leadCreatedAt || (contact as any)?.leadCreatedAt;
+              
+              if (leadCreatedAtValue) {
+                try {
+                  return (
+                    <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
+                      <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                        <Clock className="w-3 h-3 text-cyan-400" />
+                        LEAD CRÉÉE À
+                      </p>
+                      <p className="text-xs font-light text-white">{formatDateTime(leadCreatedAtValue)}</p>
+                    </div>
+                  );
+                } catch (e) {
+                  console.error('[Contact Detail] Error formatting lead creation date:', e, leadCreatedAtValue);
+                  return null;
+                }
+              }
+              return null;
+            })()}
+
             <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
               <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
                 <Calendar className="w-3 h-3 text-blue-400" />
@@ -1861,6 +1937,319 @@ function TimelineTab({
   )
 }
 
+function NotesTab({
+  contact,
+  onUpdate,
+  userNameMap
+}: {
+  contact: ContactWithDetails;
+  onUpdate: () => void;
+  userNameMap: Record<string, string>;
+}) {
+  const [notes, setNotes] = useState<any[]>([])
+  const [isLoadingNotes, setIsLoadingNotes] = useState(false)
+  const [newNote, setNewNote] = useState('')
+  const [isAddingNote, setIsAddingNote] = useState(false)
+  const [isSavingNote, setIsSavingNote] = useState(false)
+  const { user } = useAuth()
+  const notesCacheRef = useRef<{ contactId: string; notes: any[]; timestamp: number } | null>(null)
+
+  // Fetch notes from API - Optimized with caching
+  useEffect(() => {
+    const fetchNotes = async () => {
+      if (!contact.id) return
+      
+      // Check cache first (5 second cache for instant display)
+      if (notesCacheRef.current && 
+          notesCacheRef.current.contactId === contact.id && 
+          Date.now() - notesCacheRef.current.timestamp < 5000) {
+        setNotes(notesCacheRef.current.notes)
+        return
+      }
+      
+      setIsLoadingNotes(true)
+      try {
+        const token = localStorage.getItem('token')
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
+        
+        const response = await fetch(`/api/contacts/${contact.id}/notes`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          signal: controller.signal,
+        })
+        
+        clearTimeout(timeoutId)
+        
+        if (response.ok) {
+          const fetchedNotes = await response.json()
+          
+          // Notes are already filtered and formatted by API - just set them
+          setNotes(fetchedNotes)
+          
+          // Cache the results
+          notesCacheRef.current = {
+            contactId: contact.id,
+            notes: fetchedNotes,
+            timestamp: Date.now(),
+          }
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('[NotesTab] Error fetching notes:', error)
+        }
+      } finally {
+        setIsLoadingNotes(false)
+      }
+    }
+
+    fetchNotes()
+  }, [contact.id])
+
+  const handleAddNote = async () => {
+    if (!newNote.trim() || isSavingNote) return
+
+    const userName = user?.name || 'Utilisateur'
+    const noteContent = newNote.trim()
+    
+    setIsSavingNote(true)
+    
+    // Optimistically add note
+    const optimisticNote = {
+      id: `temp-${Date.now()}`,
+      content: noteContent,
+      createdAt: new Date().toISOString(),
+      createdBy: userName,
+      source: 'contact',
+      isOptimistic: true,
+    }
+    
+    setNotes(prev => [optimisticNote, ...prev])
+    setNewNote('')
+    setIsAddingNote(false)
+    
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/contacts/${contact.id}/notes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          content: noteContent,
+          createdBy: userName,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to add note')
+      }
+
+      const result = await response.json()
+      
+      // Replace optimistic note with real note
+      setNotes(prev => {
+        const withoutOptimistic = prev.filter(n => n.id !== optimisticNote.id)
+        return [{
+          id: result.id,
+          content: result.content,
+          createdAt: result.createdAt,
+          createdBy: result.createdBy || userName,
+          source: result.source || 'contact',
+        }, ...withoutOptimistic]
+      })
+      
+      toast.success('Note ajoutée', {
+        description: 'La note a été enregistrée avec succès.',
+        duration: 2000,
+      })
+      
+      // Refresh contact data
+      onUpdate()
+    } catch (error) {
+      console.error('[NotesTab] Error adding note:', error)
+      
+      // Remove optimistic note on error
+      setNotes(prev => prev.filter(n => n.id !== optimisticNote.id))
+      
+      toast.error('Erreur', {
+        description: error instanceof Error ? error.message : 'Impossible d\'ajouter la note. Veuillez réessayer.',
+        duration: 3000,
+      })
+    } finally {
+      setIsSavingNote(false)
+    }
+  }
+
+  // Notes are already filtered by API - no need to filter again
+  const realNotes = notes
+
+  const getUserName = (userId: string) => {
+    return userNameMap[userId] || userId || 'Utilisateur'
+  }
+
+  return (
+    <div className="bg-[#171B22] rounded-lg border border-white/5 p-4">
+      <div className="flex items-center justify-between mb-3.5">
+        <div>
+          <h2 className="text-xs font-light text-white/90 mb-0.5 tracking-wide uppercase">Notes</h2>
+          <p className="text-[9px] text-white/40 font-light">Notes ajoutées manuellement</p>
+        </div>
+        <Button
+          onClick={() => setIsAddingNote(!isAddingNote)}
+          size="sm"
+          className="bg-blue-600/90 hover:bg-blue-600 text-white h-7 px-2.5 text-[10px] font-light"
+        >
+          <Plus className="w-3 h-3 mr-1" />
+          Ajouter note
+        </Button>
+      </div>
+
+      <AnimatePresence>
+        {isAddingNote && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-4 overflow-hidden"
+          >
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+              <textarea
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="Écrivez votre note..."
+                className="w-full mb-3 min-h-[100px] bg-white/5 border-white/10 text-white placeholder:text-white/30 rounded-xl resize-none p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                rows={3}
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleAddNote}
+                  disabled={!newNote.trim() || isSavingNote}
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSavingNote ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    'Enregistrer'
+                  )}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsAddingNote(false)
+                    setNewNote("")
+                  }}
+                  size="sm"
+                  variant="ghost"
+                  className="bg-white/5 hover:bg-white/10 text-white"
+                >
+                  Annuler
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {isLoadingNotes ? (
+        <div className="space-y-3">
+          {/* Skeleton loaders for better perceived performance */}
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white/3 border border-white/5 rounded-lg p-4 animate-pulse">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white/5 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-20 bg-white/5 rounded" />
+                    <div className="h-3 w-1 bg-white/5 rounded" />
+                    <div className="h-3 w-24 bg-white/5 rounded" />
+                  </div>
+                  <div className="h-4 w-full bg-white/5 rounded" />
+                  <div className="h-4 w-3/4 bg-white/5 rounded" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : realNotes.length > 0 ? (
+        <div className="space-y-3">
+          {realNotes.map((note, index) => {
+            const isLeadNote = note.type === 'lead_note' || note.source === 'lead' || note.sourceType === 'lead' || note.source === 'lead_note'
+            const author = getUserName(note.createdBy || note.author || 'Utilisateur')
+            const noteContent = note.content || note.description || ''
+            const noteDate = note.createdAt || note.date || new Date().toISOString()
+            const formattedDate = new Date(noteDate)
+            const isToday = formattedDate.toDateString() === new Date().toDateString()
+            const isYesterday = formattedDate.toDateString() === new Date(Date.now() - 86400000).toDateString()
+            
+            let dateDisplay = ''
+            if (isToday) {
+              dateDisplay = `Aujourd'hui, ${formattedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+            } else if (isYesterday) {
+              dateDisplay = `Hier, ${formattedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+            } else {
+              dateDisplay = formattedDate.toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+            }
+            
+            return (
+              <motion.div
+                key={note.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03, duration: 0.2 }}
+                className="group bg-gradient-to-br from-white/5 to-white/3 border border-white/10 rounded-xl p-4 hover:border-white/20 hover:from-white/8 hover:to-white/5 transition-all duration-200 shadow-sm hover:shadow-md"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0 shadow-sm">
+                    <MessageSquare className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className="text-xs font-medium text-white/90">{author}</span>
+                      <span className="text-[10px] text-white/30">•</span>
+                      <span className="text-[10px] text-white/50 font-light">
+                        {dateDisplay}
+                      </span>
+                      {isLeadNote && (
+                        <>
+                          <span className="text-[10px] text-white/30">•</span>
+                          <span className="px-1.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-[9px] font-medium">
+                            Lead
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-sm text-white/90 leading-relaxed font-light whitespace-pre-wrap break-words">
+                      {noteContent}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-white/5 to-white/3 border border-white/10 flex items-center justify-center mx-auto mb-4">
+            <MessageSquare className="w-7 h-7 text-white/30" />
+          </div>
+          <p className="text-white/60 text-sm font-light mb-1">Aucune note pour le moment</p>
+          <p className="text-white/40 text-xs font-light">Ajoutez votre première note pour commencer</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TasksTab({ contact }: { contact: ContactWithDetails }) {
   return (
     <div className="glass rounded-lg border border-slate-600/40 p-8 text-center">
@@ -1872,11 +2261,230 @@ function TasksTab({ contact }: { contact: ContactWithDetails }) {
 }
 
 function DocumentsTab({ contact }: { contact: ContactWithDetails }) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+
+  // Get all documents including devis
+  const allDocuments = (contact.documents || []).filter((doc: any) => doc && doc.id)
+  
+  // Calculate category counts including devis
+  const categories = [
+    { value: "all", label: "Tous", count: allDocuments.length },
+    { value: "plan", label: "Plans", count: allDocuments.filter((d: any) => d.category === 'plan').length },
+    { 
+      value: "devis", 
+      label: "Devis", 
+      count: allDocuments.filter((d: any) => d.category === 'devis' || d.isDevis).length 
+    },
+    { value: "photo", label: "Photos", count: allDocuments.filter((d: any) => d.category === 'photo').length },
+    { value: "contrat", label: "Contrats", count: allDocuments.filter((d: any) => d.category === 'contrat').length },
+    { value: "autre", label: "Autres", count: allDocuments.filter((d: any) => d.category === 'autre' || !d.category).length },
+  ]
+
+  const filteredDocuments = allDocuments.filter((doc: any) => {
+    const matchesSearch = doc.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (doc.devisTitle && doc.devisTitle.toLowerCase().includes(searchQuery.toLowerCase()))
+    const matchesCategory = selectedCategory === "all" || 
+                           doc.category === selectedCategory || 
+                           (selectedCategory === "devis" && doc.isDevis)
+    return matchesSearch && matchesCategory
+  })
+
+  const getFileIcon = (doc: any) => {
+    if (doc.isDevis) return FileText
+    const ext = doc.name?.split('.').pop()?.toLowerCase() || ''
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return Image
+    if (['pdf'].includes(ext)) return FileText
+    if (['doc', 'docx'].includes(ext)) return FileText
+    if (['xls', 'xlsx'].includes(ext)) return FileSpreadsheet
+    return FileText
+  }
+
+  const getFileIconColor = (doc: any) => {
+    if (doc.isDevis) return "text-red-400"
+    const ext = doc.name?.split('.').pop()?.toLowerCase() || ''
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return "text-blue-400"
+    if (['pdf'].includes(ext)) return "text-red-400"
+    return "text-slate-400"
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (!bytes || bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  const formatDate = (date: string | Date) => {
+    if (!date) return ''
+    const d = new Date(date)
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
+
+  const handleDownload = async (doc: any) => {
+    try {
+      let fileUrl = doc.url
+
+      // If it's a devis document, get signed URL from path
+      if (doc.isDevis && doc.path) {
+        if (!fileUrl || !fileUrl.startsWith('http')) {
+          try {
+            const response = await fetch(`/api/storage/signed-url?path=${encodeURIComponent(doc.path)}`)
+            const data = await response.json()
+            if (data.url) {
+              fileUrl = data.url
+            } else {
+              throw new Error('Impossible d\'obtenir l\'URL du fichier')
+            }
+          } catch (error) {
+            toast.error("Impossible d'obtenir l'URL du fichier devis.")
+            return
+          }
+        }
+      }
+
+      if (!fileUrl && doc.path) {
+        // Try to get signed URL for regular documents too
+        try {
+          const response = await fetch(`/api/storage/signed-url?path=${encodeURIComponent(doc.path)}`)
+          const data = await response.json()
+          if (data.url) {
+            fileUrl = data.url
+          }
+        } catch (error) {
+          console.error('Error getting signed URL:', error)
+        }
+      }
+
+      if (!fileUrl) {
+        toast.error("Aucun lien trouvé pour ce fichier.")
+        return
+      }
+
+      toast.loading(`Téléchargement de ${doc.name}...`)
+
+      const res = await fetch(fileUrl)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+
+      const a = document.createElement('a')
+      a.href = url
+      a.download = doc.name || 'document'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+
+      toast.success(`Téléchargement de ${doc.name} terminé`)
+    } catch (err: any) {
+      toast.error(err?.message || "Échec du téléchargement. Veuillez réessayer plus tard.")
+    }
+  }
+
+  if (allDocuments.length === 0) {
+    return (
+      <div className="glass rounded-lg border border-slate-600/40 p-8 text-center">
+        <FileText className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+        <p className="text-xs text-slate-300">Documents</p>
+        <p className="text-[10px] text-slate-500 mt-1">Aucun document téléchargé pour ce contact</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="glass rounded-lg border border-slate-600/40 p-8 text-center">
-      <FileText className="w-8 h-8 text-slate-500 mx-auto mb-2" />
-      <p className="text-xs text-slate-300">Documents</p>
-      <p className="text-[10px] text-slate-500 mt-1">Aucun document téléchargé pour ce contact</p>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Documents</h3>
+          <p className="text-sm text-white/60">
+            {contact.nom} • {allDocuments.length} fichier{allDocuments.length > 1 ? 's' : ''}
+          </p>
+        </div>
+      </div>
+
+      {/* Search & Filters */}
+      <div className="space-y-3">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Rechercher un document..."
+            className="w-full h-10 pl-10 pr-4 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/40 focus:outline-none focus:border-blue-500/50"
+          />
+        </div>
+
+        {/* Categories */}
+        <div className="flex flex-wrap gap-2">
+          {categories.map((category) => (
+            <button
+              key={category.value}
+              onClick={() => setSelectedCategory(category.value)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                selectedCategory === category.value
+                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/50"
+                  : "bg-white/5 text-white/60 hover:bg-white/10 border border-white/10"
+              )}
+            >
+              {category.label} ({category.count})
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Documents List */}
+      <div className="space-y-2">
+        {filteredDocuments.length === 0 ? (
+          <div className="text-center py-8 text-white/40 text-sm">
+            Aucun document trouvé
+          </div>
+        ) : (
+          filteredDocuments.map((doc: any) => {
+            const Icon = getFileIcon(doc)
+            const iconColor = getFileIconColor(doc)
+            
+            return (
+              <div
+                key={doc.id}
+                className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                onClick={() => handleDownload(doc)}
+              >
+                <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", iconColor.includes('red') ? 'bg-red-500/20' : iconColor.includes('blue') ? 'bg-blue-500/20' : 'bg-slate-500/20')}>
+                  <Icon className={cn("w-5 h-5", iconColor)} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-white truncate">{doc.name}</p>
+                    {doc.isDevis && (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-medium border border-amber-500/30">
+                        Devis
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-white/50">
+                    <span>{doc.uploadedBy || 'Utilisateur'}</span>
+                    <span>•</span>
+                    <span>{formatDate(doc.uploadedAt || doc.createdAt)}</span>
+                    {doc.size > 0 && (
+                      <>
+                        <span>•</span>
+                        <span>{formatFileSize(doc.size)}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <Download className="w-4 h-4 text-white/40" />
+              </div>
+            )
+          })
+        )}
+      </div>
     </div>
   )
 }

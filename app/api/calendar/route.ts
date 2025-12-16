@@ -335,11 +335,51 @@ export async function POST(request: NextRequest) {
 
       // Format date and time for WhatsApp message
       const eventDate = new Date(startDate);
-      const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'short' };
+      const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
       const formattedDate = eventDate.toLocaleDateString('fr-FR', dateOptions);
       const finalDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
       const timeStr = eventDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
       const endTimeStr = new Date(endDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+      // Get client name if linked
+      let clientName = null;
+      if (linkedClientId) {
+        try {
+          const client = await prisma.client.findUnique({
+            where: { id: linkedClientId },
+            select: { nom: true }
+          });
+          clientName = client?.nom || null;
+        } catch (error) {
+          console.error('[Calendar] Error fetching client name:', error);
+        }
+      }
+
+      // Get event type label and icon
+      const getEventTypeInfo = (type: string) => {
+        switch (type) {
+          case 'rendez_vous':
+            return { icon: '📅', label: 'Rendez-vous client' };
+          case 'interne':
+            return { icon: '🏢', label: 'Rendez-vous interne' };
+          case 'appel_reunion':
+            return { icon: '📞', label: 'Appel ou réunion' };
+          case 'urgent':
+            return { icon: '🚨', label: 'Urgent' };
+          case 'suivi_projet':
+            return { icon: '📋', label: 'Suivi projet' };
+          case 'tache':
+            return { icon: '✅', label: 'Tâche' };
+          case 'paiement':
+            return { icon: '💳', label: 'Paiement' };
+          case 'devis':
+            return { icon: '📄', label: 'Devis' };
+          default:
+            return { icon: '📅', label: 'Rendez-vous' };
+        }
+      };
+
+      const eventTypeInfo = getEventTypeInfo(eventType);
 
       // Construct calendar link
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://signature8-sketch.vercel.app";
@@ -359,13 +399,16 @@ export async function POST(request: NextRequest) {
             const message = `📅 *Nouveau Rendez-vous ${isOrganizer ? 'Créé' : 'Confirmé'}*\n\n` +
               `Bonjour ${participant.name.split(' ')[0]},\n` +
               `${isOrganizer ? 'Vous avez créé un nouveau rendez-vous.' : 'Un nouveau rendez-vous a été ajouté à votre agenda.'}\n\n` +
-              `📌 *${title}*\n` +
-              `───────────────\n` +
+              `━━━━━━━━━━━━━━━━━━━━\n` +
+              `${eventTypeInfo.icon} *Type :* ${eventTypeInfo.label}\n` +
+              `📌 *Titre :* ${title}\n` +
+              `${clientName ? `👤 *Client :* ${clientName}\n` : ''}` +
               `📆 *Date :* ${finalDate}\n` +
               `⏰ *Heure :* ${timeStr} - ${endTimeStr}\n` +
               `${location ? `📍 *Lieu :* ${location}\n` : ''}` +
-              `${description ? `📝 *Détails :* ${description}\n` : ''}` +
-              `\n🔗 *Voir dans l'agenda :*\n` +
+              `${description ? `📝 *Détails :*\n${description}\n` : ''}` +
+              `━━━━━━━━━━━━━━━━━━━━\n\n` +
+              `🔗 *Voir dans l'agenda :*\n` +
               `${calendarLink}\n\n` +
               `${isOrganizer ? `💡 *Rappel :*\nN'oubliez pas de confirmer ce rendez-vous.\n\n` : `💡 *Action requise :*\nMerci de confirmer votre présence.\n\n`}` +
               `_${isOrganizer ? 'Créé par vous' : `Organisé par ${creator?.name || 'Signature8'}`}_`;
