@@ -47,7 +47,11 @@
     "test:db-connection": "node scripts/test-db-connection.js",
     "fix:contact-typebien": "tsx scripts/fix-contact-typebien.ts",
     "test:reminders": "tsx scripts/test-reminder-cron.ts",
-    "backfill:lead-created-at": "tsx scripts/backfill-lead-created-at.ts"
+    "backfill:lead-created-at": "tsx scripts/backfill-lead-created-at.ts",
+    "db:update-urls": "tsx scripts/update-database-urls.ts",
+    "db:fix-urls": "tsx scripts/fix-database-url.ts",
+    "db:verify": "tsx scripts/verify-new-database.ts",
+    "db:migrate": "tsx scripts/migrate-database.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
