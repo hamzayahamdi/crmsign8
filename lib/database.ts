@@ -4,20 +4,12 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Create Prisma client with optimized configuration for production
+// Create Prisma client with connection pooling and better error handling
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   datasources: {
     db: {
       url: process.env.DATABASE_URL,
-    },
-  },
-  // Connection pool configuration for better production performance
-  // @ts-ignore - These options are valid but not in types
-  __internal: {
-    engine: {
-      connection_limit: 10,
-      pool_timeout: 10,
     },
   },
 })
@@ -27,33 +19,20 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma
 }
 
-// Handle graceful shutdown
-if (typeof process !== 'undefined') {
-  process.on('beforeExit', async () => {
-    console.log('[Database] Disconnecting Prisma client...')
-    await prisma.$disconnect()
-  })
+// Handle connection errors gracefully
+prisma.$on('error' as never, (e: any) => {
+  console.error('Prisma Client Error:', e)
+})
 
-  process.on('SIGINT', async () => {
-    console.log('[Database] SIGINT received, disconnecting Prisma client...')
-    await prisma.$disconnect()
-    process.exit(0)
+// Test connection on startup in development
+if (process.env.NODE_ENV === 'development') {
+  prisma.$connect().catch((error) => {
+    console.error('Failed to connect to database:', error)
+    if (error.message?.includes('Can\'t reach database server')) {
+      console.error('\n⚠️  Database Connection Error:')
+      console.error('   Please check your DATABASE_URL in .env file')
+      console.error('   Current DATABASE_URL:', process.env.DATABASE_URL ? `${process.env.DATABASE_URL.substring(0, 50)}...` : 'NOT SET')
+      console.error('   Make sure the database server is running and accessible\n')
+    }
   })
-
-  process.on('SIGTERM', async () => {
-    console.log('[Database] SIGTERM received, disconnecting Prisma client...')
-    await prisma.$disconnect()
-    process.exit(0)
-  })
-}
-
-// Test connection on initialization
-if (process.env.NODE_ENV === 'production') {
-  prisma.$connect()
-    .then(() => {
-      console.log('[Database] Prisma client connected successfully')
-    })
-    .catch((error) => {
-      console.error('[Database] Failed to connect Prisma client:', error)
-    })
 }

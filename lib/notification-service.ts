@@ -317,7 +317,9 @@ export async function notifyArchitectContactConvertedOrAssigned(
     convertedFromLead?: boolean;
     leadSource?: string | null;
     leadTypeBien?: string | null;
-    contactId?: string; // For fetching notes when converted from lead
+    contactId?: string; // For fetching notes from unified Note table when converted from lead
+    leadId?: string; // For fetching notes from LeadNote table before deletion
+    leadNotes?: Array<{ content: string; author: string; createdAt: Date }>; // Pre-fetched lead notes (before deletion)
   } = {}
 ) {
   const { 
@@ -327,7 +329,9 @@ export async function notifyArchitectContactConvertedOrAssigned(
     convertedFromLead = false,
     leadSource,
     leadTypeBien,
-    contactId
+    contactId,
+    leadId,
+    leadNotes: preFetchedNotes = []
   } = options;
 
   const db = getPrisma();
@@ -355,44 +359,225 @@ export async function notifyArchitectContactConvertedOrAssigned(
   let emailSubject: string;
   let emailBody: string;
 
-  // Fetch lead notes if converted from lead
+  // Helper function to format source names for display
+  const formatSourceName = (source: string | null | undefined): string => {
+    if (!source) return '';
+    const sourceMap: Record<string, string> = {
+      'magasin': 'Magasin',
+      'site_web': 'Site Web',
+      'facebook': 'Facebook',
+      'instagram': 'Instagram',
+      'tiktok': 'TikTok',
+      'reference_client': 'Recommandation', // Changed from "Référence Client" to "Recommandation"
+      'recommandation': 'Recommandation',
+      'autre': 'Autre'
+    };
+    const normalizedSource = source.toLowerCase().trim();
+    return sourceMap[normalizedSource] || source.replace(/_/g, ' ').split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
+  // Fetch ALL lead notes if converted from lead (including history notes)
   let userNotes: Array<{ content: string; author: string; createdAt: Date }> = [];
-  if (convertedFromLead && contactId) {
+  if (convertedFromLead) {
     try {
-      // Fetch notes from unified Note table that came from the lead
-      const allNotes = await db.note.findMany({
-        where: {
-          entityType: 'contact',
-          entityId: contactId,
-          sourceType: 'lead', // Only notes that came from the lead
-        },
-        orderBy: { createdAt: 'asc' },
-        select: {
-          content: true,
-          author: true,
-          createdAt: true,
-        },
-      });
+      console.log(`[Notification] Fetching notes for converted lead - contactId: ${contactId}, leadId: ${leadId}, preFetchedNotes: ${preFetchedNotes?.length || 0}`);
+      
+      // Strategy 0: Use pre-fetched notes if available (most reliable - fetched before lead deletion)
+      if (preFetchedNotes && preFetchedNotes.length > 0) {
+        userNotes = preFetchedNotes;
+        console.log(`[Notification] ✅ Using ${userNotes.length} pre-fetched lead notes`);
+        
+        // Map author IDs to names if they look like IDs
+        const uniqueAuthors = Array.from(
+          new Set(userNotes.map(n => n.author).filter(Boolean) as string[])
+        );
+        const possibleIds = uniqueAuthors.filter(a => a.length > 20);
 
-      // Filter out system-generated notes
-      const systemNotePatterns = [
-        /^Lead créé par/i,
-        /statut.*mis à jour/i,
-        /déplacé/i,
-        /mouvement/i,
-        /Note de campagne/i,
-        /^📝 Note de campagne/i,
-      ];
+        if (possibleIds.length > 0) {
+          const users = await db.user.findMany({
+            where: { id: { in: possibleIds } },
+            select: { id: true, name: true }
+          });
+          const authorNameMap = users.reduce<Record<string, string>>((acc, u) => {
+            acc[u.id] = u.name;
+            return acc;
+          }, {});
 
-      userNotes = allNotes.filter(note => {
+          userNotes = userNotes.map(note => ({
+            ...note,
+            author: authorNameMap[note.author] || note.author
+          }));
+          console.log(`[Notification] ✅ Mapped ${possibleIds.length} author IDs to names`);
+        }
+      }
+      
+      // Strategy 1: Try to fetch from unified Note table first (after migration)
+      if (userNotes.length === 0 && contactId) {
+        const unifiedNotes = await db.note.findMany({
+          where: {
+            entityType: 'contact',
+            entityId: contactId,
+            sourceType: 'lead', // Only notes that came from the lead
+          },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            content: true,
+            author: true,
+            createdAt: true,
+          },
+        });
+
+        console.log(`[Notification] Found ${unifiedNotes.length} notes in unified Note table for contact ${contactId}`);
+
+        if (unifiedNotes.length > 0) {
+          // Include ALL notes from the lead (don't filter out system notes - user wants all history)
+          userNotes = unifiedNotes.filter(note => {
+            const content = note.content.trim();
+            // Only exclude empty notes
+            return content.length > 0;
+          });
+          console.log(`[Notification] Filtered to ${userNotes.length} non-empty notes from unified Note table`);
+        }
+      }
+
+      // Strategy 2: If no notes found in unified table, try fetching directly from LeadNote table
+      // This is a fallback in case notes haven't been migrated yet
+      if (userNotes.length === 0 && leadId) {
+        console.log(`[Notification] No notes in unified table, trying LeadNote table for leadId: ${leadId}`);
+        const leadNotes = await db.leadNote.findMany({
+          where: { leadId: leadId },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            content: true,
+            author: true,
+            createdAt: true,
+          },
+        });
+
+        console.log(`[Notification] Found ${leadNotes.length} notes in LeadNote table for lead ${leadId}`);
+
+        if (leadNotes.length > 0) {
+          // Include ALL notes from the lead (don't filter out system notes - user wants all history)
+          userNotes = leadNotes.filter(note => {
+            const content = note.content.trim();
+            // Only exclude empty notes
+            return content.length > 0;
+          });
+          console.log(`[Notification] Filtered to ${userNotes.length} non-empty notes from LeadNote table`);
+        }
+      }
+      
+      // Strategy 3: Also try fetching notes by sourceId if available
+      if (userNotes.length === 0 && contactId && leadId) {
+        console.log(`[Notification] Trying to fetch notes by sourceId: ${leadId}`);
+        const notesBySourceId = await db.note.findMany({
+          where: {
+            entityType: 'contact',
+            entityId: contactId,
+            sourceId: leadId, // Try matching by sourceId
+          },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            content: true,
+            author: true,
+            createdAt: true,
+          },
+        });
+
+        console.log(`[Notification] Found ${notesBySourceId.length} notes by sourceId for contact ${contactId}`);
+
+        if (notesBySourceId.length > 0) {
+          userNotes = notesBySourceId.filter(note => {
+            const content = note.content.trim();
+            return content.length > 0;
+          });
+          console.log(`[Notification] Filtered to ${userNotes.length} non-empty notes by sourceId`);
+        }
+      }
+      
+      // Strategy 4: Fetch ALL notes for this contact (as last resort) and filter by date/content
+      // This catches notes that might not have sourceType or sourceId set correctly
+      if (userNotes.length === 0 && contactId) {
+        console.log(`[Notification] Last resort: fetching all notes for contact ${contactId}`);
+        const allContactNotes = await db.note.findMany({
+          where: {
+            entityType: 'contact',
+            entityId: contactId,
+          },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            content: true,
+            author: true,
+            createdAt: true,
+            sourceType: true,
+            sourceId: true,
+          },
+        });
+
+        console.log(`[Notification] Found ${allContactNotes.length} total notes for contact ${contactId}`);
+        
+        // Filter to only include notes that are likely from the lead (by sourceId or recent creation)
+        // or all notes if we can't determine (better to include than exclude)
+        if (allContactNotes.length > 0) {
+          userNotes = allContactNotes
+            .filter(note => {
+              const content = note.content.trim();
+              if (!content.length) return false;
+              // Include if it has sourceId matching leadId, or sourceType is 'lead', or we can't determine
+              return !leadId || note.sourceId === leadId || note.sourceType === 'lead' || !note.sourceType;
+            })
+            .map(note => ({
+              content: note.content,
+              author: note.author,
+              createdAt: note.createdAt
+            }));
+          console.log(`[Notification] Filtered to ${userNotes.length} notes from all contact notes`);
+        }
+      }
+
+      // Map author IDs to names if they look like IDs
+      if (userNotes.length > 0) {
+        const uniqueAuthors = Array.from(
+          new Set(userNotes.map(n => n.author).filter(Boolean) as string[])
+        );
+        const possibleIds = uniqueAuthors.filter(a => a.length > 20);
+
+        if (possibleIds.length > 0) {
+          const users = await db.user.findMany({
+            where: { id: { in: possibleIds } },
+            select: { id: true, name: true }
+          });
+          const authorNameMap = users.reduce<Record<string, string>>((acc, u) => {
+            acc[u.id] = u.name;
+            return acc;
+          }, {});
+
+          userNotes = userNotes.map(note => ({
+            ...note,
+            author: authorNameMap[note.author] || note.author
+          }));
+        }
+      }
+
+      // Filter out auto-generated notes: "Lead créé par" and "Statut détaillé"
+      const filteredNotes = userNotes.filter(note => {
         const content = note.content.trim();
-        // Exclude empty notes
-        if (!content) return false;
-        // Exclude system-generated notes
-        return !systemNotePatterns.some(pattern => pattern.test(content));
+        // Exclude notes that start with "Lead créé par" (case-insensitive)
+        const isLeadCreated = /^Lead créé par/i.test(content);
+        // Exclude notes that start with "Statut détaillé" or "📋 Statut détaillé" (case-insensitive)
+        const isStatusDetaille = /^(📋\s*)?Statut détaillé:/i.test(content);
+        
+        if (isLeadCreated || isStatusDetaille) {
+          console.log(`[Notification] Filtering out auto-generated note: "${content.substring(0, 50)}..."`);
+        }
+        return !isLeadCreated && !isStatusDetaille && content.length > 0;
       });
 
-      console.log(`[Notification] Found ${userNotes.length} user notes out of ${allNotes.length} total notes for contact ${contactId}`);
+      console.log(`[Notification] Filtered ${userNotes.length} notes to ${filteredNotes.length} (removed ${userNotes.length - filteredNotes.length} auto-generated notes)`);
+      userNotes = filteredNotes;
+      console.log(`[Notification] Total notes to include in notification: ${userNotes.length}`);
     } catch (noteError) {
       console.error('[Notification] Error fetching notes:', noteError);
       // Continue without notes if fetch fails
@@ -402,54 +587,143 @@ export async function notifyArchitectContactConvertedOrAssigned(
   if (convertedFromLead) {
     // Lead converted to contact
     title = '🎯 Nouveau Contact Converti';
-    platformMessage = `Un nouveau contact "${contact.nom}" vous a été assigné depuis un lead qualifié.\n\n📞 Téléphone: ${contact.telephone}${contact.ville ? `\n📍 Ville: ${contact.ville}` : ''}${contact.typeBien || leadTypeBien ? `\n🏠 Type de bien: ${contact.typeBien || leadTypeBien}` : ''}${contact.source || leadSource ? `\n📊 Source: ${contact.source || leadSource}` : ''}`;
     
-    // Build WhatsApp message with notes section
-    let notesSection = '';
+    const formattedSource = formatSourceName(contact.source || leadSource);
+    
+    // Build notes section for platform message (filtered notes)
+    let platformNotesSection = '';
     if (userNotes.length > 0) {
-      notesSection = `\n\n📝 *Notes du Lead:*\n` +
+      platformNotesSection = `\n\n📝 *Historique du Lead (${userNotes.length} note${userNotes.length > 1 ? 's' : ''}):*\n` +
         userNotes.map((note, index) => {
-          const date = new Date(note.createdAt).toLocaleDateString('fr-FR', { 
+          const noteDate = note.createdAt instanceof Date ? note.createdAt : new Date(note.createdAt);
+          const date = noteDate.toLocaleDateString('fr-FR', { 
             day: '2-digit', 
             month: '2-digit', 
-            year: 'numeric' 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
           });
-          // Format note with proper spacing and indentation
-          const noteContent = note.content.split('\n').map(line => `   ${line}`).join('\n');
-          return `\n${index + 1}. *${date}* - ${note.author}\n${noteContent}`;
+          // Clean content (remove emoji prefixes)
+          const cleanedContent = note.content.replace(/^[📞📝💬📅👤🎯✨🔔]\s*/, '').trim();
+          return `\n${index + 1}. [${date}] ${note.author}:\n   ${cleanedContent.replace(/\n/g, '\n   ')}`;
         }).join('\n') + `\n`;
     }
     
-    whatsappMessage = `🎯 *Nouveau Contact Converti*\n\n` +
-      `Bonjour ${architect.name},\n\n` +
+    platformMessage = `Un nouveau contact "${contact.nom}" vous a été assigné depuis un lead qualifié.\n\n📞 Téléphone: ${contact.telephone}${contact.ville ? `\n📍 Ville: ${contact.ville}` : ''}${contact.typeBien || leadTypeBien ? `\n🏠 Type de bien: ${contact.typeBien || leadTypeBien}` : ''}${formattedSource ? `\n📊 Source: ${formattedSource}` : ''}${platformNotesSection}`;
+    
+    // Build WhatsApp message with enhanced notes section
+    // CRITICAL: Always build notes section if notes exist
+    let notesSection = '';
+    console.log(`[Notification] ========== Building WhatsApp message ==========`);
+    console.log(`[Notification] userNotes.length: ${userNotes.length}`);
+    console.log(`[Notification] userNotes:`, JSON.stringify(userNotes.map(n => ({ author: n.author, content: n.content.substring(0, 50) + '...', createdAt: n.createdAt })), null, 2));
+    
+    if (userNotes && userNotes.length > 0) {
+      console.log(`[Notification] ✅ Adding ${userNotes.length} notes to WhatsApp message`);
+      
+      try {
+        // Improved notes formatting for better readability - cleaner format
+        notesSection = `\n\n📝 *HISTORIQUE DU LEAD*\n\n` +
+          userNotes.map((note, index) => {
+            // Ensure createdAt is a Date object
+            const noteDate = note.createdAt instanceof Date ? note.createdAt : new Date(note.createdAt);
+            const date = noteDate.toLocaleDateString('fr-FR', { 
+              day: '2-digit', 
+              month: '2-digit', 
+              year: 'numeric'
+            });
+            const time = noteDate.toLocaleTimeString('fr-FR', {
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            
+            // Format note content - clean and readable
+            const noteContent = (note.content || '').trim();
+            // Remove emoji prefixes if they exist (like 📞, 📝, etc.) for cleaner display
+            const cleanedContent = noteContent.replace(/^[📞📝💬📅👤🎯✨🔔]\s*/, '').trim();
+            
+            // Format content with proper line breaks - simpler format
+            const formattedContent = cleanedContent
+              .split('\n')
+              .filter(line => line.trim().length > 0) // Remove empty lines
+              .map(line => line.trim())
+              .join('\n');
+            
+            const author = note.author || 'Système';
+            
+            // Cleaner format: no separators between notes, just spacing
+            return `📌 *Note ${index + 1}/${userNotes.length}*\n` +
+              `📅 ${date} à ${time} | 👤 ${author}\n` +
+              `${formattedContent || cleanedContent}`;
+          }).join('\n\n') + `\n`;
+        
+        console.log(`[Notification] ✅ Notes section built successfully (length: ${notesSection.length} chars)`);
+        console.log(`[Notification] Notes section preview:`, notesSection.substring(0, 200) + '...');
+      } catch (notesError) {
+        console.error(`[Notification] ❌ Error building notes section:`, notesError);
+        notesSection = `\n\n📝 *HISTORIQUE DU LEAD*\n\n⚠️ Erreur lors du chargement des notes\n`;
+      }
+    } else {
+      console.log(`[Notification] ⚠️ No notes to include in WhatsApp message`);
+      console.log(`[Notification] userNotes is:`, userNotes);
+      console.log(`[Notification] userNotes.length:`, userNotes?.length);
+    }
+    
+    console.log(`[Notification] Final notesSection length: ${notesSection.length}`);
+    console.log(`[Notification] ================================================`);
+    
+    // Build WhatsApp message - Clean, intuitive and readable format
+    // Only include notes section if there are actual notes (not auto-generated ones)
+    const hasNotes = notesSection.length > 0;
+    
+    whatsappMessage = `🎯 *NOUVEAU CONTACT CONVERTI*\n\n` +
+      `Bonjour ${architect.name.split(' ')[0]},\n\n` +
       `Un nouveau contact vous a été assigné depuis un lead qualifié.\n\n` +
-      `👤 *Contact:* ${contact.nom}\n` +
+      `📋 *INFORMATIONS DU CONTACT*\n\n` +
+      `👤 *Nom:* ${contact.nom}\n` +
       `📞 *Téléphone:* ${contact.telephone}\n` +
       (contact.ville ? `📍 *Ville:* ${contact.ville}\n` : '') +
       (contact.typeBien || leadTypeBien ? `🏠 *Type de bien:* ${contact.typeBien || leadTypeBien}\n` : '') +
-      (contact.source || leadSource ? `📊 *Source:* ${contact.source || leadSource}\n` : '') +
-      notesSection +
-      `\n💼 Veuillez contacter ce prospect dans les plus brefs délais.\n\n` +
+      (formattedSource ? `📊 *Source:* ${formattedSource}\n` : '') +
+      (hasNotes ? notesSection : '') + // Only include if there are actual notes
+      `\n💼 *ACTION REQUISE*\n\n` +
+      `Veuillez contacter ce prospect dans les plus brefs délais.\n\n` +
       `Cordialement,\nL'équipe Signature8`;
+    
+    console.log(`[Notification] ✅ WhatsApp message built - total length: ${whatsappMessage.length} chars`);
+    console.log(`[Notification] WhatsApp message includes notes: ${notesSection.length > 0 ? 'YES ✅' : 'NO ❌'}`);
+    if (notesSection.length > 0) {
+      console.log(`[Notification] Notes section is included in message: ${whatsappMessage.includes('HISTORIQUE DU LEAD') ? 'YES ✅' : 'NO ❌'}`);
+    }
     
     emailSubject = `🎯 Nouveau Contact Converti - ${contact.nom}`;
     
-    // Build notes section for email
+    // Build notes section for email with enhanced formatting (filtered notes)
     let emailNotesSection = '';
     if (userNotes.length > 0) {
       emailNotesSection = `
         <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-          <h3 style="margin-top: 0; color: #92400e;">📝 Notes du Lead</h3>
+          <h3 style="margin-top: 0; color: #92400e;">📝 Historique du Lead (${userNotes.length} note${userNotes.length > 1 ? 's' : ''})</h3>
           ${userNotes.map((note, index) => {
-            const date = new Date(note.createdAt).toLocaleDateString('fr-FR', { 
+            const noteDate = note.createdAt instanceof Date ? note.createdAt : new Date(note.createdAt);
+            const date = noteDate.toLocaleDateString('fr-FR', { 
               day: '2-digit', 
               month: '2-digit', 
               year: 'numeric' 
             });
+            const time = noteDate.toLocaleTimeString('fr-FR', {
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            // Clean content (remove emoji prefixes)
+            const cleanedContent = note.content.replace(/^[📞📝💬📅👤🎯✨🔔]\s*/, '').trim();
+            const noteContent = cleanedContent.replace(/\n/g, '<br>');
             return `
-              <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: ${index < userNotes.length - 1 ? '1px solid #fde68a' : 'none'};">
-                <p style="margin: 0; font-size: 12px; color: #78350f; font-weight: bold;">${date} - ${note.author}</p>
-                <p style="margin: 5px 0 0 0; color: #1f2937;">${note.content}</p>
+              <div style="margin-bottom: 15px; padding: 12px; background-color: #fffbeb; border-radius: 6px; border-bottom: ${index < userNotes.length - 1 ? '1px solid #fde68a' : 'none'};">
+                <p style="margin: 0; font-size: 12px; color: #78350f; font-weight: bold;">
+                  📌 Note ${index + 1}/${userNotes.length} - ${date} à ${time} | 👤 ${note.author}
+                </p>
+                <p style="margin: 8px 0 0 0; color: #1f2937; line-height: 1.6; white-space: pre-wrap;">${noteContent}</p>
               </div>
             `;
           }).join('')}
@@ -469,7 +743,7 @@ export async function notifyArchitectContactConvertedOrAssigned(
           ${contact.ville ? `<p><strong>📍 Ville:</strong> ${contact.ville}</p>` : ''}
           ${contact.email ? `<p><strong>📧 Email:</strong> ${contact.email}</p>` : ''}
           ${contact.typeBien || leadTypeBien ? `<p><strong>🏠 Type de bien:</strong> ${contact.typeBien || leadTypeBien}</p>` : ''}
-          ${contact.source || leadSource ? `<p><strong>📊 Source:</strong> ${contact.source || leadSource}</p>` : ''}
+          ${formattedSource ? `<p><strong>📊 Source:</strong> ${formattedSource}</p>` : ''}
         </div>
         ${emailNotesSection}
         <p style="color: #dc2626; font-weight: bold;">💼 Veuillez contacter ce prospect dans les plus brefs délais.</p>

@@ -257,6 +257,20 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
+    // Validate required fields
+    if (!body.nom || !body.nom.trim()) {
+      return NextResponse.json({ error: 'Le nom est requis' }, { status: 400 })
+    }
+    if (!body.telephone || !body.telephone.trim()) {
+      return NextResponse.json({ error: 'Le téléphone est requis' }, { status: 400 })
+    }
+    if (!body.ville || !body.ville.trim()) {
+      return NextResponse.json({ error: 'La ville est requise' }, { status: 400 })
+    }
+    if (!body.typeBien || !body.typeBien.trim()) {
+      return NextResponse.json({ error: 'Le type de bien est requis' }, { status: 400 })
+    }
+
     // Get user info from token for createdBy
     let createdBy = user.name
     let assignePar = body.assignePar || 'Mohamed' // Default to Mohamed (gestionnaire de projet)
@@ -264,8 +278,9 @@ export async function POST(request: NextRequest) {
     let commercialMagasin = body.commercialMagasin || (user.role === 'commercial' ? user.name : undefined)
 
     // For commercial and magasiner users, force status to "nouveau" and set default values
-    let statut = body.statut
-    let statutDetaille = body.statutDetaille
+    // For all users, ensure required fields have defaults
+    let statut = body.statut || 'nouveau'
+    let statutDetaille = body.statutDetaille || 'Nouveau lead'
     if (user.role === 'commercial' || user.role === 'magasiner') {
       statut = 'nouveau'
       statutDetaille = 'Nouveau lead'
@@ -324,8 +339,9 @@ export async function POST(request: NextRequest) {
     const notesToCreate: Array<{ content: string; author: string; createdAt?: Date }> = []
     
     // Add initial traceability note
+    const initialNoteContent = `Lead créé par ${createdBy || 'Utilisateur'}${body.source ? ` (source: ${body.source})` : ''}`
     notesToCreate.push({
-      content: `Lead créé par ${createdBy || 'Utilisateur'}${body.source ? ` (source: ${body.source})` : ''}`,
+      content: initialNoteContent,
       author: createdBy || user.name || 'Utilisateur'
     })
 
@@ -333,38 +349,80 @@ export async function POST(request: NextRequest) {
     if (body.notes && Array.isArray(body.notes)) {
       for (const note of body.notes) {
         // Skip notes that don't have content or are already saved (have an id that looks like a database ID)
-        if (note.content && note.content.trim()) {
+        if (note && note.content && typeof note.content === 'string' && note.content.trim()) {
           // Only add notes that don't have a database ID (temporary notes from modal)
           // Notes with IDs starting with numbers are likely temporary client-side IDs
           if (!note.id || note.id.length < 20 || /^\d+$/.test(note.id)) {
+            const noteAuthor = (note.author && typeof note.author === 'string') 
+              ? note.author.trim() 
+              : (createdBy || user.name || 'Utilisateur')
+            
+            let noteCreatedAt: Date | undefined = undefined
+            if (note.createdAt) {
+              try {
+                noteCreatedAt = new Date(note.createdAt)
+                // Validate date
+                if (isNaN(noteCreatedAt.getTime())) {
+                  noteCreatedAt = undefined
+                }
+              } catch {
+                noteCreatedAt = undefined
+              }
+            }
+            
             notesToCreate.push({
               content: note.content.trim(),
-              author: note.author || createdBy || user.name || 'Utilisateur',
-              createdAt: note.createdAt ? new Date(note.createdAt) : undefined
+              author: noteAuthor,
+              createdAt: noteCreatedAt
             })
           }
         }
       }
     }
 
+    // Validate enum values
+    const validSources = ['magasin', 'site_web', 'facebook', 'instagram', 'tiktok', 'reference_client', 'autre']
+    const validPriorities = ['haute', 'moyenne', 'basse']
+    const validStatuses = ['nouveau', 'a_recontacter', 'sans_reponse', 'non_interesse', 'qualifie', 'refuse']
+    
+    const source = (body.source || 'magasin').toLowerCase()
+    const priorite = (body.priorite || 'moyenne').toLowerCase()
+    const finalStatut = statut.toLowerCase()
+    
+    if (!validSources.includes(source)) {
+      return NextResponse.json({ 
+        error: `Source invalide: ${source}. Sources valides: ${validSources.join(', ')}` 
+      }, { status: 400 })
+    }
+    if (!validPriorities.includes(priorite)) {
+      return NextResponse.json({ 
+        error: `Priorité invalide: ${priorite}. Priorités valides: ${validPriorities.join(', ')}` 
+      }, { status: 400 })
+    }
+    if (!validStatuses.includes(finalStatut)) {
+      return NextResponse.json({ 
+        error: `Statut invalide: ${finalStatut}. Statuts valides: ${validStatuses.join(', ')}` 
+      }, { status: 400 })
+    }
+
     const lead = await prisma.lead.create({
       data: {
-        nom: body.nom,
-        telephone: body.telephone,
-        ville: body.ville,
-        typeBien: body.typeBien,
-        statut: statut,
-        statutDetaille: statutDetaille,
-        message: body.message,
-        assignePar: assignePar,
-        source: body.source || 'magasin',
-        priorite: body.priorite || 'moyenne',
-        magasin: magasin,
-        commercialMagasin: commercialMagasin,
-        month: month,
-        campaignName: body.campaignName,
-        uploadedAt: uploadedAt,
-        createdBy: createdBy,
+        nom: body.nom.trim(),
+        telephone: body.telephone.trim(),
+        ville: body.ville.trim(),
+        typeBien: body.typeBien.trim(),
+        statut: finalStatut as any,
+        statutDetaille: statutDetaille.trim(),
+        message: body.message?.trim() || null,
+        assignePar: assignePar.trim(),
+        source: source as any,
+        priorite: priorite as any,
+        magasin: magasin?.trim() || null,
+        commercialMagasin: commercialMagasin?.trim() || null,
+        month: month?.trim() || null,
+        campaignName: body.campaignName?.trim() || null,
+        uploadedAt: uploadedAt || null,
+        createdBy: createdBy?.trim() || null,
         derniereMaj: new Date(),
         // Create all notes (initial + any from modal)
         notes: {
@@ -384,6 +442,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(lead, { status: 201 })
   } catch (error) {
     console.error('[API] Error creating lead:', error)
-    return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 })
+    // Log detailed error for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorStack = error instanceof Error ? error.stack : undefined
+    console.error('[API] Error details:', {
+      message: errorMessage,
+      stack: errorStack,
+      body: JSON.stringify(body, null, 2)
+    })
+    
+    // Return more detailed error message in development
+    const isDevelopment = process.env.NODE_ENV === 'development'
+    return NextResponse.json({ 
+      error: 'Failed to create lead',
+      details: isDevelopment ? errorMessage : undefined
+    }, { status: 500 })
   }
 }

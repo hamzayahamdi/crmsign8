@@ -1,10 +1,7 @@
-"use server"
-
-import { PrismaClient } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { verify } from 'jsonwebtoken';
+import { prisma } from '@/lib/database';
 
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 /**
@@ -137,6 +134,23 @@ export async function POST(
 
     } catch (error) {
         console.error('Error updating contact to acompte_recu:', error);
+        
+        // Handle database connection errors
+        if (error instanceof Error) {
+            if (error.message.includes('Can\'t reach database server') || 
+                error.message.includes('Connection') ||
+                error.message.includes('ECONNREFUSED') ||
+                error.message.includes('ETIMEDOUT')) {
+                return NextResponse.json(
+                    { 
+                        error: 'Database connection error. Please check your DATABASE_URL and ensure the database server is running.',
+                        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+                    },
+                    { status: 503 }
+                );
+            }
+        }
+        
         const errorMessage = error instanceof Error ? error.message : 'Failed to update contact';
         return NextResponse.json(
             { error: errorMessage },

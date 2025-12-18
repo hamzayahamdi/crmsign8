@@ -38,26 +38,70 @@ interface LeadModalProps {
     currentUserName?: string
 }
 
+// Liste complète des villes du Maroc
 const defaultVilles = [
-    "Casablanca",
-    "Rabat",
-    "Marrakech",
-    "Tanger",
-    "Fès",
     "Agadir",
-    "Meknès",
-    "Oujda",
+    "Aïn Harrouda",
+    "Aïn Taoujdate",
+    "Aït Melloul",
+    "Al Hoceïma",
+    "Azemmour",
+    "Azrou",
+    "Béni Mellal",
+    "Berkane",
+    "Berrechid",
+    "Boujdour",
     "Bouskoura",
-    "Sale",
+    "Casablanca",
+    "Chefchaouen",
+    "Dakhla",
+    "Dar Bouazza",
+    "El Aaiún",
+    "El Jadida",
+    "Errachidia",
+    "Essaouira",
+    "Fès",
+    "Guelmim",
+    "Ifrane",
+    "Imzouren",
+    "Kénitra",
+    "Khemisset",
+    "Khouribga",
+    "Ksar El Kebir",
+    "Larache",
+    "Marrakech",
+    "Meknès",
+    "Mohammedia",
+    "Nador",
+    "Ouarzazate",
+    "Oujda",
+    "Rabat",
+    "Safi",
+    "Salé",
+    "Settat",
+    "Sidi Bennour",
+    "Sidi Ifni",
+    "Sidi Kacem",
+    "Sidi Slimane",
+    "Skhirat",
+    "Tanger",
+    "Taourirt",
+    "Taroudant",
+    "Taza",
+    "Témara",
+    "Tétouan",
+    "Tifelt",
+    "Tiznit",
+    "Youssoufia",
+    "Zagora",
 ]
 
 const defaultTypesBien = [
     "Villa",
     "Appartement",
-    "Terrain",
-    "Bureau",
-    "Riad",
-    "Commerce",
+    "Duplex",
+    "B2B",
+    "Autre",
 ]
 
 const statuts: { value: LeadStatus; label: string; color: string }[] = [
@@ -524,20 +568,23 @@ export function LeadModalEnhanced({
                                                 <SelectTrigger className="bg-slate-800/90 border-slate-600/40 text-white h-8 pl-7 text-xs font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all">
                                                     <SelectValue placeholder="Type de bien" />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
-                                                    <SelectItem value="Villa" className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                        Villa
-                                                    </SelectItem>
-                                                    <SelectItem value="Appartement" className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                        Appartement
-                                                    </SelectItem>
-                                                    <SelectItem value="B2B" className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                        B2B
-                                                    </SelectItem>
-                                                    <SelectItem value="Autre" className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                        Autre
-                                                    </SelectItem>
-                                                </SelectContent>
+                                                 <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
+                                                     <SelectItem value="Villa" className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                         Villa
+                                                     </SelectItem>
+                                                     <SelectItem value="Appartement" className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                         Appartement
+                                                     </SelectItem>
+                                                     <SelectItem value="Duplex" className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                         Duplex
+                                                     </SelectItem>
+                                                     <SelectItem value="B2B" className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                         B2B
+                                                     </SelectItem>
+                                                     <SelectItem value="Autre" className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                         Autre
+                                                     </SelectItem>
+                                                 </SelectContent>
                                             </Select>
                                         </div>
                                     </div>

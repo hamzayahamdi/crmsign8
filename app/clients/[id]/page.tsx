@@ -394,8 +394,21 @@ export default function ClientDetailsPage() {
 
     try {
       const now = new Date().toISOString()
+      
+      // Ensure participants array is valid
+      const participants = Array.isArray(options?.participants) 
+        ? options.participants.filter(p => p && p.trim() !== '')
+        : [];
+      
+      console.log('[Add RDV] Creating calendar event with participants:', {
+        participantCount: participants.length,
+        participants: participants,
+        assignedTo: user?.id,
+        eventType: options?.eventType || 'rendez_vous'
+      })
 
       // 1. Create event in calendar database
+      // NOTE: The calendar API will automatically send WhatsApp notifications to all participants
       const calendarEventResponse = await fetch('/api/calendar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -410,16 +423,20 @@ export default function ClientDetailsPage() {
           location: rdv.location || '',
           reminderType: 'day_1',
           linkedClientId: client.id,
-          participants: options?.participants || [],
+          participants: participants,
           visibility: options?.visibility || 'all',
         })
       })
 
       if (!calendarEventResponse.ok) {
         const errorData = await calendarEventResponse.json()
-        console.error('Calendar API error:', errorData)
+        console.error('[Add RDV] Calendar API error:', errorData)
         throw new Error(errorData.error || 'Failed to create calendar event')
       }
+      
+      const calendarEventResult = await calendarEventResponse.json()
+      console.log('[Add RDV] ✅ Calendar event created:', calendarEventResult.id)
+      console.log('[Add RDV] 📱 WhatsApp notifications should be sent to all participants by calendar API')
 
       // 2. Create appointment in appointments table for real-time sync
       const appointmentResponse = await fetch(`/api/clients/${client.id}/appointments`, {

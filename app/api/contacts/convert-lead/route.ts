@@ -1,10 +1,9 @@
 "use server"
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/database';
 import { NextRequest, NextResponse } from 'next/server';
 import { verify } from 'jsonwebtoken';
 
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 /**
@@ -49,6 +48,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { leadId, architectId } = body;
 
+    console.log(`[Convert Lead] Conversion request received:`, {
+      leadId,
+      architectId,
+      userId,
+      userName: user.name,
+      userRole: user.role
+    });
+
     if (!leadId) {
       return NextResponse.json({ error: 'leadId is required' }, { status: 400 });
     }
@@ -56,7 +63,53 @@ export async function POST(request: NextRequest) {
     // 4. Get the lead
     const lead = await prisma.lead.findUnique({ where: { id: leadId } });
     if (!lead) {
-      return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+      // Check if lead was already converted (might have been deleted after conversion)
+      const existingContact = await prisma.contact.findFirst({
+        where: { leadId: leadId },
+        select: { id: true, nom: true, leadId: true, telephone: true, ville: true }
+      });
+      
+      if (existingContact) {
+        console.log(`[Convert Lead] Lead ${leadId} not found but contact exists with this leadId:`, existingContact.id);
+        return NextResponse.json({ 
+          error: 'Lead already converted',
+          contactId: existingContact.id,
+          contact: existingContact,
+          message: `This lead was already converted to contact "${existingContact.nom}"`
+        }, { status: 409 }); // 409 Conflict
+      }
+      
+      // Log detailed error for debugging
+      console.error(`[Convert Lead] Lead not found and no contact exists with this leadId:`, {
+        leadId,
+        architectId,
+        userId,
+        userName: user.name,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Try to find any leads with similar IDs for debugging
+      const similarLeads = await prisma.lead.findMany({
+        where: {
+          OR: [
+            { id: { contains: leadId.slice(0, 10) } },
+            { nom: { contains: leadId.slice(0, 5), mode: 'insensitive' } }
+          ]
+        },
+        select: { id: true, nom: true, telephone: true },
+        take: 5
+      });
+      
+      if (similarLeads.length > 0) {
+        console.log(`[Convert Lead] Found ${similarLeads.length} similar leads (for debugging):`, similarLeads);
+      }
+      
+      return NextResponse.json({ 
+        error: 'Lead not found',
+        leadId: leadId,
+        message: 'The lead may have been deleted or does not exist. Please check the lead ID.',
+        hint: 'The lead might have already been converted and deleted. Check the contacts list.'
+      }, { status: 404 });
     }
 
     // 4.5 Determine architect assignment (optimized: fetch user and architect in parallel)
@@ -264,6 +317,26 @@ export async function POST(request: NextRequest) {
       commercialMagasin: (contact as any).commercialMagasin,
     });
 
+    // CRITICAL: Verify the contact was actually saved to the database
+    // This ensures the contact exists before we proceed with deletion
+    const verifyContact = await prisma.contact.findUnique({
+      where: { id: contact.id },
+      select: { id: true, nom: true, telephone: true, tag: true, status: true, leadStatus: true }
+    });
+
+    if (!verifyContact) {
+      console.error(`[Convert Lead] ❌ CRITICAL ERROR: Contact ${contact.id} was not found in database after creation!`);
+      throw new Error('Contact was not saved to database. Conversion aborted.');
+    }
+
+    console.log(`[Convert Lead] ✅ Verified contact exists in database:`, {
+      contactId: verifyContact.id,
+      nom: verifyContact.nom,
+      tag: verifyContact.tag,
+      status: verifyContact.status,
+      leadStatus: verifyContact.leadStatus
+    });
+
     // 8. Create timeline entries for conversion (and optional architect assignment)
     // Optimized: Create timeline entries in parallel if architect is assigned
     const timelineEntries: any[] = [];
@@ -354,7 +427,42 @@ export async function POST(request: NextRequest) {
       data: { convertedToContactId: contact.id }
     });
 
-    // 11. Delete the lead from the database (since it's now a contact)
+    // 11. Fetch lead notes BEFORE deleting anything (for notification)
+    // CRITICAL: Must fetch BEFORE deleting lead notes or lead
+    let leadNotesForNotification: Array<{ content: string; author: string; createdAt: Date }> = [];
+    try {
+      console.log(`[Convert Lead] 🔍 Fetching lead notes for notification BEFORE deletion - leadId: ${lead.id}`);
+      const notesBeforeDeletion = await prisma.leadNote.findMany({
+        where: { leadId: lead.id },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          content: true,
+          author: true,
+          createdAt: true,
+        },
+      });
+      
+      console.log(`[Convert Lead] Found ${notesBeforeDeletion.length} lead notes in database`);
+      
+      if (notesBeforeDeletion.length > 0) {
+        leadNotesForNotification = notesBeforeDeletion.filter(note => {
+          const content = note.content.trim();
+          return content.length > 0;
+        });
+        console.log(`[Convert Lead] ✅ Fetched ${leadNotesForNotification.length} non-empty lead notes for notification`);
+        console.log(`[Convert Lead] Notes preview:`, leadNotesForNotification.map(n => ({
+          author: n.author,
+          contentPreview: n.content.substring(0, 50) + '...',
+          createdAt: n.createdAt
+        })));
+      } else {
+        console.log(`[Convert Lead] ℹ️ No lead notes found in database for lead ${lead.id}`);
+      }
+    } catch (noteFetchError) {
+      console.error(`[Convert Lead] ❌ Error fetching lead notes for notification:`, noteFetchError);
+    }
+
+    // 11.5. Delete the lead from the database (since it's now a contact)
     // Note: We delete the lead notes first due to foreign key constraints
     // (They're already copied to unified Note table above)
     await prisma.leadNote.deleteMany({
@@ -373,6 +481,7 @@ export async function POST(request: NextRequest) {
       try {
         const { notifyArchitectContactConvertedOrAssigned } = await import('@/lib/notification-service');
         
+        console.log(`[Convert Lead] 📤 Sending notification with ${leadNotesForNotification.length} pre-fetched notes`);
         await notifyArchitectContactConvertedOrAssigned(
           finalArchitectId,
           {
@@ -390,7 +499,9 @@ export async function POST(request: NextRequest) {
             leadTypeBien: lead.typeBien,
             previousArchitect: lead.assignePar && lead.assignePar !== "Non assigné" ? lead.assignePar : null,
             createdBy: userId,
-            contactId: contact.id, // Pass contactId to fetch notes
+            contactId: contact.id, // Pass contactId to fetch notes from unified Note table
+            leadId: lead.id, // Pass leadId to fetch notes from LeadNote table before deletion
+            leadNotes: leadNotesForNotification, // Pass notes directly to avoid database queries after deletion
           }
         );
         
@@ -401,9 +512,64 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Final verification: Query the contact one more time to ensure it's in the database
+    // This helps catch any transaction or database sync issues
+    // Also verify it can be found by the contacts API query (check architect filter compatibility)
+    const finalVerification = await prisma.contact.findUnique({
+      where: { id: contact.id },
+      include: {
+        opportunities: true,
+        timeline: { take: 1, orderBy: { createdAt: 'desc' } }
+      }
+    });
+
+    if (!finalVerification) {
+      console.error(`[Convert Lead] ❌ CRITICAL: Contact ${contact.id} not found in final verification!`);
+      return NextResponse.json(
+        { 
+          error: 'Contact was created but could not be verified in database',
+          contactId: contact.id,
+          message: 'Please refresh the contacts page to see the converted contact.'
+        },
+        { status: 500 }
+      );
+    }
+
+    // Additional verification: Check if contact is queryable with the same filters the contacts API uses
+    // This ensures the contact will appear in the contacts list
+    const queryableCheck = await prisma.contact.findFirst({
+      where: {
+        id: contact.id,
+        // Simulate the contacts API query conditions
+        ...(user.role?.toLowerCase() === 'architect' && finalVerification.architecteAssigne
+          ? { architecteAssigne: user.name }
+          : {}),
+      },
+      select: { id: true, nom: true, tag: true, status: true, architecteAssigne: true }
+    });
+
+    if (!queryableCheck && user.role?.toLowerCase() === 'architect') {
+      console.warn(`[Convert Lead] ⚠️ WARNING: Contact ${contact.id} may not be visible to architect ${user.name} because architect assignment doesn't match.`, {
+        contactArchitect: finalVerification.architecteAssigne,
+        userArchitect: user.name
+      });
+    }
+
+    console.log(`[Convert Lead] ✅ Final verification passed. Contact is ready:`, {
+      contactId: finalVerification.id,
+      nom: finalVerification.nom,
+      tag: finalVerification.tag,
+      status: finalVerification.status,
+      leadStatus: finalVerification.leadStatus,
+      architecteAssigne: finalVerification.architecteAssigne,
+      createdAt: finalVerification.createdAt,
+      isQueryable: !!queryableCheck,
+      userRole: user.role
+    });
+
     return NextResponse.json({
       success: true,
-      contact,
+      contact: finalVerification, // Return the verified contact
       timeline: timelineEntries,
       message: `${contact.nom} a été converti avec succès en Contact`,
       convertedBy: user.name,

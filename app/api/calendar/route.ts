@@ -278,13 +278,17 @@ export async function POST(request: NextRequest) {
 
     // Create notifications for participants and assigned user
     // IMPORTANT: Include assignedTo even if they're the creator
-    const notificationRecipients = new Set([assignedTo, ...participants]);
+    // Ensure participants array is properly handled (filter out any null/undefined values)
+    const validParticipants = Array.isArray(participants) ? participants.filter(p => p && p.trim() !== '') : [];
+    const notificationRecipients = new Set([assignedTo, ...validParticipants]);
 
-    // Only exclude creator if they're NOT the assigned user
+    // Only exclude creator if they're NOT the assigned user AND not in participants
     // This ensures the organizer/assigned user always gets notified
-    if (user.userId !== assignedTo) {
+    if (user.userId !== assignedTo && !validParticipants.includes(user.userId)) {
       notificationRecipients.delete(user.userId);
     }
+
+    console.log(`[Calendar] Notification recipients: ${Array.from(notificationRecipients).length} (assignedTo: ${assignedTo}, participants: ${validParticipants.length})`);
 
     const notificationPromises = Array.from(notificationRecipients).map((recipientId) =>
       prisma.notification.create({
@@ -312,15 +316,28 @@ export async function POST(request: NextRequest) {
     // Send WhatsApp notifications to participants AND assigned user
     try {
       // Get all recipients (assigned user + participants) with phone numbers
+      const recipientIds = Array.from(notificationRecipients);
+      console.log(`[Calendar] Fetching users for WhatsApp: ${recipientIds.length} recipients`, recipientIds);
+      
       const participantUsers = await prisma.user.findMany({
         where: {
-          id: { in: Array.from(notificationRecipients) },
+          id: { in: recipientIds },
           phone: { not: null }
         },
         select: { id: true, name: true, phone: true }
       });
 
-      console.log(`[Calendar] Sending WhatsApp to ${participantUsers.length} recipients (including assigned user)`);
+      console.log(`[Calendar] Found ${participantUsers.length} users with phone numbers out of ${recipientIds.length} recipients`);
+      
+      // Log users without phone numbers for debugging
+      const usersWithoutPhone = recipientIds.filter(id => !participantUsers.find(u => u.id === id));
+      if (usersWithoutPhone.length > 0) {
+        const usersInfo = await prisma.user.findMany({
+          where: { id: { in: usersWithoutPhone } },
+          select: { id: true, name: true, phone: true }
+        });
+        console.log(`[Calendar] ⚠️ ${usersWithoutPhone.length} recipients without phone numbers:`, usersInfo.map(u => ({ name: u.name, phone: u.phone })));
+      }
 
       // Format date and time for WhatsApp message
       const eventDate = new Date(startDate);
@@ -385,6 +402,26 @@ export async function POST(request: NextRequest) {
         const whatsappPromises = participantUsers.map(async (participant) => {
           try {
             const isOrganizer = participant.id === assignedTo;
+            const isParticipant = validParticipants.includes(participant.id);
+            
+            // Format phone number - ensure it's in international format
+            let phoneNumber = participant.phone!.trim();
+            // Remove spaces, dashes, parentheses
+            phoneNumber = phoneNumber.replace(/[\s\-()]/g, '');
+            // Add + if not present and ensure country code
+            if (!phoneNumber.startsWith('+')) {
+              // If starts with 0, remove it and add country code
+              if (phoneNumber.startsWith('0')) {
+                phoneNumber = phoneNumber.substring(1);
+              }
+              // Add Morocco country code if not present
+              if (!phoneNumber.startsWith('212')) {
+                phoneNumber = `+212${phoneNumber}`;
+              } else {
+                phoneNumber = `+${phoneNumber}`;
+              }
+            }
+            
             const message = `📅 *Nouveau Rendez-vous ${isOrganizer ? 'Créé' : 'Confirmé'}*\n\n` +
               `Bonjour ${participant.name.split(' ')[0]},\n` +
               `${isOrganizer ? 'Vous avez créé un nouveau rendez-vous.' : 'Un nouveau rendez-vous a été ajouté à votre agenda.'}\n\n` +
@@ -402,6 +439,8 @@ export async function POST(request: NextRequest) {
               `${isOrganizer ? `💡 *Rappel :*\nN'oubliez pas de confirmer ce rendez-vous.\n\n` : `💡 *Action requise :*\nMerci de confirmer votre présence.\n\n`}` +
               `_${isOrganizer ? 'Créé par vous' : `Organisé par ${creator?.name || 'Signature8'}`}_`;
 
+            console.log(`[Calendar] 📱 Sending WhatsApp to ${participant.name} (${phoneNumber})${isOrganizer ? ' [ORGANIZER]' : isParticipant ? ' [PARTICIPANT]' : ''}`);
+
             // Send via UltraMSG
             const ultraResponse = await fetch(
               `https://api.ultramsg.com/${ULTRA_INSTANCE_ID}/messages/chat`,
@@ -410,7 +449,7 @@ export async function POST(request: NextRequest) {
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({
                   token: ULTRA_TOKEN,
-                  to: participant.phone!,
+                  to: phoneNumber,
                   body: message,
                   priority: '10',
                   referenceId: event.id
@@ -419,7 +458,7 @@ export async function POST(request: NextRequest) {
             );
 
             const ultraResult = await ultraResponse.json();
-            console.log(`[Calendar] UltraMSG response for ${participant.name}:`, ultraResult);
+            console.log(`[Calendar] UltraMSG response for ${participant.name} (${phoneNumber}):`, ultraResult);
 
             // Save notification to database
             await prisma.notification.create({
@@ -448,16 +487,19 @@ export async function POST(request: NextRequest) {
             });
 
             if (ultraResult.sent === 'true' || ultraResult.sent === true) {
-              console.log(`[Calendar] ✅ WhatsApp sent successfully to ${participant.name} (${participant.phone})${isOrganizer ? ' [ORGANIZER]' : ''}`);
+              console.log(`[Calendar] ✅ WhatsApp sent successfully to ${participant.name} (${phoneNumber})${isOrganizer ? ' [ORGANIZER]' : isParticipant ? ' [PARTICIPANT]' : ''}`);
             } else {
-              console.error(`[Calendar] ❌ WhatsApp failed for ${participant.name}:`, ultraResult);
+              console.error(`[Calendar] ❌ WhatsApp failed for ${participant.name} (${phoneNumber}):`, ultraResult);
             }
-          } catch (error) {
-            console.error(`[Calendar] Error sending WhatsApp to ${participant.name}:`, error);
+          } catch (error: any) {
+            console.error(`[Calendar] ❌ Error sending WhatsApp to ${participant.name}:`, error?.message || error);
           }
         });
 
-        await Promise.allSettled(whatsappPromises);
+        const results = await Promise.allSettled(whatsappPromises);
+        const successful = results.filter(r => r.status === 'fulfilled').length;
+        const failed = results.filter(r => r.status === 'rejected').length;
+        console.log(`[Calendar] WhatsApp sending completed: ${successful} successful, ${failed} failed out of ${participantUsers.length} total`);
       }
     } catch (error) {
       console.error('[Calendar] Error sending WhatsApp notifications:', error);
@@ -534,10 +576,17 @@ export async function PUT(request: NextRequest) {
       select: { name: true }
     });
 
+    // Check if participants were added (new participants not in existing event)
+    const existingParticipants = existingEvent.participants || [];
+    const newParticipants = (updatedEvent.participants || []).filter(
+      (p: string) => !existingParticipants.includes(p)
+    );
+    const hasNewParticipants = newParticipants.length > 0;
+
     // Notify participants about the update
     const notificationRecipients = new Set([
       updatedEvent.assignedTo,
-      ...updatedEvent.participants
+      ...(updatedEvent.participants || [])
     ]);
     notificationRecipients.delete(user.userId); // Don't notify the updater
 
@@ -545,10 +594,14 @@ export async function PUT(request: NextRequest) {
       prisma.notification.create({
         data: {
           userId: recipientId,
-          type: 'rdv_updated',
+          type: hasNewParticipants && newParticipants.includes(recipientId) ? 'rdv_created' : 'rdv_updated',
           priority: updatedEvent.eventType === 'urgent' ? 'high' : 'medium',
-          title: `RDV modifié : ${updatedEvent.title}`,
-          message: `${updater?.name || 'Un utilisateur'} a modifié le rendez-vous du ${new Date(updatedEvent.startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}.`,
+          title: hasNewParticipants && newParticipants.includes(recipientId) 
+            ? `Nouveau RDV : ${updatedEvent.title}`
+            : `RDV modifié : ${updatedEvent.title}`,
+          message: hasNewParticipants && newParticipants.includes(recipientId)
+            ? `${updater?.name || 'Un utilisateur'} vous a ajouté à un rendez-vous le ${new Date(updatedEvent.startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}.`
+            : `${updater?.name || 'Un utilisateur'} a modifié le rendez-vous du ${new Date(updatedEvent.startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}.`,
           linkedType: 'appointment',
           linkedId: updatedEvent.id,
           linkedName: updatedEvent.title,
@@ -558,6 +611,147 @@ export async function PUT(request: NextRequest) {
     );
 
     await Promise.all(notificationPromises);
+
+    // Send WhatsApp notifications to new participants and all participants if event details changed significantly
+    if (hasNewParticipants || updateData.startDate || updateData.endDate || updateData.location) {
+      try {
+        // Get all recipients with phone numbers
+        const recipientIds = Array.from(notificationRecipients);
+        const participantUsers = await prisma.user.findMany({
+          where: {
+            id: { in: recipientIds },
+            phone: { not: null }
+          },
+          select: { id: true, name: true, phone: true }
+        });
+
+        // Format date and time
+        const eventDate = new Date(updatedEvent.startDate);
+        const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        const formattedDate = eventDate.toLocaleDateString('fr-FR', dateOptions);
+        const finalDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+        const timeStr = eventDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        const endTimeStr = new Date(updatedEvent.endDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+        // Get client name if linked
+        let clientName = null;
+        if (updatedEvent.linkedClientId) {
+          try {
+            const client = await prisma.client.findUnique({
+              where: { id: updatedEvent.linkedClientId },
+              select: { nom: true }
+            });
+            clientName = client?.nom || null;
+          } catch (error) {
+            console.error('[Calendar] Error fetching client name:', error);
+          }
+        }
+
+        // Get event type info
+        const getEventTypeInfo = (type: string) => {
+          switch (type) {
+            case 'rendez_vous': return { icon: '📅', label: 'Rendez-vous client' };
+            case 'interne': return { icon: '🏢', label: 'Rendez-vous interne' };
+            case 'appel_reunion': return { icon: '📞', label: 'Appel ou réunion' };
+            case 'urgent': return { icon: '🚨', label: 'Urgent' };
+            case 'suivi_projet': return { icon: '📋', label: 'Suivi projet' };
+            case 'tache': return { icon: '✅', label: 'Tâche' };
+            case 'paiement': return { icon: '💳', label: 'Paiement' };
+            case 'devis': return { icon: '📄', label: 'Devis' };
+            default: return { icon: '📅', label: 'Rendez-vous' };
+          }
+        };
+        const eventTypeInfo = getEventTypeInfo(updatedEvent.eventType);
+
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://signature8-sketch.vercel.app";
+        const calendarLink = `${appUrl}/calendrier?event=${updatedEvent.id}`;
+
+        const ULTRA_INSTANCE_ID = process.env.ULTRA_INSTANCE_ID;
+        const ULTRA_TOKEN = process.env.ULTRA_TOKEN;
+
+        if (ULTRA_INSTANCE_ID && ULTRA_TOKEN) {
+          const whatsappPromises = participantUsers.map(async (participant) => {
+            try {
+              const isNewParticipant = newParticipants.includes(participant.id);
+              const isOrganizer = participant.id === updatedEvent.assignedTo;
+              
+              // Format phone number
+              let phoneNumber = participant.phone!.trim().replace(/[\s\-()]/g, '');
+              if (!phoneNumber.startsWith('+')) {
+                if (phoneNumber.startsWith('0')) {
+                  phoneNumber = phoneNumber.substring(1);
+                }
+                if (!phoneNumber.startsWith('212')) {
+                  phoneNumber = `+212${phoneNumber}`;
+                } else {
+                  phoneNumber = `+${phoneNumber}`;
+                }
+              }
+
+              const message = isNewParticipant
+                ? `📅 *Nouveau Rendez-vous Confirmé*\n\n` +
+                  `Bonjour ${participant.name.split(' ')[0]},\n` +
+                  `Vous avez été ajouté(e) à un rendez-vous.\n\n` +
+                  `━━━━━━━━━━━━━━━━━━━━\n` +
+                  `${eventTypeInfo.icon} *Type :* ${eventTypeInfo.label}\n` +
+                  `📌 *Titre :* ${updatedEvent.title}\n` +
+                  `${clientName ? `👤 *Client :* ${clientName}\n` : ''}` +
+                  `📆 *Date :* ${finalDate}\n` +
+                  `⏰ *Heure :* ${timeStr} - ${endTimeStr}\n` +
+                  `${updatedEvent.location ? `📍 *Lieu :* ${updatedEvent.location}\n` : ''}` +
+                  `${updatedEvent.description ? `📝 *Détails :*\n${updatedEvent.description}\n` : ''}` +
+                  `━━━━━━━━━━━━━━━━━━━━\n\n` +
+                  `🔗 *Voir dans l'agenda :*\n` +
+                  `${calendarLink}\n\n` +
+                  `💡 *Action requise :*\nMerci de confirmer votre présence.\n\n` +
+                  `_Ajouté par ${updater?.name || 'Signature8'}_`
+                : `📅 *Rendez-vous Modifié*\n\n` +
+                  `Bonjour ${participant.name.split(' ')[0]},\n` +
+                  `Le rendez-vous a été modifié.\n\n` +
+                  `━━━━━━━━━━━━━━━━━━━━\n` +
+                  `${eventTypeInfo.icon} *Type :* ${eventTypeInfo.label}\n` +
+                  `📌 *Titre :* ${updatedEvent.title}\n` +
+                  `${clientName ? `👤 *Client :* ${clientName}\n` : ''}` +
+                  `📆 *Date :* ${finalDate}\n` +
+                  `⏰ *Heure :* ${timeStr} - ${endTimeStr}\n` +
+                  `${updatedEvent.location ? `📍 *Lieu :* ${updatedEvent.location}\n` : ''}` +
+                  `━━━━━━━━━━━━━━━━━━━━\n\n` +
+                  `🔗 *Voir dans l'agenda :*\n` +
+                  `${calendarLink}\n\n` +
+                  `_Modifié par ${updater?.name || 'Signature8'}_`;
+
+              const ultraResponse = await fetch(
+                `https://api.ultramsg.com/${ULTRA_INSTANCE_ID}/messages/chat`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                  body: new URLSearchParams({
+                    token: ULTRA_TOKEN,
+                    to: phoneNumber,
+                    body: message,
+                    priority: '10',
+                    referenceId: updatedEvent.id
+                  })
+                }
+              );
+
+              const ultraResult = await ultraResponse.json();
+              if (ultraResult.sent === 'true' || ultraResult.sent === true) {
+                console.log(`[Calendar] ✅ WhatsApp sent to ${participant.name} (${phoneNumber})${isNewParticipant ? ' [NEW PARTICIPANT]' : ' [UPDATED]'}`);
+              } else {
+                console.error(`[Calendar] ❌ WhatsApp failed for ${participant.name}:`, ultraResult);
+              }
+            } catch (error: any) {
+              console.error(`[Calendar] Error sending WhatsApp to ${participant.name}:`, error?.message || error);
+            }
+          });
+
+          await Promise.allSettled(whatsappPromises);
+        }
+      } catch (error) {
+        console.error('[Calendar] Error sending WhatsApp notifications for update:', error);
+      }
+    }
 
     return NextResponse.json(updatedEvent);
   } catch (error) {
