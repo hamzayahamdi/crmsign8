@@ -31,6 +31,7 @@
     "import:tiktok-history": "node scripts/import-tiktok-leads-with-history.js",
     "delete:nov11-leads": "node scripts/delete-nov11-import.js",
     "rename:campaign": "node scripts/rename-campaign.js",
+    "fix:commercial-names": "node scripts/fix-commercial-names.js",
     "migrate:tiktok": "prisma migrate dev --name add_tiktok_month_tracking",
     "update:tiktok": "node scripts/update-existing-tiktok-leads.js",
     "test:notifications": "node scripts/test-notifications.js",

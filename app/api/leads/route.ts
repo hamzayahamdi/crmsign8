@@ -366,6 +366,14 @@ export async function POST(request: NextRequest) {
       author: createdBy || user.name || 'Utilisateur'
     })
 
+    // Add message as a note if provided (from modal "Message ou notes" field)
+    if (body.message && typeof body.message === 'string' && body.message.trim()) {
+      notesToCreate.push({
+        content: body.message.trim(),
+        author: createdBy || user.name || 'Utilisateur'
+      })
+    }
+
     // Add any notes from the request body (from modal)
     if (body.notes && Array.isArray(body.notes)) {
       for (const note of body.notes) {

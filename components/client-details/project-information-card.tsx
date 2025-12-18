@@ -256,22 +256,79 @@ export function ProjectInformationCard({
           ) : null;
         })()}
 
-        {/* Opportunité créée par */}
-        {(client.opportunityCreatedBy || client.commercialAttribue || client.contactCreatedBy) && (
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md border border-amber-500/20 bg-amber-500/5 flex items-center justify-center shrink-0">
-              <UserPlus className="w-3.5 h-3.5 text-amber-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[9px] text-white/35 mb-0.5 font-light uppercase tracking-wider">
-                Opportunité créée par
-              </p>
-              <p className="text-xs text-white/90 font-light truncate">
-                {client.opportunityCreatedBy || client.commercialAttribue || "Non spécifié"}
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Nom du commercial */}
+        {(() => {
+          // Determine the correct commercial name (same logic as client overview card)
+          let commercialName = ''
+          
+          // Try to get leadData (could be object or JSON string)
+          let leadData: any = null
+          if (client.leadData) {
+            if (typeof client.leadData === 'string') {
+              try {
+                leadData = JSON.parse(client.leadData)
+              } catch (e) {
+                console.error('[Project Info] Failed to parse leadData:', e)
+              }
+            } else if (typeof client.leadData === 'object') {
+              leadData = client.leadData
+            }
+          }
+          
+          // Priority 1: Use commercialMagasin from leadData (most accurate, especially for magasin leads)
+          if (leadData && leadData.commercialMagasin && leadData.commercialMagasin.trim()) {
+            commercialName = leadData.commercialMagasin.trim()
+          } 
+          // Priority 2: Use commercialAttribue from API (which should already have the correct value)
+          else if (client.commercialAttribue && client.commercialAttribue.trim()) {
+            commercialName = client.commercialAttribue.trim()
+          }
+          
+          const isMagasinLead = client.magasin || (leadData && leadData.source === 'magasin')
+          
+          if (commercialName || isMagasinLead) {
+            return (
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-md border border-amber-500/20 bg-amber-500/5 flex items-center justify-center shrink-0">
+                  <UserPlus className="w-3.5 h-3.5 text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] text-white/35 mb-0.5 font-light uppercase tracking-wider">
+                    Nom du commercial
+                  </p>
+                  <p className="text-xs text-white/90 font-light truncate" title={commercialName}>
+                    {commercialName || 'Non assigné'}
+                  </p>
+                </div>
+              </div>
+            )
+          }
+          return null
+        })()}
+
+        {/* Opportunité créée par - Only show if different from commercial name */}
+        {(() => {
+          const opportunityCreator = client.opportunityCreatedBy || client.contactCreatedBy
+          // Only show if it's different from commercial name and exists
+          if (opportunityCreator && opportunityCreator !== client.commercialAttribue) {
+            return (
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-md border border-purple-500/20 bg-purple-500/5 flex items-center justify-center shrink-0">
+                  <UserPlus className="w-3.5 h-3.5 text-purple-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] text-white/35 mb-0.5 font-light uppercase tracking-wider">
+                    Opportunité créée par
+                  </p>
+                  <p className="text-xs text-white/90 font-light truncate">
+                    {opportunityCreator}
+                  </p>
+                </div>
+              </div>
+            )
+          }
+          return null
+        })()}
       </div>
 
       {/* Notes & Détails - Separate section for better readability */}

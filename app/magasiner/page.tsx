@@ -182,7 +182,7 @@ export default function MagasinerDashboard() {
               <div className="flex items-center gap-3 mb-2">
                 <img src="/infnite-logo.png" alt="Infinite Logo" className="h-12 w-12 object-contain" />
                 <h1 className="text-3xl font-bold text-white">
-                  Tableau de bord Magasiner
+                  Tableau de bord Magasin
                 </h1>
               </div>
               <p className="text-slate-300 ml-15">

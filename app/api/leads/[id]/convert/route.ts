@@ -171,7 +171,10 @@ export async function POST(
         lead_data: leadDataForRestoration, // Store complete lead data for restoration
         notes: lead.message || null,
         magasin: lead.magasin || null,
-        commercial_attribue: lead.createdBy || userName,
+        // If lead comes from magasin, use commercialMagasin, otherwise use createdBy
+        commercial_attribue: (lead.source === 'magasin' && lead.commercialMagasin) 
+          ? lead.commercialMagasin 
+          : (lead.createdBy || userName),
         created_at: now,
         updated_at: now
       })

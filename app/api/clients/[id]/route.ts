@@ -475,6 +475,23 @@ export async function GET(
     let parsedLeadData: any = null;
     let leadNotesFromLeadData: any[] = [];
     const leadId = isOpportunityClient ? contactId : client.lead_id;
+    let leadFromDatabase: any = null;
+
+    // Try to fetch the original lead if it still exists (for commercialMagasin)
+    if (!isOpportunityClient && leadId) {
+      try {
+        leadFromDatabase = await prisma.lead.findUnique({
+          where: { id: leadId },
+          select: { commercialMagasin: true, source: true }
+        });
+        if (leadFromDatabase) {
+          console.log(`[GET /api/clients/[id]] Found original lead, commercialMagasin: ${leadFromDatabase.commercialMagasin}`);
+        }
+      } catch (error) {
+        // Lead might be deleted (normal after conversion), ignore error
+        console.log(`[GET /api/clients/[id]] Lead ${leadId} not found (likely converted/deleted)`);
+      }
+    }
 
     if (!isOpportunityClient && client.lead_data) {
       try {
@@ -754,8 +771,34 @@ export async function GET(
         return rawNotes;
       })(),
       magasin: client.magasin,
-      commercialAttribue:
-        client.commercial_attribue || client.commercialAttribue || "",
+      commercialAttribue: (() => {
+        // Priority: 1) commercialMagasin from leadData (most accurate source)
+        // 2) commercialMagasin from original lead if it still exists
+        // 3) stored commercial_attribue
+        
+        // Always prioritize commercialMagasin from leadData if it exists (most accurate)
+        if (parsedLeadData && parsedLeadData.commercialMagasin) {
+          console.log(`[GET /api/clients/[id]] ✅ Using commercialMagasin from leadData: ${parsedLeadData.commercialMagasin}`)
+          return parsedLeadData.commercialMagasin
+        }
+        
+        // Fallback: Try to get from original lead if it still exists
+        if (leadFromDatabase && leadFromDatabase.commercialMagasin) {
+          console.log(`[GET /api/clients/[id]] ✅ Using commercialMagasin from original lead: ${leadFromDatabase.commercialMagasin}`)
+          return leadFromDatabase.commercialMagasin
+        }
+        
+        // Otherwise, use the stored commercial_attribue
+        const storedCommercial = client.commercial_attribue || client.commercialAttribue || ""
+        const isMagasinLead = client.magasin || (parsedLeadData && parsedLeadData.source === 'magasin')
+        
+        if (storedCommercial) {
+          console.log(`[GET /api/clients/[id]] Using commercial_attribue from client: ${storedCommercial}`)
+        } else {
+          console.log(`[GET /api/clients/[id]] ⚠️ No commercial name found - leadData:`, parsedLeadData ? 'exists' : 'missing', 'commercialMagasin:', parsedLeadData?.commercialMagasin, 'leadFromDB:', leadFromDatabase?.commercialMagasin)
+        }
+        return storedCommercial
+      })(),
       opportunityCreatedBy:
         client.opportunityCreatedBy || client.opportunity_created_by || "",
       contactCreatedBy:

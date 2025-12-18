@@ -255,12 +255,27 @@ export function LeadModalEnhanced({
     useEffect(() => {
         if (lead && open) {
             const campaignName = (lead as any)?.campaignName || ""
+            const leadMagasin = lead.magasin || ""
+            const leadCommercialMagasin = lead.commercialMagasin || ""
+            
             console.log('[Lead Modal] Loading lead data:', {
                 leadId: lead.id,
                 source: lead.source,
                 campaignName: campaignName,
-                hasCampaignName: !!(lead as any)?.campaignName
+                hasCampaignName: !!(lead as any)?.campaignName,
+                magasin: leadMagasin,
+                commercialMagasin: leadCommercialMagasin
             })
+            
+            // Check if commercialMagasin is a custom value (not in predefined list)
+            const isCustomCommercial = leadCommercialMagasin && !commercials.includes(leadCommercialMagasin) && leadCommercialMagasin !== "Autre"
+            if (isCustomCommercial) {
+                setShowCustomCommercial(true)
+                setCustomCommercialName(leadCommercialMagasin)
+            } else {
+                setShowCustomCommercial(false)
+                setCustomCommercialName("")
+            }
             
             setFormData((prev) => ({
                 ...prev,
@@ -273,15 +288,15 @@ export function LeadModalEnhanced({
                 assignePar: lead.assignePar || prev.assignePar || (architects[0] || 'Mohamed'),
                 source: lead.source,
                 priorite: lead.priorite,
-                magasin: lead.magasin || "",
-                commercialMagasin: lead.commercialMagasin || "",
+                magasin: leadMagasin,
+                commercialMagasin: leadCommercialMagasin,
                 campaignName: campaignName,
                 notes: lead.notes || [],
             }))
             
             console.log('[Lead Modal] Form data updated with campaignName:', campaignName)
         }
-    }, [lead, architects, open])
+    }, [lead, architects, open, commercials])
 
     useEffect(() => {
         if (open && !lead) {
@@ -712,8 +727,8 @@ export function LeadModalEnhanced({
                                 </div>
 
 
-                                {/* Conditional: Magasin Fields */}
-                                {formData.source === 'magasin' && (
+                                {/* Conditional: Magasin Fields - Show if source is magasin OR if lead has magasin/commercial values */}
+                                {(formData.source === 'magasin' || formData.magasin || formData.commercialMagasin) && (
                                     <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/30 space-y-2.5 backdrop-blur-sm">
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="space-y-1">
@@ -725,14 +740,25 @@ export function LeadModalEnhanced({
                                                     onValueChange={(value) => setFormData({ ...formData, magasin: value })}
                                                 >
                                                     <SelectTrigger className="bg-slate-800/90 border-slate-600/40 text-white h-8 text-xs font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all">
-                                                        <SelectValue placeholder="Sélectionner..." />
+                                                        <SelectValue placeholder="Sélectionner...">
+                                                            {formData.magasin || "Sélectionner..."}
+                                                        </SelectValue>
                                                     </SelectTrigger>
                                                     <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
-                                                        {["📍 Casablanca", "📍 Rabat", "📍 Tanger", "📍 Marrakech", "📍 Bouskoura"].map((mag) => (
-                                                            <SelectItem key={mag} value={mag} className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                                {mag}
-                                                            </SelectItem>
-                                                        ))}
+                                                        {(() => {
+                                                            const defaultMagasins = ["📍 Casablanca", "📍 Rabat", "📍 Tanger", "📍 Marrakech", "📍 Bouskoura"]
+                                                            const currentMagasin = formData.magasin
+                                                            const magasinList = [...defaultMagasins]
+                                                            // Add current magasin if it's not in the default list
+                                                            if (currentMagasin && !defaultMagasins.includes(currentMagasin)) {
+                                                                magasinList.unshift(currentMagasin)
+                                                            }
+                                                            return magasinList.map((mag) => (
+                                                                <SelectItem key={mag} value={mag} className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                                    {mag}
+                                                                </SelectItem>
+                                                            ))
+                                                        })()}
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -741,49 +767,93 @@ export function LeadModalEnhanced({
                                                 <Label htmlFor="commercialMagasin" className="text-[10px] font-light text-slate-300">
                                                     Commercial
                                                 </Label>
-                                                <Select
-                                                    value={formData.commercialMagasin === customCommercialName && showCustomCommercial ? "Autre" : formData.commercialMagasin}
-                                                    onValueChange={(value) => {
-                                                        if (value === "Autre") {
-                                                            setShowCustomCommercial(true)
-                                                            setFormData({ ...formData, commercialMagasin: customCommercialName })
-                                                        } else {
-                                                            setShowCustomCommercial(false)
-                                                            setCustomCommercialName("")
-                                                            setFormData({ ...formData, commercialMagasin: value })
-                                                        }
-                                                    }}
-                                                >
-                                                    <SelectTrigger className="bg-slate-800/90 border-slate-600/40 text-white h-8 text-xs font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all">
-                                                        <SelectValue placeholder="Sélectionner..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
-                                                        {commercials.map((commercial) => (
-                                                            <SelectItem key={commercial} value={commercial} className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                                {commercial}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                                {showCustomCommercial ? (
+                                                    <div className="space-y-1">
+                                                        <Input
+                                                            id="commercialMagasin"
+                                                            value={customCommercialName}
+                                                            onChange={(e) => {
+                                                                setCustomCommercialName(e.target.value)
+                                                                setFormData({ ...formData, commercialMagasin: e.target.value })
+                                                            }}
+                                                            className="bg-slate-800/90 border-slate-600/40 text-white placeholder:text-slate-400 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 h-8 text-xs font-light transition-all"
+                                                            placeholder="Nom du commercial"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setShowCustomCommercial(false)
+                                                                // Try to match with predefined list if possible
+                                                                const matchingCommercial = commercials.find(c => c.toLowerCase() === customCommercialName.toLowerCase())
+                                                                if (matchingCommercial) {
+                                                                    setFormData({ ...formData, commercialMagasin: matchingCommercial })
+                                                                } else {
+                                                                    setFormData({ ...formData, commercialMagasin: customCommercialName })
+                                                                }
+                                                            }}
+                                                            className="text-[9px] h-5 px-1.5 text-purple-300 hover:text-purple-200 hover:bg-purple-500/20"
+                                                        >
+                                                            ← Liste
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <Select
+                                                        value={formData.commercialMagasin || ""}
+                                                        onValueChange={(value) => {
+                                                            if (value === "Autre") {
+                                                                setShowCustomCommercial(true)
+                                                                setCustomCommercialName("")
+                                                                setFormData({ ...formData, commercialMagasin: "" })
+                                                            } else {
+                                                                setShowCustomCommercial(false)
+                                                                setCustomCommercialName("")
+                                                                setFormData({ ...formData, commercialMagasin: value })
+                                                            }
+                                                        }}
+                                                    >
+                                                        <SelectTrigger className="bg-slate-800/90 border-slate-600/40 text-white h-8 text-xs font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all">
+                                                            <SelectValue placeholder="Sélectionner...">
+                                                                {formData.commercialMagasin || "Sélectionner..."}
+                                                            </SelectValue>
+                                                        </SelectTrigger>
+                                                        <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
+                                                            {(() => {
+                                                                const currentCommercial = formData.commercialMagasin
+                                                                const commercialList = [...commercials]
+                                                                // Add current commercial if it's not in the predefined list
+                                                                if (currentCommercial && !commercials.includes(currentCommercial) && currentCommercial !== "Autre") {
+                                                                    commercialList.unshift(currentCommercial)
+                                                                }
+                                                                return commercialList.map((commercial) => (
+                                                                    <SelectItem key={commercial} value={commercial} className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                                        {commercial}
+                                                                    </SelectItem>
+                                                                ))
+                                                            })()}
+                                                        </SelectContent>
+                                                    </Select>
+                                                )}
                                             </div>
                                         </div>
 
-                                        {/* Custom Commercial Name Input */}
-                                        {showCustomCommercial && (
-                                            <div className="space-y-1">
-                                                <Label htmlFor="customCommercial" className="text-[10px] font-light text-slate-300">
-                                                    Nom du commercial (Autre)
-                                                </Label>
-                                                <Input
-                                                    id="customCommercial"
-                                                    value={customCommercialName}
-                                                    onChange={(e) => {
-                                                        setCustomCommercialName(e.target.value)
-                                                        setFormData({ ...formData, commercialMagasin: e.target.value })
+                                        {/* Custom Commercial Name Input - Show button to switch to custom */}
+                                        {!showCustomCommercial && (
+                                            <div className="flex justify-end">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setShowCustomCommercial(true)
+                                                        setCustomCommercialName(formData.commercialMagasin || "")
+                                                        setFormData({ ...formData, commercialMagasin: "" })
                                                     }}
-                                                    className="bg-slate-800/90 border-slate-600/40 text-white placeholder:text-slate-400 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 h-8 text-xs font-light transition-all"
-                                                    placeholder="Nom du commercial"
-                                                />
+                                                    className="text-[10px] h-6 px-2 text-purple-300 hover:text-purple-200 hover:bg-purple-500/20"
+                                                >
+                                                    + Nom personnalisé
+                                                </Button>
                                             </div>
                                         )}
                                     </div>

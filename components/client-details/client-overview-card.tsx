@@ -87,19 +87,67 @@ export function ClientOverviewCard({ client }: ClientOverviewCardProps) {
             </div>
           </div>
 
-          {client.commercialAttribue && (
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-md bg-amber-500/10 flex items-center justify-center shrink-0">
-                <User className="w-3.5 h-3.5 text-amber-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[9px] text-white/35 mb-0.5 font-light uppercase tracking-wider">Commercial Attribué</p>
-                <p className="text-xs text-white/90 font-light truncate" title={client.commercialAttribue}>
-                  {client.commercialAttribue || 'Non assigné'}
-                </p>
-              </div>
-            </div>
-          )}
+          {(() => {
+            // Determine the correct commercial name
+            // Priority: 1) commercialMagasin from leadData, 2) commercialAttribue from API, 3) fallback
+            let commercialName = ''
+            
+            // Try to get leadData (could be object or JSON string)
+            let leadData: any = null
+            if (client.leadData) {
+              if (typeof client.leadData === 'string') {
+                try {
+                  leadData = JSON.parse(client.leadData)
+                } catch (e) {
+                  console.error('[Client Overview] Failed to parse leadData:', e)
+                }
+              } else if (typeof client.leadData === 'object') {
+                leadData = client.leadData
+              }
+            }
+            
+            // Check if this is a magasin lead
+            const isMagasinLead = client.magasin || (leadData && leadData.source === 'magasin')
+            
+            // Priority 1: Use commercialMagasin from leadData (most accurate, especially for magasin leads)
+            if (leadData && leadData.commercialMagasin && leadData.commercialMagasin.trim()) {
+              commercialName = leadData.commercialMagasin.trim()
+              console.log('[Client Overview] ✅ Using commercialMagasin from leadData:', commercialName)
+            } 
+            // Priority 2: Use commercialAttribue from API (which should already have the correct value from API logic)
+            else if (client.commercialAttribue && client.commercialAttribue.trim()) {
+              commercialName = client.commercialAttribue.trim()
+              console.log('[Client Overview] Using commercialAttribue from client:', commercialName)
+            }
+            
+            // Debug logging
+            if (!commercialName) {
+              console.log('[Client Overview] ⚠️ No commercial name found:', {
+                hasLeadData: !!leadData,
+                leadDataCommercialMagasin: leadData?.commercialMagasin,
+                clientCommercialAttribue: client.commercialAttribue,
+                isMagasinLead: isMagasinLead
+              })
+            }
+            
+            // Always show the field if there's a commercial name or if it's a magasin lead
+            if (commercialName || isMagasinLead) {
+              return (
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-md bg-amber-500/10 flex items-center justify-center shrink-0">
+                    <User className="w-3.5 h-3.5 text-amber-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[9px] text-white/35 mb-0.5 font-light uppercase tracking-wider">Nom du commercial</p>
+                    <p className="text-xs text-white/90 font-light truncate" title={commercialName}>
+                      {commercialName || 'Non assigné'}
+                    </p>
+                  </div>
+                </div>
+              )
+            }
+            return null
+          })()}
 
           {client.magasin && (
             <div className="flex items-center gap-2.5">
