@@ -204,6 +204,27 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Automatically fix magasin leads that have "moyenne" priority
+    // This ensures existing leads are corrected when viewed
+    const leadsToFix = leads.filter(lead => lead.source === 'magasin' && lead.priorite === 'moyenne')
+    if (leadsToFix.length > 0) {
+      console.log(`[API] Fixing ${leadsToFix.length} magasin leads with incorrect priority`)
+      await Promise.all(
+        leadsToFix.map(lead =>
+          prisma.lead.update({
+            where: { id: lead.id },
+            data: { priorite: 'haute' }
+          })
+        )
+      )
+      // Update the leads array with corrected priorities
+      leads.forEach(lead => {
+        if (lead.source === 'magasin' && lead.priorite === 'moyenne') {
+          lead.priorite = 'haute'
+        }
+      })
+    }
+
     const hasMore = (skip + leads.length) < totalCount
 
     console.log(`[API] Page ${page}: Fetched ${leads.length} leads, Total: ${totalCount}, HasMore: ${hasMore}${user ? `, Role: ${user.role}` : ''}`)
@@ -386,7 +407,13 @@ export async function POST(request: NextRequest) {
     const validStatuses = ['nouveau', 'a_recontacter', 'sans_reponse', 'non_interesse', 'qualifie', 'refuse']
     
     const source = (body.source || 'magasin').toLowerCase()
-    const priorite = (body.priorite || 'moyenne').toLowerCase()
+    let priorite = (body.priorite || 'moyenne').toLowerCase()
+    
+    // Automatically set priority to "haute" for magasin leads
+    if (source === 'magasin') {
+      priorite = 'haute'
+    }
+    
     const finalStatut = statut.toLowerCase()
     
     if (!validSources.includes(source)) {

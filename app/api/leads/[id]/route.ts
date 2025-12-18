@@ -52,6 +52,23 @@ export async function GET(
       )
     }
 
+    // Automatically fix magasin leads that have "moyenne" priority
+    if (lead.source === 'magasin' && lead.priorite === 'moyenne') {
+      console.log(`[API] Fixing lead ${lead.id} (${lead.nom}) - changing priority from moyenne to haute`)
+      const updatedLead = await prisma.lead.update({
+        where: { id: leadId },
+        data: { priorite: 'haute' },
+        include: {
+          notes: {
+            orderBy: {
+              createdAt: 'desc'
+            }
+          }
+        }
+      })
+      return NextResponse.json(updatedLead)
+    }
+
     return NextResponse.json(lead)
   } catch (error) {
     console.error('Error fetching lead:', error)
@@ -195,6 +212,12 @@ export async function PUT(
       nextAssignePar = best || raw
     }
 
+    // Determine priority - automatically set to "haute" for magasin leads
+    let priorite = body.priorite
+    if (body.source === 'magasin') {
+      priorite = 'haute'
+    }
+
     // Build update data with only valid fields
     const updateData: any = {
       nom: body.nom,
@@ -207,7 +230,7 @@ export async function PUT(
       // Prevent architects and commercials from reassigning; keep existing assignment
       assignePar: (user?.role === 'architect' || user?.role === 'commercial' || user?.role === 'magasiner') ? existing.assignePar : (nextAssignePar ?? body.assignePar),
       source: body.source as any, // Cast to any to bypass enum validation
-      priorite: body.priorite,
+      priorite: priorite,
       derniereMaj: new Date(body.derniereMaj || new Date())
     }
 

@@ -175,7 +175,7 @@ export function CommercialAddLeadModal({
         message: formData.message.trim() || undefined,
         assignePar: "Mohamed",
         source: "magasin",
-        priorite: "moyenne",
+        priorite: "haute",
         magasin: formData.magasin,
         commercialMagasin: commercialName,
         createdBy: commercialName,
