@@ -9,7 +9,7 @@ const prisma = new PrismaClient()
 
 async function updateUserRole() {
   console.log('🔧 Starting user role update...\n')
-  console.log('📋 Target user: Issam sketch')
+  console.log('📋 Target user: Issam Aboulfadl')
   console.log('🎯 New role: magasiner (responsable magasin)\n')
 
   try {
@@ -17,8 +17,9 @@ async function updateUserRole() {
     const users = await prisma.user.findMany({
       where: {
         OR: [
-          { name: { contains: 'Issam', mode: 'insensitive' } },
-          { name: { contains: 'sketch', mode: 'insensitive' } },
+          { name: { contains: 'Issam Aboulfadl', mode: 'insensitive' } },
+          { name: { contains: 'Aboulfadl', mode: 'insensitive' } },
+          { email: { contains: 'aboulfadl', mode: 'insensitive' } },
         ],
       },
     })
@@ -38,8 +39,15 @@ async function updateUserRole() {
 
     // Filter to find the exact match or best match
     let targetUser = users.find((u) => 
-      u.name.toLowerCase().includes('issam') && u.name.toLowerCase().includes('sketch')
+      u.name.toLowerCase().includes('issam') && u.name.toLowerCase().includes('aboulfadl')
     )
+    
+    // Also try email match
+    if (!targetUser) {
+      targetUser = users.find((u) => 
+        u.email.toLowerCase().includes('aboulfadl')
+      )
+    }
 
     // If no exact match, use the first one
     if (!targetUser && users.length > 0) {
