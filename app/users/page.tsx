@@ -243,7 +243,7 @@ export default function UsersPage() {
       case "architect":
         return "Architecte"
       case "magasiner":
-        return "Responsable magasinier"
+        return "Responsable magasin"
       case "operator":
         return "Opérateur"
       case "gestionnaire":
@@ -678,7 +678,7 @@ export default function UsersPage() {
                             <SelectGroup>
                               <SelectLabel>🏗️ Opérations</SelectLabel>
                               <SelectItem value="architect">Architecte</SelectItem>
-                              <SelectItem value="magasiner">Responsable magasinier</SelectItem>
+                              <SelectItem value="magasin">Responsable magasin</SelectItem>
                               <SelectItem value="chef_de_chantier">Chef de chantier</SelectItem>
                             </SelectGroup>
                           </SelectContent>
@@ -706,7 +706,7 @@ export default function UsersPage() {
                             </SelectContent>
                           </Select>
                           <p className="text-xs text-muted-foreground">
-                            Le responsable magasinier ne pourra voir que les leads de ce magasin
+                            Le responsable magasin ne pourra voir que les leads de ce magasin
                           </p>
                         </div>
                       )}
@@ -836,7 +836,7 @@ export default function UsersPage() {
                             <SelectGroup>
                               <SelectLabel>🏗️ Opérations</SelectLabel>
                               <SelectItem value="architect">Architecte</SelectItem>
-                              <SelectItem value="magasiner">Responsable magasinier</SelectItem>
+                              <SelectItem value="magasin">Responsable magasin</SelectItem>
                               <SelectItem value="chef_de_chantier">Chef de chantier</SelectItem>
                             </SelectGroup>
                           </SelectContent>

@@ -277,12 +277,13 @@ export async function GET(request: NextRequest) {
           type: 'opportunity',
           title: opp.titre,
           description: opp.contact?.nom || '',
-          href: `/opportunities/${opp.id}`,
+          href: `/contacts/${opp.contactId}`,
           metadata: {
             status: opp.statut,
             architect: opp.architecteAssigne || undefined,
             contactName: opp.contact?.nom,
             phone: opp.contact?.telephone || undefined,
+            contactId: opp.contactId,
           },
         })
       })
