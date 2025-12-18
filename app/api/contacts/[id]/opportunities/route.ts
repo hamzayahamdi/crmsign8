@@ -169,6 +169,8 @@ export async function POST(
     }
 
     // Log to timeline - opportunity created
+    // Note: We don't log architect assignment here because the architect is already
+    // assigned to the contact when the lead is converted, so it would be redundant
     try {
       await prisma.timeline.create({
         data: {
@@ -188,25 +190,6 @@ export async function POST(
     } catch (timelineErr) {
       console.error('Error creating opportunity_created timeline entry:', timelineErr);
       // Continue even if timeline creation fails
-    }
-
-    // Log architect assignment if provided
-    if (architecteAssigne) {
-      try {
-        await prisma.timeline.create({
-          data: {
-            contactId,
-            opportunityId: opportunity.id,
-            eventType: 'architect_assigned',
-            title: 'Architecte assigné',
-            description: `${architecteAssigne} assigné à l'opportunité`,
-            author: decoded.userId,
-          },
-        });
-      } catch (timelineErr) {
-        console.error('Error creating architect_assigned timeline entry:', timelineErr);
-        // Continue even if timeline creation fails
-      }
     }
 
     // 🎯 AUTOMATICALLY CREATE CLIENT RECORD FOR TRACEABILITY

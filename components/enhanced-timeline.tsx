@@ -122,7 +122,7 @@ export function EnhancedTimeline({
 
   // Combine cached events with current historique and appointments into unified timeline
   // Use cached events to prevent clearing during updates
-  const allEvents = cachedEvents.length > 0 ? cachedEvents : [
+  const allEventsRaw = cachedEvents.length > 0 ? cachedEvents : [
     ...(client.historique || [])
       .filter(h => h.type !== 'rdv') // Exclude rdv type from historique to avoid duplicates
       .map(h => ({ ...h, eventType: 'history' as const })),
@@ -136,6 +136,41 @@ export function EnhancedTimeline({
       eventType: 'rdv' as const
     }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  // Filter out redundant "Architecte assigné" entries that appear right after "Opportunité créée"
+  // These are redundant because the architect is already assigned when the lead is converted to contact
+  // IMPORTANT: Filter out ALL "Architecte assigné" entries that appear near "Opportunité créée"
+  const allEvents = allEventsRaw.filter((event, index) => {
+    const description = (event.description || '').trim()
+    
+    // If this is an "Architecte assigné" activity
+    if (/^Architecte assigné/i.test(description)) {
+      const eventTime = new Date(event.date).getTime()
+      const tenMinutes = 10 * 60 * 1000 // 10 minutes in milliseconds
+      
+      // Check if there's an "Opportunité créée" event within 10 minutes (before or after)
+      const hasNearbyOpportunityCreated = allEventsRaw.some((otherEvent, otherIndex) => {
+        // Skip if it's the same event
+        if (otherIndex === index) return false
+        
+        const otherDescription = (otherEvent.description || '').trim()
+        // Check if it's an "Opportunité créée" event
+        if (/^Opportunité créée/i.test(otherDescription)) {
+          const otherEventTime = new Date(otherEvent.date).getTime()
+          const timeDiff = Math.abs(eventTime - otherEventTime)
+          // If within 10 minutes, it's redundant - filter it out
+          return timeDiff <= tenMinutes
+        }
+        return false
+      })
+      
+      // If we found a nearby opportunity_created, filter out this redundant architect_assigned
+      if (hasNearbyOpportunityCreated) {
+        return false
+      }
+    }
+    return true
+  })
 
   // System activity patterns - these should appear in "Activités" tab, not "Notes"
   const systemActivityPatterns = [

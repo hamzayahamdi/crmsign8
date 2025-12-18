@@ -619,10 +619,11 @@ function CalendrierContent() {
 
       {/* Upcoming Events Sidebar */}
       <UpcomingEventsSidebar
-        events={filteredEvents}
+        events={events}
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}
         onEventClick={handleEventClick}
+        isLoading={isLoading}
       />
 
       {/* Notification Permission Dialog */}

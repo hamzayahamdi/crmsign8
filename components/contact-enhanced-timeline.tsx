@@ -921,12 +921,48 @@ export function ContactEnhancedTimeline({
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )
   
+  // Filter out redundant architect_assigned entries that appear right after opportunity_created
+  // These are redundant because the architect is already assigned when the lead is converted to contact
+  // IMPORTANT: Filter out ALL architect_assigned entries that have an opportunityId OR appear near opportunity_created
+  const filteredRedundantArchitect = allEvents.filter((event, index) => {
+    // If this is an architect_assigned event
+    if (event.eventType === 'architect_assigned') {
+      // If it has an opportunityId, it's definitely redundant (created with an opportunity)
+      if (event.opportunityId) {
+        return false // Filter it out
+      }
+      
+      // Also check if there's an opportunity_created event nearby (within 10 minutes)
+      const eventTime = new Date(event.createdAt).getTime()
+      const tenMinutes = 10 * 60 * 1000 // 10 minutes in milliseconds
+      
+      const hasNearbyOpportunityCreated = allEvents.some((otherEvent, otherIndex) => {
+        // Skip if it's the same event
+        if (otherIndex === index) return false
+        
+        // Check if it's an opportunity_created event
+        if (otherEvent.eventType === 'opportunity_created') {
+          const otherEventTime = new Date(otherEvent.createdAt).getTime()
+          const timeDiff = Math.abs(eventTime - otherEventTime)
+          // If within 10 minutes, it's redundant
+          return timeDiff <= tenMinutes
+        }
+        return false
+      })
+      
+      // If we found a nearby opportunity_created, filter out this redundant architect_assigned
+      if (hasNearbyOpportunityCreated) {
+        return false
+      }
+    }
+    return true
+  })
 
   // Calculate opportunity count - use contact's opportunities array if available (more accurate)
   // Otherwise fallback to counting unique opportunity IDs from timeline events
   const opportunityCount = contact.opportunities?.length ?? (() => {
     const uniqueOpportunityIds = new Set(
-      allEvents
+      filteredRedundantArchitect
         .filter(e => e.displayType === "opportunites" && e.opportunityId)
         .map(e => e.opportunityId)
         .filter((id): id is string => id !== null && id !== undefined)
@@ -935,7 +971,7 @@ export function ContactEnhancedTimeline({
   })()
 
   // Apply filters - for notes, only show actual notes (not other activities)
-  const filteredEvents = allEvents.filter(event => {
+  const filteredEvents = filteredRedundantArchitect.filter(event => {
     if (activeFilter === "all") return true
     if (activeFilter === "statuts") return event.displayType === "statuts"
     if (activeFilter === "opportunites") return event.displayType === "opportunites"
@@ -959,7 +995,7 @@ export function ContactEnhancedTimeline({
   })
   
   // Calculate notes count using the same logic as the filter
-  const notesCount = allEvents.filter(event => {
+  const notesCount = filteredRedundantArchitect.filter(event => {
     if (event.displayType !== "notes") return false
     if (!(event.metadata?.isNote || event.id?.startsWith('note-'))) return false
     // Exclude notes with empty content or just "Note ajoutée"

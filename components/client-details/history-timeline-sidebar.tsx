@@ -9,9 +9,45 @@ interface HistoryTimelineSidebarProps {
 }
 
 export function HistoryTimelineSidebar({ client }: HistoryTimelineSidebarProps) {
-  const allHistory = [...(client.historique || [])]
+  const allHistoryRaw = [...(client.historique || [])]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 15) // Show last 15 activities
+
+  // Filter out redundant "Architecte assigné" entries that appear right after "Opportunité créée"
+  // These are redundant because the architect is already assigned when the lead is converted to contact
+  // IMPORTANT: Filter out ALL "Architecte assigné" entries that appear near "Opportunité créée"
+  const allHistoryFiltered = allHistoryRaw.filter((event, index) => {
+    const description = (event.description || '').trim()
+    
+    // If this is an "Architecte assigné" activity
+    if (/^Architecte assigné/i.test(description)) {
+      const eventTime = new Date(event.date).getTime()
+      const tenMinutes = 10 * 60 * 1000 // 10 minutes in milliseconds
+      
+      // Check if there's an "Opportunité créée" event within 10 minutes (before or after)
+      const hasNearbyOpportunityCreated = allHistoryRaw.some((otherEvent, otherIndex) => {
+        // Skip if it's the same event
+        if (otherIndex === index) return false
+        
+        const otherDescription = (otherEvent.description || '').trim()
+        // Check if it's an "Opportunité créée" event
+        if (/^Opportunité créée/i.test(otherDescription)) {
+          const otherEventTime = new Date(otherEvent.date).getTime()
+          const timeDiff = Math.abs(eventTime - otherEventTime)
+          // If within 10 minutes, it's redundant - filter it out
+          return timeDiff <= tenMinutes
+        }
+        return false
+      })
+      
+      // If we found a nearby opportunity_created, filter out this redundant architect_assigned
+      if (hasNearbyOpportunityCreated) {
+        return false
+      }
+    }
+    return true
+  })
+
+  const allHistory = allHistoryFiltered.slice(0, 15) // Show last 15 activities
 
   const getIcon = (type: ClientHistoryEntry['type']) => {
     const iconMap = {
