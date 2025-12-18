@@ -6,7 +6,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  output: 'standalone',
+  // Only use standalone output in production (Vercel) to avoid Windows symlink issues
+  ...(process.env.VERCEL === '1' ? { output: 'standalone' } : {}),
 }
 
 export default nextConfig
