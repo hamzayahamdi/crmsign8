@@ -105,6 +105,69 @@ const defaultTypesBien = [
     "Autre",
 ]
 
+// Mapping of cities to their respective commercial lists
+const cityToCommercials: Record<string, string[]> = {
+    "Casablanca": [
+        "DARRHAL BOUTAINA",
+        "BABYA ELMEHDI",
+        "BENTALEB CHAIMAE",
+        "EL KAMILI OUSSAMA",
+        "EL RHITI HAJAR",
+        "FADIL ZAKARIA",
+        "JEKKI RAJAA",
+        "LAHJAILY ISLAM",
+        "TOUYMASNA REDA",
+        "AMEZRARA JALAL",
+        "BAJADI AMINE",
+    ],
+    "Rabat": [
+        "HIMICH AISSAM",
+        "BAZI MOHAMMED",
+        "CHERRADI ZINEB",
+        "DARROUS SAMIRA",
+        "EKHLAF OTMANE",
+        "EL BAOUSSI HANANE",
+        "EL MESSAOUDI ISSAM",
+        "ETTABAA OUMAIMA",
+        "MOUSSAOUI OTHMAANE",
+        "ROUGUIAGUE BRAHIM",
+    ],
+    "Marrakech": [
+        "BOUCHEMAMA LAILA",
+        "AMANE HAMZA",
+        "ABOUTTAIB RANIA",
+        "EL OURI HANANE",
+        "BELHAJ FADOUA",
+        "NAMIRA GHITA",
+        "KAITOUNI IDRISSI ALI",
+    ],
+    "Tanger": [
+        "NADI BOUKTIBA MOHAMMED",
+        "BOUKTIBA MOHAMMED NAD",
+        "CHRIF TAOUNATI HAMID",
+        "EL AMRANI OUIAM",
+        "ROUIJEL AYA",
+    ],
+    "Bouskoura": [
+        "KABLI WAHIBA",
+        "BAYADE FANIDA",
+        "ECHAOUI KHALID",
+        "EL BADLAOUI EL AOUNI",
+        "MASSIDE MOHAMMED",
+        "MOUNJI MAROUANE",
+        "RAFIQI MOHAMMED",
+    ],
+}
+
+// Mapping of magasin names to cities
+const magasinToCity: Record<string, string> = {
+    "📍 Ain Diab": "Casablanca",
+    "📍 Rabat": "Rabat",
+    "📍 Tanger": "Tanger",
+    "📍 Marrakech": "Marrakech",
+    "📍 Bouskoura": "Bouskoura",
+}
+
 const statuts: { value: LeadStatus; label: string; color: string }[] = [
     { value: "nouveau", label: "Nouveau", color: "bg-green-500/20 text-green-400 border-green-500/40" },
     { value: "a_recontacter", label: "À recontacter", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40" },
@@ -161,22 +224,40 @@ export function LeadModalEnhanced({
     const [villes, setVilles] = useState<string[]>(defaultVilles)
     const [typesBien, setTypesBien] = useState<string[]>(defaultTypesBien)
     const [architects, setArchitects] = useState<string[]>(['Mohamed'])
-    const [commercials] = useState<string[]>([
-        "BOUCHEMAMA LAILA",
-        "AMANE HAMZA",
-        "ABOUTTAIB RANIA",
-        "EL AID HANANE",
-        "BELHAJ FADOUA",
-        "NAMIRA GHITA",
-        "KAITOUNI IDRISSI ALI",
-        "Autre"
-    ])
     const [showCustomCommercial, setShowCustomCommercial] = useState(false)
     const [customCommercialName, setCustomCommercialName] = useState("")
     const [newNote, setNewNote] = useState("")
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [showErrors, setShowErrors] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+
+    // Get available commercials based on selected ville or magasin
+    const getAvailableCommercials = (ville?: string, magasin?: string): string[] => {
+        const currentVille = ville ?? formData.ville
+        const currentMagasin = magasin ?? formData.magasin
+        
+        // First try to get from magasin
+        if (currentMagasin) {
+            const city = magasinToCity[currentMagasin]
+            if (city && cityToCommercials[city]) {
+                return [...cityToCommercials[city], "Autre"]
+            }
+        }
+        
+        // Fallback to ville
+        if (currentVille) {
+            if (cityToCommercials[currentVille]) {
+                return [...cityToCommercials[currentVille], "Autre"]
+            }
+        }
+        
+        // Default: return all commercials from all cities
+        const allCommercials = new Set<string>()
+        Object.values(cityToCommercials).forEach(commercials => {
+            commercials.forEach(commercial => allCommercials.add(commercial))
+        })
+        return [...Array.from(allCommercials), "Autre"]
+    }
 
     const initialForm = {
         nom: lead?.nom || "",
@@ -278,7 +359,9 @@ export function LeadModalEnhanced({
             })
             
             // Check if commercialMagasin is a custom value (not in predefined list)
-            const isCustomCommercial = leadCommercialMagasin && !commercials.includes(leadCommercialMagasin) && leadCommercialMagasin !== "Autre"
+            // We need to check against available commercials for the lead's ville/magasin
+            const availableCommercials = getAvailableCommercials(lead.ville, leadMagasin)
+            const isCustomCommercial = leadCommercialMagasin && !availableCommercials.includes(leadCommercialMagasin) && leadCommercialMagasin !== "Autre"
             if (isCustomCommercial) {
                 setShowCustomCommercial(true)
                 setCustomCommercialName(leadCommercialMagasin)
@@ -306,7 +389,7 @@ export function LeadModalEnhanced({
             
             console.log('[Lead Modal] Form data updated with campaignName:', campaignName)
         }
-    }, [lead, architects, open, commercials])
+    }, [lead, architects, open])
 
     useEffect(() => {
         if (open && !lead) {
@@ -398,7 +481,24 @@ export function LeadModalEnhanced({
     }
 
     const handleFieldChange = (field: string, value: any) => {
-        setFormData({ ...formData, [field]: value })
+        const updatedFormData = { ...formData, [field]: value }
+        
+        // If ville or magasin changes, check if current commercial is still valid
+        if (field === 'ville' || field === 'magasin') {
+            const newVille = field === 'ville' ? value : formData.ville
+            const newMagasin = field === 'magasin' ? value : formData.magasin
+            const availableCommercials = getAvailableCommercials(newVille, newMagasin)
+            const currentCommercial = updatedFormData.commercialMagasin
+            
+            // If current commercial is not in the new list and not "Autre", clear it
+            if (currentCommercial && !availableCommercials.includes(currentCommercial) && currentCommercial !== "Autre") {
+                updatedFormData.commercialMagasin = ""
+                setShowCustomCommercial(false)
+                setCustomCommercialName("")
+            }
+        }
+        
+        setFormData(updatedFormData)
         // Clear error for this field when user starts typing
         if (errors[field]) {
             const newErrors = { ...errors }
@@ -983,7 +1083,7 @@ export function LeadModalEnhanced({
                                                         </SelectTrigger>
                                                         <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
                                                             {(() => {
-                                                                const defaultMagasins = ["📍 Casablanca", "📍 Rabat", "📍 Tanger", "📍 Marrakech", "📍 Bouskoura"]
+                                                                const defaultMagasins = ["📍 Ain Diab", "📍 Rabat", "📍 Tanger", "📍 Marrakech", "📍 Bouskoura"]
                                                                 const currentMagasin = formData.magasin
                                                                 const magasinList = [...defaultMagasins]
                                                                 // Add current magasin if it's not in the default list
@@ -1041,8 +1141,9 @@ export function LeadModalEnhanced({
                                                             onClick={() => {
                                                                 setShowCustomCommercial(false)
                                                                 // Try to match with predefined list if possible
-                                                                const matchingCommercial = commercials.find(c => c.toLowerCase() === customCommercialName.toLowerCase())
-                                                                if (matchingCommercial) {
+                                                                const availableCommercials = getAvailableCommercials()
+                                                                const matchingCommercial = availableCommercials.find(c => c.toLowerCase() === customCommercialName.toLowerCase())
+                                                                if (matchingCommercial && matchingCommercial !== "Autre") {
                                                                     setFormData({ ...formData, commercialMagasin: matchingCommercial })
                                                                 } else {
                                                                     setFormData({ ...formData, commercialMagasin: customCommercialName })
@@ -1069,29 +1170,64 @@ export function LeadModalEnhanced({
                                                                 }
                                                             }}
                                                         >
-                                                            <SelectTrigger className={cn(
-                                                                "bg-slate-800/90 border text-white h-8 text-xs font-light focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all",
-                                                                errors.commercialMagasin
-                                                                    ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
-                                                                    : "border-slate-600/40 focus:border-blue-500/60"
-                                                            )}>
-                                                                <SelectValue placeholder="Sélectionner...">
-                                                                    {formData.commercialMagasin || "Sélectionner..."}
+                                                            <SelectTrigger 
+                                                                disabled={!formData.ville && !formData.magasin}
+                                                                className={cn(
+                                                                    "bg-slate-800/90 border text-white h-8 text-xs font-light focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all",
+                                                                    errors.commercialMagasin
+                                                                        ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                                                                        : "border-slate-600/40 focus:border-blue-500/60",
+                                                                    (!formData.ville && !formData.magasin) && "opacity-50 cursor-not-allowed"
+                                                                )}
+                                                            >
+                                                                <SelectValue placeholder={
+                                                                    (!formData.ville && !formData.magasin) 
+                                                                        ? "Sélectionnez d'abord une ville ou un magasin"
+                                                                        : "Sélectionner un commercial..."
+                                                                }>
+                                                                    {formData.commercialMagasin || ""}
                                                                 </SelectValue>
                                                             </SelectTrigger>
                                                             <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
                                                                 {(() => {
+                                                                    const availableCommercials = getAvailableCommercials()
                                                                     const currentCommercial = formData.commercialMagasin
-                                                                    const commercialList = [...commercials]
+                                                                    const commercialList = [...availableCommercials]
                                                                     // Add current commercial if it's not in the predefined list
-                                                                    if (currentCommercial && !commercials.includes(currentCommercial) && currentCommercial !== "Autre") {
+                                                                    if (currentCommercial && !availableCommercials.includes(currentCommercial) && currentCommercial !== "Autre") {
                                                                         commercialList.unshift(currentCommercial)
                                                                     }
-                                                                    return commercialList.map((commercial) => (
-                                                                        <SelectItem key={commercial} value={commercial} className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                                            {commercial}
-                                                                        </SelectItem>
-                                                                    ))
+                                                                    
+                                                                    // Determine the city name for display
+                                                                    let cityName = ""
+                                                                    if (formData.magasin) {
+                                                                        cityName = magasinToCity[formData.magasin] || ""
+                                                                    } else if (formData.ville) {
+                                                                        cityName = formData.ville
+                                                                    }
+                                                                    
+                                                                    if (commercialList.length === 0 || (!formData.ville && !formData.magasin)) {
+                                                                        return (
+                                                                            <div className="px-2 py-4 text-center text-xs text-slate-400">
+                                                                                Sélectionnez d'abord une ville ou un magasin
+                                                                            </div>
+                                                                        )
+                                                                    }
+                                                                    
+                                                                    return (
+                                                                        <>
+                                                                            {cityName && (
+                                                                                <div className="px-2 py-1.5 text-[10px] text-slate-400 border-b border-slate-700/50">
+                                                                                    📍 {cityName}
+                                                                                </div>
+                                                                            )}
+                                                                            {commercialList.map((commercial) => (
+                                                                                <SelectItem key={commercial} value={commercial} className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                                                    {commercial}
+                                                                                </SelectItem>
+                                                                            ))}
+                                                                        </>
+                                                                    )
                                                                 })()}
                                                             </SelectContent>
                                                         </Select>
@@ -1101,29 +1237,19 @@ export function LeadModalEnhanced({
                                                                 {errors.commercialMagasin}
                                                             </p>
                                                         )}
+                                                        {!errors.commercialMagasin && (formData.ville || formData.magasin) && !formData.commercialMagasin && (
+                                                            <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                                                {(() => {
+                                                                    const availableCommercials = getAvailableCommercials()
+                                                                    const count = availableCommercials.filter(c => c !== "Autre").length
+                                                                    return `${count} commercial${count > 1 ? 'aux' : ''} disponible${count > 1 ? 's' : ''}`
+                                                                })()}
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
-
-                                        {/* Custom Commercial Name Input - Show button to switch to custom */}
-                                        {!showCustomCommercial && (
-                                            <div className="flex justify-end">
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        setShowCustomCommercial(true)
-                                                        setCustomCommercialName(formData.commercialMagasin || "")
-                                                        setFormData({ ...formData, commercialMagasin: "" })
-                                                    }}
-                                                    className="text-[10px] h-6 px-2 text-purple-300 hover:text-purple-200 hover:bg-purple-500/20"
-                                                >
-                                                    + Nom personnalisé
-                                                </Button>
-                                            </div>
-                                        )}
                                     </div>
                                 )}
 

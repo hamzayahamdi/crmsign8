@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Mail, Phone, MapPin, FolderOpen, Clock, CheckCircle2, TrendingUp, Filter, X } from "lucide-react"
+import { ArrowLeft, Mail, Phone, MapPin, FolderOpen, Clock, CheckCircle2, TrendingUp, Filter, X, Building2, MapPin as MapPinIcon } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { Architect } from "@/types/architect"
 import type { Client, ProjectStatus } from "@/types/client"
@@ -25,6 +25,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+// Status groups for better filter organization
+const statusGroups = {
+  "en_attente": ["qualifie", "prise_de_besoin", "nouveau", "acompte_recu", "acompte_verse", "conception", "en_conception", "devis_negociation", "en_validation"],
+  "en_cours": ["accepte", "premier_depot", "projet_en_cours", "chantier", "en_chantier", "facture_reglee"],
+  "termines": ["termine", "livraison", "livraison_termine"],
+  "inactifs": ["refuse", "perdu", "annule", "suspendu"]
+}
+
 export default function ArchitectDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -35,7 +43,9 @@ export default function ArchitectDetailPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false)
-  const [filterStatus, setFilterStatus] = useState<"all" | ProjectStatus>("all")
+  const [filterProjectCategory, setFilterProjectCategory] = useState<"all" | "en_cours" | "termines" | "en_attente">("all")
+  const [filterTypeProjet, setFilterTypeProjet] = useState<string>("all")
+  const [filterStatus, setFilterStatus] = useState<string>("all")
   const [filterVille, setFilterVille] = useState<string>("all")
   const [activeStatFilter, setActiveStatFilter] = useState<"total" | "enCours" | "termines" | "revenue" | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -221,7 +231,49 @@ export default function ArchitectDetailPage() {
       // "total" filter shows all active projects (already filtered above)
     }
 
-    // Apply status filter
+    // Apply project category filter (grouped by meaningful categories)
+    if (filterProjectCategory !== "all") {
+      if (filterProjectCategory === "en_cours") {
+        // Projet en cours - devis accepted and working on project
+        filtered = filtered.filter(c => {
+          const statut = c.statutProjet
+          return statut === "accepte" ||
+            statut === "premier_depot" ||
+            statut === "projet_en_cours" ||
+            statut === "chantier" ||
+            statut === "facture_reglee" ||
+            statut === "en_chantier"
+        })
+      } else if (filterProjectCategory === "termines") {
+        // Projet livré - completed/delivered projects
+        filtered = filtered.filter(c => 
+          c.statutProjet === "termine" || 
+          c.statutProjet === "livraison_termine" ||
+          c.statutProjet === "livraison"
+        )
+      } else if (filterProjectCategory === "en_attente") {
+        // Projet en attente - acompte reçu but devis not yet accepted
+        filtered = filtered.filter(c => {
+          const statut = c.statutProjet
+          return statut === "acompte_recu" ||
+            statut === "acompte_verse" ||
+            statut === "conception" ||
+            statut === "en_conception" ||
+            statut === "devis_negociation" ||
+            statut === "en_validation" ||
+            statut === "prise_de_besoin" ||
+            statut === "qualifie" ||
+            statut === "nouveau"
+        })
+      }
+    }
+
+    // Apply project type filter
+    if (filterTypeProjet !== "all") {
+      filtered = filtered.filter(c => c.typeProjet === filterTypeProjet)
+    }
+
+    // Apply status filter (specific status)
     if (filterStatus !== "all") {
       filtered = filtered.filter(c => c.statutProjet === filterStatus)
     }
@@ -235,7 +287,7 @@ export default function ArchitectDetailPage() {
     filtered.sort((a, b) => new Date(b.derniereMaj).getTime() - new Date(a.derniereMaj).getTime())
 
     return filtered
-  }, [clients, filterStatus, filterVille, activeStatFilter])
+  }, [clients, filterProjectCategory, filterTypeProjet, filterStatus, filterVille, activeStatFilter])
 
   // Calculate KPIs - Exclude refused/lost/cancelled projects from active counts
   // CATEGORIZATION LOGIC:
@@ -312,10 +364,25 @@ export default function ArchitectDetailPage() {
     } else {
       setActiveStatFilter(statType)
       setFilterStatus("all") // Clear status filter when applying stat filter
+      setFilterProjectCategory("all") // Clear category filter when applying stat filter
     }
   }
 
-  const uniqueVilles = Array.from(new Set(architectClients.map(c => c.ville).filter(v => v && v.trim() !== ""))).sort()
+  // Get unique values for filters
+  const uniqueVilles = useMemo(() => {
+    return Array.from(new Set(clients.map(c => c.ville).filter(v => v && v.trim() !== ""))).sort()
+  }, [clients])
+
+  const uniqueProjectTypes = useMemo(() => {
+    const types = Array.from(new Set(clients.map(c => c.typeProjet).filter(t => t))).sort()
+    return types
+  }, [clients])
+
+  // Get available statuses from actual data
+  const availableStatuses = useMemo(() => {
+    const statuses = Array.from(new Set(clients.map(c => c.statutProjet).filter(s => s)))
+    return statuses.sort()
+  }, [clients])
 
   const getInitials = (nom: string, prenom: string) => {
     return `${prenom[0]}${nom[0]}`.toUpperCase()
@@ -762,61 +829,311 @@ export default function ArchitectDetailPage() {
               </div>
             </div>
 
-            {/* Filters */}
-            {architectClients.length > 0 && (
-              <div className="glass rounded-xl p-3 border border-slate-700/40 bg-gradient-to-br from-slate-800/40 to-slate-900/20 mb-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  
-                  <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
-                    <SelectTrigger className="h-8 w-auto min-w-[140px] bg-slate-800/60 border-slate-600/50 text-white rounded-lg text-xs px-3 hover:border-primary/50 transition-colors">
-                      <SelectValue placeholder="État" />
-                    </SelectTrigger>
-                    <SelectContent className="glass border-slate-600/30 bg-slate-800/95 backdrop-blur-xl">
-                      <SelectItem value="all" className="text-white text-xs">Tous les états</SelectItem>
-                      <SelectItem value="qualifie" className="text-white text-xs">Qualifié</SelectItem>
-                      <SelectItem value="prise_de_besoin" className="text-white text-xs">Prise de besoin</SelectItem>
-                      <SelectItem value="acompte_recu" className="text-white text-xs">Acompte reçu</SelectItem>
-                      <SelectItem value="conception" className="text-white text-xs">Conception</SelectItem>
-                      <SelectItem value="projet_en_cours" className="text-white text-xs">Projet en cours</SelectItem>
-                      <SelectItem value="accepte" className="text-white text-xs">Accepté</SelectItem>
-                      <SelectItem value="livraison_termine" className="text-white text-xs">Terminé</SelectItem>
-                      <SelectItem value="refuse" className="text-white text-xs">Refusé</SelectItem>
-                      <SelectItem value="perdu" className="text-white text-xs">Perdu</SelectItem>
-                      <SelectItem value="annule" className="text-white text-xs">Annulé</SelectItem>
-                      <SelectItem value="suspendu" className="text-white text-xs">Suspendu</SelectItem>
-                    </SelectContent>
-                  </Select>
+            {/* Enhanced Filters */}
+            {clients.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass rounded-xl p-3.5 border border-slate-700/40 bg-gradient-to-br from-slate-800/50 to-slate-900/30 mb-4 backdrop-blur-xl"
+              >
+                <div className="flex flex-col gap-3">
+                  {/* Filter Header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Filter className="w-4 h-4 text-primary" />
+                      <span className="text-xs font-semibold text-white uppercase tracking-wider">Filtres</span>
+                      {(filterStatus !== "all" || filterVille !== "all" || filterTypeProjet !== "all" || activeStatFilter !== null) && (
+                        <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] font-medium">
+                          {[
+                            filterStatus !== "all" ? 1 : 0,
+                            filterVille !== "all" ? 1 : 0,
+                            filterTypeProjet !== "all" ? 1 : 0,
+                            activeStatFilter !== null ? 1 : 0
+                          ].reduce((a, b) => a + b, 0)} actif{[
+                            filterStatus !== "all" ? 1 : 0,
+                            filterVille !== "all" ? 1 : 0,
+                            filterTypeProjet !== "all" ? 1 : 0,
+                            activeStatFilter !== null ? 1 : 0
+                          ].reduce((a, b) => a + b, 0) > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                    {(filterStatus !== "all" || filterVille !== "all" || filterTypeProjet !== "all" || activeStatFilter !== null) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setFilterStatus("all")
+                          setFilterVille("all")
+                          setFilterTypeProjet("all")
+                          setActiveStatFilter(null)
+                          setFilterProjectCategory("all")
+                        }}
+                        className="h-7 px-2.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg text-[10px] transition-colors"
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        Réinitialiser
+                      </Button>
+                    )}
+                  </div>
 
-                  <Select value={filterVille} onValueChange={setFilterVille}>
-                    <SelectTrigger className="h-8 w-auto min-w-[120px] bg-slate-800/60 border-slate-600/50 text-white rounded-lg text-xs px-3 hover:border-primary/50 transition-colors">
-                      <SelectValue placeholder="Ville" />
-                    </SelectTrigger>
-                    <SelectContent className="glass border-slate-600/30 bg-slate-800/95 backdrop-blur-xl">
-                      <SelectItem value="all" className="text-white text-xs">Toutes</SelectItem>
-                      {uniqueVilles.map(ville => (
-                        <SelectItem key={ville} value={ville} className="text-white text-xs">{ville}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {/* Filter Controls */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                    {/* Status Filter - Grouped by meaningful categories */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <Clock className="w-3 h-3 text-blue-400" />
+                        Statut du projet
+                      </label>
+                      <Select 
+                        value={filterStatus} 
+                        onValueChange={(v) => {
+                          setFilterStatus(v)
+                          setActiveStatFilter(null) // Clear stat filter when using status filter
+                          setFilterProjectCategory("all")
+                        }}
+                      >
+                        <SelectTrigger className={cn(
+                          "h-9 w-full bg-slate-800/60 border text-white rounded-lg text-xs px-3 transition-all",
+                          filterStatus !== "all" 
+                            ? "border-primary/50 shadow-md shadow-primary/10" 
+                            : "border-slate-600/50 hover:border-primary/40"
+                        )}>
+                          <SelectValue placeholder="Tous les statuts" />
+                        </SelectTrigger>
+                        <SelectContent className="glass border-slate-600/30 bg-slate-800/95 backdrop-blur-xl max-h-[300px]">
+                          <SelectItem value="all" className="text-white text-xs font-medium">Tous les statuts</SelectItem>
+                          
+                          {/* En attente group */}
+                          <div className="px-2 py-1.5">
+                            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">En attente</div>
+                            {availableStatuses.filter(s => statusGroups.en_attente.includes(s)).map(status => (
+                              <SelectItem key={status} value={status} className="text-white text-xs pl-4">
+                                {status === "qualifie" && "Qualifié"}
+                                {status === "prise_de_besoin" && "Prise de besoin"}
+                                {status === "acompte_recu" && "Acompte reçu"}
+                                {status === "acompte_verse" && "Acompte versé"}
+                                {status === "conception" && "Conception"}
+                                {status === "en_conception" && "En conception"}
+                                {status === "devis_negociation" && "Devis / Négociation"}
+                                {status === "en_validation" && "En validation"}
+                                {status === "nouveau" && "Nouveau"}
+                                {!["qualifie", "prise_de_besoin", "acompte_recu", "acompte_verse", "conception", "en_conception", "devis_negociation", "en_validation", "nouveau"].includes(status) && status}
+                              </SelectItem>
+                            ))}
+                          </div>
 
-                  {(filterStatus !== "all" || filterVille !== "all" || activeStatFilter !== null) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setFilterStatus("all")
-                        setFilterVille("all")
-                        setActiveStatFilter(null)
-                      }}
-                      className="h-8 px-3 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg text-xs transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5 mr-1.5" />
-                      Effacer
-                    </Button>
+                          {/* En cours group */}
+                          {availableStatuses.some(s => statusGroups.en_cours.includes(s)) && (
+                            <div className="px-2 py-1.5 border-t border-slate-700/50">
+                              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">En cours</div>
+                              {availableStatuses.filter(s => statusGroups.en_cours.includes(s)).map(status => (
+                                <SelectItem key={status} value={status} className="text-white text-xs pl-4">
+                                  {status === "accepte" && "Accepté"}
+                                  {status === "premier_depot" && "1er Dépôt"}
+                                  {status === "projet_en_cours" && "Projet en cours"}
+                                  {status === "chantier" && "Chantier"}
+                                  {status === "en_chantier" && "En chantier"}
+                                  {status === "facture_reglee" && "Facture réglée"}
+                                  {!["accepte", "premier_depot", "projet_en_cours", "chantier", "en_chantier", "facture_reglee"].includes(status) && status}
+                                </SelectItem>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Terminés group */}
+                          {availableStatuses.some(s => statusGroups.termines.includes(s)) && (
+                            <div className="px-2 py-1.5 border-t border-slate-700/50">
+                              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Terminés</div>
+                              {availableStatuses.filter(s => statusGroups.termines.includes(s)).map(status => (
+                                <SelectItem key={status} value={status} className="text-white text-xs pl-4">
+                                  {status === "termine" && "Terminé"}
+                                  {status === "livraison" && "Livraison"}
+                                  {status === "livraison_termine" && "Livraison & Terminé"}
+                                  {!["termine", "livraison", "livraison_termine"].includes(status) && status}
+                                </SelectItem>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Inactifs group */}
+                          {availableStatuses.some(s => statusGroups.inactifs.includes(s)) && (
+                            <div className="px-2 py-1.5 border-t border-slate-700/50">
+                              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Inactifs</div>
+                              {availableStatuses.filter(s => statusGroups.inactifs.includes(s)).map(status => (
+                                <SelectItem key={status} value={status} className="text-white text-xs pl-4">
+                                  {status === "refuse" && "Refusé"}
+                                  {status === "perdu" && "Perdu"}
+                                  {status === "annule" && "Annulé"}
+                                  {status === "suspendu" && "Suspendu"}
+                                  {!["refuse", "perdu", "annule", "suspendu"].includes(status) && status}
+                                </SelectItem>
+                              ))}
+                            </div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Project Type Filter */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <Building2 className="w-3 h-3 text-purple-400" />
+                        Type de projet
+                      </label>
+                      <Select 
+                        value={filterTypeProjet} 
+                        onValueChange={setFilterTypeProjet}
+                      >
+                        <SelectTrigger className={cn(
+                          "h-9 w-full bg-slate-800/60 border text-white rounded-lg text-xs px-3 transition-all",
+                          filterTypeProjet !== "all" 
+                            ? "border-purple-500/50 shadow-md shadow-purple-500/10" 
+                            : "border-slate-600/50 hover:border-purple-500/40"
+                        )}>
+                          <SelectValue placeholder="Tous les types" />
+                        </SelectTrigger>
+                        <SelectContent className="glass border-slate-600/30 bg-slate-800/95 backdrop-blur-xl">
+                          <SelectItem value="all" className="text-white text-xs font-medium">Tous les types</SelectItem>
+                          {uniqueProjectTypes.map(type => {
+                            const labels: Record<string, string> = {
+                              appartement: "Appartement",
+                              villa: "Villa",
+                              magasin: "Magasin",
+                              bureau: "Bureau",
+                              riad: "Riad",
+                              studio: "Studio",
+                              autre: "Autre"
+                            }
+                            return (
+                              <SelectItem key={type} value={type} className="text-white text-xs">
+                                {labels[type] || type}
+                              </SelectItem>
+                            )
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Ville Filter */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <MapPinIcon className="w-3 h-3 text-green-400" />
+                        Ville
+                      </label>
+                      <Select 
+                        value={filterVille} 
+                        onValueChange={setFilterVille}
+                      >
+                        <SelectTrigger className={cn(
+                          "h-9 w-full bg-slate-800/60 border text-white rounded-lg text-xs px-3 transition-all",
+                          filterVille !== "all" 
+                            ? "border-green-500/50 shadow-md shadow-green-500/10" 
+                            : "border-slate-600/50 hover:border-green-500/40"
+                        )}>
+                          <SelectValue placeholder="Toutes les villes" />
+                        </SelectTrigger>
+                        <SelectContent className="glass border-slate-600/30 bg-slate-800/95 backdrop-blur-xl max-h-[250px]">
+                          <SelectItem value="all" className="text-white text-xs font-medium">Toutes les villes</SelectItem>
+                          {uniqueVilles.map(ville => (
+                            <SelectItem key={ville} value={ville} className="text-white text-xs">
+                              {ville}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Active Filter Chips */}
+                  {(filterStatus !== "all" || filterVille !== "all" || filterTypeProjet !== "all" || activeStatFilter !== null) && (
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-700/50">
+                      {filterStatus !== "all" && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1.5"
+                        >
+                          Statut: {filterStatus === "qualifie" && "Qualifié"}
+                          {filterStatus === "prise_de_besoin" && "Prise de besoin"}
+                          {filterStatus === "acompte_recu" && "Acompte reçu"}
+                          {filterStatus === "accepte" && "Accepté"}
+                          {filterStatus === "termine" && "Terminé"}
+                          {filterStatus === "livraison_termine" && "Terminé"}
+                          {!["qualifie", "prise_de_besoin", "acompte_recu", "accepte", "termine", "livraison_termine"].includes(filterStatus) && filterStatus}
+                          <button 
+                            onClick={() => setFilterStatus("all")}
+                            className="hover:text-blue-300 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </motion.div>
+                      )}
+                      {filterTypeProjet !== "all" && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2.5 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1.5"
+                        >
+                          Type: {filterTypeProjet === "appartement" && "Appartement"}
+                          {filterTypeProjet === "villa" && "Villa"}
+                          {filterTypeProjet === "magasin" && "Magasin"}
+                          {filterTypeProjet === "bureau" && "Bureau"}
+                          {filterTypeProjet === "riad" && "Riad"}
+                          {filterTypeProjet === "studio" && "Studio"}
+                          {filterTypeProjet === "autre" && "Autre"}
+                          {!["appartement", "villa", "magasin", "bureau", "riad", "studio", "autre"].includes(filterTypeProjet) && filterTypeProjet}
+                          <button 
+                            onClick={() => setFilterTypeProjet("all")}
+                            className="hover:text-purple-300 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </motion.div>
+                      )}
+                      {filterVille !== "all" && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="bg-green-500/20 text-green-400 border border-green-500/30 px-2.5 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1.5"
+                        >
+                          Ville: {filterVille}
+                          <button 
+                            onClick={() => setFilterVille("all")}
+                            className="hover:text-green-300 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </motion.div>
+                      )}
+                      {activeStatFilter && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1.5 border",
+                            activeStatFilter === "total" && "bg-blue-500/20 text-blue-400 border-blue-500/30",
+                            activeStatFilter === "enCours" && "bg-blue-500/20 text-blue-400 border-blue-500/30",
+                            activeStatFilter === "termines" && "bg-green-500/20 text-green-400 border-green-500/30",
+                            activeStatFilter === "revenue" && "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                          )}
+                        >
+                          {activeStatFilter === "total" && "Total"}
+                          {activeStatFilter === "enCours" && "Projet en cours"}
+                          {activeStatFilter === "termines" && "Projet livré"}
+                          {activeStatFilter === "revenue" && "Revenu"}
+                          <button 
+                            onClick={() => setActiveStatFilter(null)}
+                            className="hover:opacity-70 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </motion.div>
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {architectClients.length === 0 ? (

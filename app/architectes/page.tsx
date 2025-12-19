@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Search, Plus, Filter, X, ChevronDown, Users, TrendingUp, Briefcase, FolderOpen, Grid3x3, List } from "lucide-react"
+import { Search, Plus, Filter, X, ChevronDown, Users, Clock, CheckCircle2, FolderOpen, Grid3x3, List } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { Architect, ArchitectStatus, ArchitectSpecialty } from "@/types/architect"
 import type { Client } from "@/types/client"
@@ -28,9 +28,9 @@ export default function ArchitectesPage() {
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [filters, setFilters] = useState({
-    statut: "all" as "all" | ArchitectStatus,
-    ville: "all" as string,
-    specialite: "all" as "all" | ArchitectSpecialty,
+    projectStatus: "all" as "all" | "en_cours" | "termines" | "en_attente",
+    availability: "all" as "all" | "disponible" | "occupe",
+    hasDossiers: "all" as "all" | "has" | "none",
   })
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -85,7 +85,7 @@ export default function ArchitectesPage() {
   // Architects already have statistics from API
   const architectsWithStats = architects
 
-  // Filter and search architects
+  // Filter and search architects - based on real project data
   const filteredArchitects = useMemo(() => {
     return architectsWithStats.filter(architect => {
       // Search filter
@@ -96,43 +96,112 @@ export default function ArchitectesPage() {
         architect.email.toLowerCase().includes(searchLower) ||
         architect.ville.toLowerCase().includes(searchLower)
 
-      // Status filter
-      const matchesStatus = filters.statut === "all" || architect.statut === filters.statut
+      // Project status filter - filter by project type
+      let matchesProjectStatus = true
+      if (filters.projectStatus !== "all") {
+        if (filters.projectStatus === "en_cours") {
+          matchesProjectStatus = (architect.dossiersEnCours || 0) > 0
+        } else if (filters.projectStatus === "termines") {
+          matchesProjectStatus = (architect.dossiersTermines || 0) > 0
+        } else if (filters.projectStatus === "en_attente") {
+          matchesProjectStatus = (architect.dossiersEnAttente || 0) > 0
+        }
+      }
 
-      // Ville filter
-      const matchesVille = filters.ville === "all" || architect.ville === filters.ville
+      // Availability filter
+      let matchesAvailability = true
+      if (filters.availability !== "all") {
+        const isDisponible = architect.isDisponible !== undefined ? architect.isDisponible : (architect.dossiersEnCours || 0) < 10
+        if (filters.availability === "disponible") {
+          matchesAvailability = isDisponible
+        } else if (filters.availability === "occupe") {
+          matchesAvailability = !isDisponible
+        }
+      }
 
-      // Specialite filter
-      const matchesSpecialite = filters.specialite === "all" || architect.specialite === filters.specialite
+      // Has dossiers filter
+      let matchesHasDossiers = true
+      if (filters.hasDossiers !== "all") {
+        const totalDossiers = architect.totalDossiers || 0
+        if (filters.hasDossiers === "has") {
+          matchesHasDossiers = totalDossiers > 0
+        } else if (filters.hasDossiers === "none") {
+          matchesHasDossiers = totalDossiers === 0
+        }
+      }
 
-      return matchesSearch && matchesStatus && matchesVille && matchesSpecialite
+      return matchesSearch && matchesProjectStatus && matchesAvailability && matchesHasDossiers
     })
   }, [architectsWithStats, searchQuery, filters])
 
-  // Calculate statistics - for architects, show only their own stats
+  // Calculate statistics - based on real architect data from API
+  // IMPORTANT: These values come directly from the API and match what's shown on individual architect cards
   const totalArchitects = isArchitect && !isAdmin ? 1 : architectsWithStats.length
-  const activeArchitects = isArchitect && !isAdmin 
-    ? (architectsWithStats[0]?.statut === "actif" ? 1 : 0)
-    : architectsWithStats.filter(a => a.statut === "actif").length
   const totalDossiers = architectsWithStats.reduce((sum, a) => sum + (a.totalDossiers || 0), 0)
-  const avgDossiersPerArchitect = totalArchitects > 0 ? Math.round(totalDossiers / totalArchitects) : 0
+  
+  // Calculate dossiers en cours - sum from all architects' dossiersEnCours field
+  // This matches the "Projet en cours" value shown on each architect card
+  const totalDossiersEnCours = architectsWithStats.reduce((sum, a) => {
+    const enCours = a.dossiersEnCours || 0
+    return sum + enCours
+  }, 0)
+  
+  // Calculate dossiers terminés - sum from all architects' dossiersTermines field
+  // This matches the "Projet livré" value shown on each architect card
+  const totalDossiersTermines = architectsWithStats.reduce((sum, a) => sum + (a.dossiersTermines || 0), 0)
+  
+  // Calculate dossiers en attente - sum from all architects' dossiersEnAttente field
+  // This matches the "Projet en attente" value shown on each architect card
+  const totalDossiersEnAttente = architectsWithStats.reduce((sum, a) => sum + (a.dossiersEnAttente || 0), 0)
 
-  // Get unique values for filters
-  const uniqueVilles = Array.from(new Set(architectsWithStats.map(a => a.ville)))
+  // Debug: Log detailed breakdown to verify calculation matches cards
+  useEffect(() => {
+    if (architectsWithStats.length > 0) {
+      const breakdown = architectsWithStats.map(a => ({
+        name: `${a.prenom} ${a.nom}`,
+        dossiersEnCours: a.dossiersEnCours || 0,
+        dossiersTermines: a.dossiersTermines || 0,
+        dossiersEnAttente: a.dossiersEnAttente || 0,
+        totalDossiers: a.totalDossiers || 0
+      }))
+      
+      const calculatedEnCours = breakdown.reduce((sum, a) => sum + a.dossiersEnCours, 0)
+      const calculatedEnAttente = breakdown.reduce((sum, a) => sum + a.dossiersEnAttente, 0)
+      
+      console.log('[Architectes Page] 📊 Stats Calculation Breakdown:', {
+        'Total Architects': totalArchitects,
+        'Total Dossiers': totalDossiers,
+        'Projets en cours (sum)': totalDossiersEnCours,
+        'Projets terminés (sum)': totalDossiersTermines,
+        'Projets en attente (sum)': totalDossiersEnAttente,
+        'Verification - Calculated en cours': calculatedEnCours,
+        'Verification - Calculated en attente': calculatedEnAttente,
+        'Architects Breakdown': breakdown
+      })
+      
+      // Verify the calculation matches
+      if (calculatedEnCours !== totalDossiersEnCours) {
+        console.error('❌ Mismatch: Calculated en cours does not match!', {
+          calculated: calculatedEnCours,
+          actual: totalDossiersEnCours
+        })
+      }
+    }
+  }, [architectsWithStats, totalArchitects, totalDossiers, totalDossiersEnCours, totalDossiersTermines, totalDossiersEnAttente])
 
   const getActiveFiltersCount = () => {
     let count = 0
-    if (filters.statut !== "all") count++
-    if (filters.ville !== "all") count++
-    if (filters.specialite !== "all") count++
+    if (filters.projectStatus !== "all") count++
+    if (filters.availability !== "all") count++
+    if (filters.hasDossiers !== "all") count++
     return count
   }
 
   const clearAllFilters = () => {
     setFilters({
-      statut: "all",
-      ville: "all",
-      specialite: "all",
+      projectStatus: "all",
+      availability: "all",
+      hasDossiers: "all",
     })
   }
 
@@ -190,83 +259,111 @@ export default function ArchitectesPage() {
               </div>
             )}
           
-          {/* Stats Cards - Compact */}
-          <div className="px-3 md:px-4 pt-3 md:pt-4 pb-4 md:pb-5">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          {/* Stats Cards - Enhanced design matching contacts page */}
+          <div className="px-3 md:px-4 pt-3 pb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Total Architects - Cyan to differentiate from project stats */}
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="group relative overflow-hidden rounded-lg md:rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 md:p-4 hover:border-blue-500/30 transition-all duration-300"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-cyan-500/10 via-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 cursor-pointer transition-all duration-200 hover:border-cyan-500/40 hover:shadow-md hover:shadow-cyan-500/10"
               >
-                <div className="flex items-center justify-between">
+                <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Total</p>
-                    <p className="text-2xl font-bold text-white leading-tight">{totalArchitects}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Architectes</p>
+                    <p className="text-[10px] font-semibold text-cyan-300/70 mb-1 uppercase tracking-wider">
+                      Total
+                    </p>
+                    <div className="flex items-baseline gap-1.5">
+                      <p className="text-2xl font-bold text-white leading-none">{totalArchitects}</p>
+                      <span className="text-[11px] font-semibold text-cyan-300/70">Architectes</span>
+                    </div>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                      <Users className="w-5 h-5 text-blue-400" />
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500/20 to-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+                      <Users className="w-4 h-4 text-cyan-400" />
                     </div>
                   </div>
                 </div>
               </motion.div>
 
+              {/* Projets en Cours - Blue to match architect cards */}
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="group relative overflow-hidden rounded-lg md:rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 md:p-4 hover:border-green-500/30 transition-all duration-300"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-blue-500/10 via-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 cursor-pointer transition-all duration-200 hover:border-blue-500/40 hover:shadow-md hover:shadow-blue-500/10"
               >
-                <div className="flex items-center justify-between">
+                <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Actifs</p>
-                    <p className="text-2xl font-bold text-green-400 leading-tight">{activeArchitects}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Architectes</p>
+                    <p className="text-[10px] font-semibold text-blue-300/70 mb-1 uppercase tracking-wider">
+                      Projets en cours
+                    </p>
+                    <div className="flex items-baseline gap-1.5">
+                      <p className="text-2xl font-bold text-blue-400 leading-none">{totalDossiersEnCours}</p>
+                      <span className="text-[11px] font-semibold text-blue-300/70">Dossiers</span>
+                    </div>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-green-400" />
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/10 border border-blue-500/30 flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-blue-400" />
                     </div>
                   </div>
                 </div>
               </motion.div>
 
+              {/* Total Dossiers */}
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden rounded-lg md:rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 md:p-4 hover:border-purple-500/30 transition-all duration-300"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-purple-500/10 via-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 cursor-pointer transition-all duration-200 hover:border-purple-500/40 hover:shadow-md hover:shadow-purple-500/10"
               >
-                <div className="flex items-center justify-between">
+                <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Dossiers</p>
-                    <p className="text-2xl font-bold text-purple-400 leading-tight">{totalDossiers}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Total</p>
+                    <p className="text-[10px] font-semibold text-purple-300/70 mb-1 uppercase tracking-wider">
+                      Dossiers
+                    </p>
+                    <div className="flex items-baseline gap-1.5">
+                      <p className="text-2xl font-bold text-purple-400 leading-none">{totalDossiers}</p>
+                      <span className="text-[11px] font-semibold text-purple-300/70">Total</span>
+                    </div>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-                      <FolderOpen className="w-5 h-5 text-purple-400" />
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-500/10 border border-purple-500/30 flex items-center justify-center">
+                      <FolderOpen className="w-4 h-4 text-purple-400" />
                     </div>
                   </div>
                 </div>
               </motion.div>
 
+              {/* Projets Terminés */}
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="group relative overflow-hidden rounded-lg md:rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 md:p-4 hover:border-orange-500/30 transition-all duration-300"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-green-500/10 via-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 cursor-pointer transition-all duration-200 hover:border-green-500/40 hover:shadow-md hover:shadow-green-500/10"
               >
-                <div className="flex items-center justify-between">
+                <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Moyenne</p>
-                    <p className="text-2xl font-bold text-orange-400 leading-tight">{avgDossiersPerArchitect}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Par architecte</p>
+                    <p className="text-[10px] font-semibold text-green-300/70 mb-1 uppercase tracking-wider">
+                      Projets terminés
+                    </p>
+                    <div className="flex items-baseline gap-1.5">
+                      <p className="text-2xl font-bold text-green-400 leading-none">{totalDossiersTermines}</p>
+                      <span className="text-[11px] font-semibold text-green-300/70">Dossiers</span>
+                    </div>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-                      <Briefcase className="w-5 h-5 text-orange-400" />
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/30 flex items-center justify-center">
+                      <CheckCircle2 className="w-4 h-4 text-green-400" />
                     </div>
                   </div>
                 </div>
@@ -367,26 +464,28 @@ export default function ArchitectesPage() {
               {getActiveFiltersCount() > 0 && (
                 <div className="border-t border-slate-600/30 px-2.5 py-2">
                   <div className="flex flex-wrap gap-1.5">
-                    {filters.statut !== "all" && (
+                    {filters.projectStatus !== "all" && (
                       <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5">
-                        Statut: {filters.statut === "actif" ? "Actif" : filters.statut === "inactif" ? "Inactif" : "En congé"}
-                        <button onClick={() => removeFilter('statut')} className="hover:text-primary/70">
+                        {filters.projectStatus === "en_cours" && "Projets en cours"}
+                        {filters.projectStatus === "termines" && "Projets terminés"}
+                        {filters.projectStatus === "en_attente" && "Projets en attente"}
+                        <button onClick={() => removeFilter('projectStatus')} className="hover:text-primary/70">
                           <X className="w-2.5 h-2.5" />
                         </button>
                       </div>
                     )}
-                    {filters.ville !== "all" && (
+                    {filters.availability !== "all" && (
                       <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5">
-                        Ville: {filters.ville}
-                        <button onClick={() => removeFilter('ville')} className="hover:text-primary/70">
+                        {filters.availability === "disponible" ? "Disponible" : "Occupé"}
+                        <button onClick={() => removeFilter('availability')} className="hover:text-primary/70">
                           <X className="w-2.5 h-2.5" />
                         </button>
                       </div>
                     )}
-                    {filters.specialite !== "all" && (
+                    {filters.hasDossiers !== "all" && (
                       <div className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5">
-                        Spécialité: {filters.specialite}
-                        <button onClick={() => removeFilter('specialite')} className="hover:text-primary/70">
+                        {filters.hasDossiers === "has" ? "Avec dossiers" : "Sans dossiers"}
+                        <button onClick={() => removeFilter('hasDossiers')} className="hover:text-primary/70">
                           <X className="w-2.5 h-2.5" />
                         </button>
                       </div>
@@ -395,66 +494,85 @@ export default function ArchitectesPage() {
                 </div>
               )}
 
-              {/* Filter Content */}
+              {/* Filter Content - Based on real project data */}
               {isFiltersOpen && (
                 <div className="border-t border-slate-600/30 p-2.5 bg-slate-800/60">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                    {/* Statut Filter */}
+                    {/* Project Status Filter */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-medium text-white uppercase tracking-wider">Statut</label>
+                      <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-blue-400" />
+                        Statut projet
+                      </label>
                       <Select
-                        value={filters.statut}
-                        onValueChange={(value) => setFilters(f => ({ ...f, statut: value as any }))}
+                        value={filters.projectStatus}
+                        onValueChange={(value) => setFilters(f => ({ ...f, projectStatus: value as any }))}
                       >
-                        <SelectTrigger className="h-8 w-full bg-slate-700/80 border-slate-500/60 text-white text-xs">
+                        <SelectTrigger className="h-8 w-full bg-slate-700/60 border-slate-600/40 text-white text-xs hover:border-blue-400/40 hover:bg-slate-700/80 transition-all">
                           <SelectValue placeholder="Tous les statuts" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-600">
                           <SelectItem value="all" className="text-white text-xs">Tous les statuts</SelectItem>
-                          <SelectItem value="actif" className="text-white text-xs">Actif</SelectItem>
-                          <SelectItem value="inactif" className="text-white text-xs">Inactif</SelectItem>
-                          <SelectItem value="conge" className="text-white text-xs">En congé</SelectItem>
+                          <SelectItem value="en_cours" className="text-white text-xs flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                            Projets en cours
+                          </SelectItem>
+                          <SelectItem value="termines" className="text-white text-xs flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                            Projets terminés
+                          </SelectItem>
+                          <SelectItem value="en_attente" className="text-white text-xs flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-orange-400"></span>
+                            Projets en attente
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
-                    {/* Ville Filter */}
+                    {/* Availability Filter */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-medium text-white uppercase tracking-wider">Ville</label>
+                      <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                        <Users className="w-3 h-3 text-cyan-400" />
+                        Disponibilité
+                      </label>
                       <Select
-                        value={filters.ville}
-                        onValueChange={(value) => setFilters(f => ({ ...f, ville: value }))}
+                        value={filters.availability}
+                        onValueChange={(value) => setFilters(f => ({ ...f, availability: value as any }))}
                       >
-                        <SelectTrigger className="h-8 w-full bg-slate-700/80 border-slate-500/60 text-white text-xs">
-                          <SelectValue placeholder="Toutes les villes" />
+                        <SelectTrigger className="h-8 w-full bg-slate-700/60 border-slate-600/40 text-white text-xs hover:border-cyan-400/40 hover:bg-slate-700/80 transition-all">
+                          <SelectValue placeholder="Tous" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-600">
-                          <SelectItem value="all" className="text-white text-xs">Toutes les villes</SelectItem>
-                          {uniqueVilles.map(v => (
-                            <SelectItem key={v} value={v} className="text-white text-xs">{v}</SelectItem>
-                          ))}
+                          <SelectItem value="all" className="text-white text-xs">Tous</SelectItem>
+                          <SelectItem value="disponible" className="text-white text-xs flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                            Disponible
+                          </SelectItem>
+                          <SelectItem value="occupe" className="text-white text-xs flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-orange-400"></span>
+                            Occupé
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
-                    {/* Specialite Filter */}
+                    {/* Has Dossiers Filter */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-medium text-white uppercase tracking-wider">Spécialité</label>
+                      <label className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                        <FolderOpen className="w-3 h-3 text-purple-400" />
+                        Dossiers
+                      </label>
                       <Select
-                        value={filters.specialite}
-                        onValueChange={(value) => setFilters(f => ({ ...f, specialite: value as any }))}
+                        value={filters.hasDossiers}
+                        onValueChange={(value) => setFilters(f => ({ ...f, hasDossiers: value as any }))}
                       >
-                        <SelectTrigger className="h-8 w-full bg-slate-700/80 border-slate-500/60 text-white text-xs">
-                          <SelectValue placeholder="Toutes les spécialités" />
+                        <SelectTrigger className="h-8 w-full bg-slate-700/60 border-slate-600/40 text-white text-xs hover:border-purple-400/40 hover:bg-slate-700/80 transition-all">
+                          <SelectValue placeholder="Tous" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-600">
-                          <SelectItem value="all" className="text-white text-xs">Toutes les spécialités</SelectItem>
-                          <SelectItem value="residentiel" className="text-white text-xs">Résidentiel</SelectItem>
-                          <SelectItem value="commercial" className="text-white text-xs">Commercial</SelectItem>
-                          <SelectItem value="industriel" className="text-white text-xs">Industriel</SelectItem>
-                          <SelectItem value="renovation" className="text-white text-xs">Rénovation</SelectItem>
-                          <SelectItem value="luxe" className="text-white text-xs">Luxe</SelectItem>
-                          <SelectItem value="mixte" className="text-white text-xs">Mixte</SelectItem>
+                          <SelectItem value="all" className="text-white text-xs">Tous</SelectItem>
+                          <SelectItem value="has" className="text-white text-xs">Avec dossiers</SelectItem>
+                          <SelectItem value="none" className="text-white text-xs">Sans dossiers</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
