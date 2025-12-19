@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CreatableSelect } from "@/components/creatable-select"
 import { Textarea } from "@/components/ui/textarea"
 import type { Lead, LeadStatus, LeadSource, LeadPriority, LeadNote } from "@/types/lead"
-import { Trash2, UserPlus, XCircle, Save } from "lucide-react"
+import { Trash2, UserPlus, XCircle, Save, AlertCircle, X } from "lucide-react"
+import { AnimatePresence } from "framer-motion"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -164,6 +165,8 @@ export function LeadModal({
   const [newNote, setNewNote] = useState("")
   const [showConvertDialog, setShowConvertDialog] = useState(false)
   const [showNotInterestedDialog, setShowNotInterestedDialog] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [showErrors, setShowErrors] = useState(false)
 
   const initialForm = {
     nom: lead?.nom || "",
@@ -241,6 +244,8 @@ export function LeadModal({
       notes: [],
     })
     setNewNote("")
+    setErrors({})
+    setShowErrors(false)
   }
 
   useEffect(() => {
@@ -324,8 +329,81 @@ export function LeadModal({
 
   // Note: The resetForm logic is now handled in the useEffect above
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.nom.trim()) {
+      newErrors.nom = "Le nom complet est requis"
+    }
+    if (!formData.telephone.trim()) {
+      newErrors.telephone = "Le numéro de téléphone est requis"
+    } else if (!/^[0-9+\s-]{8,}$/.test(formData.telephone.trim())) {
+      newErrors.telephone = "Veuillez saisir un numéro de téléphone valide"
+    }
+    if (!formData.ville) {
+      newErrors.ville = "Veuillez sélectionner une ville"
+    }
+    if (!formData.typeBien) {
+      newErrors.typeBien = "Veuillez sélectionner un type de bien"
+    }
+    if (!formData.source) {
+      newErrors.source = "Veuillez sélectionner une source"
+    }
+    if (!formData.assignePar) {
+      newErrors.assignePar = "Veuillez sélectionner une personne à assigner"
+    }
+    
+    // If source is magasin, validate magasin-specific fields
+    if (formData.source === 'magasin') {
+      if (!formData.magasin) {
+        newErrors.magasin = "Veuillez sélectionner un magasin"
+      }
+      if (!formData.commercialMagasin?.trim()) {
+        newErrors.commercialMagasin = "Le nom du commercial est requis"
+      }
+    }
+
+    setErrors(newErrors)
+    setShowErrors(Object.keys(newErrors).length > 0)
+    
+    if (Object.keys(newErrors).length > 0) {
+      // Scroll to first error
+      const firstErrorField = Object.keys(newErrors)[0]
+      const element = document.getElementById(firstErrorField)
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" })
+        element.focus()
+      }
+      return false
+    }
+
+    return true
+  }
+
+  const handleFieldChange = (field: string, value: any) => {
+    setFormData({ ...formData, [field]: value })
+    // Clear error for this field when user starts typing
+    if (errors[field]) {
+      const newErrors = { ...errors }
+      delete newErrors[field]
+      setErrors(newErrors)
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+
+    // Validate form
+    if (!validateForm()) {
+      toast({
+        title: "Erreur de validation",
+        description: `Veuillez corriger ${Object.keys(errors).length} erreur(s) dans le formulaire`,
+        variant: "destructive"
+      })
+      return
+    }
+
     const calculatedPriority = calculatePriority(formData.source)
     onSave({
       ...formData,
@@ -336,7 +414,23 @@ export function LeadModal({
       updatedAt: new Date().toISOString(),
     })
     resetForm()
+    setErrors({})
+    setShowErrors(false)
     onOpenChange(false)
+  }
+
+  // Prevent modal from closing when clicking outside if there are errors
+  const handleOpenChangeWrapper = (open: boolean) => {
+    if (!open && showErrors) {
+      // Don't close if there are validation errors
+      return
+    }
+    if (!open) {
+      // Clear errors when closing
+      setErrors({})
+      setShowErrors(false)
+    }
+    onOpenChange(open)
   }
 
   const handleAddNote = async () => {
@@ -425,7 +519,7 @@ export function LeadModal({
   const isSourceLocked = lead && !isAdmin
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChangeWrapper}>
       <DialogContent className="w-[95vw] sm:w-full sm:max-w-[840px] max-h-[92vh] overflow-y-auto glass backdrop-blur-xl bg-slate-900/90 border border-white/10 ring-1 ring-white/10">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
@@ -440,6 +534,44 @@ export function LeadModal({
             </div>
           )}
         </DialogHeader>
+
+        {/* Error Summary */}
+        <AnimatePresence>
+          {showErrors && Object.keys(errors).length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30"
+            >
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-red-400 mb-1">
+                    Veuillez corriger les erreurs suivantes :
+                  </p>
+                  <ul className="text-xs text-red-300/80 space-y-1">
+                    {Object.entries(errors).map(([field, message]) => (
+                      <li key={field} className="flex items-center gap-1.5">
+                        <span className="w-1 h-1 rounded-full bg-red-400" />
+                        {message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowErrors(false)
+                    setErrors({})
+                  }}
+                  className="text-red-400 hover:text-red-300 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Section: Informations principales */}
@@ -456,10 +588,20 @@ export function LeadModal({
                 <Input
                   id="nom"
                   value={formData.nom}
-                  onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                  className="glass rounded-xl bg-white/10 border border-white/10 text-white"
-                  required
+                  onChange={(e) => handleFieldChange("nom", e.target.value)}
+                  className={cn(
+                    "glass rounded-xl bg-white/10 border text-white",
+                    errors.nom
+                      ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                      : "border-white/10"
+                  )}
                 />
+                {errors.nom && (
+                  <p className="text-xs text-red-400 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.nom}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -469,11 +611,21 @@ export function LeadModal({
                 <Input
                   id="telephone"
                   value={formData.telephone}
-                  onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                  className="glass rounded-xl bg-white/10 border border-white/10 text-white"
+                  onChange={(e) => handleFieldChange("telephone", e.target.value)}
+                  className={cn(
+                    "glass rounded-xl bg-white/10 border text-white",
+                    errors.telephone
+                      ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                      : "border-white/10"
+                  )}
                   placeholder="06 XX XX XX XX"
-                  required
                 />
+                {errors.telephone && (
+                  <p className="text-xs text-red-400 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.telephone}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -482,28 +634,50 @@ export function LeadModal({
                 <Label htmlFor="ville" className="text-slate-300">
                   Ville *
                 </Label>
-                <CreatableSelect
-                  value={formData.ville}
-                  onValueChange={(value) => setFormData({ ...formData, ville: value })}
-                  options={villes}
-                  placeholder="Choisir ou créer..."
-                />
+                <div>
+                  <CreatableSelect
+                    value={formData.ville}
+                    onValueChange={(value) => handleFieldChange("ville", value)}
+                    options={villes}
+                    placeholder="Choisir ou créer..."
+                    className={errors.ville ? "border-red-500/50" : ""}
+                  />
+                  {errors.ville && (
+                    <p className="text-xs text-red-400 flex items-center gap-1 mt-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.ville}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="typeBien" className="text-slate-300">
                   Type de bien *
                 </Label>
-                <Select value={formData.typeBien} onValueChange={(value) => setFormData({ ...formData, typeBien: value })}>
-                  <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
-                    <SelectValue placeholder="Sélectionner un type" />
-                  </SelectTrigger>
-                  <SelectContent className="glass bg-slate-900/95 border border-white/10">
-                    {typesBien.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div>
+                  <Select value={formData.typeBien} onValueChange={(value) => handleFieldChange("typeBien", value)}>
+                    <SelectTrigger className={cn(
+                      "glass rounded-xl bg-white/10 border text-white",
+                      errors.typeBien
+                        ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                        : "border-white/10"
+                    )}>
+                      <SelectValue placeholder="Sélectionner un type" />
+                    </SelectTrigger>
+                    <SelectContent className="glass bg-slate-900/95 border border-white/10">
+                      {typesBien.map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.typeBien && (
+                    <p className="text-xs text-red-400 flex items-center gap-1 mt-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.typeBien}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -518,37 +692,58 @@ export function LeadModal({
               <Label htmlFor="source" className="text-slate-300">
                 Source du lead *
               </Label>
-              <Select
-                value={formData.source}
-                onValueChange={(value) => {
-                  const newSource = value as LeadSource
-                  const calculatedPriority = calculatePriority(newSource)
-                  setFormData({
-                    ...formData,
-                    source: newSource,
-                    priorite: calculatedPriority,
-                    magasin: newSource !== 'magasin' ? '' : formData.magasin,
-                    commercialMagasin: newSource !== 'magasin' ? '' : formData.commercialMagasin,
-                  })
-                }}
-                disabled={isSourceLocked}
-              >
-                <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {sources.map((source) => (
-                    <SelectItem key={source.value} value={source.value}>
-                      {source.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {isSourceLocked && (
-                <p className="text-xs text-slate-400">
-                  ℹ️ La source ne peut être modifiée que par un administrateur
-                </p>
-              )}
+              <div>
+                <Select
+                  value={formData.source}
+                  onValueChange={(value) => {
+                    const newSource = value as LeadSource
+                    const calculatedPriority = calculatePriority(newSource)
+                    handleFieldChange("source", newSource)
+                    setFormData({
+                      ...formData,
+                      source: newSource,
+                      priorite: calculatedPriority,
+                      magasin: newSource !== 'magasin' ? '' : formData.magasin,
+                      commercialMagasin: newSource !== 'magasin' ? '' : formData.commercialMagasin,
+                    })
+                    // Clear magasin errors if source changes
+                    if (newSource !== 'magasin') {
+                      const newErrors = { ...errors }
+                      delete newErrors.magasin
+                      delete newErrors.commercialMagasin
+                      setErrors(newErrors)
+                    }
+                  }}
+                  disabled={isSourceLocked}
+                >
+                  <SelectTrigger className={cn(
+                    "glass rounded-xl bg-white/10 border text-white",
+                    errors.source
+                      ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                      : "border-white/10"
+                  )}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sources.map((source) => (
+                      <SelectItem key={source.value} value={source.value}>
+                        {source.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.source && (
+                  <p className="text-xs text-red-400 flex items-center gap-1 mt-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.source}
+                  </p>
+                )}
+                {isSourceLocked && !errors.source && (
+                  <p className="text-xs text-slate-400 mt-1">
+                    ℹ️ La source ne peut être modifiée que par un administrateur
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Sous-champs si Magasin sélectionné */}
@@ -558,21 +753,34 @@ export function LeadModal({
                   <Label htmlFor="magasin" className="text-slate-300">
                     Magasin *
                   </Label>
-                  <Select
-                    value={formData.magasin}
-                    onValueChange={(value) => setFormData({ ...formData, magasin: value })}
-                  >
-                    <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
-                      <SelectValue placeholder="Sélectionner un magasin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {magasins.map((mag) => (
-                        <SelectItem key={mag} value={mag}>
-                          {mag}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div>
+                    <Select
+                      value={formData.magasin}
+                      onValueChange={(value) => handleFieldChange("magasin", value)}
+                    >
+                      <SelectTrigger className={cn(
+                        "glass rounded-xl bg-white/10 border text-white",
+                        errors.magasin
+                          ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                          : "border-white/10"
+                      )}>
+                        <SelectValue placeholder="Sélectionner un magasin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {magasins.map((mag) => (
+                          <SelectItem key={mag} value={mag}>
+                            {mag}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.magasin && (
+                      <p className="text-xs text-red-400 flex items-center gap-1 mt-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.magasin}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -582,11 +790,21 @@ export function LeadModal({
                   <Input
                     id="commercialMagasin"
                     value={formData.commercialMagasin}
-                    onChange={(e) => setFormData({ ...formData, commercialMagasin: e.target.value })}
-                    className="glass rounded-xl bg-white/10 border border-white/10 text-white"
+                    onChange={(e) => handleFieldChange("commercialMagasin", e.target.value)}
+                    className={cn(
+                      "glass rounded-xl bg-white/10 border text-white",
+                      errors.commercialMagasin
+                        ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                        : "border-white/10"
+                    )}
                     placeholder="Saisir le nom du commercial"
-                    required
                   />
+                  {errors.commercialMagasin && (
+                    <p className="text-xs text-red-400 flex items-center gap-1 mt-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.commercialMagasin}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -595,24 +813,39 @@ export function LeadModal({
               <Label htmlFor="assignePar" className="text-slate-300">
                 Assigné à *
               </Label>
-              <Select
-                value={formData.assignePar}
-                onValueChange={(value) => setFormData({ ...formData, assignePar: value })}
-              >
-                <SelectTrigger className="glass rounded-xl bg-white/10 border border-white/10 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {commercials.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-slate-400">
-                Assigné à : <span className="text-white font-medium">{formData.assignePar}</span>
-              </p>
+              <div>
+                <Select
+                  value={formData.assignePar}
+                  onValueChange={(value) => handleFieldChange("assignePar", value)}
+                >
+                  <SelectTrigger className={cn(
+                    "glass rounded-xl bg-white/10 border text-white",
+                    errors.assignePar
+                      ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                      : "border-white/10"
+                  )}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {commercials.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.assignePar && (
+                  <p className="text-xs text-red-400 flex items-center gap-1 mt-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.assignePar}
+                  </p>
+                )}
+                {!errors.assignePar && (
+                  <p className="text-xs text-slate-400 mt-1">
+                    Assigné à : <span className="text-white font-medium">{formData.assignePar}</span>
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Priorité calculée automatiquement */}

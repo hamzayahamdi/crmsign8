@@ -10,8 +10,9 @@ import { CreatableSelect } from "@/components/creatable-select"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { LeadsService } from "@/lib/leads-service"
-import { Phone, MapPin, Home, Building2, User, UserPlus, Calendar } from "lucide-react"
+import { Phone, MapPin, Home, Building2, User, UserPlus, Calendar, AlertCircle, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { cn } from "@/lib/utils"
 
 
 interface MagasinerAddLeadModalProps {
@@ -105,37 +106,73 @@ export function MagasinerAddLeadModal({
     commercialName: "",
     message: ""
   })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [showErrors, setShowErrors] = useState(false)
 
 
 
 
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.nom.trim()) {
+      newErrors.nom = "Le nom complet est requis"
+    }
+    if (!formData.telephone.trim()) {
+      newErrors.telephone = "Le numéro de téléphone est requis"
+    } else if (!/^[0-9+\s-]{8,}$/.test(formData.telephone.trim())) {
+      newErrors.telephone = "Veuillez saisir un numéro de téléphone valide"
+    }
+    if (!formData.ville) {
+      newErrors.ville = "Veuillez sélectionner une ville"
+    }
+    if (!formData.typeBien) {
+      newErrors.typeBien = "Veuillez sélectionner un type de bien"
+    }
+    if (!formData.commercialName.trim()) {
+      newErrors.commercialName = "Le nom du commercial est requis"
+    }
+    if (!magasin) {
+      newErrors.magasin = "Magasin non défini"
+    }
+
+    setErrors(newErrors)
+    setShowErrors(Object.keys(newErrors).length > 0)
+    
+    if (Object.keys(newErrors).length > 0) {
+      // Scroll to first error
+      const firstErrorField = Object.keys(newErrors)[0]
+      const element = document.getElementById(firstErrorField)
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" })
+        element.focus()
+      }
+      return false
+    }
+
+    return true
+  }
+
+  const handleFieldChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value })
+    // Clear error for this field when user starts typing
+    if (errors[field]) {
+      const newErrors = { ...errors }
+      delete newErrors[field]
+      setErrors(newErrors)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
 
-    // Validation
-    if (!formData.nom.trim()) {
-      toast.error("Veuillez saisir le nom complet")
-      return
-    }
-    if (!formData.telephone.trim()) {
-      toast.error("Veuillez saisir le numéro de téléphone")
-      return
-    }
-    if (!formData.ville) {
-      toast.error("Veuillez sélectionner une ville")
-      return
-    }
-    if (!formData.typeBien) {
-      toast.error("Veuillez sélectionner un type de bien")
-      return
-    }
-    if (!formData.commercialName.trim()) {
-      toast.error("Veuillez saisir le nom du commercial")
-      return
-    }
-    if (!magasin) {
-      toast.error("Magasin non défini")
+    // Validate form
+    if (!validateForm()) {
+      toast.error("Veuillez corriger les erreurs dans le formulaire", {
+        description: `${Object.keys(errors).length} champ(s) requis manquant(s)`
+      })
       return
     }
 
@@ -166,7 +203,7 @@ export function MagasinerAddLeadModal({
 
 
 
-      // Reset form
+      // Reset form and errors
       setFormData({
         nom: "",
         telephone: "",
@@ -175,7 +212,8 @@ export function MagasinerAddLeadModal({
         commercialName: "",
         message: ""
       })
-
+      setErrors({})
+      setShowErrors(false)
 
       onLeadAdded()
       onOpenChange(false)
@@ -198,12 +236,27 @@ export function MagasinerAddLeadModal({
       commercialName: "",
       message: ""
     })
-
+    setErrors({})
+    setShowErrors(false)
     onOpenChange(false)
   }
 
+  // Prevent modal from closing when clicking outside if there are errors
+  const handleOpenChange = (open: boolean) => {
+    if (!open && showErrors) {
+      // Don't close if there are validation errors
+      return
+    }
+    if (!open) {
+      // Clear errors when closing
+      setErrors({})
+      setShowErrors(false)
+    }
+    onOpenChange(open)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <AnimatePresence>
         {open && (
           <DialogContent className="w-[95vw] sm:w-full sm:max-w-[840px] max-h-[90vh] overflow-y-auto glass bg-slate-900/90 border border-white/10 ring-1 ring-white/10">
@@ -225,6 +278,44 @@ export function MagasinerAddLeadModal({
                 </p>
               </DialogHeader>
 
+              {/* Error Summary */}
+              <AnimatePresence>
+                {showErrors && Object.keys(errors).length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30"
+                  >
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-red-400 mb-1">
+                          Veuillez corriger les erreurs suivantes :
+                        </p>
+                        <ul className="text-xs text-red-300/80 space-y-1">
+                          {Object.entries(errors).map(([field, message]) => (
+                            <li key={field} className="flex items-center gap-1.5">
+                              <span className="w-1 h-1 rounded-full bg-red-400" />
+                              {message}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowErrors(false)
+                          setErrors({})
+                        }}
+                        className="text-red-400 hover:text-red-300 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <form onSubmit={handleSubmit} className="mt-3 md:mt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 md:gap-3.5">
                   {/* Nom complet */}
@@ -241,11 +332,21 @@ export function MagasinerAddLeadModal({
                     <Input
                       id="nom"
                       value={formData.nom}
-                      onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                      onChange={(e) => handleFieldChange("nom", e.target.value)}
                       placeholder="Ex: Ahmed Benali"
-                      className="h-9 md:h-10 text-sm md:text-base glass rounded-xl bg-white/10 border border-white/10 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40 focus:border-primary/40"
-                      required
+                      className={cn(
+                        "h-9 md:h-10 text-sm md:text-base glass rounded-xl bg-white/10 border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40",
+                        errors.nom
+                          ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                          : "border-white/10 focus:border-primary/40"
+                      )}
                     />
+                    {errors.nom && (
+                      <p className="text-xs text-red-400 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.nom}
+                      </p>
+                    )}
                   </motion.div>
 
                   {/* Téléphone */}
@@ -263,11 +364,21 @@ export function MagasinerAddLeadModal({
                       id="telephone"
                       type="tel"
                       value={formData.telephone}
-                      onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                      onChange={(e) => handleFieldChange("telephone", e.target.value)}
                       placeholder="Ex: 0612345678"
-                      className="h-9 md:h-10 text-sm md:text-base glass rounded-xl bg-white/10 border border-white/10 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40 focus:border-primary/40"
-                      required
+                      className={cn(
+                        "h-9 md:h-10 text-sm md:text-base glass rounded-xl bg-white/10 border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40",
+                        errors.telephone
+                          ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                          : "border-white/10 focus:border-primary/40"
+                      )}
                     />
+                    {errors.telephone && (
+                      <p className="text-xs text-red-400 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.telephone}
+                      </p>
+                    )}
                   </motion.div>
 
                   {/* Ville */}
@@ -281,20 +392,35 @@ export function MagasinerAddLeadModal({
                       <MapPin className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
                       Ville <span className="text-red-500">*</span>
                     </Label>
-                    <CreatableSelect
-                      value={formData.ville}
-                      onValueChange={(value) => setFormData({ ...formData, ville: value })}
-                      options={villes}
-                      placeholder="Choisir ou créer une ville..."
-                      searchPlaceholder="Rechercher une ville..."
-                      emptyText="Aucune ville trouvée"
-                      onCreateNew={(newCity) => {
-                        if (!villes.includes(newCity)) {
-                          setVilles([...villes, newCity])
-                        }
-                      }}
-                      className="h-9 md:h-10 glass rounded-xl bg-white/10 border border-white/10 text-foreground focus:ring-2 focus:ring-primary/40 focus:border-primary/40"
-                    />
+                    <div>
+                      <CreatableSelect
+                        value={formData.ville}
+                        onValueChange={(value) => {
+                          handleFieldChange("ville", value)
+                        }}
+                        options={villes}
+                        placeholder="Choisir ou créer une ville..."
+                        searchPlaceholder="Rechercher une ville..."
+                        emptyText="Aucune ville trouvée"
+                        onCreateNew={(newCity) => {
+                          if (!villes.includes(newCity)) {
+                            setVilles([...villes, newCity])
+                          }
+                        }}
+                        className={cn(
+                          "h-9 md:h-10 glass rounded-xl bg-white/10 border text-foreground focus:ring-2 focus:ring-primary/40",
+                          errors.ville
+                            ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                            : "border-white/10 focus:border-primary/40"
+                        )}
+                      />
+                      {errors.ville && (
+                        <p className="text-xs text-red-400 flex items-center gap-1 mt-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {errors.ville}
+                        </p>
+                      )}
+                    </div>
                   </motion.div>
 
                   {/* Type de bien */}
@@ -308,18 +434,31 @@ export function MagasinerAddLeadModal({
                       <Home className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
                       Type de bien <span className="text-red-500">*</span>
                     </Label>
-                    <Select value={formData.typeBien} onValueChange={(value) => setFormData({ ...formData, typeBien: value })}>
-                      <SelectTrigger className="h-9 md:h-10 glass rounded-xl bg-white/10 border border-white/10 text-foreground focus:ring-2 focus:ring-primary/40 focus:border-primary/40">
-                        <SelectValue placeholder="Sélectionner un type" className="placeholder:text-muted-foreground" />
-                      </SelectTrigger>
-                      <SelectContent className="glass bg-slate-900/95 border border-white/10">
-                        {PROPERTY_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div>
+                      <Select value={formData.typeBien} onValueChange={(value) => handleFieldChange("typeBien", value)}>
+                        <SelectTrigger className={cn(
+                          "h-9 md:h-10 glass rounded-xl bg-white/10 border text-foreground focus:ring-2 focus:ring-primary/40",
+                          errors.typeBien
+                            ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                            : "border-white/10 focus:border-primary/40"
+                        )}>
+                          <SelectValue placeholder="Sélectionner un type" className="placeholder:text-muted-foreground" />
+                        </SelectTrigger>
+                        <SelectContent className="glass bg-slate-900/95 border border-white/10">
+                          {PROPERTY_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.typeBien && (
+                        <p className="text-xs text-red-400 flex items-center gap-1 mt-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {errors.typeBien}
+                        </p>
+                      )}
+                    </div>
                   </motion.div>
 
                   {/* Magasin (read-only) */}
@@ -354,14 +493,25 @@ export function MagasinerAddLeadModal({
                     <Input
                       id="commercialName"
                       value={formData.commercialName}
-                      onChange={(e) => setFormData({ ...formData, commercialName: e.target.value })}
+                      onChange={(e) => handleFieldChange("commercialName", e.target.value)}
                       placeholder="Ex: Mohamed Alami"
-                      className="h-9 md:h-10 text-sm md:text-base glass rounded-xl bg-white/10 border border-white/10 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40 focus:border-primary/40"
-                      required
+                      className={cn(
+                        "h-9 md:h-10 text-sm md:text-base glass rounded-xl bg-white/10 border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/40",
+                        errors.commercialName
+                          ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                          : "border-white/10 focus:border-primary/40"
+                      )}
                     />
-                    <p className="text-[10px] md:text-xs text-muted-foreground/70 mt-0.5">
-                      Nom du commercial qui a soumis ce lead
-                    </p>
+                    {errors.commercialName ? (
+                      <p className="text-xs text-red-400 flex items-center gap-1 mt-0.5">
+                        <AlertCircle className="h-3 w-3" />
+                        {errors.commercialName}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] md:text-xs text-muted-foreground/70 mt-0.5">
+                        Nom du commercial qui a soumis ce lead
+                      </p>
+                    )}
                   </motion.div>
 
                   {/* Date de création (auto-generated, display only) */}

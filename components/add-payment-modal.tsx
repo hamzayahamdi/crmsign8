@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { X, DollarSign, Calendar, FileText, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, DollarSign, Calendar, FileText, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { Client } from "@/types/client";
+import { toast } from "@/hooks/use-toast";
 
 interface AddPaymentModalProps {
   isOpen: boolean;
@@ -38,21 +39,105 @@ export function AddPaymentModal({
     reference: "",
     notes: "",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        amount: 0,
+        date: new Date().toISOString().split("T")[0],
+        method: "espece",
+        reference: "",
+        notes: "",
+      });
+      setErrors({});
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.amount || formData.amount <= 0) {
+      newErrors.amount = "Le montant doit être supérieur à 0";
+    }
+    if (!formData.date) {
+      newErrors.date = "La date du paiement est requise";
+    }
+    if (!formData.method) {
+      newErrors.method = "Veuillez sélectionner une méthode de paiement";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.amount <= 0) return;
+    e.stopPropagation();
 
-    onAddPayment(formData);
+    if (!validateForm()) {
+      toast({
+        title: "Erreur de validation",
+        description: "Veuillez corriger les erreurs dans le formulaire",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Reset form
-    setFormData({
-      amount: 0,
-      date: new Date().toISOString().split("T")[0],
-      method: "espece",
-      reference: "",
-      notes: "",
-    });
+    setIsSubmitting(true);
+    try {
+      // Handle both async and sync onAddPayment functions
+      const result = onAddPayment(formData);
+      if (result instanceof Promise) {
+        await result;
+      }
+
+      toast({
+        title: "Succès",
+        description: "Le paiement a été enregistré avec succès",
+      });
+
+      // Reset form
+      setFormData({
+        amount: 0,
+        date: new Date().toISOString().split("T")[0],
+        method: "espece",
+        reference: "",
+        notes: "",
+      });
+      setErrors({});
+      onClose();
+    } catch (error: any) {
+      console.error("Error adding payment:", error);
+      toast({
+        title: "Erreur",
+        description: error?.message || "Une erreur est survenue lors de l'enregistrement",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow empty string, numbers, and decimal points
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      const numValue = value === "" ? 0 : parseFloat(value);
+      setFormData({
+        ...formData,
+        amount: isNaN(numValue) ? 0 : numValue,
+      });
+      // Clear error when user starts typing
+      if (errors.amount) {
+        const newErrors = { ...errors };
+        delete newErrors.amount;
+        setErrors(newErrors);
+      }
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -137,25 +222,30 @@ export function AddPaymentModal({
                 </Label>
                 <div className="relative">
                   <Input
-                    type="number"
-                    value={formData.amount || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        amount: parseFloat(e.target.value) || 0,
-                      })
-                    }
+                    type="text"
+                    inputMode="decimal"
+                    value={formData.amount > 0 ? formData.amount.toString() : ""}
+                    onChange={handleAmountChange}
                     placeholder="0"
-                    min="0"
-                    step="100"
                     required
-                    className="h-12 pl-4 pr-16 bg-white/5 border-white/10 text-[#EAEAEA] text-lg font-semibold rounded-xl focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20"
+                    className={cn(
+                      "h-12 pl-4 pr-16 bg-white/5 border text-[#EAEAEA] text-lg font-semibold rounded-xl focus:ring-2 focus:ring-orange-500/20 transition-all",
+                      errors.amount
+                        ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20"
+                        : "border-white/10 focus:border-orange-500/50"
+                    )}
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 font-medium">
                     MAD
                   </span>
                 </div>
-                {formData.amount > 0 && (
+                {errors.amount && (
+                  <p className="text-xs text-red-400 flex items-center gap-1 mt-1.5">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    {errors.amount}
+                  </p>
+                )}
+                {formData.amount > 0 && !errors.amount && (
                   <p className="text-xs text-white/40 mt-1.5">
                     {formatCurrency(formData.amount)}
                   </p>
@@ -168,17 +258,33 @@ export function AddPaymentModal({
                   Date du paiement *
                 </Label>
                 <div className="relative">
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 z-10" />
                   <Input
                     type="date"
                     value={formData.date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, date: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setFormData({ ...formData, date: e.target.value });
+                      if (errors.date) {
+                        const newErrors = { ...errors };
+                        delete newErrors.date;
+                        setErrors(newErrors);
+                      }
+                    }}
                     required
-                    className="h-12 pl-11 bg-white/5 border-white/10 text-[#EAEAEA] rounded-xl focus:border-orange-500/50"
+                    className={cn(
+                      "h-12 pl-11 bg-white/5 border text-[#EAEAEA] rounded-xl focus:ring-2 focus:ring-orange-500/20 transition-all",
+                      errors.date
+                        ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20"
+                        : "border-white/10 focus:border-orange-500/50"
+                    )}
                   />
                 </div>
+                {errors.date && (
+                  <p className="text-xs text-red-400 flex items-center gap-1 mt-1.5">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    {errors.date}
+                  </p>
+                )}
               </div>
 
               {/* Payment Method */}
@@ -197,20 +303,34 @@ export function AddPaymentModal({
                       type="button"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() =>
-                        setFormData({ ...formData, method: method.value })
-                      }
+                      onClick={() => {
+                        setFormData({ ...formData, method: method.value });
+                        if (errors.method) {
+                          const newErrors = { ...errors };
+                          delete newErrors.method;
+                          setErrors(newErrors);
+                        }
+                      }}
                       className={cn(
                         "h-11 rounded-xl font-medium text-sm transition-all border",
                         formData.method === method.value
                           ? "bg-orange-500/20 border-orange-500/50 text-orange-400"
                           : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10",
+                        errors.method && formData.method !== method.value
+                          ? "border-red-500/30"
+                          : ""
                       )}
                     >
                       {method.label}
                     </motion.button>
                   ))}
                 </div>
+                {errors.method && (
+                  <p className="text-xs text-red-400 flex items-center gap-1 mt-1.5">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    {errors.method}
+                  </p>
+                )}
               </div>
 
               {/* Reference (optional) */}
@@ -248,18 +368,35 @@ export function AddPaymentModal({
               <div className="flex gap-3 pt-2">
                 <Button
                   type="submit"
-                  disabled={formData.amount <= 0}
-                  className="flex-1 h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting || formData.amount <= 0}
+                  className="flex-1 h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  <Check className="w-4 h-4 mr-2" />
-                  {hasExistingAcompte()
-                    ? "Enregistrer le paiement"
-                    : "Enregistrer l'acompte"}
+                  {isSubmitting ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-4 h-4 mr-2 border-2 border-white/30 border-t-white rounded-full"
+                      />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      {hasExistingAcompte()
+                        ? "Enregistrer le paiement"
+                        : "Enregistrer l'acompte"}
+                    </>
+                  )}
                 </Button>
                 <Button
                   type="button"
-                  onClick={onClose}
-                  className="h-12 px-6 bg-white/5 hover:bg-white/10 text-[#EAEAEA] rounded-xl border border-white/10"
+                  onClick={() => {
+                    setErrors({});
+                    onClose();
+                  }}
+                  disabled={isSubmitting}
+                  className="h-12 px-6 bg-white/5 hover:bg-white/10 text-[#EAEAEA] rounded-xl border border-white/10 disabled:opacity-50"
                 >
                   Annuler
                 </Button>

@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CreatableSelect } from "@/components/creatable-select"
 import { Textarea } from "@/components/ui/textarea"
 import type { Lead, LeadStatus, LeadSource, LeadPriority, LeadNote } from "@/types/lead"
-import { Trash2, UserPlus, XCircle, Save, Plus, Clock, User } from "lucide-react"
+import { Trash2, UserPlus, XCircle, Save, Plus, Clock, User, AlertCircle, X, Loader2 } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -173,6 +174,9 @@ export function LeadModalEnhanced({
     const [showCustomCommercial, setShowCustomCommercial] = useState(false)
     const [customCommercialName, setCustomCommercialName] = useState("")
     const [newNote, setNewNote] = useState("")
+    const [errors, setErrors] = useState<Record<string, string>>({})
+    const [showErrors, setShowErrors] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     const initialForm = {
         nom: lead?.nom || "",
@@ -236,21 +240,27 @@ export function LeadModalEnhanced({
         loadAssignees()
     }, [lead])
 
-    const resetForm = () => setFormData({
-        nom: "",
-        telephone: "",
-        ville: "",
-        typeBien: "",
-        statut: "nouveau" as LeadStatus,
-        statutDetaille: "",
-        assignePar: "Mohamed",
-        source: "site_web" as LeadSource,
-        priorite: "moyenne" as LeadPriority,
-        magasin: "",
-        commercialMagasin: "",
-        campaignName: "",
-        notes: [],
-    })
+    const resetForm = () => {
+        setFormData({
+            nom: "",
+            telephone: "",
+            ville: "",
+            typeBien: "",
+            statut: "nouveau" as LeadStatus,
+            statutDetaille: "",
+            assignePar: "Mohamed",
+            source: "site_web" as LeadSource,
+            priorite: "moyenne" as LeadPriority,
+            magasin: "",
+            commercialMagasin: "",
+            campaignName: "",
+            notes: [],
+        })
+        setErrors({})
+        setShowErrors(false)
+        setShowCustomCommercial(false)
+        setCustomCommercialName("")
+    }
 
     useEffect(() => {
         if (lead && open) {
@@ -336,68 +346,169 @@ export function LeadModalEnhanced({
         loadNotes()
     }, [open, lead?.id])
 
+    const validateForm = (): boolean => {
+        const newErrors: Record<string, string> = {}
+
+        if (!formData.nom.trim()) {
+            newErrors.nom = "Le nom complet est requis"
+        }
+        if (!formData.telephone.trim()) {
+            newErrors.telephone = "Le numéro de téléphone est requis"
+        } else if (!/^[0-9+\s-]{8,}$/.test(formData.telephone.trim())) {
+            newErrors.telephone = "Veuillez saisir un numéro de téléphone valide"
+        }
+        if (!formData.ville) {
+            newErrors.ville = "Veuillez sélectionner une ville"
+        }
+        if (!formData.typeBien) {
+            newErrors.typeBien = "Veuillez sélectionner un type de bien"
+        }
+        if (!formData.source) {
+            newErrors.source = "Veuillez sélectionner une source"
+        }
+        if (!formData.assignePar) {
+            newErrors.assignePar = "Veuillez sélectionner une personne à assigner"
+        }
+        
+        // If source is magasin, validate magasin-specific fields
+        if (formData.source === 'magasin') {
+            if (!formData.magasin) {
+                newErrors.magasin = "Veuillez sélectionner un magasin"
+            }
+            if (!formData.commercialMagasin?.trim()) {
+                newErrors.commercialMagasin = "Le nom du commercial est requis"
+            }
+        }
+
+        setErrors(newErrors)
+        setShowErrors(Object.keys(newErrors).length > 0)
+        
+        if (Object.keys(newErrors).length > 0) {
+            // Scroll to first error
+            const firstErrorField = Object.keys(newErrors)[0]
+            const element = document.getElementById(firstErrorField)
+            if (element) {
+                element.scrollIntoView({ behavior: "smooth", block: "center" })
+                element.focus()
+            }
+            return false
+        }
+
+        return true
+    }
+
+    const handleFieldChange = (field: string, value: any) => {
+        setFormData({ ...formData, [field]: value })
+        // Clear error for this field when user starts typing
+        if (errors[field]) {
+            const newErrors = { ...errors }
+            delete newErrors[field]
+            setErrors(newErrors)
+        }
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        const calculatedPriority = calculatePriority(formData.source)
-        
-        // Prepare lead data without statutDetaille (we'll save it as a note)
-        const { statutDetaille, ...leadDataWithoutStatusDetails } = formData
-        
-        // Prepare notes array - include status details as a note if provided
-        const notesToInclude = [...formData.notes]
-        if (statutDetaille && statutDetaille.trim()) {
-            const statusNote: LeadNote = {
-                id: Date.now().toString(), // Temporary ID, will be replaced by API
-                leadId: lead?.id || '',
-                content: `📋 Statut détaillé: ${statutDetaille.trim()}`,
-                author: currentUserName,
-                createdAt: new Date().toISOString(),
-            }
-            notesToInclude.push(statusNote)
-        }
-        
-        const leadData = {
-            ...leadDataWithoutStatusDetails,
-            notes: notesToInclude,
-            priorite: calculatedPriority,
-            id: lead?.id,
-            derniereMaj: new Date().toISOString(),
-            createdAt: lead?.createdAt ?? new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+        e.stopPropagation()
+
+        // Validate form
+        if (!validateForm()) {
+            toast({
+                title: "Erreur de validation",
+                description: `Veuillez corriger ${Object.keys(errors).length} erreur(s) dans le formulaire`,
+                variant: "destructive"
+            })
+            return
         }
 
-        // Save the lead (API will handle creating notes for new leads)
-        onSave(leadData)
-
-        // For existing leads, if status details are provided, save them as a note via API
-        if (lead?.id && statutDetaille && statutDetaille.trim()) {
-            try {
-                const token = localStorage.getItem('token')
-                const response = await fetch(`/api/leads/${lead.id}/notes`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        content: `📋 Statut détaillé: ${statutDetaille.trim()}`
-                    })
-                })
-
-                if (response.ok) {
-                    toast({
-                        title: "Note ajoutée",
-                        description: "Les détails du statut ont été enregistrés comme note.",
-                    })
+        setIsSubmitting(true)
+        try {
+            const calculatedPriority = calculatePriority(formData.source)
+            
+            // Prepare notes array - include status details as a note if provided
+            const notesToInclude = [...formData.notes]
+            if (formData.statutDetaille && formData.statutDetaille.trim()) {
+                const statusNote: LeadNote = {
+                    id: Date.now().toString(), // Temporary ID, will be replaced by API
+                    leadId: lead?.id || '',
+                    content: `📋 Statut détaillé: ${formData.statutDetaille.trim()}`,
+                    author: currentUserName,
+                    createdAt: new Date().toISOString(),
                 }
-            } catch (error) {
-                console.error('Error saving status details as note:', error)
-                // Don't show error to user, just log it
+                notesToInclude.push(statusNote)
             }
-        }
+            
+            const leadData = {
+                ...formData,
+                notes: notesToInclude,
+                priorite: calculatedPriority,
+                id: lead?.id,
+                derniereMaj: new Date().toISOString(),
+                createdAt: lead?.createdAt ?? new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            }
 
-        resetForm()
-        onOpenChange(false)
+            // Save the lead (API will handle creating notes for new leads)
+            await onSave(leadData)
+
+            // For existing leads, if status details are provided, save them as a note via API
+            if (lead?.id && formData.statutDetaille && formData.statutDetaille.trim()) {
+                try {
+                    const token = localStorage.getItem('token')
+                    const response = await fetch(`/api/leads/${lead.id}/notes`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            content: `📋 Statut détaillé: ${formData.statutDetaille.trim()}`
+                        })
+                    })
+
+                    if (response.ok) {
+                        toast({
+                            title: "Note ajoutée",
+                            description: "Les détails du statut ont été enregistrés comme note.",
+                        })
+                    }
+                } catch (error) {
+                    console.error('Error saving status details as note:', error)
+                    // Don't show error to user, just log it
+                }
+            }
+
+            toast({
+                title: "Succès",
+                description: lead ? "Lead mis à jour avec succès" : "Lead créé avec succès",
+            })
+
+            resetForm()
+            onOpenChange(false)
+        } catch (error: any) {
+            console.error("Error saving lead:", error)
+            toast({
+                title: "Erreur",
+                description: error?.message || "Une erreur est survenue lors de l'enregistrement",
+                variant: "destructive"
+            })
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    // Prevent modal from closing when clicking outside if there are errors
+    const handleOpenChangeWrapper = (open: boolean) => {
+        if (!open && showErrors) {
+            // Don't close if there are validation errors
+            return
+        }
+        if (!open) {
+            // Clear errors when closing
+            setErrors({})
+            setShowErrors(false)
+        }
+        onOpenChange(open)
     }
 
     const handleAddNote = async () => {
@@ -480,7 +591,7 @@ export function LeadModalEnhanced({
             : 'bg-gray-500/20 text-gray-400 border-gray-500/40'
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleOpenChangeWrapper}>
             <DialogContent
                 showCloseButton={false}
                 className="!w-fit !max-w-[95vw] lg:!max-w-fit bg-gradient-to-br from-[#0f1117] via-[#13151c] to-[#0f1117] border border-slate-800/50 max-h-[90vh] overflow-hidden p-0 shadow-2xl shadow-black/50 flex flex-col backdrop-blur-xl"
@@ -514,97 +625,183 @@ export function LeadModalEnhanced({
 
                         {/* Scrollable Form Content */}
                         <div className="flex-1 overflow-y-auto p-4">
-                            <form onSubmit={handleSubmit} className="space-y-2.5">
+                            {/* Error Summary */}
+                            <AnimatePresence>
+                                {showErrors && Object.keys(errors).length > 0 && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0, y: -10 }}
+                                        animate={{ opacity: 1, height: "auto", y: 0 }}
+                                        exit={{ opacity: 0, height: 0, y: -10 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="mb-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30 backdrop-blur-sm"
+                                    >
+                                        <div className="flex items-start gap-2.5">
+                                            <div className="mt-0.5 shrink-0">
+                                                <AlertCircle className="h-4 w-4 text-red-400" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-semibold text-red-400 mb-1.5">
+                                                    Veuillez corriger les erreurs suivantes :
+                                                </p>
+                                                <ul className="text-[10px] text-red-300/90 space-y-1">
+                                                    {Object.entries(errors).map(([field, message]) => (
+                                                        <li key={field} className="flex items-start gap-1.5">
+                                                            <span className="w-1 h-1 rounded-full bg-red-400 mt-1.5 shrink-0" />
+                                                            <span className="flex-1">{message}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    setShowErrors(false)
+                                                    setErrors({})
+                                                }}
+                                                className="text-red-400 hover:text-red-300 transition-colors shrink-0 mt-0.5 p-0.5 rounded hover:bg-red-500/10"
+                                                aria-label="Fermer"
+                                            >
+                                                <X className="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            <form onSubmit={handleSubmit} className="space-y-3">
                                 {/* Nom complet */}
-                                <div className="space-y-1">
+                                <div className="space-y-1.5">
                                     <Label htmlFor="nom" className="text-[10px] font-light text-slate-300">
-                                        Nom complet
+                                        Nom complet <span className="text-red-500">*</span>
                                     </Label>
                                     <Input
                                         id="nom"
                                         value={formData.nom}
-                                        onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                                        className="bg-slate-800/90 border-slate-600/40 text-white placeholder:text-slate-400 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 h-8 text-xs font-light transition-all"
+                                        onChange={(e) => handleFieldChange("nom", e.target.value)}
+                                        className={cn(
+                                            "bg-slate-800/90 border text-white placeholder:text-slate-400 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 h-8 px-3 text-xs font-light transition-all",
+                                            errors.nom
+                                                ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                                                : "border-slate-600/40 focus:border-blue-500/60"
+                                        )}
                                         placeholder="Nom et prénom"
-                                        required
                                     />
+                                    {errors.nom && (
+                                        <p className="text-[10px] text-red-400 flex items-center gap-1 mt-0.5">
+                                            <AlertCircle className="h-2.5 w-2.5 shrink-0" />
+                                            {errors.nom}
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Téléphone & Ville */}
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-1">
+                                    <div className="space-y-1.5">
                                         <Label htmlFor="telephone" className="text-[10px] font-light text-slate-300">
-                                            Téléphone
+                                            Téléphone <span className="text-red-500">*</span>
                                         </Label>
                                         <div className="relative">
-                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] z-10">📞</span>
+                                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs z-10 pointer-events-none flex items-center justify-center w-4 h-4">📞</span>
                                             <Input
                                                 id="telephone"
                                                 value={formData.telephone}
-                                                onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                                                className="bg-slate-800/90 border-slate-600/40 text-white placeholder:text-slate-400 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 h-8 pl-7 text-xs font-light transition-all"
+                                                onChange={(e) => handleFieldChange("telephone", e.target.value)}
+                                                className={cn(
+                                                    "bg-slate-800/90 border text-white placeholder:text-slate-400 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 h-8 pl-8 pr-3 text-xs font-light transition-all",
+                                                    errors.telephone
+                                                        ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                                                        : "border-slate-600/40 focus:border-blue-500/60"
+                                                )}
                                                 placeholder="Numéro de téléphone"
-                                                required
                                             />
                                         </div>
+                                        {errors.telephone && (
+                                            <p className="text-[10px] text-red-400 flex items-center gap-1 mt-0.5">
+                                                <AlertCircle className="h-2.5 w-2.5 shrink-0" />
+                                                {errors.telephone}
+                                            </p>
+                                        )}
                                     </div>
 
-                                    <div className="space-y-1">
+                                    <div className="space-y-1.5">
                                         <Label htmlFor="ville" className="text-[10px] font-light text-slate-300">
-                                            Ville
+                                            Ville <span className="text-red-500">*</span>
                                         </Label>
                                         <div className="relative">
-                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] z-10">📍</span>
-                                            <CreatableSelect
-                                                value={formData.ville}
-                                                onValueChange={(value) => setFormData({ ...formData, ville: value })}
-                                                options={villes}
-                                                placeholder="Sélectionner une ville"
-                                                searchPlaceholder="Rechercher..."
-                                                emptyText="Tapez pour créer"
-                                                className="pl-7"
-                                            />
+                                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs z-10 pointer-events-none flex items-center justify-center w-4 h-4">📍</span>
+                                            <div>
+                                                <CreatableSelect
+                                                    value={formData.ville}
+                                                    onValueChange={(value) => handleFieldChange("ville", value)}
+                                                    options={villes}
+                                                    placeholder="Sélectionner une ville"
+                                                    searchPlaceholder="Rechercher..."
+                                                    emptyText="Tapez pour créer"
+                                                    className={cn(
+                                                        "pl-8",
+                                                        errors.ville ? "border-red-500/50" : ""
+                                                    )}
+                                                />
+                                                {errors.ville && (
+                                                    <p className="text-[10px] text-red-400 flex items-center gap-1 mt-0.5">
+                                                        <AlertCircle className="h-2.5 w-2.5 shrink-0" />
+                                                        {errors.ville}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Type de bien & Statut */}
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-1">
+                                    <div className="space-y-1.5">
                                         <Label htmlFor="typeBien" className="text-[10px] font-light text-slate-300">
-                                            Type de bien
+                                            Type de bien <span className="text-red-500">*</span>
                                         </Label>
                                         <div className="relative">
-                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] z-10">🏠</span>
-                                            <Select
-                                                value={formData.typeBien || undefined}
-                                                onValueChange={(value) => setFormData({ ...formData, typeBien: value })}
-                                            >
-                                                <SelectTrigger className="bg-slate-800/90 border-slate-600/40 text-white h-8 pl-7 text-xs font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all">
-                                                    <SelectValue placeholder="Type de bien" />
-                                                </SelectTrigger>
-                                                 <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
-                                                     <SelectItem value="Villa" className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                         Villa
-                                                     </SelectItem>
-                                                     <SelectItem value="Appartement" className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                         Appartement
-                                                     </SelectItem>
-                                                     <SelectItem value="Duplex" className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                         Duplex
-                                                     </SelectItem>
-                                                     <SelectItem value="B2B" className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                         B2B
-                                                     </SelectItem>
-                                                     <SelectItem value="Autre" className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                         Autre
-                                                     </SelectItem>
-                                                 </SelectContent>
-                                            </Select>
+                                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs z-10 pointer-events-none flex items-center justify-center w-4 h-4">🏠</span>
+                                            <div>
+                                                <Select
+                                                    value={formData.typeBien || undefined}
+                                                    onValueChange={(value) => handleFieldChange("typeBien", value)}
+                                                >
+                                                    <SelectTrigger className={cn(
+                                                        "bg-slate-800/90 border text-white h-8 pl-8 pr-3 text-xs font-light focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all",
+                                                        errors.typeBien
+                                                            ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                                                            : "border-slate-600/40 focus:border-blue-500/60"
+                                                    )}>
+                                                        <SelectValue placeholder="Type de bien" />
+                                                    </SelectTrigger>
+                                                     <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
+                                                         <SelectItem value="Villa" className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                             Villa
+                                                         </SelectItem>
+                                                         <SelectItem value="Appartement" className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                             Appartement
+                                                         </SelectItem>
+                                                         <SelectItem value="Duplex" className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                             Duplex
+                                                         </SelectItem>
+                                                         <SelectItem value="B2B" className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                             B2B
+                                                         </SelectItem>
+                                                         <SelectItem value="Autre" className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                             Autre
+                                                         </SelectItem>
+                                                     </SelectContent>
+                                                </Select>
+                                                {errors.typeBien && (
+                                                    <p className="text-[10px] text-red-400 flex items-center gap-1 mt-0.5">
+                                                        <AlertCircle className="h-2.5 w-2.5 shrink-0" />
+                                                        {errors.typeBien}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-1">
+                                    <div className="space-y-1.5">
                                         <Label htmlFor="statut" className="text-[10px] font-light text-slate-300">
                                             Statut
                                         </Label>
@@ -647,7 +844,7 @@ export function LeadModalEnhanced({
                                 </div>
 
                                 {/* Statut détaillé - Will be saved as note */}
-                                <div className="space-y-1">
+                                <div className="space-y-1.5">
                                     <Label htmlFor="statutDetaille" className="text-[10px] font-light text-slate-300">
                                         Statut détaillé <span className="text-slate-400 font-light">(optionnel - sera enregistré comme note)</span>
                                     </Label>
@@ -663,109 +860,156 @@ export function LeadModalEnhanced({
 
                                 {/* Assigné à & Source */}
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-1">
+                                    <div className="space-y-1.5">
                                         <Label htmlFor="assignePar" className="text-[10px] font-light text-slate-300">
-                                            Assigné à
+                                            Assigné à <span className="text-red-500">*</span>
                                         </Label>
-                                        <Select
-                                            value={formData.assignePar}
-                                            onValueChange={(value) => setFormData({ ...formData, assignePar: value })}
-                                        >
-                                            <SelectTrigger className="bg-slate-800/90 border-slate-600/40 text-white h-8 text-xs font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all">
-                                                <div className="flex items-center gap-1.5">
-                                                    <User className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                                                    <span className="truncate text-xs">{formData.assignePar || "Sélectionner..."}</span>
-                                                </div>
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
-                                                {architects.map((name: string) => (
-                                                    <SelectItem key={name} value={name} className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                        <div className="flex items-center gap-1.5">
-                                                            <User className="w-3 h-3 text-gray-400" />
-                                                            {name}
-                                                        </div>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <div>
+                                            <Select
+                                                value={formData.assignePar}
+                                                onValueChange={(value) => handleFieldChange("assignePar", value)}
+                                            >
+                                                <SelectTrigger className={cn(
+                                                    "bg-slate-800/90 border text-white h-8 text-xs font-light focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all",
+                                                    errors.assignePar
+                                                        ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                                                        : "border-slate-600/40 focus:border-blue-500/60"
+                                                )}>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <User className="w-3 h-3 text-gray-400 shrink-0" />
+                                                        <span className="truncate text-xs">{formData.assignePar || "Sélectionner..."}</span>
+                                                    </div>
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
+                                                    {architects.map((name: string) => (
+                                                        <SelectItem key={name} value={name} className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <User className="w-3 h-3 text-gray-400" />
+                                                                {name}
+                                                            </div>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {errors.assignePar && (
+                                                <p className="text-[10px] text-red-400 flex items-center gap-1 mt-0.5">
+                                                    <AlertCircle className="h-2.5 w-2.5 shrink-0" />
+                                                    {errors.assignePar}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
 
-                                    <div className="space-y-1">
+                                    <div className="space-y-1.5">
                                         <Label htmlFor="source" className="text-[10px] font-light text-slate-300">
-                                            Source du lead
+                                            Source du lead <span className="text-red-500">*</span>
                                         </Label>
-                                        <Select
-                                            value={formData.source}
-                                            onValueChange={(value) => {
-                                                const newSource = value as LeadSource
-                                                const calculatedPriority = calculatePriority(newSource)
-                                                setFormData({ ...formData, source: newSource, priorite: calculatedPriority })
-                                            }}
-                                        >
-                                            <SelectTrigger className="bg-slate-800/90 border-slate-600/40 text-white h-8 text-xs font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all">
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="text-xs">
-                                                        {formData.source === 'magasin' ? '🏢' :
-                                                            formData.source === 'site_web' ? '🌐' :
-                                                                formData.source === 'facebook' ? '📘' :
-                                                                    formData.source === 'instagram' ? '📷' :
-                                                                        formData.source === 'tiktok' ? '🎵' :
-                                                                            formData.source === 'reference_client' ? '👥' : '📦'}
-                                                    </span>
-                                                    <SelectValue />
-                                                </div>
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
-                                                {sources.map((source) => (
-                                                    <SelectItem key={source.value} value={source.value} className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                        {source.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <div>
+                                            <Select
+                                                value={formData.source}
+                                                onValueChange={(value) => {
+                                                    const newSource = value as LeadSource
+                                                    const calculatedPriority = calculatePriority(newSource)
+                                                    handleFieldChange("source", newSource)
+                                                    setFormData({ ...formData, source: newSource, priorite: calculatedPriority })
+                                                    // Clear magasin errors if source changes
+                                                    if (newSource !== 'magasin') {
+                                                        const newErrors = { ...errors }
+                                                        delete newErrors.magasin
+                                                        delete newErrors.commercialMagasin
+                                                        setErrors(newErrors)
+                                                    }
+                                                }}
+                                            >
+                                                <SelectTrigger className={cn(
+                                                    "bg-slate-800/90 border text-white h-8 text-xs font-light focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all",
+                                                    errors.source
+                                                        ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                                                        : "border-slate-600/40 focus:border-blue-500/60"
+                                                )}>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-xs">
+                                                            {formData.source === 'magasin' ? '🏢' :
+                                                                formData.source === 'site_web' ? '🌐' :
+                                                                    formData.source === 'facebook' ? '📘' :
+                                                                        formData.source === 'instagram' ? '📷' :
+                                                                            formData.source === 'tiktok' ? '🎵' :
+                                                                                formData.source === 'reference_client' ? '👥' : '📦'}
+                                                        </span>
+                                                        <SelectValue />
+                                                    </div>
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
+                                                    {sources.map((source) => (
+                                                        <SelectItem key={source.value} value={source.value} className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                            {source.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {errors.source && (
+                                                <p className="text-[10px] text-red-400 flex items-center gap-1 mt-0.5">
+                                                    <AlertCircle className="h-2.5 w-2.5 shrink-0" />
+                                                    {errors.source}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
 
                                 {/* Conditional: Magasin Fields - Show if source is magasin OR if lead has magasin/commercial values */}
                                 {(formData.source === 'magasin' || formData.magasin || formData.commercialMagasin) && (
-                                    <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/30 space-y-2.5 backdrop-blur-sm">
+                                    <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/30 space-y-3 backdrop-blur-sm">
                                         <div className="grid grid-cols-2 gap-3">
-                                            <div className="space-y-1">
+                                            <div className="space-y-1.5">
                                                 <Label htmlFor="magasin" className="text-[10px] font-light text-slate-300">
-                                                    Magasin
+                                                    Magasin <span className="text-red-500">*</span>
                                                 </Label>
-                                                <Select
-                                                    value={formData.magasin}
-                                                    onValueChange={(value) => setFormData({ ...formData, magasin: value })}
-                                                >
-                                                    <SelectTrigger className="bg-slate-800/90 border-slate-600/40 text-white h-8 text-xs font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all">
-                                                        <SelectValue placeholder="Sélectionner...">
-                                                            {formData.magasin || "Sélectionner..."}
-                                                        </SelectValue>
-                                                    </SelectTrigger>
-                                                    <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
-                                                        {(() => {
-                                                            const defaultMagasins = ["📍 Casablanca", "📍 Rabat", "📍 Tanger", "📍 Marrakech", "📍 Bouskoura"]
-                                                            const currentMagasin = formData.magasin
-                                                            const magasinList = [...defaultMagasins]
-                                                            // Add current magasin if it's not in the default list
-                                                            if (currentMagasin && !defaultMagasins.includes(currentMagasin)) {
-                                                                magasinList.unshift(currentMagasin)
-                                                            }
-                                                            return magasinList.map((mag) => (
-                                                                <SelectItem key={mag} value={mag} className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                                    {mag}
-                                                                </SelectItem>
-                                                            ))
-                                                        })()}
-                                                    </SelectContent>
-                                                </Select>
+                                                <div>
+                                                    <Select
+                                                        value={formData.magasin}
+                                                        onValueChange={(value) => handleFieldChange("magasin", value)}
+                                                    >
+                                                        <SelectTrigger className={cn(
+                                                            "bg-slate-800/90 border text-white h-8 text-xs font-light focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all",
+                                                            errors.magasin
+                                                                ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                                                                : "border-slate-600/40 focus:border-blue-500/60"
+                                                        )}>
+                                                            <SelectValue placeholder="Sélectionner...">
+                                                                {formData.magasin || "Sélectionner..."}
+                                                            </SelectValue>
+                                                        </SelectTrigger>
+                                                        <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
+                                                            {(() => {
+                                                                const defaultMagasins = ["📍 Casablanca", "📍 Rabat", "📍 Tanger", "📍 Marrakech", "📍 Bouskoura"]
+                                                                const currentMagasin = formData.magasin
+                                                                const magasinList = [...defaultMagasins]
+                                                                // Add current magasin if it's not in the default list
+                                                                if (currentMagasin && !defaultMagasins.includes(currentMagasin)) {
+                                                                    magasinList.unshift(currentMagasin)
+                                                                }
+                                                                return magasinList.map((mag) => (
+                                                                    <SelectItem key={mag} value={mag} className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                                        {mag}
+                                                                    </SelectItem>
+                                                                ))
+                                                            })()}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    {errors.magasin && (
+                                                        <p className="text-[10px] text-red-400 flex items-center gap-1 mt-0.5">
+                                                            <AlertCircle className="h-2.5 w-2.5 shrink-0" />
+                                                            {errors.magasin}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
 
-                                            <div className="space-y-1">
+                                            <div className="space-y-1.5">
                                                 <Label htmlFor="commercialMagasin" className="text-[10px] font-light text-slate-300">
-                                                    Commercial
+                                                    Commercial <span className="text-red-500">*</span>
                                                 </Label>
                                                 {showCustomCommercial ? (
                                                     <div className="space-y-1">
@@ -774,11 +1018,22 @@ export function LeadModalEnhanced({
                                                             value={customCommercialName}
                                                             onChange={(e) => {
                                                                 setCustomCommercialName(e.target.value)
-                                                                setFormData({ ...formData, commercialMagasin: e.target.value })
+                                                                handleFieldChange("commercialMagasin", e.target.value)
                                                             }}
-                                                            className="bg-slate-800/90 border-slate-600/40 text-white placeholder:text-slate-400 focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 h-8 text-xs font-light transition-all"
+                                                            className={cn(
+                                                                "bg-slate-800/90 border text-white placeholder:text-slate-400 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 h-8 text-xs font-light transition-all",
+                                                                errors.commercialMagasin
+                                                                    ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                                                                    : "border-slate-600/40 focus:border-blue-500/60"
+                                                            )}
                                                             placeholder="Nom du commercial"
                                                         />
+                                                        {errors.commercialMagasin && (
+                                                            <p className="text-[10px] text-red-400 flex items-center gap-1 mt-0.5">
+                                                                <AlertCircle className="h-2.5 w-2.5 shrink-0" />
+                                                                {errors.commercialMagasin}
+                                                            </p>
+                                                        )}
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
@@ -799,41 +1054,54 @@ export function LeadModalEnhanced({
                                                         </Button>
                                                     </div>
                                                 ) : (
-                                                    <Select
-                                                        value={formData.commercialMagasin || ""}
-                                                        onValueChange={(value) => {
-                                                            if (value === "Autre") {
-                                                                setShowCustomCommercial(true)
-                                                                setCustomCommercialName("")
-                                                                setFormData({ ...formData, commercialMagasin: "" })
-                                                            } else {
-                                                                setShowCustomCommercial(false)
-                                                                setCustomCommercialName("")
-                                                                setFormData({ ...formData, commercialMagasin: value })
-                                                            }
-                                                        }}
-                                                    >
-                                                        <SelectTrigger className="bg-slate-800/90 border-slate-600/40 text-white h-8 text-xs font-light focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all">
-                                                            <SelectValue placeholder="Sélectionner...">
-                                                                {formData.commercialMagasin || "Sélectionner..."}
-                                                            </SelectValue>
-                                                        </SelectTrigger>
-                                                        <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
-                                                            {(() => {
-                                                                const currentCommercial = formData.commercialMagasin
-                                                                const commercialList = [...commercials]
-                                                                // Add current commercial if it's not in the predefined list
-                                                                if (currentCommercial && !commercials.includes(currentCommercial) && currentCommercial !== "Autre") {
-                                                                    commercialList.unshift(currentCommercial)
+                                                    <div>
+                                                        <Select
+                                                            value={formData.commercialMagasin || ""}
+                                                            onValueChange={(value) => {
+                                                                if (value === "Autre") {
+                                                                    setShowCustomCommercial(true)
+                                                                    setCustomCommercialName("")
+                                                                    handleFieldChange("commercialMagasin", "")
+                                                                } else {
+                                                                    setShowCustomCommercial(false)
+                                                                    setCustomCommercialName("")
+                                                                    handleFieldChange("commercialMagasin", value)
                                                                 }
-                                                                return commercialList.map((commercial) => (
-                                                                    <SelectItem key={commercial} value={commercial} className="text-white text-xs font-light hover:bg-slate-700/50">
-                                                                        {commercial}
-                                                                    </SelectItem>
-                                                                ))
-                                                            })()}
-                                                        </SelectContent>
-                                                    </Select>
+                                                            }}
+                                                        >
+                                                            <SelectTrigger className={cn(
+                                                                "bg-slate-800/90 border text-white h-8 text-xs font-light focus:ring-1 focus:ring-blue-500/30 focus:bg-slate-800 transition-all",
+                                                                errors.commercialMagasin
+                                                                    ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/40"
+                                                                    : "border-slate-600/40 focus:border-blue-500/60"
+                                                            )}>
+                                                                <SelectValue placeholder="Sélectionner...">
+                                                                    {formData.commercialMagasin || "Sélectionner..."}
+                                                                </SelectValue>
+                                                            </SelectTrigger>
+                                                            <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
+                                                                {(() => {
+                                                                    const currentCommercial = formData.commercialMagasin
+                                                                    const commercialList = [...commercials]
+                                                                    // Add current commercial if it's not in the predefined list
+                                                                    if (currentCommercial && !commercials.includes(currentCommercial) && currentCommercial !== "Autre") {
+                                                                        commercialList.unshift(currentCommercial)
+                                                                    }
+                                                                    return commercialList.map((commercial) => (
+                                                                        <SelectItem key={commercial} value={commercial} className="text-white text-xs font-light hover:bg-slate-700/50">
+                                                                            {commercial}
+                                                                        </SelectItem>
+                                                                    ))
+                                                                })()}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        {errors.commercialMagasin && (
+                                                            <p className="text-[10px] text-red-400 flex items-center gap-1 mt-0.5">
+                                                                <AlertCircle className="h-2.5 w-2.5 shrink-0" />
+                                                                {errors.commercialMagasin}
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
@@ -1000,8 +1268,13 @@ export function LeadModalEnhanced({
                         <Button
                             type="button"
                             variant="ghost"
-                            onClick={() => onOpenChange(false)}
+                            onClick={() => {
+                                setErrors({})
+                                setShowErrors(false)
+                                onOpenChange(false)
+                            }}
                             className="bg-slate-800/90 border border-slate-600/40 text-white hover:bg-slate-700/90 font-light px-4 h-8 text-xs transition-all"
+                            disabled={isSubmitting}
                         >
                             Annuler
                         </Button>
@@ -1009,9 +1282,19 @@ export function LeadModalEnhanced({
                             type="submit"
                             onClick={handleSubmit}
                             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg font-light px-5 h-8 text-xs min-w-[120px]"
+                            disabled={isSubmitting}
                         >
-                            <Save className="w-3 h-3 mr-1.5" />
-                            Enregistrer
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+                                    {lead ? "Enregistrement..." : "Création..."}
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-3 h-3 mr-1.5" />
+                                    Enregistrer
+                                </>
+                            )}
                         </Button>
                     </div>
                 </div>
