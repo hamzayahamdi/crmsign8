@@ -543,17 +543,20 @@ export function CreateOpportunityModal({
                       />
                     </div>
 
-                    {/* Description - REQUIRED */}
+                    {/* Notes & Détails - REQUIRED */}
                     <div className="space-y-1">
                       <Label className="text-xs font-light text-slate-300">
-                        Description <span className="text-[10px] font-light text-red-400">* (Requis)</span>
+                        Notes & Détails <span className="text-[10px] font-light text-red-400">* (Requis)</span>
                       </Label>
                       <Textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Détails du projet, besoins spécifiques..."
+                        placeholder="Détails du projet, besoins spécifiques, notes importantes..."
                         className="min-h-[80px] text-xs bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
                       />
+                      <p className="text-[10px] font-light text-slate-500 italic">
+                        Cette note sera enregistrée dans l'historique du contact et du client pour la traçabilité
+                      </p>
                     </div>
 
                     {/* Montant Estimé - REQUIRED */}

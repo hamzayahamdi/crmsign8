@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from "react"
 import {
   Clock, MessageSquare, Phone, FileText, CheckCircle, DollarSign,
   Calendar, MapPin, ExternalLink, Filter, Plus, ChevronDown, ChevronUp,
-  TrendingUp, User, History, Activity
+  TrendingUp, User, History, Activity, CheckCircle2
 } from "lucide-react"
 import type { Client, ClientHistoryEntry, Appointment } from "@/types/client"
+import type { Task } from "@/types/task"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -22,15 +23,16 @@ import { cn } from "@/lib/utils"
 interface EnhancedTimelineProps {
   client: Client
   onAddRdv?: () => void
+  onAddTask?: () => void
   showFilters?: boolean
   maxItems?: number
 }
-
 type FilterType = "all" | "statuts" | "rdv" | "notes" | "fichiers" | "activites"
 
 export function EnhancedTimeline({
   client,
   onAddRdv,
+  onAddTask,
   showFilters = true,
   maxItems = 20
 }: EnhancedTimelineProps) {
@@ -40,6 +42,104 @@ export function EnhancedTimeline({
   const [cachedEvents, setCachedEvents] = useState<any[]>([]) // Cache events to prevent clearing
   const previousHistoriqueLengthRef = useRef(0)
   const isInitializedRef = useRef(false)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [isLoadingTasks, setIsLoadingTasks] = useState(true)
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([])
+
+  // Fetch tasks for this client
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setIsLoadingTasks(true)
+        const response = await fetch('/api/tasks', {
+          credentials: 'include'
+        })
+        if (response.ok) {
+          const result = await response.json()
+          const allTasks = result.data || result
+          if (Array.isArray(allTasks)) {
+            const filtered = allTasks
+              .filter(
+                (task: Task) => 
+                  task.linkedType === 'client' && 
+                  task.linkedId === client.id && 
+                  task.status !== 'termine'
+              )
+              .sort((a: Task, b: Task) => {
+                const aDate = a.dueDate ? new Date(a.dueDate).getTime() : 0
+                const bDate = b.dueDate ? new Date(b.dueDate).getTime() : 0
+                return aDate - bDate
+              })
+            setTasks(filtered)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching tasks:', error)
+      } finally {
+        setIsLoadingTasks(false)
+      }
+    }
+    fetchTasks()
+
+    // Listen for task updates
+    const handleTaskUpdate = (event: CustomEvent) => {
+      if (event.detail.clientId === client.id || event.detail.linkedId === client.id) {
+        fetchTasks()
+      }
+    }
+
+    window.addEventListener('task-updated' as any, handleTaskUpdate)
+    return () => window.removeEventListener('task-updated' as any, handleTaskUpdate)
+  }, [client.id])
+
+  // Get upcoming appointments
+  useEffect(() => {
+    if (client.rendezVous) {
+      const upcoming = client.rendezVous
+        .filter(rdv => isUpcomingAppointment(rdv.dateStart))
+        .sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime())
+      setUpcomingAppointments(upcoming)
+    } else {
+      setUpcomingAppointments([])
+    }
+
+    // Listen for appointment updates
+    const handleAppointmentUpdate = (event: CustomEvent) => {
+      if (event.detail.clientId === client.id && client.rendezVous) {
+        const upcoming = client.rendezVous
+          .filter(rdv => isUpcomingAppointment(rdv.dateStart))
+          .sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime())
+        setUpcomingAppointments(upcoming)
+      }
+    }
+
+    window.addEventListener('appointment-updated' as any, handleAppointmentUpdate)
+    return () => window.removeEventListener('appointment-updated' as any, handleAppointmentUpdate)
+  }, [client.rendezVous, client.id])
+
+  const hasActions = tasks.length > 0 || upcomingAppointments.length > 0
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const eventDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+    if (eventDate.getTime() === today.getTime()) {
+      return `Aujourd'hui à ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+    } else if (eventDate.getTime() === tomorrow.getTime()) {
+      return `Demain à ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+    } else {
+      return date.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+  }
 
   const toggleGroup = (groupKey: string) => {
     setExpandedGroups(prev => {
@@ -438,8 +538,202 @@ export function EnhancedTimeline({
   }
 
   return (
-    <div className="bg-[#171B22] rounded-lg border border-white/10 p-3">
-      {/* Header */}
+    <div className="bg-[#171B22] rounded-lg border border-white/10 p-4">
+      {/* ACTIONS & RDV Section */}
+      <div className="mb-4 pb-4 border-b border-white/10">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-white/80" />
+            <CheckCircle2 className="w-4 h-4 text-white/80" />
+            <h3 className="text-sm font-semibold text-white tracking-wide">ACTIONS & RDV</h3>
+          </div>
+          
+          {/* Top Right Buttons */}
+          <div className="flex items-center gap-1.5">
+            {onAddTask && (
+              <Button
+                onClick={onAddTask}
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2.5 text-[10px] text-white/70 hover:text-white hover:bg-white/10 font-light transition-all"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Tâche
+              </Button>
+            )}
+            {onAddRdv && (
+              <Button
+                onClick={onAddRdv}
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2.5 text-[10px] text-white/70 hover:text-white hover:bg-white/10 font-light transition-all"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                RDV
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Content Area */}
+        {isLoadingTasks ? (
+          <div className="flex flex-col items-center justify-center py-6 px-4">
+            <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin mb-2"></div>
+            <p className="text-xs text-white/40 font-light">Chargement...</p>
+          </div>
+        ) : !hasActions ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-6 px-4"
+          >
+            <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-3">
+              <Calendar className="w-7 h-7 text-white/30" />
+            </div>
+            <p className="text-sm text-white/50 font-light mb-4 text-center">
+              Aucune action ou RDV planifié
+            </p>
+            
+            {/* Prominent Action Buttons */}
+            <div className="w-full space-y-2.5">
+              {onAddTask && (
+                <Button
+                  onClick={onAddTask}
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white h-10 text-sm font-medium shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Créer une tâche
+                </Button>
+              )}
+              {onAddRdv && (
+                <Button
+                  onClick={onAddRdv}
+                  className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white h-10 text-sm font-medium shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Planifier RDV
+                </Button>
+              )}
+            </div>
+          </motion.div>
+        ) : (
+          <div className="space-y-3">
+            {/* Tasks */}
+            {tasks.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-white/70 uppercase tracking-wide mb-2">
+                  Tâches ({tasks.length})
+                </h4>
+                {tasks.slice(0, 3).map((task) => (
+                  <motion.div
+                    key={task.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={cn(
+                      "p-2.5 rounded-lg border transition-all",
+                      task.status === "en_cours"
+                        ? "bg-blue-500/10 border-blue-500/30"
+                        : "bg-white/5 border-white/10"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <CheckCircle2 className={cn(
+                          "w-3.5 h-3.5 shrink-0",
+                          task.status === "en_cours" ? "text-blue-400" : "text-white/50"
+                        )} />
+                        <p className="text-xs font-medium text-white truncate">{task.title}</p>
+                      </div>
+                    </div>
+                    {task.dueDate && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-white/50">
+                        <Clock className="w-3 h-3" />
+                        <span>{formatDate(task.dueDate)}</span>
+                      </div>
+                    )}
+                    {task.assignedTo && (
+                      <div className="mt-1 text-[10px] text-white/40">
+                        Assigné à: {task.assignedTo}
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+                {tasks.length > 3 && (
+                  <p className="text-[10px] text-white/40 text-center pt-1">
+                    +{tasks.length - 3} autre{tasks.length - 3 > 1 ? 's' : ''} tâche{tasks.length - 3 > 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Appointments */}
+            {upcomingAppointments.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-white/70 uppercase tracking-wide mb-2">
+                  RDV ({upcomingAppointments.length})
+                </h4>
+                {upcomingAppointments.slice(0, 3).map((rdv) => (
+                  <motion.div
+                    key={rdv.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="p-2.5 rounded-lg border bg-purple-500/10 border-purple-500/30 transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                        <p className="text-xs font-medium text-white truncate">{rdv.title}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] text-white/50 mb-1">
+                      <Clock className="w-3 h-3" />
+                      <span>{formatDate(rdv.dateStart)}</span>
+                    </div>
+                    {rdv.location && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-white/50">
+                        <MapPin className="w-3 h-3" />
+                        <span className="truncate">{rdv.location}</span>
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+                {upcomingAppointments.length > 3 && (
+                  <p className="text-[10px] text-white/40 text-center pt-1">
+                    +{upcomingAppointments.length - 3} autre{upcomingAppointments.length - 3 > 1 ? 's' : ''} RDV
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Quick Add Buttons when there are items */}
+            <div className="pt-2 border-t border-white/10 space-y-2">
+              {onAddTask && (
+                <Button
+                  onClick={onAddTask}
+                  variant="outline"
+                  className="w-full h-8 bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 text-xs font-medium transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-2" />
+                  Créer une tâche
+                </Button>
+              )}
+              {onAddRdv && (
+                <Button
+                  onClick={onAddRdv}
+                  variant="outline"
+                  className="w-full h-8 bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/30 text-xs font-medium transition-all"
+                >
+                  <Calendar className="w-3.5 h-3.5 mr-2" />
+                  Planifier RDV
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Timeline Header */}
       <div className="flex items-center justify-between mb-2.5">
         <div>
           <h3 className="text-sm font-light text-white mb-0.5 flex items-center gap-1.5">
@@ -448,17 +742,6 @@ export function EnhancedTimeline({
           </h3>
           <p className="text-[10px] text-white/40 font-light">{filteredEvents.length} événement{filteredEvents.length > 1 ? 's' : ''}</p>
         </div>
-
-        {onAddRdv && (
-          <Button
-            onClick={onAddRdv}
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700 text-white h-7 px-2.5 text-[10px] font-light"
-          >
-            <Plus className="w-3 h-3 mr-1" />
-            Ajouter RDV
-          </Button>
-        )}
       </div>
 
       {/* Filters */}

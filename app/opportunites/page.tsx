@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Filter, X, ChevronDown, Target, TrendingUp, LayoutGrid, Table as TableIcon, Loader2, CheckCircle2, Clock } from "lucide-react"
+import { Plus, Filter, X, ChevronDown, Target, LayoutGrid, Table as TableIcon, Loader2, CheckCircle2, Clock } from "lucide-react"
 import type { Client, ProjectStatus } from "@/types/client"
 import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
@@ -450,26 +450,28 @@ export default function OpportunitiesPage() {
         <main className="flex-1 flex flex-col overflow-x-hidden bg-linear-to-b from-[rgb(17,21,33)] via-[rgb(11,14,24)] to-[rgb(7,9,17)] w-full">
           <Header />
 
-          {/* Stats Cards */}
-          <div className="px-3 md:px-4 pt-2 md:pt-3 pb-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {/* Stats Cards - Compact design with inline text */}
+          <div className="px-3 md:px-4 pt-3 pb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-blue-500/30 transition-all duration-300"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-blue-500/15 via-slate-800/70 to-slate-900/50 border border-blue-500/40 p-2.5 hover:border-blue-500/60 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Total</p>
-                    <p className="text-2xl font-bold text-white leading-tight">{isLoading ? '...' : totalOpportunities}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Opportunités</p>
+                    <p className="text-[9px] font-bold text-blue-400/80 mb-0.5 uppercase tracking-widest">Total</p>
+                    <div className="flex items-baseline gap-1.5">
+                      <p className="text-2xl font-extrabold text-white leading-none">{isLoading ? '...' : totalOpportunities}</p>
+                      <span className="text-[11px] font-semibold text-blue-300/70">Opportunités</span>
+                    </div>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500/25 to-blue-500/15 border border-blue-500/40 flex items-center justify-center shadow-md shadow-blue-500/20">
                       {isLoading ? (
-                        <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                        <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
                       ) : (
-                        <Target className="w-5 h-5 text-blue-400" />
+                        <Target className="w-4 h-4 text-blue-400" />
                       )}
                     </div>
                   </div>
@@ -480,20 +482,22 @@ export default function OpportunitiesPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-orange-500/30 transition-all duration-300"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-orange-500/15 via-slate-800/70 to-slate-900/50 border border-orange-500/40 p-2.5 hover:border-orange-500/60 hover:shadow-lg hover:shadow-orange-500/20 transition-all duration-300"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">En cours</p>
-                    <p className="text-2xl font-bold text-orange-400 leading-tight">{isLoading ? '...' : opportunitiesEnCours}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Opportunités</p>
+                    <p className="text-[9px] font-bold text-orange-400/80 mb-0.5 uppercase tracking-widest">En cours</p>
+                    <div className="flex items-baseline gap-1.5">
+                      <p className="text-2xl font-extrabold text-orange-300 leading-none">{isLoading ? '...' : opportunitiesEnCours}</p>
+                      <span className="text-[11px] font-semibold text-orange-300/70">Opportunités</span>
+                    </div>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-orange-500/25 to-orange-500/15 border border-orange-500/40 flex items-center justify-center shadow-md shadow-orange-500/20">
                       {isLoading ? (
-                        <Loader2 className="w-5 h-5 text-orange-400 animate-spin" />
+                        <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
                       ) : (
-                        <Clock className="w-5 h-5 text-orange-400" />
+                        <Clock className="w-4 h-4 text-orange-400" />
                       )}
                     </div>
                   </div>
@@ -504,20 +508,22 @@ export default function OpportunitiesPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 p-3 hover:border-green-500/30 transition-all duration-300 sm:col-span-2 lg:col-span-1"
+                className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-green-500/15 via-slate-800/70 to-slate-900/50 border border-green-500/40 p-2.5 hover:border-green-500/60 hover:shadow-lg hover:shadow-green-500/20 transition-all duration-300 sm:col-span-2 lg:col-span-1"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-400 mb-0.5 uppercase tracking-wider">Terminés</p>
-                    <p className="text-2xl font-bold text-green-400 leading-tight">{isLoading ? '...' : opportunitiesTermines}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Opportunités</p>
+                    <p className="text-[9px] font-bold text-green-400/80 mb-0.5 uppercase tracking-widest">Terminés</p>
+                    <div className="flex items-baseline gap-1.5">
+                      <p className="text-2xl font-extrabold text-green-300 leading-none">{isLoading ? '...' : opportunitiesTermines}</p>
+                      <span className="text-[11px] font-semibold text-green-300/70">Opportunités</span>
+                    </div>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-green-500/25 to-green-500/15 border border-green-500/40 flex items-center justify-center shadow-md shadow-green-500/20">
                       {isLoading ? (
-                        <Loader2 className="w-5 h-5 text-green-400 animate-spin" />
+                        <Loader2 className="w-4 h-4 text-green-400 animate-spin" />
                       ) : (
-                        <CheckCircle2 className="w-5 h-5 text-green-400" />
+                        <CheckCircle2 className="w-4 h-4 text-green-400" />
                       )}
                     </div>
                   </div>
@@ -526,7 +532,7 @@ export default function OpportunitiesPage() {
             </div>
           </div>
 
-          {/* Search and Filters */}
+          {/* Search and Filters - Compact layout */}
           <div className="px-3 md:px-4 pb-2">
             <div className="space-y-1.5">
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
@@ -538,40 +544,33 @@ export default function OpportunitiesPage() {
                   />
                 </div>
 
-                <div className="glass rounded-lg p-0.5 flex border border-slate-600/30 self-stretch lg:self-auto">
+                {/* Enhanced View Mode Toggle */}
+                <div className="glass rounded-lg p-1 flex border border-slate-600/40 bg-slate-800/40 backdrop-blur-sm self-stretch lg:self-auto shadow-lg">
                   <button
                     onClick={() => handleViewModeChange('table')}
                     className={cn(
-                      "flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 flex-1 lg:flex-none h-7",
+                      "flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 flex-1 lg:flex-none h-8",
                       viewMode === 'table'
-                        ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
-                        : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-[0_4px_12px_rgba(59,130,246,0.4)] border border-blue-400/50"
+                        : "text-slate-400 hover:text-white hover:bg-slate-700/60 border border-transparent"
                     )}
                   >
-                    <TableIcon className="w-3 h-3" />
-                    <span className="inline">Table</span>
+                    <TableIcon className={cn("w-3.5 h-3.5", viewMode === 'table' ? "text-white" : "text-slate-400")} />
+                    <span className="inline font-medium">Table</span>
                   </button>
                   <button
                     onClick={() => handleViewModeChange('kanban')}
                     className={cn(
-                      "flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all duration-200 flex-1 lg:flex-none h-7",
+                      "flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 flex-1 lg:flex-none h-8",
                       viewMode === 'kanban'
-                        ? "bg-primary text-white shadow-[0_10px_30px_-18px_rgba(59,130,246,0.8)]"
-                        : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-[0_4px_12px_rgba(59,130,246,0.4)] border border-blue-400/50"
+                        : "text-slate-400 hover:text-white hover:bg-slate-700/60 border border-transparent"
                     )}
                   >
-                    <LayoutGrid className="w-3 h-3" />
-                    <span className="inline">Kanban</span>
+                    <LayoutGrid className={cn("w-3.5 h-3.5", viewMode === 'kanban' ? "text-white" : "text-slate-400")} />
+                    <span className="inline font-medium">Kanban</span>
                   </button>
                 </div>
-
-                <Button
-                  onClick={handleAddOpportunity}
-                  className="h-7 px-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium text-xs shadow-[0_12px_40px_-24px_rgba(59,130,246,0.9)] w-full lg:w-auto"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  <span>Nouvelle opportunité</span>
-                </Button>
               </div>
 
               <div className="glass rounded-lg border border-slate-600/30 shadow-[0_18px_48px_-28px_rgba(59,130,246,0.65)]">
@@ -749,8 +748,8 @@ export default function OpportunitiesPage() {
             </div>
           </div>
 
-          {/* Opportunities Content - Table or Kanban */}
-          <div className="flex-1 px-3 md:px-4 pb-3 overflow-hidden">
+          {/* Opportunities Content - Table or Kanban - Reduced spacing */}
+          <div className="flex-1 px-3 md:px-4 pb-3 overflow-hidden mt-1">
             <div className="flex h-full w-full flex-col">
               {isLoading ? (
                 <div className="flex h-full items-center justify-center">
@@ -787,7 +786,7 @@ export default function OpportunitiesPage() {
               ) : (
                 <>
                   {viewMode === 'table' ? (
-                    <div className="flex flex-1 flex-col gap-6">
+                    <div className="flex flex-1 flex-col">
                       {/* Desktop Table View */}
                       <div className="hidden lg:block">
                         <ClientsTable

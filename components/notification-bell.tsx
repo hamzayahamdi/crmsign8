@@ -21,6 +21,8 @@ export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const hoverTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
   const [hoveredNotificationId, setHoveredNotificationId] = useState<string | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [position, setPosition] = useState({ top: 0, right: 0 });
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -81,6 +83,33 @@ export function NotificationBell() {
   // Get recent notifications (last 10)
   const recentNotifications = notifications.slice(0, 10);
 
+  // Calculate position for portal
+  useEffect(() => {
+    const updatePosition = () => {
+      if (triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect();
+        setPosition({
+          top: rect.bottom + 8, // Fixed positioning relative to viewport
+          right: window.innerWidth - rect.right,
+        });
+      }
+    };
+
+    if (isOpen) {
+      updatePosition();
+      const handleScroll = () => updatePosition();
+      const handleResize = () => updatePosition();
+      
+      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener('resize', handleResize);
+      
+      return () => {
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, [isOpen]);
+
   // Close on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -96,41 +125,28 @@ export function NotificationBell() {
     }
   }, [isOpen]);
 
-  return (
-    <div className="relative z-[10000]" data-notification-dropdown>
-      <button
-        data-notification-trigger
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative h-9 w-9 md:h-10 md:w-10 rounded-full hover:bg-slate-800/50 transition-colors flex items-center justify-center"
-      >
-        <Bell className="h-4 w-4 md:h-5 md:w-5 text-slate-300" />
-        {unreadCount > 0 && (
-          <motion.span
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-            className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 min-w-[18px] h-[18px] md:min-w-[20px] md:h-5 px-1 rounded-full bg-blue-500 text-white text-[10px] md:text-xs font-medium flex items-center justify-center shadow-lg shadow-blue-500/30 ring-2 ring-[rgb(13,17,28)]"
-          >
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </motion.span>
-        )}
-      </button>
-
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            transition={{
-              type: "spring",
-              stiffness: 400,
-              damping: 30,
-              mass: 0.5,
-            }}
-            className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-[380px] max-w-[380px] bg-[rgb(11,14,24)] border border-slate-700/50 shadow-2xl rounded-lg overflow-hidden z-[10000]"
-            style={{ transformOrigin: 'top right' }}
-          >
+  const notificationContent = (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+          transition={{
+            type: "spring",
+            stiffness: 400,
+            damping: 30,
+            mass: 0.5,
+          }}
+          className="fixed w-[calc(100vw-2rem)] sm:w-[380px] max-w-[380px] bg-[rgb(11,14,24)] border border-slate-700/50 shadow-2xl rounded-lg overflow-hidden"
+          style={{ 
+            transformOrigin: 'top right',
+            top: `${position.top}px`,
+            right: `${position.right}px`,
+            zIndex: 9999,
+          }}
+          data-notification-dropdown
+        >
         {/* Header - Facebook style */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30 bg-[rgb(11,14,24)]">
           <h3 className="text-[15px] font-semibold text-white">Notifications</h3>
@@ -281,8 +297,32 @@ export function NotificationBell() {
           </div>
         )}
       </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  return (
+    <div className="relative" data-notification-dropdown>
+      <button
+        ref={triggerRef}
+        data-notification-trigger
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative h-9 w-9 md:h-10 md:w-10 rounded-full hover:bg-slate-800/50 transition-colors flex items-center justify-center"
+      >
+        <Bell className="h-4 w-4 md:h-5 md:w-5 text-slate-300" />
+        {unreadCount > 0 && (
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 min-w-[18px] h-[18px] md:min-w-[20px] md:h-5 px-1 rounded-full bg-blue-500 text-white text-[10px] md:text-xs font-medium flex items-center justify-center shadow-lg shadow-blue-500/30 ring-2 ring-[rgb(13,17,28)]"
+          >
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </motion.span>
         )}
-      </AnimatePresence>
+      </button>
+
+      {typeof window !== 'undefined' && createPortal(notificationContent, document.body)}
     </div>
   );
 }

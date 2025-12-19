@@ -324,6 +324,84 @@ export async function POST(
           } else {
             console.log('[Create Opportunity] ✅ Stage history entry created');
           }
+
+          // 🎯 SAVE OPPORTUNITY DESCRIPTION AS NOTE FOR TRACEABILITY
+          // If description is provided, save it as a note in:
+          // 1. Unified Note table (for contact notes)
+          // 2. Client historique table (for client details page)
+          // 3. Timeline entry (for traceability)
+          if (description && description.trim()) {
+            const noteContent = description.trim();
+            const authorName = user.name || user.email || decoded.userId;
+            const noteNow = new Date().toISOString();
+
+            try {
+              // 1. Create note in unified Note table for contact
+              const contactNote = await prisma.note.create({
+                data: {
+                  content: `[Opportunité: ${titre}] ${noteContent}`,
+                  author: authorName,
+                  authorId: decoded.userId,
+                  entityType: 'contact',
+                  entityId: contactId,
+                  sourceType: 'contact',
+                  sourceId: contactId,
+                  createdAt: new Date(),
+                },
+              });
+              console.log('[Create Opportunity] ✅ Note created in unified Note table:', contactNote.id);
+
+              // 2. Create note in client historique table
+              const noteHistoryId = `hist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+              const { error: noteHistoriqueError } = await supabase
+                .from('historique')
+                .insert({
+                  id: noteHistoryId,
+                  client_id: clientId,
+                  date: noteNow,
+                  type: 'note',
+                  description: `[Opportunité: ${titre}] ${noteContent}`,
+                  auteur: authorName,
+                  metadata: {
+                    source: 'opportunity',
+                    opportunityId: opportunity.id,
+                    contactId: contactId,
+                    noteId: contactNote.id,
+                  },
+                  created_at: noteNow,
+                  updated_at: noteNow,
+                });
+
+              if (noteHistoriqueError) {
+                console.error('[Create Opportunity] Error creating note in historique:', noteHistoriqueError);
+              } else {
+                console.log('[Create Opportunity] ✅ Note created in client historique');
+              }
+
+              // 3. Create timeline entry for traceability
+              await prisma.timeline.create({
+                data: {
+                  contactId: contactId,
+                  opportunityId: opportunity.id,
+                  eventType: 'note_added',
+                  title: 'Note ajoutée (Opportunité)',
+                  description: `[Opportunité: ${titre}] ${noteContent}`,
+                  metadata: {
+                    source: 'opportunity',
+                    opportunityId: opportunity.id,
+                    clientId: clientId,
+                    noteId: contactNote.id,
+                    historiqueId: noteHistoryId,
+                  },
+                  author: decoded.userId,
+                },
+              });
+              console.log('[Create Opportunity] ✅ Timeline entry created for opportunity note');
+            } catch (noteError) {
+              console.error('[Create Opportunity] Error creating opportunity note (non-blocking):', noteError);
+              // Don't fail the opportunity creation if note creation fails
+            }
+          }
         }
       } catch (supabaseErr) {
         console.error('[Create Opportunity] Error with Supabase operations:', supabaseErr);
@@ -331,6 +409,50 @@ export async function POST(
       }
     } else {
       console.warn('[Create Opportunity] Supabase not configured, skipping client record creation');
+      
+      // Even if Supabase is not configured, still save the note in unified Note table and timeline
+      if (description && description.trim()) {
+        const noteContent = description.trim();
+        const authorName = user.name || user.email || decoded.userId;
+
+        try {
+          // Create note in unified Note table for contact
+          const contactNote = await prisma.note.create({
+            data: {
+              content: `[Opportunité: ${titre}] ${noteContent}`,
+              author: authorName,
+              authorId: decoded.userId,
+              entityType: 'contact',
+              entityId: contactId,
+              sourceType: 'contact',
+              sourceId: contactId,
+              createdAt: new Date(),
+            },
+          });
+          console.log('[Create Opportunity] ✅ Note created in unified Note table (no Supabase):', contactNote.id);
+
+          // Create timeline entry for traceability
+          await prisma.timeline.create({
+            data: {
+              contactId: contactId,
+              opportunityId: opportunity.id,
+              eventType: 'note_added',
+              title: 'Note ajoutée (Opportunité)',
+              description: `[Opportunité: ${titre}] ${noteContent}`,
+              metadata: {
+                source: 'opportunity',
+                opportunityId: opportunity.id,
+                noteId: contactNote.id,
+              },
+              author: decoded.userId,
+            },
+          });
+          console.log('[Create Opportunity] ✅ Timeline entry created for opportunity note (no Supabase)');
+        } catch (noteError) {
+          console.error('[Create Opportunity] Error creating opportunity note (non-blocking):', noteError);
+          // Don't fail the opportunity creation if note creation fails
+        }
+      }
     }
 
     return NextResponse.json(opportunity, { status: 201 });

@@ -833,6 +833,7 @@ export default function ClientDetailsPage() {
                   >
                     <EnhancedTimeline
                       client={client}
+                      onAddTask={() => setIsTaskModalOpen(true)}
                       onAddRdv={() => setIsRdvModalOpen(true)}
                       showFilters={true}
                       maxItems={15}

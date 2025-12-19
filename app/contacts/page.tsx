@@ -263,9 +263,9 @@ export default function ContactsPage() {
             </div>
           )}
 
-          {/* Stats Cards - Compact design for better table visibility */}
-          <div className="px-3 md:px-4 pt-2 pb-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {/* Stats Cards - Enhanced size and spacing */}
+          <div className="px-3 md:px-4 pt-3 pb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {/* Total Contacts - Clickable */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -274,19 +274,19 @@ export default function ContactsPage() {
                 whileTap={{ scale: 0.99 }}
                 onClick={() => handleCardClick('all')}
                 className={cn(
-                  "group relative overflow-hidden rounded-lg bg-gradient-to-br from-blue-500/10 via-slate-800/60 to-slate-900/40 border p-2.5 cursor-pointer transition-all duration-200",
+                  "group relative overflow-hidden rounded-lg bg-gradient-to-br from-blue-500/10 via-slate-800/60 to-slate-900/40 border p-3 cursor-pointer transition-all duration-200",
                   !hasActiveFilters ? "border-blue-500/50 shadow-md shadow-blue-500/10" : "border-slate-700/50 hover:border-blue-500/40"
                 )}
               >
                 <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-semibold text-blue-300/70 mb-0.5 uppercase tracking-wider">
+                    <p className="text-[10px] font-semibold text-blue-300/70 mb-1 uppercase tracking-wider">
                       Tous mes contacts
                     </p>
                     <p className="text-2xl font-bold text-white leading-tight">{loading ? '...' : total}</p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/10 border border-blue-500/30 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/10 border border-blue-500/30 flex items-center justify-center">
                       {loading ? (
                         <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
                       ) : (
@@ -306,19 +306,19 @@ export default function ContactsPage() {
                 whileTap={{ scale: 0.99 }}
                 onClick={() => handleCardClick('withOpportunities')}
                 className={cn(
-                  "group relative overflow-hidden rounded-lg bg-gradient-to-br from-orange-500/10 via-slate-800/60 to-slate-900/40 border p-2.5 cursor-pointer transition-all duration-200",
+                  "group relative overflow-hidden rounded-lg bg-gradient-to-br from-orange-500/10 via-slate-800/60 to-slate-900/40 border p-3 cursor-pointer transition-all duration-200",
                   hasOpportunitiesFilter === 'has' ? "border-orange-500/50 shadow-md shadow-orange-500/10" : "border-slate-700/50 hover:border-orange-500/40"
                 )}
               >
                 <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-semibold text-orange-300/70 mb-0.5 uppercase tracking-wider">
+                    <p className="text-[10px] font-semibold text-orange-300/70 mb-1 uppercase tracking-wider">
                       Contacts avec opportunités
                     </p>
                     <p className="text-2xl font-bold text-white leading-tight">{loading ? '...' : contactsWithOpportunities}</p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/10 border border-orange-500/30 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/10 border border-orange-500/30 flex items-center justify-center">
                       {loading ? (
                         <Loader2 className="w-4 h-4 text-orange-400 animate-spin" />
                       ) : (
@@ -338,19 +338,19 @@ export default function ContactsPage() {
                 whileTap={{ scale: 0.99 }}
                 onClick={() => handleCardClick('clients')}
                 className={cn(
-                  "group relative overflow-hidden rounded-lg bg-gradient-to-br from-green-500/10 via-slate-800/60 to-slate-900/40 border p-2.5 cursor-pointer transition-all duration-200 sm:col-span-2 lg:col-span-1",
+                  "group relative overflow-hidden rounded-lg bg-gradient-to-br from-green-500/10 via-slate-800/60 to-slate-900/40 border p-3 cursor-pointer transition-all duration-200 sm:col-span-2 lg:col-span-1",
                   clientFilter ? "border-green-500/50 shadow-md shadow-green-500/10" : "border-slate-700/50 hover:border-green-500/40"
                 )}
               >
                 <div className="relative flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-semibold text-green-300/70 mb-0.5 uppercase tracking-wider">
+                    <p className="text-[10px] font-semibold text-green-300/70 mb-1 uppercase tracking-wider">
                       Contacts devenus clients
                     </p>
                     <p className="text-2xl font-bold text-green-400 leading-tight">{loading ? '...' : clientsCount}</p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
-                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/30 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/30 flex items-center justify-center">
                       {loading ? (
                         <Loader2 className="w-4 h-4 text-green-400 animate-spin" />
                       ) : (
@@ -364,7 +364,7 @@ export default function ContactsPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="px-3 md:px-4 pt-3 pb-2 mb-2">
+          <div className="px-3 md:px-4 pt-2 pb-2 mb-2">
             <div className="space-y-2">
               {/* Search Bar */}
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
