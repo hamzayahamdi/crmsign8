@@ -419,7 +419,7 @@ const SidebarComponent = () => {
     await logout()
   }
 
-  const SidebarContent = ({ isCollapsed }: { isCollapsed: boolean }) => (
+  const SidebarContent = ({ isCollapsed, hideToggle = false }: { isCollapsed: boolean; hideToggle?: boolean }) => (
     <>
       {/* Logo & Toggle Button with Glassy Border Separator */}
       <div 
@@ -441,104 +441,148 @@ const SidebarComponent = () => {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className={cn(
             "flex items-center transition-all duration-300 relative",
-            isCollapsed ? "justify-center w-full" : "justify-start gap-2 md:gap-3"
+            isCollapsed 
+              ? "justify-center w-full" 
+              : hideToggle 
+                ? "justify-start w-full gap-2 md:gap-3" 
+                : "justify-between w-full gap-2 md:gap-3"
           )}
         >
-          {/* Logo - Always visible, properly centered when collapsed */}
-          <motion.div
-            animate={{
-              scale: 1,
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 30,
-              mass: 0.8,
-            }}
-            className={cn(
-              "shrink-0 z-10 flex items-center justify-center",
-              isCollapsed ? "mx-auto" : ""
-            )}
-          >
-            <Signature8Logo
-              size={isCollapsed ? 32 : 40}
-              className="block"
-            />
-          </motion.div>
-
-          {/* Logo Text - Only when expanded */}
-          <AnimatePresence mode="wait" initial={false}>
-            {!isCollapsed && (
-              <motion.div
-                key="logo-text"
-                initial={{ opacity: 0, x: -10, width: 0 }}
-                animate={{ opacity: 1, x: 0, width: "auto" }}
-                exit={{ opacity: 0, x: -10, width: 0 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30,
-                  mass: 0.8,
-                }}
-                className="overflow-hidden"
-              >
-                <div>
-                  <h1 className="text-sm md:text-base font-bold text-white tracking-tight whitespace-nowrap">Signature8</h1>
-                  <p className="text-[9px] md:text-[10px] text-muted-foreground font-medium whitespace-nowrap">CRM Tailor-Made</p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* Toggle Button - Positioned clearly outside logo area */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <motion.button
-              onClick={toggleSidebar}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              initial={{ opacity: 1, scale: 1 }}
-              animate={{ opacity: 1, scale: 1 }}
+          {/* Left side: Logo and Text */}
+          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+            {/* Logo - Always visible, properly centered when collapsed */}
+            <motion.div
+              animate={{
+                scale: 1,
+              }}
               transition={{
                 type: "spring",
-                stiffness: 400,
-                damping: 25,
+                stiffness: 300,
+                damping: 30,
+                mass: 0.8,
               }}
               className={cn(
-                "absolute top-1/2 rounded-full bg-slate-800/95 border-2 border-sky-500/40 shadow-xl backdrop-blur-sm flex items-center justify-center text-sky-400 hover:text-sky-300 hover:bg-slate-700/95 transition-all duration-200",
-                "hover:border-sky-400 hover:shadow-sky-500/30",
-                isCollapsed ? "-right-3 w-6 h-6" : "-right-3.5 w-7 h-7"
+                "shrink-0 z-10 flex items-center justify-center",
+                isCollapsed ? "mx-auto" : ""
               )}
-              style={{
-                transform: 'translateY(-50%)',
-                pointerEvents: 'auto',
-                zIndex: 10000,
-                position: 'absolute',
-              }}
-              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              <motion.div
-                animate={{ rotate: isCollapsed ? 0 : 180 }}
+              <Signature8Logo
+                size={isCollapsed ? 32 : 40}
+                className="block"
+              />
+            </motion.div>
+
+            {/* Logo Text - Only when expanded */}
+            <AnimatePresence mode="wait" initial={false}>
+              {!isCollapsed && (
+                <motion.div
+                  key="logo-text"
+                  initial={{ opacity: 0, x: -10, width: 0 }}
+                  animate={{ opacity: 1, x: 0, width: "auto" }}
+                  exit={{ opacity: 0, x: -10, width: 0 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 30,
+                    mass: 0.8,
+                  }}
+                  className="overflow-hidden"
+                >
+                  <div>
+                    <h1 className="text-sm md:text-base font-bold text-white tracking-tight whitespace-nowrap">Signature8</h1>
+                    <p className="text-[9px] md:text-[10px] text-muted-foreground font-medium whitespace-nowrap">CRM Tailor-Made</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Toggle Button - Positioned in top-right corner inside header - Hidden on mobile */}
+          {!isCollapsed && !hideToggle && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    toggleSidebar()
+                  }}
+                  whileHover={{ scale: 1.15, backgroundColor: 'rgba(51, 65, 85, 0.95)' }}
+                  whileTap={{ scale: 0.85 }}
+                  initial={{ opacity: 1, scale: 1 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 25,
+                  }}
+                  className={cn(
+                    "hidden md:flex shrink-0 rounded-lg bg-slate-800/90 border-2 border-sky-500/50 shadow-xl backdrop-blur-sm items-center justify-center text-sky-400 hover:text-sky-300 hover:bg-slate-700/95 transition-all duration-200",
+                    "hover:border-sky-400 hover:shadow-sky-500/40 active:scale-85",
+                    "touch-manipulation cursor-pointer",
+                    "w-9 h-9 md:w-10 md:h-10"
+                  )}
+                  style={{
+                    pointerEvents: 'auto',
+                    zIndex: 10001,
+                    WebkitTapHighlightColor: 'transparent',
+                    cursor: 'pointer',
+                  }}
+                  aria-label="Collapse sidebar"
+                  type="button"
+                >
+                  <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-sky-400" />
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="bg-slate-800 border-sky-500/30 text-white text-xs">
+                Réduire le menu
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </motion.div>
+
+        {/* Toggle Button when collapsed - Show on right edge - Hidden on mobile */}
+        {isCollapsed && !hideToggle && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <motion.button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  toggleSidebar()
+                }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                initial={{ opacity: 1, scale: 1 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{
                   type: "spring",
                   stiffness: 400,
-                  damping: 30,
+                  damping: 25,
                 }}
-                className="flex items-center justify-center"
-              >
-                {isCollapsed ? (
-                  <ChevronRight className="w-3.5 h-3.5 text-sky-400" />
-                ) : (
-                  <ChevronLeft className="w-4 h-4 text-sky-400" />
+                className={cn(
+                  "hidden md:flex absolute top-1/2 right-0 translate-x-1/2 rounded-full bg-slate-800/95 border-2 border-sky-500/40 shadow-xl backdrop-blur-sm items-center justify-center text-sky-400 hover:text-sky-300 hover:bg-slate-700/95 transition-all duration-200",
+                  "hover:border-sky-400 hover:shadow-sky-500/30 active:scale-95",
+                  "touch-manipulation",
+                  "w-6 h-6 md:w-7 md:h-7"
                 )}
-              </motion.div>
-            </motion.button>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="bg-slate-800 border-sky-500/30 text-white">
-            {isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          </TooltipContent>
-        </Tooltip>
+                style={{
+                  transform: 'translateY(-50%) translateX(50%)',
+                  pointerEvents: 'auto',
+                  zIndex: 10001,
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+                aria-label="Expand sidebar"
+                type="button"
+              >
+                <ChevronRight className="w-3.5 h-3.5 md:w-4 md:h-4 text-sky-400" />
+              </motion.button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="bg-slate-800 border-sky-500/30 text-white text-xs">
+              Agrandir le menu
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
 
       <nav className={cn(
@@ -758,13 +802,13 @@ const SidebarComponent = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-            onClick={() => setMobileMenuOpen(false)} // Changed to setMobileMenuOpen
+            className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            onClick={() => setMobileMenuOpen(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* Mobile Sidebar Drawer */}
+      {/* Mobile Sidebar Drawer - Only visible on mobile (< 768px) */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.aside
@@ -772,15 +816,22 @@ const SidebarComponent = () => {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="lg:hidden fixed top-0 left-0 w-72 h-screen glass border-r border-border/40 flex flex-col z-50 backdrop-blur-2xl bg-slate-950/95"
+            className="md:hidden fixed top-0 left-0 w-72 h-screen glass border-r border-border/40 flex flex-col z-50 backdrop-blur-2xl bg-slate-950/95"
           >
-            <SidebarContent isCollapsed={false} />
+            <SidebarContent isCollapsed={false} hideToggle={true} />
           </motion.aside>
         )}
       </AnimatePresence>
 
-      {/* Desktop Sidebar - Collapsible with smooth animations */}
-      <div className="hidden lg:block fixed top-0 left-0" style={{ overflow: 'visible', zIndex: 9999 }}>
+      {/* Desktop/Tablet Sidebar - Collapsible with smooth animations */}
+      {/* Visible on md (768px) and above, hidden on mobile where we use drawer */}
+      <div 
+        className="hidden md:block fixed top-0 left-0" 
+        style={{ 
+          overflow: 'visible', 
+          zIndex: 9999,
+        }}
+      >
         <motion.aside
           initial={false}
           animate={{
@@ -793,13 +844,18 @@ const SidebarComponent = () => {
             mass: 0.6,
           }}
           className="glass border-r border-border/40 flex flex-col h-screen backdrop-blur-2xl bg-slate-950/95 relative"
-          style={{ overflow: 'visible', zIndex: 9999 }}
+          style={{ 
+            overflow: 'visible', 
+            zIndex: 9999,
+            // Allow button to extend beyond sidebar bounds
+            clipPath: 'none',
+          }}
         >
           <SidebarContent isCollapsed={isSidebarCollapsed} />
         </motion.aside>
       </div>
 
-      {/* Spacer to offset fixed sidebar width in layouts - only on desktop */}
+      {/* Spacer to offset fixed sidebar width in layouts - only on desktop/tablet */}
       <motion.div
         initial={false}
         animate={{
@@ -811,7 +867,7 @@ const SidebarComponent = () => {
           damping: 35,
           mass: 0.6,
         }}
-        className="hidden lg:block shrink-0"
+        className="hidden md:block shrink-0"
         aria-hidden="true"
       />
     </>
