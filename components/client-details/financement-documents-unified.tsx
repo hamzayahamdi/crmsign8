@@ -48,6 +48,7 @@ import { EditMontantModal } from "./edit-montant-modal";
 import { EditPaymentModal } from "@/components/edit-payment-modal";
 import { useAuth } from "@/contexts/auth-context";
 import { getDevisDisplayName } from "@/lib/file-utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface FinancementDocumentsUnifiedProps {
   client: Client;
@@ -365,11 +366,61 @@ export function FinancementDocumentsUnified({
     }
   };
 
+  const handleDeleteDevis = async (devisId: string) => {
+    setUpdatingDevisId(devisId);
+    
+    try {
+      const response = await fetch(
+        `/api/clients/${client.id}/devis?devisId=${devisId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to delete devis");
+      }
+
+      // Re-fetch client data to get updated devis list
+      const clientResponse = await fetch(`/api/clients/${client.id}`, {
+        credentials: "include",
+      });
+
+      if (clientResponse.ok) {
+        const clientResult = await clientResponse.json();
+        onUpdate(clientResult.data, true);
+        
+        toast({
+          title: "✅ Devis supprimé",
+          description: "Le devis a été supprimé avec succès",
+          duration: 3000,
+        });
+      } else {
+        throw new Error("Failed to refresh client data");
+      }
+    } catch (error: any) {
+      console.error("[Delete Devis] Error:", error);
+      toast({
+        title: "❌ Erreur",
+        description: error.message || "Impossible de supprimer le devis",
+        variant: "destructive",
+        duration: 4000,
+      });
+    } finally {
+      setUpdatingDevisId(null);
+    }
+  };
+
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
+    type?: 'payment' | 'devis';
     paymentId?: string;
+    devisId?: string;
     amount?: number;
     date?: string;
+    title?: string;
   }>({ open: false });
 
   const getPaymentMethodIcon = (method: string) => {
@@ -578,6 +629,18 @@ export function FinancementDocumentsUnified({
                             <h4 className="text-xs font-light text-white/90 truncate" title={displayName}>
                               {displayName}
                             </h4>
+                            {!devis.fichier && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0 cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent className="bg-amber-950 border-amber-500/30 text-amber-200">
+                                    <p className="text-xs">Aucun fichier attaché - Vous pouvez supprimer ce devis si c'était une erreur</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-2.5 flex-wrap">
@@ -740,6 +803,22 @@ export function FinancementDocumentsUnified({
                                   En attente
                                 </DropdownMenuItem>
                               )}
+                              <div className="h-px bg-white/10 my-1" />
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  setDeleteDialog({
+                                    open: true,
+                                    type: 'devis',
+                                    devisId: devis.id,
+                                    title: getDevisDisplayName(devis),
+                                    amount: devis.montant,
+                                  })
+                                }
+                                className="text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 mr-2" />
+                                Supprimer
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -864,6 +943,7 @@ export function FinancementDocumentsUnified({
                             onClick={() =>
                               setDeleteDialog({
                                 open: true,
+                                type: 'payment',
                                 paymentId: payment.id,
                                 amount: payment.amount,
                                 date: payment.date,
@@ -899,10 +979,19 @@ export function FinancementDocumentsUnified({
         <AlertDialogContent className="bg-[#171B22] border-white/10">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">
-              Supprimer l'acompte ?
+              {deleteDialog.type === 'devis' ? 'Supprimer le devis ?' : 'Supprimer l\'acompte ?'}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-white/60">
-              {deleteDialog.amount !== undefined ? (
+              {deleteDialog.type === 'devis' ? (
+                <span>
+                  Cette action est irréversible. Vous êtes sur le point de
+                  supprimer le devis <strong className="text-white/90">"{deleteDialog.title}"</strong>
+                  {deleteDialog.amount !== undefined && deleteDialog.amount > 0
+                    ? ` d'un montant de ${formatCurrency(deleteDialog.amount)}`
+                    : ""}
+                  .
+                </span>
+              ) : deleteDialog.amount !== undefined ? (
                 <span>
                   Cette action est irréversible. Vous êtes sur le point de
                   supprimer l'acompte de {formatCurrency(deleteDialog.amount)}
@@ -913,8 +1002,7 @@ export function FinancementDocumentsUnified({
                 </span>
               ) : (
                 <span>
-                  Cette action est irréversible. Confirmez la suppression de
-                  l'acompte.
+                  Cette action est irréversible. Confirmez la suppression.
                 </span>
               )}
             </AlertDialogDescription>
@@ -926,7 +1014,9 @@ export function FinancementDocumentsUnified({
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
               onClick={async () => {
-                if (deleteDialog.paymentId) {
+                if (deleteDialog.type === 'devis' && deleteDialog.devisId) {
+                  await handleDeleteDevis(deleteDialog.devisId);
+                } else if (deleteDialog.type === 'payment' && deleteDialog.paymentId) {
                   await handleDeletePayment(deleteDialog.paymentId);
                 }
                 setDeleteDialog({ open: false });

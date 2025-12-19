@@ -391,7 +391,7 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                 }
 
                 return (
-                  <div key={stage.id} className="relative">
+                  <div key={stage.id} className="relative group">
                     <div
                       className={cn(
                         "flex items-center gap-2 p-2 rounded-md transition-all",
@@ -399,7 +399,8 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                         status === 'in_progress' && "bg-blue-500/12 border border-blue-500/25 ring-1 ring-blue-500/15",
                         status === 'terminal' && "bg-red-500/12 border border-red-500/25 ring-1 ring-red-500/15",
                         status === 'unreachable' && "bg-gray-500/5 border border-gray-500/15 opacity-50",
-                        status === 'pending' && "bg-white/3 border border-white/5"
+                        status === 'pending' && "bg-white/3 border border-white/5",
+                        "hover:bg-white/5"
                       )}
                     >
                       {/* Icon */}
@@ -495,6 +496,42 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                         )}
                       </div>
 
+                      {/* Action Buttons - Appear on hover */}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        {onAddTask && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onAddTask()
+                            }}
+                            className={cn(
+                              "w-5 h-5 rounded-md flex items-center justify-center transition-all",
+                              "bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/30",
+                              "text-blue-400 hover:text-blue-300"
+                            )}
+                            title="Ajouter une tâche"
+                          >
+                            <CheckCircle2 className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+                        {onAddRdv && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onAddRdv()
+                            }}
+                            className={cn(
+                              "w-5 h-5 rounded-md flex items-center justify-center transition-all",
+                              "bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 hover:border-purple-500/30",
+                              "text-purple-400 hover:text-purple-300"
+                            )}
+                            title="Planifier un RDV"
+                          >
+                            <Calendar className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+                      </div>
+
                       {/* Status Icon/Badge - Compact */}
                       {status === 'unreachable' && (
                         <span className="text-[8px] px-1.5 py-0.5 rounded bg-gray-500/10 text-gray-400/40 font-light">
@@ -539,32 +576,51 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
                 <CheckCircle2 className="w-3.5 h-3.5 text-white/35" />
               )}
             </button>
-            {!isActionsCollapsed && (
-              <div className="flex gap-1.5">
-                {onAddTask && (
-                  <Button
-                    onClick={onAddTask}
-                    size="sm"
-                    variant="ghost"
-                    className="h-5 px-2 text-[9px] text-white/50 hover:text-white/80 hover:bg-white/8 font-light"
-                  >
-                    <Plus className="w-2.5 h-2.5 mr-0.5" />
-                    Tâche
-                  </Button>
-                )}
-                {onAddRdv && (
-                  <Button
-                    onClick={onAddRdv}
-                    size="sm"
-                    variant="ghost"
-                    className="h-5 px-2 text-[9px] text-white/50 hover:text-white/80 hover:bg-white/8 font-light"
-                  >
-                    <Plus className="w-2.5 h-2.5 mr-0.5" />
-                    RDV
-                  </Button>
-                )}
-              </div>
-            )}
+            {/* Enhanced Header Action Buttons - Always Visible */}
+            <div className="flex gap-1.5">
+              {onAddTask && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onAddTask()
+                  }}
+                  className={cn(
+                    "h-6 px-2.5 rounded-md flex items-center gap-1 transition-all duration-200",
+                    "bg-gradient-to-r from-blue-500/15 to-blue-600/10",
+                    "border border-blue-500/30 hover:border-blue-500/50",
+                    "text-blue-300 hover:text-blue-200",
+                    "hover:bg-gradient-to-r hover:from-blue-500/25 hover:to-blue-600/20",
+                    "shadow-sm hover:shadow-md hover:shadow-blue-500/20",
+                    "font-medium text-[9px] uppercase tracking-wide"
+                  )}
+                  title="Créer une tâche"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Tâche</span>
+                </button>
+              )}
+              {onAddRdv && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onAddRdv()
+                  }}
+                  className={cn(
+                    "h-6 px-2.5 rounded-md flex items-center gap-1 transition-all duration-200",
+                    "bg-gradient-to-r from-purple-500/15 to-purple-600/10",
+                    "border border-purple-500/30 hover:border-purple-500/50",
+                    "text-purple-300 hover:text-purple-200",
+                    "hover:bg-gradient-to-r hover:from-purple-500/25 hover:to-purple-600/20",
+                    "shadow-sm hover:shadow-md hover:shadow-purple-500/20",
+                    "font-medium text-[9px] uppercase tracking-wide"
+                  )}
+                  title="Planifier un RDV"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>RDV</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {!isActionsCollapsed && (
