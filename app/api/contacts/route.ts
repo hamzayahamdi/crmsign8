@@ -1,10 +1,12 @@
-"use server"
-
 import { prisma } from '@/lib/database';
 import { NextRequest, NextResponse } from 'next/server';
 import { verify } from 'jsonwebtoken';
+import { revalidatePath } from 'next/cache';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// OPTIMIZATION: Add revalidation for caching (60 seconds for list routes)
+export const revalidate = 60
 
 /**
  * GET /api/contacts
@@ -99,16 +101,61 @@ export async function GET(request: NextRequest) {
     const [contacts, total] = await Promise.all([
       prisma.contact.findMany({
         where,
-        include: {
-          opportunities: true,
+        select: {
+          id: true,
+          nom: true,
+          telephone: true,
+          email: true,
+          ville: true,
+          adresse: true,
+          typeBien: true,
+          source: true,
+          architecteAssigne: true,
+          tag: true,
+          status: true,
+          notes: true,
+          magasin: true,
+          campaignName: true,
+          commercialMagasin: true,
+          createdBy: true,
+          createdAt: true,
+          updatedAt: true,
+          leadId: true,
+          // OPTIMIZATION: Only fetch needed fields from opportunities
+          opportunities: {
+            select: {
+              id: true,
+              titre: true,
+              type: true,
+              statut: true,
+              pipelineStage: true,
+              budget: true,
+              createdAt: true,
+              updatedAt: true
+            }
+          },
           timeline: { 
             where: { eventType: 'contact_converted_from_lead' },
             take: 1,
-            orderBy: { createdAt: 'desc' } 
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              eventType: true,
+              createdAt: true
+            }
           },
-          payments: true, // Include payments
+          // OPTIMIZATION: Only fetch needed fields from payments
+          payments: {
+            select: {
+              id: true,
+              montant: true,
+              date: true,
+              methode: true,
+              type: true,
+              createdAt: true
+            }
+          },
         },
-        // typeBien and source are now direct fields on Contact model, so they're automatically included
         orderBy: { createdAt: 'desc' },
         take: limit,
         skip: offset,
@@ -170,6 +217,10 @@ export async function GET(request: NextRequest) {
       limit,
       offset,
       hasMore: offset + limit < total,
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60'
+      }
     });
 
   } catch (error) {
@@ -285,6 +336,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // OPTIMIZATION: Invalidate cache after creating contact
+    revalidatePath('/api/contacts')
+    
     return NextResponse.json(contact, { status: 201 });
 
   } catch (error) {

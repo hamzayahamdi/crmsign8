@@ -79,6 +79,59 @@ export function EnhancedTimeline({
     }
   }, [client.historique, client.rendezVous])
 
+  // Listen for stage updates to refresh history
+  useEffect(() => {
+    const handleStageUpdate = async (event: CustomEvent) => {
+      if (event.detail.clientId === client.id) {
+        console.log('[Timeline] Stage updated event received, refreshing history...')
+        
+        // Wait a bit for the database write to complete, then force refresh
+        setTimeout(async () => {
+          try {
+            const response = await fetch(`/api/clients/${client.id}`, {
+              credentials: 'include',
+              cache: 'no-store'
+            })
+            if (response.ok) {
+              const result = await response.json()
+              const freshClient = result.data || result
+              
+              // Update cached events with fresh historique
+              if (freshClient.historique && Array.isArray(freshClient.historique)) {
+                const newEvents = [
+                  ...freshClient.historique
+                    .filter((h: any) => h.type !== 'rdv')
+                    .map((h: any) => ({ ...h, eventType: 'history' as const })),
+                  ...(freshClient.rendezVous || []).map((rdv: any) => ({
+                    id: rdv.id,
+                    date: rdv.dateStart,
+                    type: 'rdv' as const,
+                    description: rdv.title,
+                    auteur: rdv.createdBy,
+                    metadata: rdv,
+                    eventType: 'rdv' as const
+                  }))
+                ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                
+                setCachedEvents(newEvents)
+                previousHistoriqueLengthRef.current = freshClient.historique.length
+                console.log('[Timeline] Refreshed history after stage update:', {
+                  newEntries: newEvents.length,
+                  statusEntries: newEvents.filter((e: any) => e.type === 'statut').length
+                })
+              }
+            }
+          } catch (error) {
+            console.error('[Timeline] Error refreshing history after stage update:', error)
+          }
+        }, 500) // Wait 500ms for DB write to complete
+      }
+    }
+
+    window.addEventListener('stage-updated' as any, handleStageUpdate)
+    return () => window.removeEventListener('stage-updated' as any, handleStageUpdate)
+  }, [client.id])
+
   // Update cached events when historique changes, but preserve existing events
   useEffect(() => {
     if (!isInitializedRef.current) return
@@ -92,7 +145,7 @@ export function EnhancedTimeline({
       return
     }
     
-    // Only update if historique actually has new data
+    // Always update if historique has data (even if length is same, content might have changed)
     if (currentLength > 0) {
       const newEvents = [
         ...currentHistorique
@@ -110,17 +163,34 @@ export function EnhancedTimeline({
       ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       
       // Merge with existing cached events to avoid duplicates
+      // Use a more comprehensive check: compare by ID and date to detect new entries
       setCachedEvents(prev => {
         const existingIds = new Set(prev.map(e => e.id))
         const eventsToAdd = newEvents.filter(e => !existingIds.has(e.id))
-        return [...eventsToAdd, ...prev].sort((a, b) => 
+        
+        // Also check for entries with same ID but newer date (updated entries)
+        const updatedEvents = newEvents.filter(newEvent => {
+          const existing = prev.find(e => e.id === newEvent.id)
+          if (existing) {
+            const newDate = new Date(newEvent.date).getTime()
+            const existingDate = new Date(existing.date).getTime()
+            return newDate > existingDate
+          }
+          return false
+        })
+        
+        // Remove old versions of updated events and add new ones
+        const updatedIds = new Set(updatedEvents.map(e => e.id))
+        const filteredPrev = prev.filter(e => !updatedIds.has(e.id))
+        
+        return [...eventsToAdd, ...updatedEvents, ...filteredPrev].sort((a, b) => 
           new Date(b.date).getTime() - new Date(a.date).getTime()
         )
       })
       
       previousHistoriqueLengthRef.current = currentLength
     }
-  }, [client.historique, client.rendezVous])
+  }, [client.historique, client.rendezVous, client.id])
 
   // Combine cached events with current historique and appointments into unified timeline
   // Use cached events to prevent clearing during updates

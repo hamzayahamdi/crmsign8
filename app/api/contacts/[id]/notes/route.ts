@@ -77,6 +77,7 @@ export async function GET(
       /^📅 Nouveau rendez-vous/i,
       /^✅ Statut mis à jour/i,
       /^Note ajoutée$/i, // Exclude timeline events with just "Note ajoutée"
+      /^Note ajoutée \(Opportunité\)$/i, // Exclude timeline entries for opportunity notes
     ];
 
     const userNotes = unifiedNotes.filter(note => {
@@ -115,7 +116,7 @@ export async function GET(
         if (clientIds.length > 0) {
           const { data: historiqueData } = await supabase
             .from('historique')
-            .select('id, description, date, auteur, type')
+            .select('id, description, date, auteur, type, metadata')
             .in('client_id', clientIds)
             .eq('type', 'note')
             .order('date', { ascending: false })
@@ -130,15 +131,26 @@ export async function GET(
                 if (content === 'Note ajoutée' || content.toLowerCase() === 'note ajoutée') return false
                 return !systemNotePatterns.some(pattern => pattern.test(content))
               })
-              .map((h: any) => ({
-                id: `client-note-${h.id}`,
-                content: h.description,
-                createdAt: h.date || h.created_at,
-                createdBy: h.auteur,
-                type: 'note',
-                source: 'client',
-                sourceType: 'client',
-              }))
+              .map((h: any) => {
+                const description = h.description || '';
+                const isOpportunityNote = description.trim().startsWith('[Opportunité:');
+                
+                return {
+                  id: `client-note-${h.id}`,
+                  content: h.description,
+                  createdAt: h.date || h.created_at,
+                  createdBy: h.auteur,
+                  type: 'note',
+                  source: h.metadata?.source || 'client',
+                  sourceType: 'client',
+                  // Include metadata from historique if available
+                  metadata: h.metadata || (isOpportunityNote ? {
+                    source: 'opportunity',
+                    isOpportunityNote: true,
+                    opportunityId: h.metadata?.opportunityId,
+                  } : undefined),
+                };
+              })
           }
         }
       } catch (error) {
@@ -148,16 +160,27 @@ export async function GET(
     }
 
     // Format notes for frontend - only manually added notes
-    const formattedNotes = userNotes.map((note) => ({
-      id: note.id,
-      content: note.content,
-      createdAt: note.createdAt.toISOString(),
-      createdBy: note.author,
-      type: note.sourceType === 'lead' ? 'lead_note' : 'note',
-      source: note.sourceType || 'contact',
-      sourceType: note.sourceType || 'contact',
-      sourceId: note.sourceId,
-    }))
+    // Also check if note content indicates it's an opportunity note
+    const formattedNotes = userNotes.map((note) => {
+      const content = note.content || '';
+      const isOpportunityNote = content.trim().startsWith('[Opportunité:');
+      
+      return {
+        id: note.id,
+        content: note.content,
+        createdAt: note.createdAt.toISOString(),
+        createdBy: note.author,
+        type: note.sourceType === 'lead' ? 'lead_note' : 'note',
+        source: note.sourceType || 'contact',
+        sourceType: note.sourceType || 'contact',
+        sourceId: note.sourceId,
+        // Add metadata to help identify opportunity notes
+        metadata: isOpportunityNote ? {
+          source: 'opportunity',
+          isOpportunityNote: true,
+        } : undefined,
+      };
+    })
 
     // Combine unified notes with client notes, deduplicate, and sort
     const allNotes = [...formattedNotes, ...clientNotes]

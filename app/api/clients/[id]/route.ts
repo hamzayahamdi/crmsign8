@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/database";
+import { getUserMapping } from "@/lib/user-cache";
+import { revalidatePath } from "next/cache";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// OPTIMIZATION: Add revalidation for caching (30 seconds for detail pages)
+export const revalidate = 30
 
 /**
  * GET /api/clients/[id] - Fetch single client with all related data
@@ -31,14 +36,8 @@ export async function GET(
     const { id: clientId } = await params;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch all users to map IDs to names (architects and commercials)
-    const allUsers = await prisma.user.findMany({
-      select: { id: true, name: true, email: true, role: true },
-    });
-    const userNameMap: Record<string, string> = {};
-    allUsers.forEach((user: { id: string; name: string; email: string; role: string }) => {
-      userNameMap[user.id] = user.name;
-    });
+    // OPTIMIZATION: Use cached user mapping instead of fetching all users on every request
+    const userNameMap = await getUserMapping();
 
     // Check if this is an opportunity-based client (composite ID: contactId-opportunityId)
     const isOpportunityClient =
@@ -900,6 +899,10 @@ export async function GET(
     return NextResponse.json({
       success: true,
       data: transformedClient,
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60'
+      }
     });
   } catch (error) {
     console.error("[GET /api/clients/[id]] Error:", error);
@@ -1250,6 +1253,10 @@ export async function PATCH(
       ville: transformedClient.ville,
       nomProjet: transformedClient.nomProjet
     });
+
+    // OPTIMIZATION: Invalidate cache after updating client
+    revalidatePath('/api/clients')
+    revalidatePath(`/api/clients/${clientId}`)
 
     return NextResponse.json({
       success: true,

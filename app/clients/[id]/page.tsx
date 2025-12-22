@@ -83,6 +83,38 @@ export default function ClientDetailsPage() {
 
     fetchClientData()
   }, [clientId])
+  
+  // Listen for opportunity creation events to refresh client data (to get new notes)
+  useEffect(() => {
+    const handleOpportunityCreated = async (event: CustomEvent) => {
+      const eventContactId = event.detail?.contactId
+      
+      // Check if this opportunity is related to this client (clientId format: contactId-opportunityId)
+      if (eventContactId && clientId.startsWith(eventContactId)) {
+        console.log('[Client Details] Opportunity created, refreshing client data to get new notes...')
+        // Wait a bit for the note to be created in the database
+        setTimeout(async () => {
+          try {
+            const response = await fetch(`/api/clients/${clientId}`, {
+              credentials: 'include',
+              cache: 'no-store'
+            })
+            if (response.ok) {
+              const result = await response.json()
+              setClient(result.data)
+            }
+          } catch (error) {
+            console.error('[Client Details] Error refreshing after opportunity creation:', error)
+          }
+        }, 1000)
+      }
+    }
+    
+    window.addEventListener('opportunity-created', handleOpportunityCreated as EventListener)
+    return () => {
+      window.removeEventListener('opportunity-created', handleOpportunityCreated as EventListener)
+    }
+  }, [clientId])
 
   // Listen for store updates (this handles kanban drag updates)
   useEffect(() => {
@@ -272,27 +304,46 @@ export default function ClientDetailsPage() {
       console.log('[Client Details] 🔄 Updating client...', {
         clientId: updatedClient.id,
         skipApiCall,
+        statutProjet: updatedClient.statutProjet,
         hasDevis: !!updatedClient.devis,
         devisCount: updatedClient.devis?.length || 0,
         hasHistorique: !!updatedClient.historique,
         historiqueCount: updatedClient.historique?.length || 0,
       })
 
-      // CRITICAL: If we have complete fresh data from the server (with devis, historique, etc.),
-      // replace the entire state instead of merging to prevent data loss
-      const hasFreshData = updatedClient.devis !== undefined ||
-        updatedClient.historique !== undefined ||
-        updatedClient.payments !== undefined
+      // CRITICAL: For stage updates, always update immediately to ensure UI reflects new status
+      const isStageUpdate = updatedClient.statutProjet && 
+        (!client || client.statutProjet !== updatedClient.statutProjet)
 
-      if (hasFreshData) {
-        console.log('[Client Details] ✅ Received fresh data from server, replacing entire state')
-        setClient(updatedClient)
+      if (isStageUpdate) {
+        console.log('[Client Details] ⚡ Stage update detected, forcing immediate UI update')
+        // Force immediate update for stage changes
+        setClient(prev => {
+          const updated = prev ? { ...prev, ...updatedClient } : updatedClient
+          // Ensure status is definitely updated
+          updated.statutProjet = updatedClient.statutProjet
+          updated.derniereMaj = updatedClient.derniereMaj || new Date().toISOString()
+          updated.updatedAt = updatedClient.updatedAt || new Date().toISOString()
+          return updated
+        })
         updateClientInStore(updatedClient.id, updatedClient)
       } else {
-        // Only merge if we're updating specific fields (not full refresh)
-        console.log('[Client Details] 🔄 Merging partial update with existing data')
-        setClient(prev => prev ? { ...prev, ...updatedClient } : updatedClient)
-        updateClientInStore(updatedClient.id, updatedClient)
+        // CRITICAL: If we have complete fresh data from the server (with devis, historique, etc.),
+        // replace the entire state instead of merging to prevent data loss
+        const hasFreshData = updatedClient.devis !== undefined ||
+          updatedClient.historique !== undefined ||
+          updatedClient.payments !== undefined
+
+        if (hasFreshData) {
+          console.log('[Client Details] ✅ Received fresh data from server, replacing entire state')
+          setClient(updatedClient)
+          updateClientInStore(updatedClient.id, updatedClient)
+        } else {
+          // Only merge if we're updating specific fields (not full refresh)
+          console.log('[Client Details] 🔄 Merging partial update with existing data')
+          setClient(prev => prev ? { ...prev, ...updatedClient } : updatedClient)
+          updateClientInStore(updatedClient.id, updatedClient)
+        }
       }
 
       // If skipApiCall is true, stop here (pure optimistic/local update)

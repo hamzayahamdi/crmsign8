@@ -76,13 +76,35 @@ export default function OpportunitiesPage() {
   // Use Zustand store for real-time sync
   const { clients: storeClients, setClients: setStoreClients, updateClient: updateStoreClient, addClient: addStoreClient, deleteClient: deleteStoreClient, refreshClients, fetchClients, isLoading } = useClientStore()
 
-  // Fetch opportunities (clients) from database on mount
+  // Initialize local state from store immediately (preserves optimistic updates)
   useEffect(() => {
-    console.log('[Opportunities Page] 🚀 Mounting - fetching opportunities from database')
-    fetchClients()
-  }, [fetchClients])
+    // Use store data immediately if available (preserves any optimistic updates)
+    if (storeClients.length > 0) {
+      console.log('[Opportunities Page] 📦 Using existing store data:', storeClients.length, 'clients')
+      setClients(storeClients)
+    }
+  }, []) // Only run once on mount
+
+  // Fetch opportunities (clients) from database on mount (background refresh)
+  useEffect(() => {
+    // Only fetch if store is empty (first load)
+    // This preserves optimistic updates when navigating back
+    if (storeClients.length === 0) {
+      console.log('[Opportunities Page] 🚀 Store empty - fetching from database')
+      fetchClients()
+    } else {
+      console.log('[Opportunities Page] ✅ Using cached store data, skipping initial fetch')
+      // Refresh in background after a short delay to ensure data consistency
+      const timer = setTimeout(() => {
+        console.log('[Opportunities Page] 🔄 Background refresh from database')
+        fetchClients()
+      }, 2000) // 2 second delay to ensure any pending writes complete
+      return () => clearTimeout(timer)
+    }
+  }, [fetchClients, storeClients.length])
 
   // Sync local state with store (real-time updates)
+  // CRITICAL: Preserve recent local updates to prevent overwriting
   useEffect(() => {
     const unsubscribe = useClientStore.subscribe((state) => {
       // Only deduplicate if we actually have duplicates (performance optimization)
@@ -99,7 +121,46 @@ export default function OpportunitiesPage() {
         clientsToSet = uniqueClients
       }
       
-      setClients(clientsToSet)
+      // CRITICAL: Merge with local state to preserve recent updates
+      setClients(prev => {
+        const prevMap = new Map(prev.map(c => [c.id, c]))
+        const merged = clientsToSet.map(newClient => {
+          const existing = prevMap.get(newClient.id)
+          if (existing) {
+            // If existing was recently updated (within last 2 seconds), keep it
+            if (existing.updatedAt && newClient.updatedAt) {
+              const existingTime = new Date(existing.updatedAt).getTime()
+              const newTime = new Date(newClient.updatedAt).getTime()
+              const now = Date.now()
+              
+              // Keep existing if it's more recent or was updated in last 2 seconds
+              if (existingTime > newTime || (now - existingTime < 2000)) {
+                return existing
+              }
+            }
+            // If statuses differ and existing was recently updated, prefer existing
+            if (existing.statutProjet !== newClient.statutProjet && existing.updatedAt) {
+              const existingTime = new Date(existing.updatedAt).getTime()
+              const now = Date.now()
+              if (now - existingTime < 2000) {
+                return existing
+              }
+            }
+          }
+          return newClient
+        })
+        
+        // Add any clients from prev that aren't in new list
+        const newIds = new Set(clientsToSet.map(c => c.id))
+        prev.forEach(existingClient => {
+          if (!newIds.has(existingClient.id)) {
+            merged.push(existingClient)
+          }
+        })
+        
+        return merged
+      })
+      
       console.log(`[Opportunities Page] 🔄 Store updated - ${clientsToSet.length} opportunities`)
     })
     return unsubscribe
@@ -118,13 +179,54 @@ export default function OpportunitiesPage() {
       fetchClients()
     }
 
+    // CRITICAL: Listen for stage updates from client details page
+    const handleStageUpdated = (event: CustomEvent) => {
+      const { clientId, newStatus, changedBy } = event.detail || {}
+      console.log('[Opportunities Page] 🔄 Stage updated event received:', { clientId, newStatus, changedBy })
+      
+      if (clientId && newStatus) {
+        const now = new Date().toISOString()
+        
+        // Update local state immediately for instant visual feedback
+        setClients(prev => {
+          const updated = prev.map(c => {
+            if (c.id === clientId) {
+              console.log('[Opportunities Page] ⚡ Updating client status locally:', {
+                clientId,
+                from: c.statutProjet,
+                to: newStatus
+              })
+              return {
+                ...c,
+                statutProjet: newStatus,
+                derniereMaj: now,
+                updatedAt: now
+              }
+            }
+            return c
+          })
+          
+          // Also update the store immediately for cross-component sync
+          const updatedClient = updated.find(c => c.id === clientId)
+          if (updatedClient) {
+            updateStoreClient(clientId, updatedClient)
+          }
+          
+          console.log('[Opportunities Page] ✅ Stage update synced to local state and store')
+          return updated
+        })
+      }
+    }
+
     window.addEventListener('opportunity-created', handleOpportunityCreated)
     window.addEventListener('opportunity-updated', handleOpportunityUpdated as EventListener)
+    window.addEventListener('stage-updated', handleStageUpdated as EventListener)
     return () => {
       window.removeEventListener('opportunity-created', handleOpportunityCreated)
       window.removeEventListener('opportunity-updated', handleOpportunityUpdated as EventListener)
+      window.removeEventListener('stage-updated', handleStageUpdated as EventListener)
     }
-  }, [fetchClients])
+  }, [fetchClients, updateStoreClient])
 
   const handleClientClick = (client: Client & { isContact?: boolean }) => {
     // Navigate to opportunity details page
@@ -276,9 +378,20 @@ export default function OpportunitiesPage() {
   const handleUpdateClient = async (updatedClient: Client) => {
     // IMPORTANT: Only update the store, don't call API
     // The kanban board already handles API calls
+    console.log('[Opportunities Page] 🔄 Updating client:', {
+      id: updatedClient.id,
+      statutProjet: updatedClient.statutProjet
+    })
+    
+    // Update local state immediately for instant UI feedback
+    setClients(prev => prev.map(c => 
+      c.id === updatedClient.id ? { ...c, ...updatedClient } : c
+    ))
+    
+    // Also update the store for cross-component sync
     updateStoreClient(updatedClient.id, updatedClient)
     setSelectedClient(updatedClient)
-    console.log('[Opportunities Page] ✅ Opportunity store updated')
+    console.log('[Opportunities Page] ✅ Opportunity updated in local state and store')
   }
 
   // Open confirm dialog for deletion

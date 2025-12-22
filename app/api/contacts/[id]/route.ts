@@ -84,7 +84,7 @@ export async function GET(
     // Check for stored leadCreatedAt first (lead is already deleted, so we use stored value)
     const storedLeadData = getLeadCreatedAt();
     
-    // Load all relations in parallel for faster response
+    // OPTIMIZATION: Load all relations in parallel with select statements for better performance
     const [
       opportunities,
       tasks,
@@ -95,17 +95,117 @@ export async function GET(
     ] = await Promise.allSettled([
       prisma.opportunity.findMany({ 
         where: { contactId },
-        include: {
-          documents: true,
-          tasks: true,
-          appointments: true,
+        select: {
+          id: true,
+          titre: true,
+          type: true,
+          statut: true,
+          pipelineStage: true,
+          budget: true,
+          description: true,
+          architecteAssigne: true,
+          dateClotureAttendue: true,
+          notes: true,
+          createdBy: true,
+          createdAt: true,
+          updatedAt: true,
+          documents: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              size: true,
+              category: true,
+              uploadedBy: true,
+              uploadedAt: true
+            }
+          },
+          tasks: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              dueDate: true,
+              assignedTo: true
+            }
+          },
+          appointments: {
+            select: {
+              id: true,
+              title: true,
+              dateStart: true,
+              dateEnd: true,
+              status: true
+            }
+          }
         }
       }),
-      prisma.task.findMany({ where: { contactId } }),
-      prisma.appointment.findMany({ where: { contactId } }),
-      prisma.contactDocument.findMany({ where: { contactId } }),
-      prisma.contactPayment.findMany({ where: { contactId }, orderBy: { createdAt: 'desc' } }),
-      prisma.timeline.findMany({ where: { contactId } }),
+      prisma.task.findMany({ 
+        where: { contactId },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          dueDate: true,
+          assignedTo: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      }),
+      prisma.appointment.findMany({ 
+        where: { contactId },
+        select: {
+          id: true,
+          title: true,
+          dateStart: true,
+          dateEnd: true,
+          description: true,
+          location: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      }),
+      prisma.contactDocument.findMany({ 
+        where: { contactId },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          size: true,
+          category: true,
+          uploadedBy: true,
+          uploadedAt: true
+        }
+      }),
+      prisma.contactPayment.findMany({ 
+        where: { contactId },
+        select: {
+          id: true,
+          montant: true,
+          date: true,
+          methode: true,
+          reference: true,
+          description: true,
+          type: true,
+          createdBy: true,
+          createdAt: true
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.timeline.findMany({ 
+        where: { contactId },
+        select: {
+          id: true,
+          eventType: true,
+          title: true,
+          description: true,
+          metadata: true,
+          author: true,
+          createdAt: true
+        }
+      }),
     ]);
 
     // Assign results safely
@@ -486,6 +586,8 @@ export async function GET(
         /^✉️ Message WhatsApp envoyé/i,
         /^📅 Nouveau rendez-vous/i,
         /^✅ Statut mis à jour/i,
+        /^Note ajoutée$/i, // Exclude timeline events with just "Note ajoutée"
+        /^Note ajoutée \(Opportunité\)$/i, // Exclude timeline entries for opportunity notes
       ];
 
       const userNotes = unifiedNotes.filter(note => {
@@ -496,15 +598,26 @@ export async function GET(
         return !systemNotePatterns.some(pattern => pattern.test(content));
       });
 
-      const formattedNotes = userNotes.map((note) => ({
-        id: note.id,
-        content: note.content,
-        createdAt: note.createdAt.toISOString(),
-        createdBy: note.author,
-        type: note.sourceType === 'lead' ? 'lead_note' : 'note',
-        source: note.sourceType || 'contact',
-        sourceId: note.sourceId,
-      }));
+      // Format notes and identify opportunity notes
+      const formattedNotes = userNotes.map((note) => {
+        const content = note.content || '';
+        const isOpportunityNote = content.trim().startsWith('[Opportunité:');
+        
+        return {
+          id: note.id,
+          content: note.content,
+          createdAt: note.createdAt.toISOString(),
+          createdBy: note.author,
+          type: note.sourceType === 'lead' ? 'lead_note' : 'note',
+          source: note.sourceType || 'contact',
+          sourceId: note.sourceId,
+          // Add metadata to help identify opportunity notes
+          metadata: isOpportunityNote ? {
+            source: 'opportunity',
+            isOpportunityNote: true,
+          } : undefined,
+        };
+      });
 
       // Combine contact notes with client notes for full traceability
       const allNotes = [

@@ -7,6 +7,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-producti
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// OPTIMIZATION: Add revalidation for caching (60 seconds for read-heavy route)
+export const revalidate = 60
 
 /**
  * Helper function to check if a dossier is assigned to an architect
@@ -231,11 +233,13 @@ export async function GET(
     }
 
     if (!architect) {
-      console.log(`[GET /api/architects/${id}] ❌ Architect not found`)
+      console.log(`[GET /api/architects/${id}] ❌ Architect not found - ID: ${id}`)
+      console.log(`[GET /api/architects/${id}] Current user: ${currentUser?.userId}, Role: ${currentUser?.role}`)
       return NextResponse.json(
         { 
           success: false,
-          error: 'Architecte non trouvé' 
+          error: 'Architecte non trouvé',
+          details: `Aucun architecte trouvé avec l'ID: ${id}. Vérifiez que l'utilisateur existe et a le rôle 'architect'.`
         },
         { status: 404 }
       )
@@ -246,19 +250,52 @@ export async function GET(
     const architectName = architect.name
 
     // Fetch all dossiers from different sources
+    // OPTIMIZATION: Use select to fetch only needed fields, but keep original filtering logic in JS
+    // (The isAssignedToArchitect function does complex name matching that can't be done at DB level)
     const [allClients, allContacts, allOpportunities] = await Promise.all([
-      // Clients (legacy Client model)
+      // Clients (legacy Client model) - fetch all, filter in JS
       prisma.client.findMany({
+        select: {
+          id: true,
+          nom: true,
+          telephone: true,
+          ville: true,
+          typeProjet: true,
+          architecteAssigne: true,
+          statutProjet: true,
+          derniereMaj: true,
+          leadId: true,
+          email: true,
+          adresse: true,
+          budget: true,
+          notes: true,
+          magasin: true,
+          commercialAttribue: true,
+          createdAt: true,
+          updatedAt: true
+        },
         orderBy: {
           derniereMaj: 'desc'
         }
       }),
-      // Contacts with architect assignment
+      // Contacts with architect assignment - fetch all with architect assignment, filter in JS
       prisma.contact.findMany({
         where: {
           architecteAssigne: { not: null }
         },
-        include: {
+        select: {
+          id: true,
+          nom: true,
+          telephone: true,
+          ville: true,
+          email: true,
+          adresse: true,
+          architecteAssigne: true,
+          leadId: true,
+          notes: true,
+          magasin: true,
+          createdAt: true,
+          updatedAt: true,
           opportunities: {
             select: {
               id: true,
@@ -275,13 +312,23 @@ export async function GET(
           updatedAt: 'desc'
         }
       }),
-      // Opportunities with architect assignment
-      // Note: Prisma will automatically handle cascade deletes, but we filter orphaned records in code
+      // Opportunities with architect assignment - fetch all with architect assignment, filter in JS
       prisma.opportunity.findMany({
         where: {
           architecteAssigne: { not: null }
         },
-        include: {
+        select: {
+          id: true,
+          contactId: true,
+          titre: true,
+          type: true,
+          statut: true,
+          pipelineStage: true,
+          budget: true,
+          notes: true,
+          architecteAssigne: true,
+          createdAt: true,
+          updatedAt: true,
           contact: {
             select: {
               id: true,
@@ -608,6 +655,10 @@ export async function GET(
       data: {
         architect: architectData,
         clients: transformedClients
+      }
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60'
       }
     })
 

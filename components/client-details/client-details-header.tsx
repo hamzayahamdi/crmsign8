@@ -225,52 +225,115 @@ export function ClientDetailsHeader({
 
       {/* Project Status Timeline */}
       <ProjectStatusStepperEnhanced
-        key={`stepper-${client.id}`}
+        key={`stepper-${client.id}-${client.statutProjet}-${Date.now()}`}
         currentStatus={client.statutProjet}
         onStatusChange={async (newStatus) => {
           const now = new Date().toISOString();
           const changedBy = user?.name || "Utilisateur";
 
+          console.log('[ClientDetailsHeader] Stage change initiated:', {
+            from: client.statutProjet,
+            to: newStatus,
+            clientId: client.id,
+            timestamp: now
+          })
+
+          // CRITICAL: Optimistic update FIRST - before API call for instant UI feedback
+          const optimisticClient = {
+            ...client,
+            statutProjet: newStatus,
+            derniereMaj: now,
+            updatedAt: now,
+          }
+          console.log('[ClientDetailsHeader] Applying optimistic update immediately:', {
+            statutProjet: optimisticClient.statutProjet
+          })
+          onUpdate(optimisticClient, true)
+
+          // CRITICAL: Emit event IMMEDIATELY for cross-component sync (Kanban, etc.)
+          // This ensures all other components update instantly, not after API call
+          console.log('[ClientDetailsHeader] 📡 Emitting stage-updated event for cross-component sync')
+          // Use a more reliable event dispatch with immediate propagation
+          const event = new CustomEvent('stage-updated', {
+            detail: { clientId: client.id, newStatus, changedBy },
+            bubbles: true,
+            cancelable: false
+          })
+          window.dispatchEvent(event)
+          
+          // Also dispatch to document for better propagation
+          document.dispatchEvent(event)
+
           // Update stage history in database
           const result = await updateClientStage(client.id, newStatus, changedBy)
 
           if (result.success) {
-            // Update local client state
-            const updatedClient = {
-              ...client,
-              statutProjet: newStatus,
-              derniereMaj: now,
-              updatedAt: now,
-              historique: [
-                {
-                  id: `hist-${Date.now()}`,
-                  date: now,
-                  type: 'statut' as const,
-                  description: `Statut changé à "${newStatus}"`,
-                  auteur: changedBy
-                },
-                ...(client.historique || [])
-              ]
+            console.log('[ClientDetailsHeader] Stage update successful, syncing with API response...')
+            
+            // Use API response data if available for accurate update
+            let updatedClientData = optimisticClient // Start with optimistic update
+            if (result.data && result.data.statutProjet) {
+              // Merge API response data with optimistic update
+              updatedClientData = {
+                ...optimisticClient,
+                ...result.data,
+                statutProjet: result.data.statutProjet || newStatus, // Ensure status is set
+                derniereMaj: result.data.derniereMaj || now,
+                updatedAt: result.data.updatedAt || now,
+              }
+              console.log('[ClientDetailsHeader] Syncing with API response data:', {
+                statutProjet: updatedClientData.statutProjet
+              })
+              // Update again with API response data
+              onUpdate(updatedClientData, true)
             }
-            // Pass true for skipApiCall to avoid double update
-            onUpdate(updatedClient, true)
+            
+            // Then fetch fresh client data in background (with minimal delay)
+            // Wait 100ms to allow the database write to complete before fetching (faster sync)
+            setTimeout(() => {
+              fetch(`/api/clients/${client.id}`, {
+                credentials: 'include',
+                cache: 'no-store' // Force fresh data
+              })
+              .then(response => {
+                if (response.ok) {
+                  return response.json()
+                }
+                throw new Error('Failed to fetch client data')
+              })
+              .then(result => {
+                const freshClient = result.data || result
+                console.log('[ClientDetailsHeader] Fresh client data received:', {
+                  id: freshClient.id,
+                  statutProjet: freshClient.statutProjet,
+                  derniereMaj: freshClient.derniereMaj,
+                  historiqueCount: freshClient.historique?.length || 0
+                })
+                // Update with fresh data from server (includes updated historique from API)
+                onUpdate(freshClient, true)
+              })
+              .catch(fetchError => {
+                console.warn('[ClientDetailsHeader] Failed to fetch fresh data (non-critical):', fetchError)
+                // Keep previous update - it's already applied
+              })
+            }, 200)
 
-            // Emit custom event to trigger refresh of timeline and roadmap
-            window.dispatchEvent(new CustomEvent('stage-updated', {
-              detail: { clientId: client.id, newStatus, changedBy }
-            }))
-            console.log('[ClientDetailsHeader] Emitted stage-updated event:', { clientId: client.id, newStatus })
+            // Event already emitted before API call for optimistic sync
+            console.log('[ClientDetailsHeader] ✅ Stage update confirmed by API:', { clientId: client.id, newStatus })
 
             toast({
               title: "Statut mis à jour",
               description: `Le statut a été changé à "${newStatus}"`,
             })
           } else {
+            console.error('[ClientDetailsHeader] Stage update failed:', result.error)
             toast({
               title: "Erreur",
               description: result.error || "Impossible de mettre à jour le statut",
               variant: "destructive"
             })
+            // Re-throw error so the confirmation dialog can handle it
+            throw new Error(result.error || "Impossible de mettre à jour le statut")
           }
         }}
         interactive={true}

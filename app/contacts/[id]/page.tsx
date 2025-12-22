@@ -204,7 +204,7 @@ export default function ContactPage() {
     loadArchitects()
   }, [])
 
-  const loadContact = async () => {
+  const loadContact = async (skipCache = false) => {
     try {
       setLoading(true)
       setError(null)
@@ -216,7 +216,7 @@ export default function ContactPage() {
         return
       }
 
-      // Optimized fetch - use cache for faster loading
+      // Optimized fetch - use cache for faster loading, but skip cache when refreshing after updates
       const url = `/api/contacts/${contactId}`
       const response = await fetch(url, {
         method: 'GET',
@@ -224,8 +224,8 @@ export default function ContactPage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        // Enable caching for faster subsequent loads
-        cache: 'default',
+        // Skip cache when explicitly requested (e.g., after opportunity creation)
+        cache: skipCache ? 'no-store' : 'default',
       })
 
       if (!response.ok) {
@@ -358,7 +358,7 @@ export default function ContactPage() {
                   </button>
                   {error && (
                     <button
-                      onClick={loadContact}
+                      onClick={() => loadContact(true)}
                       className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white transition-colors text-sm font-medium"
                     >
                       Réessayer
@@ -790,9 +790,21 @@ export default function ContactPage() {
               isOpen={isCreateOpportunityModalOpen}
               onClose={() => setIsCreateOpportunityModalOpen(false)}
               contact={contact}
-              onSuccess={(opportunityId) => {
-                loadContact()
+              onSuccess={async (opportunityId) => {
+                // Wait a bit for the note to be created in the database
+                await new Promise(resolve => setTimeout(resolve, 1000))
+                // Reload contact data to get the new opportunity and note (skip cache to get fresh data)
+                await loadContact(true)
+                // Switch to opportunities tab to see the new opportunity
                 setActiveTab('opportunities')
+                // Also refresh notes by clearing cache and triggering a re-fetch
+                // This ensures the opportunity note appears immediately
+                setTimeout(() => {
+                  // Force refresh by dispatching a custom event that NotesTab can listen to
+                  window.dispatchEvent(new CustomEvent('notes-refresh', { 
+                    detail: { contactId: contact.id } 
+                  }))
+                }, 500)
               }}
             />
 
@@ -845,6 +857,8 @@ interface ContactNote {
   createdBy: string
   type?: string
   source?: string
+  isPriseDeBesoin?: boolean
+  isOpportunityNote?: boolean
 }
 
 function OverviewTab({ contact, architectName, architectNameMap, userNameMap, onUpdate, onEditAcompte }: { contact: ContactWithDetails; architectName: string | null; architectNameMap: Record<string, string>; userNameMap: Record<string, string>; onUpdate: () => void; onEditAcompte?: () => void }) {
@@ -902,6 +916,74 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
       setNotesValue(displayNotes)
     }
   }, [contact.notes, isEditingNotes, displayNotes])
+
+  // Helper function to identify "prise de besoin" and opportunity notes
+  const identifyPriseDeBesoinNotes = (notes: ContactNote[]): ContactNote[] => {
+    if (!contact.timeline || !Array.isArray(contact.timeline)) {
+      return notes;
+    }
+
+    // Find timeline entries where status changed to "prise_de_besoin"
+    const priseDeBesoinTimelineEntries = contact.timeline.filter((entry: any) => {
+      const metadata = entry.metadata || {};
+      return (
+        entry.eventType === 'status_changed' &&
+        metadata.newStatus === 'prise_de_besoin' &&
+        metadata.notes
+      );
+    });
+
+    // Match notes with timeline entries by content and approximate date
+    return notes.map(note => {
+      const noteContent = (note.content || '').trim().toLowerCase();
+      const noteDate = new Date(note.createdAt);
+
+      // Check if this note matches any prise de besoin timeline entry
+      const isPriseDeBesoin = priseDeBesoinTimelineEntries.some((entry: any) => {
+        const timelineNotes = (entry.metadata?.notes || '').trim().toLowerCase();
+        const entryDate = new Date(entry.createdAt || entry.date);
+        
+        // Match by content similarity (exact match or contains)
+        const contentMatches = timelineNotes === noteContent || 
+                              noteContent.includes(timelineNotes) ||
+                              timelineNotes.includes(noteContent);
+        
+        // Match by date (within 5 minutes of timeline entry)
+        const timeDiff = Math.abs(noteDate.getTime() - entryDate.getTime());
+        const dateMatches = timeDiff < 5 * 60 * 1000; // 5 minutes tolerance
+
+        return contentMatches && dateMatches;
+      });
+
+      // Check if this is an opportunity note
+      const isOpportunityNote = note.content?.trim().startsWith('[Opportunité:') || 
+                                note.source === 'opportunity' ||
+                                (note as any).metadata?.source === 'opportunity' ||
+                                (note as any).metadata?.opportunityId;
+
+      return {
+        ...note,
+        isPriseDeBesoin: isPriseDeBesoin,
+        isOpportunityNote: isOpportunityNote,
+      };
+    });
+  };
+
+  // Listen for notes refresh events (e.g., after opportunity creation)
+  useEffect(() => {
+    const handleNotesRefresh = (event: CustomEvent) => {
+      if (event.detail?.contactId === contact.id) {
+        // Force re-parse notes by clearing and reloading contact
+        console.log('[OverviewTab] Notes refresh event received, reloading contact...')
+        onUpdate()
+      }
+    }
+    
+    window.addEventListener('notes-refresh', handleNotesRefresh as EventListener)
+    return () => {
+      window.removeEventListener('notes-refresh', handleNotesRefresh as EventListener)
+    }
+  }, [contact.id, onUpdate])
 
   // Parse notes from contact (includes merged lead notes from API)
   useEffect(() => {
@@ -961,7 +1043,10 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                   return `${nContent}|${n.createdBy}|${nDateKey}` === uniqueKey;
                 });
               });
-              setNotes(uniqueNotes as ContactNote[])
+              
+              // Identify prise de besoin notes and set them
+              const notesWithPriseDeBesoin = identifyPriseDeBesoinNotes(uniqueNotes as ContactNote[]);
+              setNotes(notesWithPriseDeBesoin)
             } else if (parsed && typeof parsed === 'string' && parsed.trim()) {
               // Legacy single note format - convert to array and filter
               const legacyNote = {
@@ -973,7 +1058,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               };
               const filtered = filterSystemNotes([legacyNote]);
               if (filtered.length > 0) {
-                setNotes(filtered);
+                const notesWithPriseDeBesoin = identifyPriseDeBesoinNotes(filtered);
+                setNotes(notesWithPriseDeBesoin);
               }
             }
           } catch (parseError) {
@@ -988,7 +1074,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
               };
               const filtered = filterSystemNotes([legacyNote]);
               if (filtered.length > 0) {
-                setNotes(filtered);
+                const notesWithPriseDeBesoin = identifyPriseDeBesoinNotes(filtered);
+                setNotes(notesWithPriseDeBesoin);
               }
             }
           }
@@ -998,7 +1085,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
           if (notesArray.length > 0) {
             // Filter out system-generated notes
             const filtered = filterSystemNotes(notesArray);
-            setNotes(filtered);
+            const notesWithPriseDeBesoin = identifyPriseDeBesoinNotes(filtered);
+            setNotes(notesWithPriseDeBesoin);
           }
         }
       } catch (e) {
@@ -1014,7 +1102,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
           };
           const filtered = filterSystemNotes([legacyNote]);
           if (filtered.length > 0) {
-            setNotes(filtered);
+            const notesWithPriseDeBesoin = identifyPriseDeBesoinNotes(filtered);
+            setNotes(notesWithPriseDeBesoin);
           }
         }
       }
@@ -1558,6 +1647,22 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                 // Use note ID as primary key, fallback to content+date+index for uniqueness
                 const uniqueKey = note.id || `note-${note.content.substring(0, 30)}-${note.createdAt}-${index}`;
                 const isLeadNote = note.type === 'lead_note' || note.source === 'lead';
+                const isPriseDeBesoin = note.isPriseDeBesoin || false;
+                const isOpportunityNote = note.isOpportunityNote || false;
+                
+                // Extract opportunity title and content
+                let opportunityTitle = '';
+                let noteContent = note.content || '';
+                if (isOpportunityNote && note.content?.includes('[Opportunité:')) {
+                  const match = note.content.match(/\[Opportunité:\s*([^\]]+)\]/);
+                  if (match) {
+                    opportunityTitle = match[1].trim();
+                    noteContent = note.content.replace(/\[Opportunité:\s*[^\]]+\]\s*/, '').trim();
+                    if (!noteContent) {
+                      noteContent = 'Détails de l\'opportunité';
+                    }
+                  }
+                }
 
                 return (
                   <motion.div
@@ -1565,38 +1670,83 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.015 }}
-                    className={`group relative pl-2.5 pr-2 py-1.5 rounded-lg border-l-2 transition-all ${isLeadNote
-                      ? 'bg-slate-800/30 border-l-purple-500/40 hover:bg-slate-800/50 hover:border-l-purple-500/60'
-                      : 'bg-slate-800/20 border-l-slate-600/30 hover:bg-slate-800/40 hover:border-l-slate-500/50'
-                      }`}
+                    className={`group relative pl-2.5 pr-2 py-1.5 rounded-lg border-l-2 transition-all ${
+                      isPriseDeBesoin
+                        ? 'bg-purple-500/10 border-l-purple-500/60 hover:bg-purple-500/15 hover:border-l-purple-500/80 shadow-sm shadow-purple-500/10'
+                        : isOpportunityNote
+                        ? 'bg-blue-500/10 border-l-blue-500/60 hover:bg-blue-500/15 hover:border-l-blue-500/80 shadow-sm shadow-blue-500/10'
+                        : isLeadNote
+                        ? 'bg-slate-800/30 border-l-purple-500/40 hover:bg-slate-800/50 hover:border-l-purple-500/60'
+                        : 'bg-slate-800/20 border-l-slate-600/30 hover:bg-slate-800/40 hover:border-l-slate-500/50'
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0 space-y-1">
+                        {/* Prise de Besoin Badge */}
+                        {isPriseDeBesoin && (
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gradient-to-r from-purple-500/20 to-purple-600/20 border border-purple-500/40 text-purple-300 font-medium text-[10px] uppercase tracking-wide shadow-sm">
+                              <FileText className="w-2.5 h-2.5" />
+                              Prise de Besoin
+                            </span>
+                          </div>
+                        )}
+                        
                         {/* Note Content - Highlighted and Readable */}
                         <div className="relative">
-                          <p className="text-xs text-slate-100 leading-relaxed whitespace-pre-wrap font-light">
-                            {note.content}
+                          {isOpportunityNote && opportunityTitle && (
+                            <div className="mb-1">
+                              <p className="text-[10px] font-medium text-blue-300/80 mb-0.5">
+                                Détails de l'opportunité:
+                              </p>
+                            </div>
+                          )}
+                          <p className={`text-xs leading-relaxed whitespace-pre-wrap font-light ${
+                            isPriseDeBesoin ? 'text-purple-50' : isOpportunityNote ? 'text-blue-50' : 'text-slate-100'
+                          }`}>
+                            {isOpportunityNote ? noteContent : note.content}
                           </p>
                         </div>
 
                         {/* Note Metadata - Clean and Subtle */}
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 flex-wrap pt-0.5">
-                          {isLeadNote && (
+                        <div className="flex items-center gap-1.5 text-[10px] flex-wrap pt-0.5">
+                          {isLeadNote && !isPriseDeBesoin && !isOpportunityNote && (
                             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-purple-500/8 border border-purple-500/15 text-purple-300/80 font-light">
                               <History className="w-2.5 h-2.5" />
                               Lead
                             </span>
                           )}
-                          <span className="font-light text-slate-400">
+                          <span className={`font-light ${
+                            isPriseDeBesoin ? 'text-purple-300/80' : isOpportunityNote ? 'text-blue-300/80' : 'text-slate-400'
+                          }`}>
                             {userNameMap[note.createdBy] || note.createdBy}
                           </span>
-                          <span className="text-slate-600">·</span>
-                          <span className="font-light text-slate-500">{formatNoteDate(note.createdAt)}</span>
+                          <span className={isPriseDeBesoin ? 'text-purple-500/40' : isOpportunityNote ? 'text-blue-500/40' : 'text-slate-600'}>·</span>
+                          <span className={`font-light ${
+                            isPriseDeBesoin ? 'text-purple-300/60' : isOpportunityNote ? 'text-blue-300/60' : 'text-slate-500'
+                          }`}>
+                            {formatNoteDate(note.createdAt)}
+                          </span>
+                          {isOpportunityNote && (
+                            <>
+                              <span className="text-blue-500/40">·</span>
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-500/15 border border-blue-500/25 text-blue-200 text-[9px] font-medium">
+                                <Briefcase className="w-2.5 h-2.5" />
+                                {opportunityTitle ? (
+                                  <span className="max-w-[150px] truncate" title={opportunityTitle}>
+                                    {opportunityTitle}
+                                  </span>
+                                ) : (
+                                  'Opportunité'
+                                )}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
 
-                      {/* Delete Button - Only for non-lead notes */}
-                      {!isLeadNote && (
+                      {/* Delete Button - Only for non-lead notes, non-prise-de-besoin notes, and non-opportunity notes */}
+                      {!isLeadNote && !isPriseDeBesoin && !isOpportunityNote && (
                         <button
                           onClick={() => handleDeleteNoteClick(note.id)}
                           className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-500/10 text-red-400/70 hover:text-red-400 shrink-0"
@@ -1976,6 +2126,8 @@ function NotesTab({
         const response = await fetch(`/api/contacts/${contact.id}/notes`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           signal: controller.signal,
+          // Don't cache when fetching notes to ensure we get latest data
+          cache: 'no-store',
         })
         
         clearTimeout(timeoutId)
@@ -2003,6 +2155,20 @@ function NotesTab({
     }
 
     fetchNotes()
+    
+    // Listen for notes refresh events (e.g., after opportunity creation)
+    const handleNotesRefresh = (event: CustomEvent) => {
+      if (event.detail?.contactId === contact.id) {
+        // Clear cache and refetch
+        notesCacheRef.current = null
+        fetchNotes()
+      }
+    }
+    
+    window.addEventListener('notes-refresh', handleNotesRefresh as EventListener)
+    return () => {
+      window.removeEventListener('notes-refresh', handleNotesRefresh as EventListener)
+    }
   }, [contact.id])
 
   const handleAddNote = async () => {
@@ -2081,8 +2247,61 @@ function NotesTab({
     }
   }
 
-  // Notes are already filtered by API - no need to filter again
-  const realNotes = notes
+  // Helper function to identify "prise de besoin" and opportunity notes (same as OverviewTab)
+  const identifyPriseDeBesoinNotes = (notes: any[]): any[] => {
+    if (!contact.timeline || !Array.isArray(contact.timeline)) {
+      return notes;
+    }
+
+    // Find timeline entries where status changed to "prise_de_besoin"
+    const priseDeBesoinTimelineEntries = contact.timeline.filter((entry: any) => {
+      const metadata = entry.metadata || {};
+      return (
+        entry.eventType === 'status_changed' &&
+        metadata.newStatus === 'prise_de_besoin' &&
+        metadata.notes
+      );
+    });
+
+    // Match notes with timeline entries by content and approximate date
+    return notes.map(note => {
+      const noteContent = (note.content || note.description || '').trim().toLowerCase();
+      const noteDate = new Date(note.createdAt || note.date || new Date());
+
+      // Check if this note matches any prise de besoin timeline entry
+      const isPriseDeBesoin = priseDeBesoinTimelineEntries.some((entry: any) => {
+        const timelineNotes = (entry.metadata?.notes || '').trim().toLowerCase();
+        const entryDate = new Date(entry.createdAt || entry.date);
+        
+        // Match by content similarity (exact match or contains)
+        const contentMatches = timelineNotes === noteContent || 
+                              noteContent.includes(timelineNotes) ||
+                              timelineNotes.includes(noteContent);
+        
+        // Match by date (within 5 minutes of timeline entry)
+        const timeDiff = Math.abs(noteDate.getTime() - entryDate.getTime());
+        const dateMatches = timeDiff < 5 * 60 * 1000; // 5 minutes tolerance
+
+        return contentMatches && dateMatches;
+      });
+
+      // Check if this is an opportunity note
+      const isOpportunityNote = (note.content || note.description || '').trim().startsWith('[Opportunité:') || 
+                                note.source === 'opportunity' ||
+                                note.sourceType === 'opportunity' ||
+                                (note as any).metadata?.source === 'opportunity' ||
+                                (note as any).metadata?.opportunityId;
+
+      return {
+        ...note,
+        isPriseDeBesoin: isPriseDeBesoin,
+        isOpportunityNote: isOpportunityNote,
+      };
+    });
+  };
+
+  // Notes are already filtered by API - identify prise de besoin and opportunity notes
+  const realNotes = identifyPriseDeBesoinNotes(notes)
 
   const getUserName = (userId: string) => {
     return userNameMap[userId] || userId || 'Utilisateur'
@@ -2179,12 +2398,27 @@ function NotesTab({
         <div className="space-y-3">
           {realNotes.map((note, index) => {
             const isLeadNote = note.type === 'lead_note' || note.source === 'lead' || note.sourceType === 'lead' || note.source === 'lead_note'
+            const isPriseDeBesoin = note.isPriseDeBesoin || false
+            const isOpportunityNote = note.isOpportunityNote || false
             const author = getUserName(note.createdBy || note.author || 'Utilisateur')
-            const noteContent = note.content || note.description || ''
+            let noteContent = note.content || note.description || ''
             const noteDate = note.createdAt || note.date || new Date().toISOString()
             const formattedDate = new Date(noteDate)
             const isToday = formattedDate.toDateString() === new Date().toDateString()
             const isYesterday = formattedDate.toDateString() === new Date(Date.now() - 86400000).toDateString()
+            
+            // Extract opportunity title if it's an opportunity note
+            let opportunityTitle = '';
+            if (isOpportunityNote && noteContent.includes('[Opportunité:')) {
+              const match = noteContent.match(/\[Opportunité:\s*([^\]]+)\]/);
+              if (match) {
+                opportunityTitle = match[1].trim();
+                noteContent = noteContent.replace(/\[Opportunité:\s*[^\]]+\]\s*/, '').trim();
+                if (!noteContent) {
+                  noteContent = 'Détails de l\'opportunité';
+                }
+              }
+            }
             
             let dateDisplay = ''
             if (isToday) {
@@ -2206,20 +2440,70 @@ function NotesTab({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03, duration: 0.2 }}
-                className="group bg-gradient-to-br from-white/5 to-white/3 border border-white/10 rounded-xl p-4 hover:border-white/20 hover:from-white/8 hover:to-white/5 transition-all duration-200 shadow-sm hover:shadow-md"
+                className={`group rounded-xl p-4 transition-all duration-200 shadow-sm hover:shadow-md ${
+                  isPriseDeBesoin
+                    ? 'bg-purple-500/8 border border-purple-500/30 hover:bg-purple-500/12 hover:border-purple-500/40'
+                    : isOpportunityNote
+                    ? 'bg-blue-500/8 border border-blue-500/30 hover:bg-blue-500/12 hover:border-blue-500/40'
+                    : 'bg-gradient-to-br from-white/5 to-white/3 border border-white/10 hover:border-white/20 hover:from-white/8 hover:to-white/5'
+                }`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0 shadow-sm">
-                    <MessageSquare className="w-4 h-4 text-blue-400" />
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${
+                    isPriseDeBesoin
+                      ? 'bg-purple-500/20'
+                      : isOpportunityNote
+                      ? 'bg-blue-500/20'
+                      : 'bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/30'
+                  }`}>
+                    {isPriseDeBesoin ? (
+                      <FileText className="w-4 h-4 text-purple-300" />
+                    ) : isOpportunityNote ? (
+                      <Briefcase className="w-4 h-4 text-blue-300" />
+                    ) : (
+                      <MessageSquare className="w-4 h-4 text-blue-400" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="text-xs font-medium text-white/90">{author}</span>
-                      <span className="text-[10px] text-white/30">•</span>
-                      <span className="text-[10px] text-white/50 font-light">
+                      <span className={`text-xs font-medium ${
+                        isPriseDeBesoin ? 'text-purple-100' : isOpportunityNote ? 'text-blue-100' : 'text-white/90'
+                      }`}>
+                        {author}
+                      </span>
+                      <span className={`text-[10px] ${
+                        isPriseDeBesoin ? 'text-purple-400/60' : isOpportunityNote ? 'text-blue-400/60' : 'text-white/30'
+                      }`}>•</span>
+                      <span className={`text-[10px] font-light ${
+                        isPriseDeBesoin ? 'text-purple-200/70' : isOpportunityNote ? 'text-blue-200/70' : 'text-white/50'
+                      }`}>
                         {dateDisplay}
                       </span>
-                      {isLeadNote && (
+                      {isPriseDeBesoin && (
+                        <>
+                          <span className="text-[10px] text-purple-400/60">•</span>
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/25 text-purple-200 text-[9px] font-medium">
+                            <FileText className="w-2.5 h-2.5" />
+                            Prise de Besoin
+                          </span>
+                        </>
+                      )}
+                      {isOpportunityNote && (
+                        <>
+                          <span className="text-[10px] text-blue-400/60">•</span>
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-500/15 border border-blue-500/25 text-blue-200 text-[9px] font-medium">
+                            <Briefcase className="w-2.5 h-2.5" />
+                            {opportunityTitle ? (
+                              <span className="max-w-[200px] truncate" title={opportunityTitle}>
+                                {opportunityTitle}
+                              </span>
+                            ) : (
+                              'Opportunité'
+                            )}
+                          </span>
+                        </>
+                      )}
+                      {isLeadNote && !isPriseDeBesoin && !isOpportunityNote && (
                         <>
                           <span className="text-[10px] text-white/30">•</span>
                           <span className="px-1.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-[9px] font-medium">
@@ -2228,7 +2512,16 @@ function NotesTab({
                         </>
                       )}
                     </div>
-                    <p className="text-sm text-white/90 leading-relaxed font-light whitespace-pre-wrap break-words">
+                    {isOpportunityNote && opportunityTitle && (
+                      <div className="mb-1.5">
+                        <p className="text-[10px] font-medium text-blue-300/80 mb-0.5">
+                          Détails de l'opportunité:
+                        </p>
+                      </div>
+                    )}
+                    <p className={`text-sm leading-relaxed font-light whitespace-pre-wrap break-words ${
+                      isPriseDeBesoin ? 'text-purple-50/90' : isOpportunityNote ? 'text-blue-50/90' : 'text-white/90'
+                    }`}>
                       {noteContent}
                     </p>
                   </div>

@@ -11,6 +11,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
+// OPTIMIZATION: Add revalidation for caching (60 seconds for list routes)
+export const revalidate = 60
+
 // Helper function to get client status from clients table or fallback to pipeline stage
 async function getClientStatus(clientId: string, pipelineStage: string | null): Promise<string> {
   let status = 'nouveau'
@@ -182,7 +185,21 @@ export async function GET(request: NextRequest) {
     try {
       contactClients = await prisma.contact.findMany({
         where: contactWhereWithTag,
-        include: { opportunities: true },
+        include: { 
+          opportunities: {
+            select: {
+              id: true,
+              titre: true,
+              type: true,
+              statut: true,
+              pipelineStage: true,
+              budget: true,
+              architecteAssigne: true,
+              createdAt: true,
+              updatedAt: true
+            }
+          }
+        },
         orderBy: { createdAt: 'desc' }
       })
     } catch (prismaError: any) {
@@ -197,7 +214,21 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        include: { opportunities: true },
+        include: { 
+          opportunities: {
+            select: {
+              id: true,
+              titre: true,
+              type: true,
+              statut: true,
+              pipelineStage: true,
+              budget: true,
+              architecteAssigne: true,
+              createdAt: true,
+              updatedAt: true
+            }
+          }
+        },
         orderBy: { createdAt: 'desc' }
       })
       console.log('[Client API] Using fallback query, found:', contactClients.length, 'contacts')
@@ -451,6 +482,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: allClients
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60'
+      }
     })
 
   } catch (error) {

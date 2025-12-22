@@ -507,8 +507,8 @@ const SidebarComponent = () => {
                     e.stopPropagation()
                     toggleSidebar()
                   }}
-                  whileHover={{ scale: 1.15, backgroundColor: 'rgba(51, 65, 85, 0.95)' }}
-                  whileTap={{ scale: 0.85 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   initial={{ opacity: 1, scale: 1 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{
@@ -517,10 +517,10 @@ const SidebarComponent = () => {
                     damping: 25,
                   }}
                   className={cn(
-                    "hidden md:flex shrink-0 rounded-lg bg-slate-800/90 border-2 border-sky-500/50 shadow-xl backdrop-blur-sm items-center justify-center text-sky-400 hover:text-sky-300 hover:bg-slate-700/95 transition-all duration-200",
-                    "hover:border-sky-400 hover:shadow-sky-500/40 active:scale-85",
+                    "hidden md:flex shrink-0 rounded-md bg-slate-800/80 border border-sky-500/40 shadow-lg backdrop-blur-sm items-center justify-center text-sky-400 hover:text-sky-300 hover:bg-slate-700/90 transition-all duration-200",
+                    "hover:border-sky-400/60 hover:shadow-sky-500/20",
                     "touch-manipulation cursor-pointer",
-                    "w-9 h-9 md:w-10 md:h-10"
+                    "w-7 h-7"
                   )}
                   style={{
                     pointerEvents: 'auto',
@@ -531,7 +531,7 @@ const SidebarComponent = () => {
                   aria-label="Collapse sidebar"
                   type="button"
                 >
-                  <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-sky-400" />
+                  <ChevronLeft className="w-4 h-4 text-sky-400" />
                 </motion.button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="bg-slate-800 border-sky-500/30 text-white text-xs">
@@ -551,8 +551,8 @@ const SidebarComponent = () => {
                   e.stopPropagation()
                   toggleSidebar()
                 }}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 initial={{ opacity: 1, scale: 1 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{
@@ -561,10 +561,10 @@ const SidebarComponent = () => {
                   damping: 25,
                 }}
                 className={cn(
-                  "hidden md:flex absolute top-1/2 right-0 translate-x-1/2 rounded-full bg-slate-800/95 border-2 border-sky-500/40 shadow-xl backdrop-blur-sm items-center justify-center text-sky-400 hover:text-sky-300 hover:bg-slate-700/95 transition-all duration-200",
-                  "hover:border-sky-400 hover:shadow-sky-500/30 active:scale-95",
+                  "hidden md:flex absolute top-1/2 right-0 translate-x-1/2 rounded-full bg-slate-800/90 border border-sky-500/40 shadow-lg backdrop-blur-sm items-center justify-center text-sky-400 hover:text-sky-300 hover:bg-slate-700/90 transition-all duration-200",
+                  "hover:border-sky-400/60 hover:shadow-sky-500/20",
                   "touch-manipulation",
-                  "w-6 h-6 md:w-7 md:h-7"
+                  "w-6 h-6"
                 )}
                 style={{
                   transform: 'translateY(-50%) translateX(50%)',
@@ -575,7 +575,7 @@ const SidebarComponent = () => {
                 aria-label="Expand sidebar"
                 type="button"
               >
-                <ChevronRight className="w-3.5 h-3.5 md:w-4 md:h-4 text-sky-400" />
+                <ChevronRight className="w-3.5 h-3.5 text-sky-400" />
               </motion.button>
             </TooltipTrigger>
             <TooltipContent side="right" className="bg-slate-800 border-sky-500/30 text-white text-xs">

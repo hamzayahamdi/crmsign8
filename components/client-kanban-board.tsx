@@ -72,13 +72,162 @@ export function ClientKanbanBoard({
     
     // Use ref to prevent re-renders
     const lastDraggedOverColumn = useRef<string | null>(null)
+    const externalUpdateRef = useRef<Set<string>>(new Set()) // Track clients updated externally
 
     // Sync local clients with parent when not updating
+    // But preserve optimistic updates during drag operations and external updates
     useEffect(() => {
-        if (!isUpdating) {
-            setLocalClients(clients)
+        if (!isUpdating && !pendingId) {
+            // Only sync if we're not in the middle of an update
+            // CRITICAL: Preserve clients that were updated externally
+            setLocalClients(prev => {
+                // Create a map of existing clients by ID
+                const existingMap = new Map(prev.map(c => [c.id, c]))
+                
+                // Merge: preserve externally updated clients
+                const merged = clients.map(newClient => {
+                    const existing = existingMap.get(newClient.id)
+                    if (existing) {
+                        // CRITICAL: If this client was updated externally, ALWAYS keep the existing version
+                        if (externalUpdateRef.current.has(newClient.id)) {
+                            console.log('[Kanban] 🔒 Preserving externally updated client:', {
+                                clientId: newClient.id,
+                                existingStatus: existing.statutProjet,
+                                newStatus: newClient.statutProjet,
+                                existingUpdatedAt: existing.updatedAt
+                            })
+                            return existing // Always preserve external update
+                        }
+                        // If statuses differ and existing was recently updated, prefer existing
+                        if (existing.statutProjet !== newClient.statutProjet && existing.updatedAt) {
+                            const existingTime = new Date(existing.updatedAt).getTime()
+                            const now = Date.now()
+                            // If existing was updated in last 3 seconds, keep it
+                            if (now - existingTime < 3000) {
+                                console.log('[Kanban] 🔒 Preserving recently updated client:', {
+                                    clientId: newClient.id,
+                                    existingStatus: existing.statutProjet,
+                                    newStatus: newClient.statutProjet,
+                                    timeSinceUpdate: now - existingTime
+                                })
+                                return existing
+                            }
+                        }
+                    }
+                    return newClient
+                })
+                
+                // Add any clients from prev that aren't in new list (preserve external updates)
+                const newIds = new Set(clients.map(c => c.id))
+                prev.forEach(existingClient => {
+                    if (!newIds.has(existingClient.id)) {
+                        // Only add if it has nomProjet (is an opportunity)
+                        if (existingClient.nomProjet && existingClient.nomProjet.trim()) {
+                            merged.push(existingClient)
+                        }
+                    }
+                })
+                
+                return merged
+            })
         }
-    }, [clients, isUpdating])
+    }, [clients, isUpdating, pendingId])
+
+    // CRITICAL: Listen for stage updates from other components (client details page)
+    // This ensures Kanban board is always in sync with stage changes made elsewhere
+    useEffect(() => {
+        const handleStageUpdated = (event: CustomEvent) => {
+            const { clientId, newStatus } = event.detail || {}
+            console.log('[Kanban] 📡 Received stage-updated event:', { clientId, newStatus })
+            
+            if (clientId && newStatus) {
+                // Mark this client as externally updated to prevent sync from overwriting
+                externalUpdateRef.current.add(clientId)
+                
+                // Update local state immediately for instant visual feedback
+                setLocalClients(prev => {
+                    const clientIndex = prev.findIndex(c => c.id === clientId)
+                    const clientExists = clientIndex !== -1
+                    
+                    if (!clientExists) {
+                        console.warn('[Kanban] ⚠️ Client not in localClients, will be added from parent sync:', {
+                            clientId,
+                            newStatus,
+                            totalClients: prev.length
+                        })
+                        // Client might not be loaded yet - parent will sync it
+                        // But mark it so we preserve it when it arrives
+                        externalUpdateRef.current.add(clientId)
+                        return prev
+                    }
+                    
+                    const now = new Date().toISOString()
+                    const updated = prev.map((c, index) => {
+                        if (c.id === clientId) {
+                            console.log('[Kanban] ⚡ Updating client status in localClients:', {
+                                clientId,
+                                from: c.statutProjet,
+                                to: newStatus,
+                                hasNomProjet: !!c.nomProjet,
+                                nomProjet: c.nomProjet,
+                                index,
+                                willAppearInColumn: Object.keys(COLUMN_TO_STATUS_MAP).find(
+                                    colId => {
+                                        const statusMap: Record<string, ProjectStatus[]> = {
+                                            qualifie: ["qualifie", "nouveau"],
+                                            prise_de_besoin: ["prise_de_besoin"],
+                                            acompte_recu: ["acompte_recu", "acompte_verse"],
+                                            conception: ["conception", "en_conception"],
+                                            devis_negociation: ["devis_negociation", "en_validation"],
+                                            accepte: ["accepte"],
+                                            refuse: ["refuse", "perdu", "annule", "suspendu"],
+                                            premier_depot: ["premier_depot"],
+                                            projet_en_cours: ["projet_en_cours", "chantier", "en_chantier"],
+                                            facture_reglee: ["facture_reglee"],
+                                            livraison_termine: ["livraison_termine", "livraison", "termine"],
+                                        }
+                                        const validStatuses = statusMap[colId] || []
+                                        return validStatuses.includes(newStatus as ProjectStatus) || newStatus === colId
+                                    }
+                                )
+                            })
+                            return {
+                                ...c,
+                                statutProjet: newStatus,
+                                derniereMaj: now,
+                                updatedAt: now
+                            }
+                        }
+                        return c
+                    })
+                    
+                    console.log('[Kanban] ✅ Updated localClients, card should now appear in correct column')
+                    
+                    // Clear tracking after 2 seconds (enough time for UI to update and sync)
+                    setTimeout(() => {
+                        externalUpdateRef.current.delete(clientId)
+                        console.log('[Kanban] 🧹 Cleared external update tracking for:', clientId)
+                    }, 2000)
+                    
+                    return updated
+                })
+                
+                // Clear any pending state that might be blocking the update
+                if (pendingId === clientId) {
+                    console.log('[Kanban] 🧹 Clearing pending state for externally updated client')
+                    setPendingId(null)
+                    setPendingOldStatus(null)
+                }
+            }
+        }
+
+        window.addEventListener('stage-updated', handleStageUpdated as EventListener)
+        document.addEventListener('stage-updated', handleStageUpdated as EventListener)
+        return () => {
+            window.removeEventListener('stage-updated', handleStageUpdated as EventListener)
+            document.removeEventListener('stage-updated', handleStageUpdated as EventListener)
+        }
+    }, [pendingId])
 
     // Fetch architect names on mount
     useEffect(() => {
@@ -176,6 +325,11 @@ export function ClientKanbanBoard({
 
         const validStatuses = statusMap[statusId] || []
         let clients = filteredClients.filter(c => {
+            // CRITICAL: Ensure client has nomProjet (is an opportunity)
+            if (!c.nomProjet || !c.nomProjet.trim()) {
+                return false
+            }
+            
             // Exclude the actively dragged card from all columns
             if (activeClient && c.id === activeClient.id) return false
             
@@ -189,7 +343,34 @@ export function ClientKanbanBoard({
             }
             
             // Filter by status (after excluding from old column)
-            if (!validStatuses.includes(c.statutProjet)) return false
+            // CRITICAL: Check if status matches validStatuses OR matches column ID directly
+            const statusMatches = validStatuses.includes(c.statutProjet) || c.statutProjet === statusId
+            
+            if (!statusMatches) {
+                // Only log in development to reduce noise
+                // But always log for "refuse" status to debug the issue
+                if (process.env.NODE_ENV === 'development' || c.statutProjet === 'refuse' || statusId === 'refuse') {
+                    console.log('[Kanban] Filtering out client:', {
+                        clientId: c.id,
+                        nomProjet: c.nomProjet,
+                        statutProjet: c.statutProjet,
+                        columnId: statusId,
+                        validStatuses,
+                        matchesValidStatuses: validStatuses.includes(c.statutProjet),
+                        matchesColumnId: c.statutProjet === statusId
+                    })
+                }
+                return false
+            }
+            
+            // Debug log for "refuse" status to verify it's being included
+            if (c.statutProjet === 'refuse' && statusId === 'refuse') {
+                console.log('[Kanban] ✅ Including refuse client in refuse column:', {
+                    clientId: c.id,
+                    nomProjet: c.nomProjet,
+                    statutProjet: c.statutProjet
+                })
+            }
             
             return true
         })
@@ -215,6 +396,15 @@ export function ClientKanbanBoard({
         lastDraggedOverColumn.current = null
         setActiveClient(client || null)
         setIsUpdating(true)
+        
+        // Immediately prepare for optimistic update by tracking the original status
+        if (client) {
+            setPendingOldStatus(client.statutProjet)
+            console.log('[Kanban] 🎯 Drag started:', {
+                clientId: client.id,
+                currentStatus: client.statutProjet
+            })
+        }
     }
 
     const handleDragOver = (event: any) => {
@@ -346,22 +536,37 @@ export function ClientKanbanBoard({
             return
         }
 
-        // Clear placeholder immediately when drop happens (before API call)
-        // The optimistic update will show the client in the new column
-        setPlaceholderClient(null)
-        setPlaceholderColumn(null)
-        
-        // Keep placeholder visible and set as pending
         // CRITICAL: Track old status to exclude from old column during pending state
         setPendingId(clientId)
         setPendingOldStatus(client.statutProjet)
         
-        // Optimistic update - update local state immediately for smooth UX
-        // This moves the client to the new column visually
-        const optimisticClient = { ...client, statutProjet: newStatus }
+        // Clear placeholder immediately when drop happens (before API call)
+        setPlaceholderClient(null)
+        setPlaceholderColumn(null)
+        
+        // Optimistic update - update local state IMMEDIATELY for instant visual feedback
+        // This moves the client to the new column visually right away
+        const now = new Date().toISOString()
+        const optimisticClient = { 
+            ...client, 
+            statutProjet: newStatus,
+            derniereMaj: now,
+            updatedAt: now
+        }
+        
+        // Update local state immediately
         setLocalClients(prev => 
             prev.map(c => c.id === clientId ? optimisticClient : c)
         )
+        
+        // Also update parent immediately for instant sync across components
+        onUpdateClient(optimisticClient)
+        
+        console.log('[Kanban] ⚡ Optimistic update applied immediately:', {
+            clientId,
+            from: client.statutProjet,
+            to: newStatus
+        })
 
         try {
             console.log('[Kanban] 🔄 Updating client status:', {
@@ -401,7 +606,7 @@ export function ClientKanbanBoard({
             }
 
             if (result.success && result.data) {
-                console.log('[Kanban] ✅ Success! Updating local state with:', {
+                console.log('[Kanban] ✅ Success! Syncing with API response:', {
                     id: result.data.id,
                     statutProjet: result.data.statutProjet,
                     expectedStatus: newStatus
@@ -414,18 +619,22 @@ export function ClientKanbanBoard({
                         actual: result.data.statutProjet,
                         response: result
                     })
+                    // Fix the status if it doesn't match
+                    result.data.statutProjet = newStatus
                 }
                 
-                // Brief delay to show the card settling into place
-                await new Promise(resolve => setTimeout(resolve, 300))
+                // Update local state with API response data (includes fresh historique, etc.)
+                setLocalClients(prev => 
+                    prev.map(c => c.id === clientId ? { ...c, ...result.data } : c)
+                )
                 
-                // Clear placeholder and pending state for smooth reveal
+                // Clear placeholder and pending state immediately
                 setPlaceholderClient(null)
                 setPlaceholderColumn(null)
                 setPendingId(null)
                 setPendingOldStatus(null)
                 
-                // Update the parent with confirmed data from API
+                // Update the parent with confirmed data from API (includes full client data)
                 onUpdateClient(result.data)
                 
                 console.log('[Kanban] 🎯 Updated client in store:', {
@@ -513,10 +722,18 @@ export function ClientKanbanBoard({
                 throw new Error('No data returned from API')
             }
         } catch (error) {
-            console.error('[Kanban] Error:', error)
+            console.error('[Kanban] ❌ Error updating stage:', error)
             const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue'
             
-            // Clear placeholder on error
+            // Rollback optimistic update on error - restore original client
+            setLocalClients(prev => 
+                prev.map(c => c.id === clientId ? client : c)
+            )
+            
+            // Also rollback parent update
+            onUpdateClient(client)
+            
+            // Clear all pending states
             setPlaceholderClient(null)
             setPlaceholderColumn(null)
             setPendingId(null)

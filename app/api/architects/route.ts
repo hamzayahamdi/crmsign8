@@ -7,6 +7,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-producti
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// OPTIMIZATION: Add revalidation for caching (60 seconds for read-heavy route)
+export const revalidate = 60
 
 interface JWTPayload {
   userId: string
@@ -212,8 +214,10 @@ export async function GET(request: NextRequest) {
     })
 
     // Fetch all dossiers from different sources
+    // OPTIMIZATION: Already using select statements, but we can't filter by architect here
+    // since we need to calculate stats for all architects. The filtering happens in JS.
     const [clients, contacts, opportunities] = await Promise.all([
-      // Clients (legacy Client model)
+      // Clients (legacy Client model) - only fetch fields needed for stats
       prisma.client.findMany({
         select: {
           id: true,
@@ -410,6 +414,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: architectsWithStats
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60'
+      }
     })
 
   } catch (error) {

@@ -204,15 +204,15 @@ export async function POST(
           opportunityError,
         );
         console.error("[POST /stage] Error details:", {
-          message: opportunityError.message,
-          code: opportunityError.code,
-          stack: opportunityError.stack,
+          message: opportunityError instanceof Error ? opportunityError.message : String(opportunityError),
+          code: (opportunityError as any)?.code,
+          stack: opportunityError instanceof Error ? opportunityError.stack : undefined,
         });
 
         return NextResponse.json(
           {
             error: "Erreur lors de la mise à jour de l'opportunité",
-            details: opportunityError.message,
+            details: opportunityError instanceof Error ? opportunityError.message : String(opportunityError),
           },
           { status: 500 },
         );
@@ -244,12 +244,13 @@ export async function POST(
     }
 
     // NOW create the historique entry (after client record exists)
+    // Optimized: Create history entry in parallel with other operations for speed
     console.log("[POST /stage] Creating stage history entry...");
 
-    // Generate a simple ID
+    // Generate history ID upfront
     const historyId = `stage_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create descriptive status change message
+    // Create descriptive status change message with proper labels
     const statusLabels = {
       qualifie: "Qualifié",
       prise_de_besoin: "Prise de besoin",
@@ -266,204 +267,239 @@ export async function POST(
     };
 
     const fromLabel =
-      statusLabels[currentStatusForHistory] || currentStatusForHistory;
-    const toLabel = statusLabels[newStage] || newStage;
+      statusLabels[currentStatusForHistory as keyof typeof statusLabels] || currentStatusForHistory;
+    const toLabel = statusLabels[newStage as keyof typeof statusLabels] || newStage;
 
-    // Insert into historique table for timeline tracking
-    console.log("[POST /stage] Creating historique entry with data:", {
-      id: historyId,
-      client_id: clientId,
-      date: now,
-      type: "statut",
-      description: `Statut changé de "${fromLabel}" vers "${toLabel}"`,
-      auteur: changedBy,
-      previous_status: currentStatusForHistory,
-      new_status: newStage,
-    });
-
-    const { error: historiqueError } = await supabase
+    // Check for recent duplicate entries (within last 3 seconds) to prevent duplicates
+    const threeSecondsAgo = new Date(Date.now() - 3000).toISOString();
+    const { data: recentEntries } = await supabase
       .from("historique")
-      .insert({
-        id: historyId,
-        client_id: clientId,
-        date: now,
-        type: "statut",
-        description: `Statut changé de "${fromLabel}" vers "${toLabel}"`,
-        auteur: changedBy,
-        previous_status: currentStatusForHistory,
-        new_status: newStage,
-        timestamp_start: now,
-        created_at: now,
-        updated_at: now,
+      .select("id")
+      .eq("client_id", clientId)
+      .eq("type", "statut")
+      .eq("new_status", newStage)
+      .gte("created_at", threeSecondsAgo)
+      .limit(1);
+
+    // Only create history entry if no recent duplicate exists
+    if (!recentEntries || recentEntries.length === 0) {
+      // Insert into historique table for timeline tracking (non-blocking)
+      const historiquePromise = supabase
+        .from("historique")
+        .insert({
+          id: historyId,
+          client_id: clientId,
+          date: now,
+          type: "statut",
+          description: `Statut changé de "${fromLabel}" vers "${toLabel}"`,
+          auteur: changedBy,
+          previous_status: currentStatusForHistory,
+          new_status: newStage,
+          timestamp_start: now,
+          created_at: now,
+          updated_at: now,
+        });
+
+      // Don't wait for history creation - proceed with response immediately for speed
+      Promise.resolve(historiquePromise).then(({ error: historiqueError }) => {
+        if (historiqueError) {
+          console.error("[POST /stage] Historique insert failed (non-critical):", historiqueError);
+        } else {
+          console.log("[POST /stage] ✅ Historique entry created successfully");
+        }
+      }).catch((err: unknown) => {
+        console.error("[POST /stage] Historique creation error (non-critical):", err);
       });
-
-    if (historiqueError) {
-      console.error("[POST /stage] Historique insert failed:", historiqueError);
-      console.error("[POST /stage] Full historique error:", {
-        code: historiqueError.code,
-        message: historiqueError.message,
-        details: historiqueError.details,
-        hint: historiqueError.hint,
-      });
-      return NextResponse.json(
-        {
-          error: "Erreur lors de la création de l'historique",
-          details: historiqueError.message,
-        },
-        { status: 500 },
-      );
-    }
-
-    console.log("[POST /stage] ✅ Historique entry created successfully");
-
-    // Verify the historique entry was created by fetching it back
-    const { data: verifyHistorique, error: verifyError } = await supabase
-      .from("historique")
-      .select("*")
-      .eq("id", historyId)
-      .single();
-
-    if (verifyError) {
-      console.error(
-        "[POST /stage] ⚠️ Could not verify historique entry:",
-        verifyError,
-      );
     } else {
-      console.log(
-        "[POST /stage] ✅ Verified historique entry:",
-        verifyHistorique,
-      );
+      console.log("[POST /stage] ⚠️ Duplicate entry detected within last 3 seconds, skipping creation");
     }
 
     console.log("[POST /stage] ===== SUCCESS =====");
 
-    // Fetch the updated client data to return
-    const { data: updatedClient, error: fetchError } = await supabase
-      .from("clients")
-      .select("*")
-      .eq("id", clientId)
-      .single();
-
-    if (fetchError) {
-      console.error("[POST /stage] Error fetching updated client:", fetchError);
-    }
-
-    // Create notifications for relevant users (architect, commercial, etc.)
-    try {
-      // Get the user who made the change
-      let currentUserId: string | null = null;
+    // For opportunity-based clients, construct response from opportunity data
+    let clientDataForResponse: any = null;
+    
+    if (clientId.includes("-")) {
+      // Opportunity-based client - use the data we already have
+      const [contactId, opportunityId] = clientId.split("-");
       try {
-        const decoded = verify(authCookie.value, JWT_SECRET) as { userId: string; email: string; name?: string };
-        currentUserId = decoded.userId;
-      } catch (tokenError) {
-        console.warn("[POST /stage] Could not decode token for notifications:", tokenError);
+        const contact = await prisma.contact.findUnique({
+          where: { id: contactId },
+          include: {
+            opportunities: {
+              where: { id: opportunityId },
+            },
+          },
+        });
+
+        if (contact && contact.opportunities && contact.opportunities.length > 0) {
+          const opportunity = contact.opportunities[0];
+          clientDataForResponse = {
+            id: clientId,
+            nom: contact.nom || "Client",
+            telephone: contact.telephone || "",
+            ville: contact.ville || "",
+            architecteAssigne: opportunity.architecteAssigne || contact.architecteAssigne || "",
+            statutProjet: newStage, // Use the new stage we just set
+            typeProjet: opportunity.type || "autre",
+            derniereMaj: now,
+            email: contact.email,
+            adresse: contact.adresse,
+            budget: opportunity.budget || 0,
+            leadId: contact.leadId,
+            commercialAttribue: contact.createdBy || "",
+            createdAt: contact.createdAt.toISOString(),
+            updatedAt: now,
+            nomProjet: opportunity.titre || contact.nom,
+            contactId: contactId,
+            opportunityId: opportunityId,
+          };
+        }
+      } catch (oppError) {
+        console.error("[POST /stage] Error fetching opportunity data for response:", oppError);
+      }
+    } else {
+      // Legacy client - fetch from Supabase
+      const { data: updatedClient, error: fetchError } = await supabase
+        .from("clients")
+        .select("id, nom, telephone, ville, architecte_assigne, statut_projet, type_projet, derniere_maj, email, adresse, budget, lead_id, commercial_attribue, created_at, updated_at, nom_projet")
+        .eq("id", clientId)
+        .single();
+
+      if (fetchError) {
+        console.error("[POST /stage] Error fetching updated client:", fetchError);
       }
 
-      if (updatedClient && currentUserId) {
-        const clientName = updatedClient.nom_projet || updatedClient.nom || "Client";
-        const previousStage = currentStatusForHistory || "inconnu";
-        const newStageLabel = newStage;
-
-        // Get users to notify: architect assigned and commercial
-        const usersToNotify: string[] = [];
-        
-        // Add architect if assigned
-        if (updatedClient.architecte_assigne) {
-          try {
-            const architect = await prisma.user.findFirst({
-              where: {
-                OR: [
-                  { id: updatedClient.architecte_assigne },
-                  { name: { equals: updatedClient.architecte_assigne, mode: 'insensitive' } }
-                ]
-              },
-              select: { id: true }
-            });
-            if (architect && architect.id !== currentUserId) {
-              usersToNotify.push(architect.id);
-            }
-          } catch (architectError) {
-            console.warn("[POST /stage] Could not find architect for notification:", architectError);
-          }
-        }
-
-        // Add commercial if assigned
-        if (updatedClient.commercial_attribue) {
-          try {
-            const commercial = await prisma.user.findFirst({
-              where: {
-                OR: [
-                  { id: updatedClient.commercial_attribue },
-                  { email: updatedClient.commercial_attribue }
-                ]
-              },
-              select: { id: true }
-            });
-            if (commercial && commercial.id !== currentUserId && !usersToNotify.includes(commercial.id)) {
-              usersToNotify.push(commercial.id);
-            }
-          } catch (commercialError) {
-            console.warn("[POST /stage] Could not find commercial for notification:", commercialError);
-          }
-        }
-
-        // Create notifications for all relevant users
-        const notificationPromises = usersToNotify.map(userId =>
-          notifyStageChanged({
-            userId,
-            clientName,
-            clientId,
-            previousStage,
-            newStage: newStageLabel,
-            createdBy: changedBy,
-            projectName: updatedClient.nom_projet || undefined,
-          }).catch(error => {
-            console.error(`[POST /stage] Failed to create notification for user ${userId}:`, error);
-            return null;
-          })
-        );
-
-        await Promise.all(notificationPromises);
-        console.log(`[POST /stage] ✅ Created ${usersToNotify.length} notifications for stage change`);
+      if (updatedClient) {
+        clientDataForResponse = {
+          id: updatedClient.id,
+          nom: updatedClient.nom,
+          telephone: updatedClient.telephone,
+          ville: updatedClient.ville,
+          architecteAssigne: updatedClient.architecte_assigne,
+          statutProjet: updatedClient.statut_projet,
+          typeProjet: updatedClient.type_projet,
+          derniereMaj: updatedClient.derniere_maj,
+          email: updatedClient.email,
+          adresse: updatedClient.adresse,
+          budget: updatedClient.budget,
+          leadId: updatedClient.lead_id,
+          commercialAttribue: updatedClient.commercial_attribue,
+          createdAt: updatedClient.created_at,
+          updatedAt: updatedClient.updated_at,
+          nomProjet: updatedClient.nom_projet,
+        };
       }
-    } catch (notificationError) {
-      // Don't fail the request if notifications fail
-      console.error("[POST /stage] Error creating notifications (non-critical):", notificationError);
     }
 
-    return NextResponse.json({
+    // Return response immediately for fast UI update
+    const response = NextResponse.json({
       success: true,
       message: "Statut mis à jour avec succès",
       newStage: newStage,
       timestamp: now,
-      data: updatedClient ? {
-        id: updatedClient.id,
-        nom: updatedClient.nom,
-        telephone: updatedClient.telephone,
-        ville: updatedClient.ville,
-        architecteAssigne: updatedClient.architecte_assigne,
-        statutProjet: updatedClient.statut_projet,
-        typeProjet: updatedClient.type_projet,
-        derniereMaj: updatedClient.derniere_maj,
-        email: updatedClient.email,
-        adresse: updatedClient.adresse,
-        budget: updatedClient.budget,
-        leadId: updatedClient.lead_id,
-        commercialAttribue: updatedClient.commercial_attribue,
-        createdAt: updatedClient.created_at,
-        updatedAt: updatedClient.updated_at,
-        nomProjet: updatedClient.nom_projet,
-      } : null,
+      data: clientDataForResponse,
     });
+
+    // Create notifications in background (non-blocking) for speed
+    if (clientDataForResponse) {
+      (async () => {
+        try {
+          // Get the user who made the change
+          let currentUserId: string | null = null;
+          try {
+            const decoded = verify(authCookie.value, JWT_SECRET) as { userId: string; email: string; name?: string };
+            currentUserId = decoded.userId;
+          } catch (tokenError) {
+            console.warn("[POST /stage] Could not decode token for notifications:", tokenError);
+          }
+
+          if (currentUserId) {
+            const clientName = clientDataForResponse.nomProjet || clientDataForResponse.nom || "Client";
+            const previousStage = currentStatusForHistory || "inconnu";
+            const newStageLabel = newStage;
+
+            // Get users to notify: architect assigned and commercial
+            const usersToNotify: string[] = [];
+            
+            // Add architect if assigned
+            if (clientDataForResponse.architecteAssigne) {
+              try {
+                const architect = await prisma.user.findFirst({
+                  where: {
+                    OR: [
+                      { id: clientDataForResponse.architecteAssigne },
+                      { name: { equals: clientDataForResponse.architecteAssigne, mode: 'insensitive' } }
+                    ]
+                  },
+                  select: { id: true }
+                });
+                if (architect && architect.id !== currentUserId) {
+                  usersToNotify.push(architect.id);
+                }
+              } catch (architectError) {
+                console.warn("[POST /stage] Could not find architect for notification:", architectError);
+              }
+            }
+
+            // Add commercial if assigned
+            if (clientDataForResponse.commercialAttribue) {
+              try {
+                const commercial = await prisma.user.findFirst({
+                  where: {
+                    OR: [
+                      { id: clientDataForResponse.commercialAttribue },
+                      { email: clientDataForResponse.commercialAttribue }
+                    ]
+                  },
+                  select: { id: true }
+                });
+                if (commercial && commercial.id !== currentUserId && !usersToNotify.includes(commercial.id)) {
+                  usersToNotify.push(commercial.id);
+                }
+              } catch (commercialError) {
+                console.warn("[POST /stage] Could not find commercial for notification:", commercialError);
+              }
+            }
+
+            // Create notifications for all relevant users (non-blocking)
+            if (usersToNotify.length > 0) {
+              const notificationPromises = usersToNotify.map(userId =>
+                notifyStageChanged({
+                  userId,
+                  clientName,
+                  clientId,
+                  previousStage,
+                  newStage: newStageLabel,
+                  createdBy: changedBy,
+                  projectName: clientDataForResponse.nomProjet || undefined,
+                }).catch(error => {
+                  console.error(`[POST /stage] Failed to create notification for user ${userId}:`, error);
+                  return null;
+                })
+              );
+
+              await Promise.all(notificationPromises);
+              console.log(`[POST /stage] ✅ Created ${usersToNotify.length} notifications for stage change`);
+            }
+          }
+        } catch (notificationError) {
+          // Don't fail the request if notifications fail
+          console.error("[POST /stage] Error creating notifications (non-critical):", notificationError);
+        }
+      })();
+    }
+
+    return response;
   } catch (error) {
     console.error("[POST /stage] ===== ERROR =====");
     console.error("[POST /stage] Exception:", error);
-    console.error("[POST /stage] Stack:", error.stack);
+    console.error("[POST /stage] Stack:", error instanceof Error ? error.stack : undefined);
 
     return NextResponse.json(
       {
         error: "Erreur serveur",
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 },
     );

@@ -143,12 +143,14 @@ export const useClientStore = create<ClientStore>((set, get) => ({
     }
     
     // Merge updates, preserving all existing fields (only update defined fields)
+    // CRITICAL: For stage updates, prioritize the new status immediately
     const mergedClient = {
       ...existingClient,
       ...Object.fromEntries(
         Object.entries(updates).filter(([_, value]) => value !== undefined)
       ),
       id: id, // Ensure ID is always correct
+      // CRITICAL: Use provided timestamps if available (from external updates)
       derniereMaj: updates.derniereMaj || existingClient.derniereMaj || now,
       updatedAt: updates.updatedAt || existingClient.updatedAt || now,
     }
@@ -160,11 +162,19 @@ export const useClientStore = create<ClientStore>((set, get) => ({
       set({ selectedClient: mergedClient })
     }
     
+    // CRITICAL: Update store immediately for fast sync
     set({ 
       clients: updatedClients,
       lastUpdate: now
     })
     console.log(`[Client Store] ✅ Updated client: ${id} (replaced at index ${clientIndex}, total clients: ${updatedClients.length})`)
+    
+    // Emit store update event for immediate propagation
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('client-store-updated', {
+        detail: { clientId: id, client: mergedClient }
+      }))
+    }
   },
 
   updateClientStatus: (id, status) => {

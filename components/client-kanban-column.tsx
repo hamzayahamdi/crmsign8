@@ -6,7 +6,6 @@ import { ClientKanbanCard } from "@/components/client-kanban-card"
 import { useDroppable } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { cn } from "@/lib/utils"
-import { DollarSign } from "lucide-react"
 
 interface ClientKanbanColumnProps {
     id: string
@@ -45,14 +44,9 @@ export function ClientKanbanColumn({
             }, 0)
     }, [clients])
 
-    // Format currency
+    // Format currency with DH (Moroccan Dirham)
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat("fr-MA", {
-            style: "currency",
-            currency: "MAD",
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(amount)
+        return `${amount.toLocaleString('fr-FR')} DH`
     }
 
     return (
@@ -71,7 +65,7 @@ export function ClientKanbanColumn({
                     </span>
                     {totalBudget > 0 && (
                         <span 
-                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 whitespace-nowrap flex-shrink-0 border"
+                            className="text-[11px] font-extrabold px-2 py-1 rounded-md flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 border"
                             style={{ 
                                 backgroundColor: color + '60', 
                                 borderColor: color + '80',
@@ -81,8 +75,8 @@ export function ClientKanbanColumn({
                             }}
                             title={`Estimation Montant total: ${formatCurrency(totalBudget)}`}
                         >
-                            <DollarSign className="w-2.5 h-2.5" style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.3))' }} />
-                            <span className="font-extrabold">{formatCurrency(totalBudget)}</span>
+                            <span className="font-bold">{totalBudget.toLocaleString('fr-FR')}</span>
+                            <span className="font-extrabold text-[12px]">DH</span>
                         </span>
                     )}
                 </div>

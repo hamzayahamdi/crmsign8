@@ -51,8 +51,11 @@ export function OpportunitiesTable({
 
   // Handle row click to navigate to client details
   const handleRowClick = (opportunity: Opportunity) => {
-    if (opportunity.contactId && opportunity.id) {
-      router.push(`/clients/${opportunity.contactId}-${opportunity.id}`);
+    // Use contactId from opportunity, or fallback to contact prop
+    const contactId = opportunity.contactId || contact?.id;
+    
+    if (contactId && opportunity.id) {
+      router.push(`/clients/${contactId}-${opportunity.id}`);
     } else {
       toast.error("Contact non associé à cette opportunité");
     }

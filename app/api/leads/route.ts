@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/database'
 import { verify } from 'jsonwebtoken'
+import { revalidatePath } from 'next/cache'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+
+// OPTIMIZATION: Add revalidation for caching (60 seconds for list routes)
+export const revalidate = 60
 
 // GET /api/leads - Fetch all leads
 export async function GET(request: NextRequest) {
@@ -236,7 +240,7 @@ export async function GET(request: NextRequest) {
       hasMore
     }, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate'
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60'
       }
     })
   } catch (error) {
@@ -474,6 +478,10 @@ export async function POST(request: NextRequest) {
     })
 
     console.log('[API] Created lead:', lead.id, 'with', lead.notes.length, 'notes')
+    
+    // OPTIMIZATION: Invalidate cache after creating lead
+    revalidatePath('/api/leads')
+    
     return NextResponse.json(lead, { status: 201 })
   } catch (error) {
     console.error('[API] Error creating lead:', error)

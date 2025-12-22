@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import type { Client } from "@/types/client"
-import { MapPin, User, Briefcase, DollarSign, Pencil, Loader2 } from "lucide-react"
+import { MapPin, User, Briefcase, Pencil, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useSortable } from "@dnd-kit/sortable"
@@ -70,11 +70,11 @@ export function ClientKanbanCard({ client, onClick, onUpdate, isPending, archite
                 "group bg-slate-800/95 backdrop-blur-sm rounded-lg p-2.5",
                 !isPlaceholder && "cursor-pointer",
                 "border border-slate-700/50 hover:border-primary/40",
-                "transition-all duration-200 hover:shadow-lg hover:shadow-primary/5",
+                "transition-all duration-150 hover:shadow-lg hover:shadow-primary/5",
                 "relative overflow-hidden",
                 isDragging && "opacity-60 shadow-xl shadow-primary/30 scale-105 ring-1 ring-primary/40 border-primary/50",
                 isPlaceholder && !isPending && "opacity-40 blur-[1px] scale-95 animate-pulse cursor-not-allowed",
-                isPending && "ring-1 ring-blue-400/50 shadow-md shadow-blue-400/20 border-blue-400/40",
+                isPending && "ring-1 ring-blue-400/50 shadow-md shadow-blue-400/20 border-blue-400/40 animate-pulse",
                 !isDragging && !isPending && !isPlaceholder && "hover:scale-[1.01]"
             )}
         >
@@ -128,17 +128,17 @@ export function ClientKanbanCard({ client, onClick, onUpdate, isPending, archite
 
                     {/* Estimation Montant - Compact with Edit */}
                     {client.budget && client.budget > 0 && (
-                        <div className="flex items-center justify-between gap-1 text-emerald-400 bg-emerald-500/10 rounded px-1.5 py-0.5 relative">
-                            <div className="flex items-center gap-1 flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1 text-emerald-400 bg-emerald-500/10 rounded px-2 py-1 relative">
+                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                 {isBudgetUpdating ? (
                                     <>
-                                        <Loader2 className="w-2.5 h-2.5 shrink-0 animate-spin text-blue-400" />
-                                        <span className="font-light text-[9px] truncate text-blue-300 animate-pulse">Mise à jour...</span>
+                                        <Loader2 className="w-3 h-3 shrink-0 animate-spin text-blue-400" />
+                                        <span className="font-medium text-[10px] truncate text-blue-300 animate-pulse">Mise à jour...</span>
                                     </>
                                 ) : (
                                     <>
-                                        <DollarSign className="w-2.5 h-2.5 shrink-0" />
-                                        <span className="font-light text-[9px] truncate">{client.budget.toLocaleString()} DH</span>
+                                        <span className="font-bold text-[11px] truncate">{client.budget.toLocaleString('fr-FR')}</span>
+                                        <span className="font-extrabold text-[12px] text-emerald-300">DH</span>
                                     </>
                                 )}
                             </div>

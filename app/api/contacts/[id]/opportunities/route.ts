@@ -1,11 +1,10 @@
 "use server"
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/database';
 import { NextRequest, NextResponse } from 'next/server';
 import { verify } from 'jsonwebtoken';
 import { createClient } from '@supabase/supabase-js';
 
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // Initialize Supabase client for client record creation
@@ -20,11 +19,54 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
  * POST /api/contacts/[id]/opportunities
  * Create a new opportunity for a contact
  */
+// Production-safe Prisma connection check with retry logic
+async function ensurePrismaConnection(retries = 3): Promise<boolean> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`[Create Opportunity] Database connection attempt ${attempt}/${retries}`)
+      
+      // Test connection with a simple query
+      await prisma.$queryRaw`SELECT 1`
+      
+      console.log('[Create Opportunity] Database connection successful')
+      return true
+    } catch (error: any) {
+      console.error(`[Create Opportunity] Connection attempt ${attempt} failed:`, {
+        code: error?.code,
+        message: error?.message,
+        name: error?.name
+      })
+      
+      // Wait before retrying (exponential backoff)
+      if (attempt < retries) {
+        const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000)
+        console.log(`[Create Opportunity] Waiting ${waitTime}ms before retry...`)
+        await new Promise(resolve => setTimeout(resolve, waitTime))
+      }
+    }
+  }
+  
+  console.error('[Create Opportunity] All database connection attempts failed')
+  return false
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Ensure database connection before proceeding
+    const isConnected = await ensurePrismaConnection()
+    if (!isConnected) {
+      return NextResponse.json(
+        { 
+          error: 'Database connection failed',
+          details: 'Unable to connect to the database server. Please try again in a moment.'
+        },
+        { status: 503 }
+      )
+    }
+
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -50,11 +92,28 @@ export async function POST(
       );
     }
 
-    // Verify contact exists
-    const contact = await prisma.contact.findUnique({
-      where: { id: contactId },
-      include: { opportunities: true }
-    });
+    // Verify contact exists with retry logic
+    let contact;
+    try {
+      contact = await prisma.contact.findUnique({
+        where: { id: contactId },
+        include: { opportunities: true }
+      });
+    } catch (dbError: any) {
+      console.error('[Create Opportunity] Database error when fetching contact:', dbError);
+      
+      // If it's a connection error, try one more time
+      if (dbError.message?.includes("Can't reach database server")) {
+        console.log('[Create Opportunity] Retrying contact fetch after connection error...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        contact = await prisma.contact.findUnique({
+          where: { id: contactId },
+          include: { opportunities: true }
+        });
+      } else {
+        throw dbError;
+      }
+    }
 
     if (!contact) {
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
@@ -80,11 +139,28 @@ export async function POST(
 
     console.log('[Create Opportunity] Creating opportunity:', { titre, type, contactId });
 
-    // Verify user exists
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: { id: true, name: true, email: true },
-    });
+    // Verify user exists with error handling
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        select: { id: true, name: true, email: true },
+      });
+    } catch (dbError: any) {
+      console.error('[Create Opportunity] Database error when fetching user:', dbError);
+      
+      // If it's a connection error, try one more time
+      if (dbError.message?.includes("Can't reach database server")) {
+        console.log('[Create Opportunity] Retrying user fetch after connection error...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { id: true, name: true, email: true },
+        });
+      } else {
+        throw dbError;
+      }
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 401 });
@@ -100,21 +176,96 @@ export async function POST(
 
     console.log('[Create Opportunity] Contact status:', contact.status, 'Setting pipeline stage to:', defaultPipelineStage);
 
-    // Create opportunity
-    const opportunity = await prisma.opportunity.create({
-      data: {
+    // Create opportunity with error handling and retry logic
+    let opportunity;
+    try {
+      opportunity = await prisma.opportunity.create({
+        data: {
+          contactId,
+          titre,
+          type: type as any,
+          statut: 'open',
+          pipelineStage: defaultPipelineStage, // Set based on contact status
+          budget: budget ? parseFloat(budget) : undefined,
+          description: description || undefined,
+          architecteAssigne: architecteAssigne || undefined,
+          dateClotureAttendue: dateClotureAttendue ? new Date(dateClotureAttendue) : undefined,
+          createdBy: decoded.userId,
+        },
+      });
+    } catch (dbError: any) {
+      console.error('[Create Opportunity] Database error when creating opportunity:', dbError);
+      
+      // If it's a connection error, try one more time
+      if (dbError.message?.includes("Can't reach database server")) {
+        console.log('[Create Opportunity] Retrying opportunity creation after connection error...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        opportunity = await prisma.opportunity.create({
+          data: {
+            contactId,
+            titre,
+            type: type as any,
+            statut: 'open',
+            pipelineStage: defaultPipelineStage,
+            budget: budget ? parseFloat(budget) : undefined,
+            description: description || undefined,
+            architecteAssigne: architecteAssigne || undefined,
+            dateClotureAttendue: dateClotureAttendue ? new Date(dateClotureAttendue) : undefined,
+            createdBy: decoded.userId,
+          },
+        });
+      } else {
+        // Re-throw non-connection errors
+        throw dbError;
+      }
+    }
+
+    // 🎯 SAVE OPPORTUNITY DESCRIPTION AS NOTE FOR TRACEABILITY (BEFORE Supabase operations)
+    // This should happen for ALL opportunities, not just acompte_recu ones
+    // NOTE: We only create the note in the unified Note table, NOT a timeline entry
+    // This prevents duplicate notes from appearing (timeline entries show as "Note ajoutée (Opportunité)")
+    let createdNoteId: string | null = null;
+    if (description && description.trim()) {
+      const noteContent = description.trim();
+      const authorName = user.name || user.email || decoded.userId;
+      const noteText = `[Opportunité: ${titre}] ${noteContent}`;
+
+      console.log('[Create Opportunity] Creating opportunity note:', {
         contactId,
-        titre,
-        type: type as any,
-        statut: 'open',
-        pipelineStage: defaultPipelineStage, // Set based on contact status
-        budget: budget ? parseFloat(budget) : undefined,
-        description: description || undefined,
-        architecteAssigne: architecteAssigne || undefined,
-        dateClotureAttendue: dateClotureAttendue ? new Date(dateClotureAttendue) : undefined,
-        createdBy: decoded.userId,
-      },
-    });
+        opportunityId: opportunity.id,
+        noteLength: noteText.length,
+        notePreview: noteText.substring(0, 100)
+      });
+
+      try {
+        // Create note in unified Note table for contact
+        // This is the ONLY note we create - no timeline entry to avoid duplicates
+        const contactNote = await prisma.note.create({
+          data: {
+            content: noteText,
+            author: authorName,
+            authorId: decoded.userId,
+            entityType: 'contact',
+            entityId: contactId,
+            sourceType: 'contact',
+            sourceId: contactId,
+            createdAt: new Date(),
+          },
+        });
+        createdNoteId = contactNote.id;
+        console.log('[Create Opportunity] ✅ Note created in unified Note table:', {
+          noteId: contactNote.id,
+          content: contactNote.content.substring(0, 100),
+          entityType: contactNote.entityType,
+          entityId: contactNote.entityId
+        });
+      } catch (noteError) {
+        console.error('[Create Opportunity] ❌ Error creating opportunity note:', noteError);
+        // Don't fail the opportunity creation if note creation fails
+      }
+    } else {
+      console.warn('[Create Opportunity] ⚠️ No description provided, skipping note creation');
+    }
 
     // 🎯 NEW LOGIC: Contact becomes Client ONLY if opportunity has 'acompte_recu' status
     // CRITICAL: This must happen BEFORE creating the Supabase client record
@@ -325,33 +476,30 @@ export async function POST(
             console.log('[Create Opportunity] ✅ Stage history entry created');
           }
 
-          // 🎯 SAVE OPPORTUNITY DESCRIPTION AS NOTE FOR TRACEABILITY
-          // If description is provided, save it as a note in:
-          // 1. Unified Note table (for contact notes)
-          // 2. Client historique table (for client details page)
-          // 3. Timeline entry (for traceability)
+          // 🎯 ALSO CREATE NOTE IN CLIENT HISTORIQUE (for client details page)
+          // The note was already created in unified Note table earlier, now add it to historique
           if (description && description.trim()) {
             const noteContent = description.trim();
             const authorName = user.name || user.email || decoded.userId;
             const noteNow = new Date().toISOString();
 
             try {
-              // 1. Create note in unified Note table for contact
-              const contactNote = await prisma.note.create({
-                data: {
-                  content: `[Opportunité: ${titre}] ${noteContent}`,
-                  author: authorName,
-                  authorId: decoded.userId,
+              // Find the note we created earlier to get its ID
+              const existingNote = await prisma.note.findFirst({
+                where: {
                   entityType: 'contact',
                   entityId: contactId,
-                  sourceType: 'contact',
-                  sourceId: contactId,
-                  createdAt: new Date(),
+                  content: {
+                    startsWith: `[Opportunité: ${titre}]`
+                  },
+                  createdAt: {
+                    gte: new Date(Date.now() - 60000) // Created in last minute
+                  }
                 },
+                orderBy: { createdAt: 'desc' }
               });
-              console.log('[Create Opportunity] ✅ Note created in unified Note table:', contactNote.id);
 
-              // 2. Create note in client historique table
+              // Create note in client historique table
               const noteHistoryId = `hist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
               const { error: noteHistoriqueError } = await supabase
                 .from('historique')
@@ -366,7 +514,7 @@ export async function POST(
                     source: 'opportunity',
                     opportunityId: opportunity.id,
                     contactId: contactId,
-                    noteId: contactNote.id,
+                    noteId: existingNote?.id,
                   },
                   created_at: noteNow,
                   updated_at: noteNow,
@@ -377,28 +525,8 @@ export async function POST(
               } else {
                 console.log('[Create Opportunity] ✅ Note created in client historique');
               }
-
-              // 3. Create timeline entry for traceability
-              await prisma.timeline.create({
-                data: {
-                  contactId: contactId,
-                  opportunityId: opportunity.id,
-                  eventType: 'note_added',
-                  title: 'Note ajoutée (Opportunité)',
-                  description: `[Opportunité: ${titre}] ${noteContent}`,
-                  metadata: {
-                    source: 'opportunity',
-                    opportunityId: opportunity.id,
-                    clientId: clientId,
-                    noteId: contactNote.id,
-                    historiqueId: noteHistoryId,
-                  },
-                  author: decoded.userId,
-                },
-              });
-              console.log('[Create Opportunity] ✅ Timeline entry created for opportunity note');
             } catch (noteError) {
-              console.error('[Create Opportunity] Error creating opportunity note (non-blocking):', noteError);
+              console.error('[Create Opportunity] Error creating note in historique (non-blocking):', noteError);
               // Don't fail the opportunity creation if note creation fails
             }
           }
@@ -410,58 +538,48 @@ export async function POST(
     } else {
       console.warn('[Create Opportunity] Supabase not configured, skipping client record creation');
       
-      // Even if Supabase is not configured, still save the note in unified Note table and timeline
-      if (description && description.trim()) {
-        const noteContent = description.trim();
-        const authorName = user.name || user.email || decoded.userId;
-
-        try {
-          // Create note in unified Note table for contact
-          const contactNote = await prisma.note.create({
-            data: {
-              content: `[Opportunité: ${titre}] ${noteContent}`,
-              author: authorName,
-              authorId: decoded.userId,
-              entityType: 'contact',
-              entityId: contactId,
-              sourceType: 'contact',
-              sourceId: contactId,
-              createdAt: new Date(),
-            },
-          });
-          console.log('[Create Opportunity] ✅ Note created in unified Note table (no Supabase):', contactNote.id);
-
-          // Create timeline entry for traceability
-          await prisma.timeline.create({
-            data: {
-              contactId: contactId,
-              opportunityId: opportunity.id,
-              eventType: 'note_added',
-              title: 'Note ajoutée (Opportunité)',
-              description: `[Opportunité: ${titre}] ${noteContent}`,
-              metadata: {
-                source: 'opportunity',
-                opportunityId: opportunity.id,
-                noteId: contactNote.id,
-              },
-              author: decoded.userId,
-            },
-          });
-          console.log('[Create Opportunity] ✅ Timeline entry created for opportunity note (no Supabase)');
-        } catch (noteError) {
-          console.error('[Create Opportunity] Error creating opportunity note (non-blocking):', noteError);
-          // Don't fail the opportunity creation if note creation fails
-        }
-      }
+      // Note: The note was already created earlier (before Supabase check)
+      // We don't create it again here to avoid duplicates
+      console.log('[Create Opportunity] Note already created earlier, skipping duplicate creation');
     }
 
     return NextResponse.json(opportunity, { status: 201 });
 
-  } catch (error) {
-    console.error('Error creating opportunity:', error);
+  } catch (error: any) {
+    console.error('[Create Opportunity] Error creating opportunity:', error);
+    
+    // Handle database connection errors specifically
+    if (error?.message?.includes("Can't reach database server") || 
+        error?.code === 'P1001' || 
+        error?.code === 'P1017') {
+      return NextResponse.json(
+        { 
+          error: 'Database connection failed',
+          details: 'Unable to connect to the database server. Please check your connection and try again.',
+          code: 'DATABASE_CONNECTION_ERROR'
+        },
+        { status: 503 }
+      );
+    }
+    
+    // Handle other Prisma errors
+    if (error?.code?.startsWith('P')) {
+      return NextResponse.json(
+        { 
+          error: 'Database error',
+          details: error.message || 'An error occurred while accessing the database',
+          code: error.code
+        },
+        { status: 500 }
+      );
+    }
+    
     const errorMessage = error instanceof Error ? error.message : 'Failed to create opportunity';
     return NextResponse.json(
-      { error: errorMessage },
+      { 
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

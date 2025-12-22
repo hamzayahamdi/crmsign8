@@ -269,6 +269,11 @@ export async function PUT(
       }
     })
 
+    // OPTIMIZATION: Invalidate cache after updating lead
+    const { revalidatePath } = await import('next/cache')
+    revalidatePath('/api/leads')
+    revalidatePath(`/api/leads/${leadId}`)
+
     return NextResponse.json(lead)
   } catch (error) {
     console.error('Error updating lead:', error)
@@ -338,6 +343,11 @@ export async function DELETE(
     await prisma.lead.delete({ where: { id: leadId } })
 
     console.log(`[Delete Lead] Lead ${leadId} deleted successfully`)
+
+    // OPTIMIZATION: Invalidate cache after deleting lead
+    const { revalidatePath } = await import('next/cache')
+    revalidatePath('/api/leads')
+    revalidatePath(`/api/leads/${leadId}`)
 
     return NextResponse.json({
       success: true,

@@ -179,7 +179,10 @@ export function ProjectStatusStepperEnhanced({
     showConfirmation,
   });
 
-  const currentStep = PROJECT_STEPS.find((step) => step.key === currentStatus);
+  // Use pendingStatus for immediate visual feedback during update
+  // This ensures the UI shows the new status immediately, even before the API call completes
+  const displayStatus = (isLoading && pendingStatus) ? pendingStatus : currentStatus;
+  const currentStep = PROJECT_STEPS.find((step) => step.key === displayStatus);
   const currentOrder = currentStep?.order || 0;
 
   console.log("[ProjectStatusStepper] 🎯 Current step details:", {
@@ -233,6 +236,12 @@ export function ProjectStatusStepperEnhanced({
       return;
     }
 
+    // Prevent multiple simultaneous updates
+    if (isLoading) {
+      console.log("[ProjectStatusStepper] Update already in progress, ignoring duplicate click");
+      return;
+    }
+
     console.log(
       "[ProjectStatusStepper] Confirming stage change to:",
       pendingStatus,
@@ -253,24 +262,24 @@ export function ProjectStatusStepperEnhanced({
       );
 
       // Call the onStatusChange handler (which updates the database)
-      const result = await onStatusChange(pendingStatus);
+      // The handler will update the UI optimistically before this completes
+      await onStatusChange(pendingStatus);
 
-      console.log("[ProjectStatusStepper] 📊 onStatusChange result:", result);
       console.log("[ProjectStatusStepper] ✅ Stage change successful!");
 
-      // Wait a bit to show success, then close dialog
-      setTimeout(() => {
-        console.log("[ProjectStatusStepper] 🚪 Closing dialog after success");
-        setShowConfirmation(false);
-        setPendingStatus(null);
-        setDialogCurrentStatus(null);
-        setIsLoading(false);
-      }, 800); // Increased to 800ms for smoother UX
+      // Close dialog immediately after successful update
+      console.log("[ProjectStatusStepper] 🚪 Closing dialog after success");
+      setShowConfirmation(false);
+      setPendingStatus(null);
+      setDialogCurrentStatus(null);
+      setIsLoading(false);
+      
+      // Force component to recognize the new status immediately
+      // The parent component's key change will force a re-render
     } catch (error) {
       console.error("[ProjectStatusStepper] ❌ Error updating status:", error);
       console.error("[ProjectStatusStepper] 📋 Error details:", {
-        message: error.message,
-        stack: error.stack,
+        message: error instanceof Error ? error.message : String(error),
         pendingStatus,
         currentStatus,
       });
@@ -302,6 +311,9 @@ export function ProjectStatusStepperEnhanced({
 
   const progressPercentage = ((currentOrder + 1) / PROJECT_STEPS.length) * 100;
 
+  // Show loading overlay during update
+  const showLoadingOverlay = isLoading;
+
   console.log(
     "[ProjectStatusStepper] Render - pendingStatus:",
     pendingStatus,
@@ -311,7 +323,16 @@ export function ProjectStatusStepperEnhanced({
 
   return (
     <TooltipProvider>
-      <div className={cn("w-full max-w-full overflow-hidden", className)}>
+      <div className={cn("w-full max-w-full overflow-hidden relative", className)}>
+        {/* Loading Overlay */}
+        {showLoadingOverlay && (
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center rounded-lg">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs text-white/70 font-light">Mise à jour...</span>
+            </div>
+          </div>
+        )}
         {/* Confirmation Dialog */}
         {pendingStatus && (
           <StageChangeConfirmationDialog
@@ -357,6 +378,8 @@ export function ProjectStatusStepperEnhanced({
                 const isCompleted = step.order < currentOrder;
                 const isCurrent = step.order === currentOrder;
                 const isUpcoming = step.order > currentOrder;
+                // Highlight the pending status during update
+                const isPending = isLoading && pendingStatus === step.key;
                 // Allow clicking on ANY stage (not just completed/current)
                 const isClickable = interactive;
 
@@ -422,12 +445,23 @@ export function ProjectStatusStepperEnhanced({
                                 />
                               </motion.div>
                             ) : (
-                              <Icon
-                                className={cn(
-                                  "w-4 h-4 md:w-6 md:h-6 lg:w-7 lg:h-7 transition-colors",
-                                  isCurrent ? "text-white" : "text-white/40",
+                              <>
+                                <Icon
+                                  className={cn(
+                                    "w-4 h-4 md:w-6 md:h-6 lg:w-7 lg:h-7 transition-colors",
+                                    isCurrent || isPending ? "text-white" : "text-white/40",
+                                  )}
+                                />
+                                {isPending && (
+                                  <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    className="absolute inset-0 flex items-center justify-center"
+                                  >
+                                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
+                                  </motion.div>
                                 )}
-                              />
+                              </>
                             )}
 
                             {/* Active pulse animation */}
