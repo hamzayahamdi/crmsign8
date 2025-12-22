@@ -694,37 +694,38 @@ export function LeadModalEnhanced({
         <Dialog open={open} onOpenChange={handleOpenChangeWrapper}>
             <DialogContent
                 showCloseButton={false}
-                className="!w-fit !max-w-[95vw] lg:!max-w-fit bg-gradient-to-br from-[#0f1117] via-[#13151c] to-[#0f1117] border border-slate-800/50 max-h-[90vh] overflow-hidden p-0 shadow-2xl shadow-black/50 flex flex-col backdrop-blur-xl"
+                containerClassName="!p-0 sm:!p-2 md:!p-4 !items-start sm:!items-center !justify-start sm:!justify-center"
+                className="!w-full !max-w-full sm:!max-w-[95vw] lg:!max-w-fit lg:!w-fit !h-full sm:!h-auto !max-h-full sm:!max-h-[90vh] !rounded-none sm:!rounded-lg bg-gradient-to-br from-[#0f1117] via-[#13151c] to-[#0f1117] border-0 sm:border border-slate-800/50 overflow-hidden !p-0 shadow-2xl shadow-black/50 flex flex-col backdrop-blur-xl !m-0"
             >
-                {/* Close Button - Enhanced with Red Background */}
-                <button
-                    onClick={() => onOpenChange(false)}
-                    className="absolute right-3 top-3 z-50 w-7 h-7 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 flex items-center justify-center transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-slate-900 group shadow-lg"
-                >
-                    <XCircle className="h-4 w-4 text-red-400 group-hover:text-red-300 transition-colors" />
-                    <span className="sr-only">Close</span>
-                </button>
+                {/* Header - Fixed at Top (Always Visible) */}
+                <div className="relative w-full px-3 py-3 sm:px-4 sm:py-3 border-b border-slate-700/30 bg-gradient-to-r from-slate-900/50 to-transparent shrink-0 z-40 flex-shrink-0 min-h-[48px] flex items-center">
+                    <div className="flex items-center justify-between gap-2 min-w-0 w-full pr-10 sm:pr-10">
+                        <h2 className="text-base sm:text-base font-medium text-white tracking-tight truncate flex-1 min-w-0 text-left m-0 leading-tight">
+                            {lead ? "Modifier Lead" : "Créer Lead"}
+                        </h2>
+                        <Badge className={cn("px-2 py-1 sm:px-2 text-[10px] sm:text-[10px] font-medium border shrink-0 whitespace-nowrap m-0", priorityColor)}>
+                            ↑ {formData.priorite === 'haute' ? 'Haute' : formData.priorite === 'moyenne' ? 'Moyenne' : 'Basse'}
+                        </Badge>
+                    </div>
+                    
+                    {/* Close Button - Positioned in Header */}
+                    <button
+                        onClick={() => onOpenChange(false)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 sm:right-3 z-50 w-7 h-7 sm:w-7 sm:h-7 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 flex items-center justify-center transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-slate-900 group shadow-lg"
+                        aria-label="Fermer"
+                    >
+                        <XCircle className="h-4 w-4 sm:h-4 sm:w-4 text-red-400 group-hover:text-red-300 transition-colors" />
+                        <span className="sr-only">Close</span>
+                    </button>
+                </div>
 
                 {/* Content Area - Scrollable */}
-                <div className="flex flex-col lg:flex-row flex-1 min-h-0">
+                <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden max-h-[calc(100vh-120px)] sm:max-h-none">
                     {/* Left Panel - Form */}
-                    <div className="flex-1 lg:min-w-[560px] flex flex-col">
-                        {/* Header - Fixed */}
-                        <div className="px-4 py-3 border-b border-slate-700/30 bg-gradient-to-r from-slate-900/50 to-transparent">
-                            <DialogHeader className="mb-0">
-                                <div className="flex items-center justify-between">
-                                    <DialogTitle className="text-base font-light text-white tracking-tight">
-                                        {lead ? "Modifier Lead" : "Créer Lead"}
-                                    </DialogTitle>
-                                    <Badge className={cn("px-2 py-0.5 text-[10px] font-light border", priorityColor)}>
-                                        ↑ {formData.priorite === 'haute' ? 'Haute' : formData.priorite === 'moyenne' ? 'Moyenne' : 'Basse'}
-                                    </Badge>
-                                </div>
-                            </DialogHeader>
-                        </div>
+                    <div className="flex-1 lg:min-w-[560px] flex flex-col min-h-0 overflow-hidden">
 
                         {/* Scrollable Form Content */}
-                        <div className="flex-1 overflow-y-auto p-4">
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-3 lg:p-4">
                             {/* Error Summary */}
                             <AnimatePresence>
                                 {showErrors && Object.keys(errors).length > 0 && (
@@ -767,9 +768,9 @@ export function LeadModalEnhanced({
                                 )}
                             </AnimatePresence>
 
-                            <form onSubmit={handleSubmit} className="space-y-3">
+                            <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-2.5 lg:space-y-3">
                                 {/* Nom complet */}
-                                <div className="space-y-1.5">
+                                <div className="space-y-1 sm:space-y-1.5">
                                     <Label htmlFor="nom" className="text-[10px] font-light text-slate-300">
                                         Nom complet <span className="text-red-500">*</span>
                                     </Label>
@@ -794,7 +795,7 @@ export function LeadModalEnhanced({
                                 </div>
 
                                 {/* Téléphone & Ville */}
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                                     <div className="space-y-1.5">
                                         <Label htmlFor="telephone" className="text-[10px] font-light text-slate-300">
                                             Téléphone <span className="text-red-500">*</span>
@@ -853,7 +854,7 @@ export function LeadModalEnhanced({
                                 </div>
 
                                 {/* Type de bien & Statut */}
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                                     <div className="space-y-1.5">
                                         <Label htmlFor="typeBien" className="text-[10px] font-light text-slate-300">
                                             Type de bien <span className="text-red-500">*</span>
@@ -959,7 +960,7 @@ export function LeadModalEnhanced({
 
 
                                 {/* Assigné à & Source */}
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                                     <div className="space-y-1.5">
                                         <Label htmlFor="assignePar" className="text-[10px] font-light text-slate-300">
                                             Assigné à <span className="text-red-500">*</span>
@@ -1060,8 +1061,8 @@ export function LeadModalEnhanced({
 
                                 {/* Conditional: Magasin Fields - Show if source is magasin OR if lead has magasin/commercial values */}
                                 {(formData.source === 'magasin' || formData.magasin || formData.commercialMagasin) && (
-                                    <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/30 space-y-3 backdrop-blur-sm">
-                                        <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-2 sm:p-3 rounded-lg bg-purple-500/10 border border-purple-500/30 space-y-2 sm:space-y-3 backdrop-blur-sm">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                                             <div className="space-y-1.5">
                                                 <Label htmlFor="magasin" className="text-[10px] font-light text-slate-300">
                                                     Magasin <span className="text-red-500">*</span>
@@ -1277,19 +1278,19 @@ export function LeadModalEnhanced({
                     </div>
 
                     {/* Right Panel - Notes - Enhanced Dark Background */}
-                    <div className="w-full lg:w-[320px] bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-slate-700/40 flex flex-col shadow-2xl shadow-black/40">
-                        <div className="p-3 border-b border-slate-700/40 bg-slate-800/30">
-                            <div className="flex items-center gap-1.5 mb-3">
-                                <span className="text-sm">📝</span>
-                                <h3 className="text-xs font-light text-white">Notes ({formData.notes.length})</h3>
+                    <div className="w-full lg:w-[320px] max-h-[35vh] sm:max-h-[50vh] lg:max-h-none bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl border-t lg:border-t-0 lg:border-l border-slate-700/40 flex flex-col shadow-2xl shadow-black/40 shrink-0 lg:shrink">
+                        <div className="p-2 sm:p-3 border-b border-slate-700/40 bg-slate-800/30">
+                            <div className="flex items-center gap-1.5 mb-2 sm:mb-3">
+                                <span className="text-xs sm:text-sm">📝</span>
+                                <h3 className="text-[10px] sm:text-xs font-light text-white">Notes ({formData.notes.length})</h3>
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-1.5 sm:space-y-2">
                                 <Textarea
                                     value={newNote}
                                     onChange={(e) => setNewNote(e.target.value)}
                                     placeholder="Ajouter une note..."
-                                    className="bg-slate-800/80 backdrop-blur-sm border-slate-600/50 text-white placeholder:text-slate-400 focus:border-blue-500/60 focus:bg-slate-800 focus:ring-1 focus:ring-blue-500/30 min-h-[60px] resize-none font-light text-xs transition-all"
+                                    className="bg-slate-800/80 backdrop-blur-sm border-slate-600/50 text-white placeholder:text-slate-400 focus:border-blue-500/60 focus:bg-slate-800 focus:ring-1 focus:ring-blue-500/30 min-h-[50px] sm:min-h-[60px] resize-none font-light text-[10px] sm:text-xs transition-all p-2 sm:p-3"
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                                             handleAddNote()
@@ -1300,7 +1301,7 @@ export function LeadModalEnhanced({
                                     type="button"
                                     onClick={handleAddNote}
                                     disabled={!newNote.trim()}
-                                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-light h-8 shadow-lg"
+                                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-[10px] sm:text-xs font-light h-7 sm:h-8 shadow-lg"
                                 >
                                     <Plus className="w-3 h-3 mr-1.5" />
                                     Ajouter note
@@ -1308,7 +1309,7 @@ export function LeadModalEnhanced({
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-900/30">
+                        <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-1.5 sm:space-y-2 bg-slate-900/30">
                             {formData.notes.length === 0 ? (
                                 <div className="text-center py-6 text-slate-400 text-xs font-light">
                                     Aucune note pour le moment
@@ -1354,7 +1355,7 @@ export function LeadModalEnhanced({
                 </div>
 
                 {/* Footer Buttons - Fixed at Bottom of Modal, Full Width */}
-                <div className="border-t border-slate-700/40 px-4 py-2.5 bg-gradient-to-r from-slate-900/95 to-slate-800/95 flex items-center justify-between gap-2">
+                <div className="border-t border-slate-700/40 px-2 py-2.5 sm:px-4 sm:py-2.5 bg-gradient-to-r from-slate-900/95 to-slate-800/95 flex items-center justify-between gap-1.5 sm:gap-2 shrink-0">
                     {/* Left: Delete Button (only when editing) */}
                     {lead && onDelete ? (
                         <AlertDialog>
@@ -1362,7 +1363,7 @@ export function LeadModalEnhanced({
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 font-light px-3 h-8 text-xs"
+                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 font-light px-2 sm:px-3 h-7 sm:h-8 text-[10px] sm:text-xs"
                                 >
                                     <Trash2 className="w-3 h-3 mr-1.5" />
                                     Supprimer
@@ -1399,7 +1400,7 @@ export function LeadModalEnhanced({
                                 setShowErrors(false)
                                 onOpenChange(false)
                             }}
-                            className="bg-slate-800/90 border border-slate-600/40 text-white hover:bg-slate-700/90 font-light px-4 h-8 text-xs transition-all"
+                            className="bg-slate-800/90 border border-slate-600/40 text-white hover:bg-slate-700/90 font-light px-2 sm:px-4 h-7 sm:h-8 text-[10px] sm:text-xs transition-all"
                             disabled={isSubmitting}
                         >
                             Annuler
@@ -1407,7 +1408,7 @@ export function LeadModalEnhanced({
                         <Button
                             type="submit"
                             onClick={handleSubmit}
-                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg font-light px-5 h-8 text-xs min-w-[120px]"
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg font-light px-3 sm:px-5 h-7 sm:h-8 text-[10px] sm:text-xs min-w-[100px] sm:min-w-[120px]"
                             disabled={isSubmitting}
                         >
                             {isSubmitting ? (
