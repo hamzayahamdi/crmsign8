@@ -816,7 +816,7 @@ const SidebarComponent = () => {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="md:hidden fixed top-0 left-0 w-72 h-screen glass border-r border-border/40 flex flex-col z-50 backdrop-blur-2xl bg-slate-950/95"
+            className="md:hidden fixed top-0 left-0 w-72 h-screen glass border-r border-border/40 flex flex-col md:z-50 z-[80] backdrop-blur-2xl bg-slate-950/95"
           >
             <SidebarContent isCollapsed={false} hideToggle={true} />
           </motion.aside>

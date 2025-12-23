@@ -95,7 +95,7 @@ export function QuickActionsSidebar({
     }
   };
 
-  // Helper function to check if client already has an acompte (by status or payments)
+  // Helper function to check if client already has an acompte (by status or acompte payment)
   const hasExistingAcompte = () => {
     const hasAcompteStatus =
       client.statutProjet === "acompte_recu" ||
@@ -108,8 +108,12 @@ export function QuickActionsSidebar({
       client.statutProjet === "chantier" ||
       client.statutProjet === "facture_reglee";
 
-    const hasPayments = client.payments && client.payments.length > 0;
-    return hasAcompteStatus || hasPayments;
+    // Check specifically for acompte payments, not just any payment
+    const hasAcomptePayment = client.payments && client.payments.some(
+      (payment) => payment.type === "accompte" || payment.type === "Acompte"
+    );
+    
+    return hasAcompteStatus || hasAcomptePayment;
   };
 
   const fetchAndUpdateClient = async () => {

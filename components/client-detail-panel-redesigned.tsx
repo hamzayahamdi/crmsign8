@@ -697,7 +697,17 @@ export function ClientDetailPanelRedesigned({
                       >
                         <DollarSign className="w-4 h-4 mr-2" />
                         {client.statutProjet === "acompte_recu" ||
-                        (client.payments && client.payments.length > 0)
+                        client.statutProjet === "acompte_verse" ||
+                        client.statutProjet === "conception" ||
+                        client.statutProjet === "devis_negociation" ||
+                        client.statutProjet === "accepte" ||
+                        client.statutProjet === "premier_depot" ||
+                        client.statutProjet === "projet_en_cours" ||
+                        client.statutProjet === "chantier" ||
+                        client.statutProjet === "facture_reglee" ||
+                        (client.payments && client.payments.some(
+                          (payment) => payment.type === "accompte" || payment.type === "Acompte"
+                        ))
                           ? "Ajouter nouveau paiement"
                           : "Ajouter acompte"}
                       </Button>
