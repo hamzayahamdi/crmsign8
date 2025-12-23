@@ -12,6 +12,7 @@ import { motion, LayoutGroup, AnimatePresence, useIsPresent } from "framer-motio
 import { TasksService } from "@/lib/tasks-service"
 import { toast } from "sonner"
 import { getVisibleSidebarItems, getRoleLabel } from "@/lib/permissions"
+import { usePrefetch } from "@/hooks/use-prefetch"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +47,7 @@ const SidebarNavItem = ({
   isCollapsed, 
   index,
   onNavigate,
+  onPrefetch,
   myPendingTasks,
   myNewTasks,
   adminUpdatesCount,
@@ -56,6 +58,7 @@ const SidebarNavItem = ({
   isCollapsed: boolean
   index: number
   onNavigate: (href: string) => void
+  onPrefetch: (href: string) => void
   myPendingTasks: number
   myNewTasks: number
   adminUpdatesCount: number
@@ -73,6 +76,7 @@ const SidebarNavItem = ({
             e.stopPropagation()
             onNavigate(item.href)
           }}
+          onMouseEnter={() => onPrefetch(item.href)}
           initial={false}
           whileTap={{ scale: 0.98 }}
           className="w-full text-left block relative group"
@@ -313,6 +317,9 @@ const SidebarComponent = () => {
       document.body.style.overflow = 'unset'
     }
   }, [isMobileMenuOpen])
+
+  // OPTIMIZATION: Add prefetching for faster navigation
+  const handlePrefetch = usePrefetch()
 
   // Optimized instant navigation with smooth transitions
   const handleNavigation = useCallback((href: string) => {
@@ -629,6 +636,7 @@ const SidebarComponent = () => {
                 isCollapsed={isCollapsed}
                 index={index}
                 onNavigate={handleNavigation}
+                onPrefetch={handlePrefetch}
                 myPendingTasks={myPendingTasks}
                 myNewTasks={myNewTasks}
                 adminUpdatesCount={adminUpdatesCount}

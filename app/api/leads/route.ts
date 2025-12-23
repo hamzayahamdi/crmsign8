@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
     // Fetch total count (respecting role filter)
     const totalCount = await prisma.lead.count({ where })
 
-    // Fetch leads - newest first, include notes
+    // OPTIMIZATION: Fetch leads - newest first, use select for performance
     const leads = await prisma.lead.findMany({
       skip,
       take: limit,
@@ -199,10 +199,38 @@ export async function GET(request: NextRequest) {
       orderBy: {
         createdAt: 'desc'
       },
-      include: {
+      select: {
+        id: true,
+        nom: true,
+        telephone: true,
+        ville: true,
+        typeBien: true,
+        statutDetaille: true,
+        message: true,
+        assignePar: true,
+        derniereMaj: true,
+        source: true,
+        priorite: true,
+        magasin: true,
+        commercialMagasin: true,
+        createdBy: true,
+        createdAt: true,
+        updatedAt: true,
+        campaignName: true,
+        month: true,
+        uploadedAt: true,
+        convertedAt: true,
+        statut: true,
+        convertedToContactId: true,
         notes: {
           orderBy: {
             createdAt: 'desc'
+          },
+          select: {
+            id: true,
+            content: true,
+            author: true,
+            createdAt: true
           }
         }
       }

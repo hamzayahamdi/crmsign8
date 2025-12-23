@@ -93,6 +93,8 @@ model User {
 
   @@index([email])
   @@index([createdAt(sort: Desc)], map: "users_createdat_idx")
+  @@index([role])
+  @@index([magasin])
   @@map("users")
 }
 
@@ -164,6 +166,11 @@ model Contact {
   @@index([architecteAssigne])
   @@index([magasin])
   @@index([typeBien])
+  @@index([commercialMagasin])
+  @@index([source])
+  @@index([architecteAssigne, status])
+  @@index([magasin, status])
+  @@index([createdAt, status])
   @@map("contacts")
 }
 
@@ -194,6 +201,9 @@ model Opportunity {
   @@index([type])
   @@index([architecteAssigne])
   @@index([createdAt(sort: Desc)])
+  @@index([contactId, statut])
+  @@index([architecteAssigne, pipelineStage])
+  @@index([statut, pipelineStage])
   @@map("opportunities")
 }
 
@@ -273,6 +283,8 @@ model ContactPayment {
 
   @@index([contactId])
   @@index([date(sort: Desc)])
+  @@index([contactId, date])
+  @@index([contactId, type])
   @@map("contact_payments")
 }
 
@@ -465,6 +477,10 @@ model Client {
   @@index([architecteAssigne])
   @@index([magasin])
   @@index([createdAt(sort: Desc)])
+  @@index([commercialAttribue])
+  @@index([leadId])
+  @@index([statutProjet, derniereMaj])
+  @@index([architecteAssigne, statutProjet])
   @@map("clients")
 }
 
@@ -483,6 +499,7 @@ model ClientStageHistory {
   @@index([clientId])
   @@index([stageName])
   @@index([startedAt(sort: Desc)])
+  @@index([clientId, endedAt])
   @@map("client_stage_history")
 }
 
@@ -502,6 +519,8 @@ model Payment {
 
   @@index([clientId])
   @@index([date(sort: Desc)])
+  @@index([clientId, date])
+  @@index([clientId, type])
   @@map("payments")
 }
 

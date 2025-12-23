@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   DollarSign,
   CheckCircle,
@@ -25,7 +25,7 @@ import type { Client, Devis } from "@/types/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -67,8 +67,68 @@ export function FinancementDocumentsUnified({
   const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
   const prevDeletingPaymentIdRef = useRef<string | null>(null);
   const [activeTab, setActiveTab] = useState<"devis" | "paiements">("devis");
-  const devisList = client.devis || [];
-  const paymentsList = client.payments || [];
+  
+  // OPTIMIZATION: Track pending devis uploads for immediate UI feedback
+  const [pendingDevis, setPendingDevis] = useState<{ id: string; fileName: string; progress: number; realDevisId?: string } | null>(null);
+  
+  // OPTIMIZATION: Force re-render when devis or payments arrays change
+  const [forceRefresh, setForceRefresh] = useState(0)
+  
+  // OPTIMIZATION: Use useMemo to ensure arrays are stable references, including pending devis
+  const devisList = useMemo(() => {
+    const baseList = client.devis || [];
+    
+    // Check if the real devis (from pending) is now in the base list
+    if (pendingDevis && pendingDevis.realDevisId) {
+      const realDevisExists = baseList.some(d => d.id === pendingDevis.realDevisId);
+      // If real devis exists, don't show pending anymore
+      if (realDevisExists) {
+        return baseList;
+      }
+    }
+    
+    // Add pending devis optimistically if it exists and real devis not found yet
+    if (pendingDevis) {
+      const pendingDevisItem: Devis = {
+        id: pendingDevis.id,
+        title: pendingDevis.fileName.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' '),
+        montant: 0,
+        date: new Date().toISOString(),
+        statut: 'en_attente',
+        description: pendingDevis.progress < 100 
+          ? `Upload en cours: ${pendingDevis.fileName}` 
+          : `Finalisation: ${pendingDevis.fileName}`,
+        fichier: null,
+        created_by: user?.name || 'Utilisateur',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        notes: null,
+        factureReglee: false,
+        validatedAt: null,
+      } as Devis;
+      // Put pending at the top
+      return [pendingDevisItem, ...baseList];
+    }
+    return baseList;
+  }, [client.devis, client.id, forceRefresh, pendingDevis, user?.name])
+  
+  const paymentsList = useMemo(() => client.payments || [], [client.payments, client.id, forceRefresh])
+
+  // OPTIMIZATION: Watch for real devis to appear and smoothly transition away pending
+  useEffect(() => {
+    if (pendingDevis?.realDevisId) {
+      const realDevisExists = client.devis?.some(d => d.id === pendingDevis.realDevisId);
+      if (realDevisExists) {
+        console.log('[FinancementDocumentsUnified] ✅ Real devis detected, clearing pending after smooth transition');
+        // Small delay for smooth visual transition
+        const timeoutId = setTimeout(() => {
+          setPendingDevis(null);
+          setForceRefresh(prev => prev + 1);
+        }, 400);
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [client.devis, pendingDevis?.realDevisId]);
 
   // Debug: Log when devis changes
   useEffect(() => {
@@ -79,56 +139,199 @@ export function FinancementDocumentsUnified({
       historiqueCount: client.historique?.length || 0,
       statutProjet: client.statutProjet,
       paymentTypes: paymentsList.map(p => ({ id: p.id, type: p.type, amount: p.amount })),
-      devisList: devisList.map(d => ({ id: d.id, title: d.title, statut: d.statut }))
+      devisList: devisList.map(d => ({ id: d.id, title: d.title, statut: d.statut })),
+      forceRefresh,
+      pendingDevisId: pendingDevis?.id,
+      realDevisId: pendingDevis?.realDevisId
     })
-  }, [client.id, devisList.length, paymentsList.length, client.statutProjet])
+  }, [client.id, devisList.length, paymentsList.length, client.statutProjet, forceRefresh, pendingDevis])
+
+  useEffect(() => {
+    // Trigger re-render when devis or payments count changes
+    setForceRefresh(prev => prev + 1)
+  }, [devisList.length, paymentsList.length])
+
+  // OPTIMIZATION: Listen for devis upload start/progress/complete events
+  useEffect(() => {
+    const handleDevisUploadStart = (event: CustomEvent) => {
+      if (event.detail?.clientId === client.id) {
+        console.log('[FinancementDocumentsUnified] Devis upload started:', event.detail)
+        const tempId = `pending-${Date.now()}`
+        setPendingDevis({
+          id: tempId,
+          fileName: event.detail.fileName || 'Fichier en cours d\'upload',
+          progress: 0
+        })
+        // Switch to devis tab if not already there
+        setActiveTab('devis')
+        // Force immediate re-render
+        setForceRefresh(prev => prev + 1)
+      }
+    }
+
+    const handleDevisUploadProgress = (event: CustomEvent) => {
+      if (event.detail?.clientId === client.id && pendingDevis) {
+        setPendingDevis(prev => prev ? {
+          ...prev,
+          progress: event.detail.progress || 0
+        } : null)
+      }
+    }
+
+    const handleDevisUploadComplete = (event: CustomEvent) => {
+      if (event.detail?.clientId === client.id) {
+        console.log('[FinancementDocumentsUnified] Devis upload completed:', event.detail)
+        const realDevisId = event.detail.devisId
+        
+        // OPTIMIZATION: Update pending to track real devis ID and set progress to 100
+        if (pendingDevis) {
+          setPendingDevis(prev => prev ? {
+            ...prev,
+            realDevisId: realDevisId,
+            progress: 100
+          } : null)
+        }
+        
+        // Force refresh to get the real devis
+        setForceRefresh(prev => prev + 1)
+        
+        // The useEffect above will handle clearing pending when real devis appears
+        // Just ensure we refresh to get the latest data
+      }
+    }
+
+    const handleDevisUploadError = (event: CustomEvent) => {
+      if (event.detail?.clientId === client.id) {
+        console.error('[FinancementDocumentsUnified] Devis upload error:', event.detail)
+        // Clear pending state on error
+        setPendingDevis(null)
+      }
+    }
+
+    window.addEventListener('devis-upload-start', handleDevisUploadStart as EventListener)
+    window.addEventListener('devis-upload-progress', handleDevisUploadProgress as EventListener)
+    window.addEventListener('devis-upload-complete', handleDevisUploadComplete as EventListener)
+    window.addEventListener('devis-upload-error', handleDevisUploadError as EventListener)
+
+    return () => {
+      window.removeEventListener('devis-upload-start', handleDevisUploadStart as EventListener)
+      window.removeEventListener('devis-upload-progress', handleDevisUploadProgress as EventListener)
+      window.removeEventListener('devis-upload-complete', handleDevisUploadComplete as EventListener)
+      window.removeEventListener('devis-upload-error', handleDevisUploadError as EventListener)
+    }
+  }, [client.id, pendingDevis])
 
   // Listen for client update events to force re-render (both payment added and deleted)
   useEffect(() => {
     const handleClientUpdate = async (event: CustomEvent) => {
-      if (event.detail?.clientId === client.id && (event.detail?.paymentAdded || event.detail?.paymentDeleted)) {
+      if (event.detail?.clientId === client.id && (event.detail?.paymentAdded || event.detail?.paymentDeleted || event.detail?.devisAdded)) {
         console.log('[FinancementDocumentsUnified] Client update event received, forcing refresh', {
           paymentAdded: event.detail.paymentAdded,
           paymentDeleted: event.detail.paymentDeleted,
-          paymentId: event.detail.paymentId
+          devisAdded: event.detail.devisAdded,
+          paymentId: event.detail.paymentId,
+          devisId: event.detail.devisId
         });
+        
+        // OPTIMIZATION: Immediate optimistic update for devis
+        if (event.detail.devisAdded && event.detail.devis) {
+          console.log('[FinancementDocumentsUnified] ⚡ Optimistic devis update', {
+            devisId: event.detail.devisId,
+            hasDevis: !!event.detail.devis
+          })
+          
+          // Update pending to track the real devis ID
+          if (pendingDevis && event.detail.devisId) {
+            setPendingDevis(prev => prev ? {
+              ...prev,
+              realDevisId: event.detail.devisId,
+              progress: 100
+            } : null)
+          }
+          
+          const optimisticClient = {
+            ...client,
+            devis: [...(client.devis || []), event.detail.devis]
+          }
+          onUpdate(optimisticClient, true)
+          setForceRefresh(prev => prev + 1)
+          
+          // Clear pending after a smooth transition delay once real devis is confirmed
+          setTimeout(() => {
+            const realDevisExists = optimisticClient.devis?.some(d => d.id === event.detail.devisId)
+            if (realDevisExists) {
+              console.log('[FinancementDocumentsUnified] ✅ Real devis confirmed, clearing pending after transition')
+              setPendingDevis(null)
+              setForceRefresh(prev => prev + 1)
+            }
+          }, 400)
+        }
         
         // Wait a bit for database commit if payment was deleted
         if (event.detail.paymentDeleted) {
           await new Promise(resolve => setTimeout(resolve, 300));
         }
         
-        // Force a refresh by fetching latest client data
-        fetch(`/api/clients/${client.id}`, { 
+        // Force a refresh by fetching latest client data with cache-busting
+        fetch(`/api/clients/${client.id}?t=${Date.now()}`, { 
           credentials: "include", 
           cache: "no-store",
           headers: {
-            'Cache-Control': 'no-cache',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache',
+            'Expires': '0',
           }
         })
           .then(res => res.json())
           .then(result => {
-            if (result.data) {
+            const clientData = result.data || (result.success ? result.data : null)
+            if (clientData) {
               // If payment was deleted, verify it's actually gone
               if (event.detail.paymentDeleted && event.detail.paymentId) {
-                const paymentStillExists = result.data.payments?.some((p: any) => p.id === event.detail.paymentId);
+                const paymentStillExists = clientData.payments?.some((p: any) => p.id === event.detail.paymentId);
                 if (paymentStillExists) {
                   console.warn('[FinancementDocumentsUnified] ⚠️ Payment still exists, forcing removal');
-                  result.data.payments = result.data.payments.filter((p: any) => p.id !== event.detail.paymentId);
+                  clientData.payments = clientData.payments.filter((p: any) => p.id !== event.detail.paymentId);
                 }
               }
-              onUpdate(result.data, true);
-            } else if (result.success && result.data) {
-              onUpdate(result.data, true);
+              
+              // Verify devis is present
+              if (event.detail.devisAdded && event.detail.devisId) {
+                const devisExists = clientData.devis?.some((d: any) => d.id === event.detail.devisId);
+                if (!devisExists && event.detail.devis) {
+                  console.warn('[FinancementDocumentsUnified] ⚠️ Devis not in response, adding from event');
+                  clientData.devis = [...(clientData.devis || []), event.detail.devis];
+                }
+                
+                // If real devis is now confirmed, clear pending after smooth transition
+                const finalDevisExists = devisExists || clientData.devis?.some((d: any) => d.id === event.detail.devisId);
+                if (finalDevisExists) {
+                  console.log('[FinancementDocumentsUnified] ✅ Real devis confirmed in response, clearing pending after transition');
+                  setTimeout(() => {
+                    setPendingDevis(null);
+                    setForceRefresh(prev => prev + 1);
+                  }, 400);
+                }
+              }
+              
+              onUpdate(clientData, true);
+              setForceRefresh(prev => prev + 1)
             }
           })
           .catch(err => console.error('[FinancementDocumentsUnified] Error refreshing:', err));
       }
     };
 
+    // OPTIMIZATION: Listen for multiple update events to ensure immediate UI refresh
     window.addEventListener('client-updated', handleClientUpdate as EventListener);
-    return () => window.removeEventListener('client-updated', handleClientUpdate as EventListener);
+    window.addEventListener('payment-updated', handleClientUpdate as EventListener);
+    window.addEventListener('devis-updated', handleClientUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('client-updated', handleClientUpdate as EventListener);
+      window.removeEventListener('payment-updated', handleClientUpdate as EventListener);
+      window.removeEventListener('devis-updated', handleClientUpdate as EventListener);
+    }
   }, [client.id, onUpdate])
 
 
@@ -655,6 +858,9 @@ export function FinancementDocumentsUnified({
             >
               <FileText className="w-3 h-3 mr-1.5" />
               <span>Devis</span>
+              {pendingDevis && (
+                <Loader2 className="w-3 h-3 ml-1.5 text-amber-400 animate-spin" />
+              )}
               {devisList.length > 0 && (
                 <span className="ml-1.5 px-1 py-0.5 rounded-full bg-white/15 text-white text-[9px] font-light">
                   {devisList.length}
@@ -688,14 +894,18 @@ export function FinancementDocumentsUnified({
             )}
 
             {/* Devis List - Simplified */}
-            {devisList.length > 0 ? (
-              <div className="space-y-2.5">
-                {devisList.map((devis) => {
+            {devisList.length > 0 || pendingDevis ? (
+              <div className="space-y-2.5" key={`devis-list-${forceRefresh}-${devisList.length}-${pendingDevis?.id || ''}`}>
+                <AnimatePresence mode="popLayout">
+                  {devisList.map((devis) => {
+                  // Check if this is a pending devis (uploading)
+                  const isPending = devis.id?.startsWith('pending-') || (pendingDevis && devis.id === pendingDevis.id)
+                  
                   // Get clean, readable display name
                   const displayName = getDevisDisplayName(devis)
                   
                   // Extract file extension for icon
-                  const fileName = devis.fichier ? devis.fichier.split('/').pop() || '' : ''
+                  const fileName = devis.fichier ? devis.fichier.split('/').pop() || '' : (pendingDevis?.fileName || '')
                   const fileExt = fileName.split('.').pop()?.toLowerCase() || ''
                   const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)
                   const isPdf = fileExt === 'pdf'
@@ -712,7 +922,8 @@ export function FinancementDocumentsUnified({
 
                   const handleOpenFile = async (e: React.MouseEvent) => {
                     e.stopPropagation()
-                    if (!devis.fichier || updatingDevisId) return
+                    // Don't allow opening file if pending or updating
+                    if (!devis.fichier || updatingDevisId || isPending) return
 
                     try {
                       let fileUrl = devis.fichier
@@ -742,23 +953,64 @@ export function FinancementDocumentsUnified({
 
                   return (
                     <motion.div
-                      key={devis.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
+                      key={isPending ? pendingDevis?.id : devis.id}
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ 
+                        opacity: 1, 
+                        y: 0, 
+                        scale: 1,
+                        transition: { duration: 0.3, ease: "easeOut" }
+                      }}
+                      exit={{ 
+                        opacity: 0, 
+                        scale: 0.95,
+                        transition: { duration: 0.2 }
+                      }}
                       className={cn(
                         "p-3 rounded-lg border transition-all hover:shadow-sm hover:shadow-white/3 relative group",
-                        devis.statut === "accepte" &&
+                        isPending && "border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-transparent",
+                        !isPending && devis.statut === "accepte" &&
                         "border-green-500/15 bg-gradient-to-br from-green-500/5 to-transparent hover:border-green-500/20",
-                        devis.statut === "refuse" &&
+                        !isPending && devis.statut === "refuse" &&
                         "border-red-500/15 bg-gradient-to-br from-red-500/5 to-transparent hover:border-red-500/20",
-                        devis.statut === "en_attente" &&
+                        !isPending && devis.statut === "en_attente" &&
                         "border-white/5 bg-gradient-to-br from-white/3 to-transparent hover:border-amber-500/20",
                         updatingDevisId === devis.id &&
                         "opacity-60 pointer-events-none"
                       )}
                     >
-                      {/* Loading overlay */}
-                      {updatingDevisId === devis.id && (
+                      {/* Loading overlay for pending upload */}
+                      {isPending && (
+                        <motion.div 
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="absolute inset-0 flex items-center justify-center bg-amber-500/10 rounded-md backdrop-blur-sm z-10"
+                        >
+                          <motion.div 
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            className="flex flex-col items-center gap-2 bg-amber-600/90 text-white px-3 py-2 rounded-md shadow-lg"
+                          >
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span className="text-[10px] font-light">
+                              {pendingDevis && pendingDevis.progress >= 100 ? 'Finalisation...' : 'Upload en cours...'}
+                            </span>
+                            {pendingDevis && pendingDevis.progress > 0 && (
+                              <div className="w-24 h-1 bg-white/20 rounded-full overflow-hidden mt-1">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${pendingDevis.progress}%` }}
+                                  transition={{ duration: 0.3, ease: "easeOut" }}
+                                  className="h-full bg-white"
+                                />
+                              </div>
+                            )}
+                          </motion.div>
+                        </motion.div>
+                      )}
+                      
+                      {/* Loading overlay for updates */}
+                      {updatingDevisId === devis.id && !isPending && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-md backdrop-blur-sm z-10">
                           <div className="flex items-center gap-2 bg-blue-600 text-white px-2.5 py-1 rounded-md shadow-sm">
                             <Loader2 className="w-3 h-3 animate-spin" />
@@ -817,7 +1069,15 @@ export function FinancementDocumentsUnified({
                                 </span>
                               </div>
                             )}
-                            {devis.statut === "en_attente" && (
+                            {isPending && (
+                              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 animate-pulse">
+                                <Loader2 className="w-2.5 h-2.5 text-amber-400 animate-spin" />
+                                <span className="text-[9px] font-light text-amber-400">
+                                  Upload...
+                                </span>
+                              </div>
+                            )}
+                            {devis.statut === "en_attente" && !isPending && (
                               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/20">
                                 <Clock className="w-2.5 h-2.5 text-amber-400" />
                                 <span className="text-[9px] font-light text-amber-400">
@@ -877,12 +1137,12 @@ export function FinancementDocumentsUnified({
                           onClick={(e) => e.stopPropagation()}
                         >
                           {/* Visualiser File Button - Always visible if file exists */}
-                          {devis.fichier && (
+                          {devis.fichier && !isPending && (
                             <Button
                               size="sm"
                               onClick={handleOpenFile}
-                              disabled={updatingDevisId === devis.id}
-                              className="h-7 px-2.5 text-[10px] bg-gradient-to-r from-amber-500/90 to-orange-500/90 hover:from-amber-600 hover:to-orange-600 text-white shadow-sm border border-amber-400/20 font-light"
+                              disabled={updatingDevisId === devis.id || isPending}
+                              className="h-7 px-2.5 text-[10px] bg-gradient-to-r from-amber-500/90 to-orange-500/90 hover:from-amber-600 hover:to-orange-600 text-white shadow-sm border border-amber-400/20 font-light disabled:opacity-50"
                             >
                               <ExternalLink className="w-3 h-3 mr-1" />
                               Visualiser
@@ -890,14 +1150,14 @@ export function FinancementDocumentsUnified({
                           )}
 
                           {devis.statut === "accepte" &&
-                            !devis.facture_reglee && (
+                            !devis.facture_reglee && !isPending && (
                               <Button
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleMarkPaid(devis.id)
                                 }}
-                                disabled={updatingDevisId === devis.id || updatingDevisId !== null}
+                                disabled={updatingDevisId === devis.id || updatingDevisId !== null || isPending}
                                 className="h-7 px-2.5 text-[10px] bg-green-600/90 hover:bg-green-600 text-white shadow-sm font-light disabled:opacity-50 disabled:cursor-not-allowed relative"
                               >
                                 {updatingDevisId === devis.id ? (
@@ -911,22 +1171,23 @@ export function FinancementDocumentsUnified({
                               </Button>
                             )}
 
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => e.stopPropagation()}
-                                disabled={updatingDevisId === devis.id}
-                                className="h-8 w-8 text-white/50 hover:text-white hover:bg-white/10"
+                          {!isPending && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => e.stopPropagation()}
+                                  disabled={updatingDevisId === devis.id}
+                                  className="h-8 w-8 text-white/50 hover:text-white hover:bg-white/10"
+                                >
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className="min-w-[160px] bg-[#171B22] border-white/10"
                               >
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="end"
-                              className="min-w-[160px] bg-[#171B22] border-white/10"
-                            >
                               {devis.statut !== "accepte" && (
                                 <DropdownMenuItem
                                   onClick={() =>
@@ -978,11 +1239,13 @@ export function FinancementDocumentsUnified({
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
+                          )}
                         </div>
                       </div>
                     </motion.div>
                   )
                 })}
+                </AnimatePresence>
               </div>
             ) : (
               <div className="text-center py-8">

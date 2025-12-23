@@ -401,22 +401,43 @@ export default function ClientDetailsPage() {
         })
         updateClientInStore(updatedClient.id, updatedClient)
       } else {
-        // CRITICAL: If we have complete fresh data from the server (with devis, historique, etc.),
-        // replace the entire state instead of merging to prevent data loss
-        const hasFreshData = updatedClient.devis !== undefined ||
-          updatedClient.historique !== undefined ||
-          updatedClient.payments !== undefined
+      // CRITICAL: If we have complete fresh data from the server (with devis, historique, etc.),
+      // replace the entire state instead of merging to prevent data loss
+      const hasFreshData = updatedClient.devis !== undefined ||
+        updatedClient.historique !== undefined ||
+        updatedClient.payments !== undefined
 
-        if (hasFreshData) {
-          console.log('[Client Details] ✅ Received fresh data from server, replacing entire state')
-          setClient(updatedClient)
-          updateClientInStore(updatedClient.id, updatedClient)
-        } else {
-          // Only merge if we're updating specific fields (not full refresh)
-          console.log('[Client Details] 🔄 Merging partial update with existing data')
-          setClient(prev => prev ? { ...prev, ...updatedClient } : updatedClient)
-          updateClientInStore(updatedClient.id, updatedClient)
-        }
+      if (hasFreshData) {
+        console.log('[Client Details] ✅ Received fresh data from server, replacing entire state', {
+          devisCount: updatedClient.devis?.length || 0,
+          paymentsCount: updatedClient.payments?.length || 0,
+          historiqueCount: updatedClient.historique?.length || 0,
+        })
+        // OPTIMIZATION: Always replace state completely when we have fresh data
+        setClient(updatedClient)
+        updateClientInStore(updatedClient.id, updatedClient)
+        // OPTIMIZATION: Force component refresh when fresh data is received
+        setRefreshTrigger(prev => prev + 1)
+      } else {
+        // Only merge if we're updating specific fields (not full refresh)
+        console.log('[Client Details] 🔄 Merging partial update with existing data')
+        setClient(prev => {
+          if (!prev) return updatedClient
+          // OPTIMIZATION: Preserve devis and payments arrays when merging
+          const merged = { ...prev, ...updatedClient }
+          // If devis/payments are explicitly provided (even if empty array), use them
+          if (updatedClient.devis !== undefined) {
+            merged.devis = updatedClient.devis
+          }
+          if (updatedClient.payments !== undefined) {
+            merged.payments = updatedClient.payments
+          }
+          return merged
+        })
+        updateClientInStore(updatedClient.id, updatedClient)
+        // OPTIMIZATION: Force component refresh for partial updates too
+        setRefreshTrigger(prev => prev + 1)
+      }
       }
 
       // If skipApiCall is true, stop here (pure optimistic/local update)

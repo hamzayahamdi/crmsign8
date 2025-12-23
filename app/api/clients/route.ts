@@ -185,7 +185,26 @@ export async function GET(request: NextRequest) {
     try {
       contactClients = await prisma.contact.findMany({
         where: contactWhereWithTag,
-        include: { 
+        select: {
+          // OPTIMIZATION: Use select instead of include to fetch only needed fields
+          id: true,
+          nom: true,
+          telephone: true,
+          email: true,
+          ville: true,
+          adresse: true,
+          typeBien: true,
+          source: true,
+          architecteAssigne: true,
+          tag: true,
+          status: true,
+          notes: true,
+          magasin: true,
+          commercialMagasin: true,
+          createdBy: true,
+          createdAt: true,
+          updatedAt: true,
+          leadId: true,
           opportunities: {
             select: {
               id: true,
@@ -214,7 +233,26 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        include: { 
+        select: {
+          // OPTIMIZATION: Use select instead of include to fetch only needed fields
+          id: true,
+          nom: true,
+          telephone: true,
+          email: true,
+          ville: true,
+          adresse: true,
+          typeBien: true,
+          source: true,
+          architecteAssigne: true,
+          tag: true,
+          status: true,
+          notes: true,
+          magasin: true,
+          commercialMagasin: true,
+          createdBy: true,
+          createdAt: true,
+          updatedAt: true,
+          leadId: true,
           opportunities: {
             select: {
               id: true,

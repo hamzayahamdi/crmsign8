@@ -97,6 +97,16 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
     setIsUploading(true)
     setUploadProgress(0)
 
+    // OPTIMIZATION: Dispatch upload start event for immediate UI feedback
+    const tempId = `pending-${Date.now()}`
+    window.dispatchEvent(new CustomEvent('devis-upload-start', {
+      detail: {
+        clientId: client.id,
+        fileName: selectedFile.name,
+        tempId
+      }
+    }))
+
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
       
@@ -105,14 +115,23 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
       formData.append('file', selectedFile)
       formData.append('clientId', client.id)
       
-      // Simulate progress
+      // Simulate progress and dispatch progress events
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
-          if (prev >= 90) {
+          const newProgress = prev >= 90 ? prev : prev + 10
+          
+          // Dispatch progress event
+          window.dispatchEvent(new CustomEvent('devis-upload-progress', {
+            detail: {
+              clientId: client.id,
+              progress: newProgress
+            }
+          }))
+          
+          if (newProgress >= 90) {
             clearInterval(progressInterval)
-            return prev
           }
-          return prev + 10
+          return newProgress
         })
       }, 200)
 
@@ -134,33 +153,119 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
       const result = await response.json()
       console.log('[Attach Devis] ✅ Devis uploaded and created:', result.data)
 
-      // Wait a moment for database to fully commit
-      await new Promise(resolve => setTimeout(resolve, 150))
+      if (!result.success || !result.data) {
+        throw new Error('Devis upload succeeded but response is invalid')
+      }
 
-      // Force refresh client data to ensure devis shows up immediately
-      const clientResponse = await fetch(`/api/clients/${client.id}`, {
+      const newDevisId = result.data.id
+      console.log('[Attach Devis] New devis ID:', newDevisId)
+
+      // OPTIMIZATION: Dispatch upload complete event
+      window.dispatchEvent(new CustomEvent('devis-upload-complete', {
+        detail: {
+          clientId: client.id,
+          devisId: newDevisId,
+          devis: result.data
+        }
+      }))
+
+      // Wait a moment for database to fully commit
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      // OPTIMIZATION: Force refresh client data with cache-busting headers
+      const clientResponse = await fetch(`/api/clients/${client.id}?t=${Date.now()}`, {
         credentials: 'include',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
       })
 
       if (clientResponse.ok) {
         const clientResult = await clientResponse.json()
+        const clientData = clientResult.data || clientResult
+        
         console.log('[Attach Devis] 📊 Fresh client data from server:', {
-          clientId: clientResult.data.id,
-          devisCount: clientResult.data.devis?.length || 0,
+          clientId: clientData.id,
+          devisCount: clientData.devis?.length || 0,
+          devisIds: clientData.devis?.map((d: any) => d.id) || [],
+          newDevisId,
+          hasNewDevis: clientData.devis?.some((d: any) => d.id === newDevisId) || false,
         })
 
-        // Update parent component with fresh data
-        onSave(clientResult.data, true)
+        // Verify the new devis is in the response
+        const hasNewDevis = clientData.devis?.some((d: any) => d.id === newDevisId)
+        
+        if (!hasNewDevis) {
+          console.warn('[Attach Devis] ⚠️ New devis not found in response, adding optimistically')
+          // Add the devis optimistically if it's missing
+          if (result.data) {
+            clientData.devis = [...(clientData.devis || []), result.data]
+          }
+        }
+
+        // OPTIMIZATION: Dispatch events BEFORE updating to ensure optimistic UI
+        window.dispatchEvent(new CustomEvent('devis-upload-complete', {
+          detail: {
+            clientId: client.id,
+            devisId: newDevisId,
+            devis: result.data
+          }
+        }))
+        
+        // Dispatch devis-updated event with the real devis data
+        window.dispatchEvent(new CustomEvent('devis-updated', {
+          detail: {
+            clientId: client.id,
+            devisId: newDevisId,
+            devisAdded: true,
+            devis: result.data
+          }
+        }))
+
+        // Also dispatch client-updated event for broader compatibility
+        window.dispatchEvent(new CustomEvent('client-updated', {
+          detail: {
+            clientId: client.id,
+            devisAdded: true,
+            devisId: newDevisId,
+            devis: result.data
+          }
+        }))
+        
+        // Update parent component with fresh data AFTER events
+        onSave(clientData, true)
 
         toast({
           title: "Devis attaché avec succès",
           description: `Le fichier "${selectedFile.name}" a été ajouté comme devis`,
         })
       } else {
-        console.error('[Attach Devis] Failed to fetch updated client data')
+        console.error('[Attach Devis] Failed to fetch updated client data:', clientResponse.status)
+        // Even if fetch fails, try optimistic update with the devis we just created
+        if (result.data) {
+          console.log('[Attach Devis] Attempting optimistic update with new devis')
+          const optimisticClient = {
+            ...client,
+            devis: [...(client.devis || []), result.data]
+          }
+          onSave(optimisticClient, true)
+          
+          window.dispatchEvent(new CustomEvent('devis-updated', {
+            detail: {
+              clientId: client.id,
+              devisId: result.data.id,
+              devisAdded: true,
+              devis: result.data
+            }
+          }))
+        }
+        
         toast({
           title: "Devis attaché",
-          description: "Veuillez rafraîchir la page pour voir le devis",
+          description: "Le devis a été ajouté. Si il n'apparaît pas, veuillez rafraîchir la page.",
           variant: "default",
         })
       }
@@ -171,6 +276,15 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
       onClose()
     } catch (error: any) {
       console.error('[Attach Devis] Error uploading devis:', error)
+      
+      // OPTIMIZATION: Dispatch upload error event
+      window.dispatchEvent(new CustomEvent('devis-upload-error', {
+        detail: {
+          clientId: client.id,
+          error: error.message
+        }
+      }))
+      
       toast({
         title: "Erreur",
         description: error.message || 'Impossible d\'attacher le devis. Veuillez réessayer.',

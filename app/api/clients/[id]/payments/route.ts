@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes } from "crypto";
 
+// OPTIMIZATION: Route segment config for dynamic rendering (payment data changes frequently)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Generate CUID-like ID
 function generateCuid(): string {
   const timestamp = Date.now().toString(36);
@@ -44,27 +48,29 @@ export async function POST(
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 1. Verify client exists
-    const { data: client, error: fetchError } = await supabase
-      .from("clients")
-      .select("id")
-      .eq("id", clientId)
-      .single();
+    // OPTIMIZATION: Parallelize client verification and payment type determination
+    const [clientResult, paymentsResult] = await Promise.all([
+      supabase
+        .from("clients")
+        .select("id, statut_projet")
+        .eq("id", clientId)
+        .single(),
+      supabase
+        .from("payments")
+        .select("id, type")
+        .eq("client_id", clientId)
+    ]);
 
+    // 1. Verify client exists
+    const { data: client, error: fetchError } = clientResult;
     if (fetchError || !client) {
       console.error("[Add Payment] Client not found:", fetchError);
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
     // 2. Determine payment type before creating payment
-    const { data: clientDataForType } = await supabase
-      .from("clients")
-      .select("statut_projet")
-      .eq("id", clientId)
-      .single();
-
     const hasAcompteStatusForType =
-      clientDataForType &&
+      client.statut_projet &&
       [
         "acompte_recu",
         "acompte_verse",
@@ -75,14 +81,10 @@ export async function POST(
         "projet_en_cours",
         "chantier",
         "facture_reglee",
-      ].includes(clientDataForType.statut_projet);
+      ].includes(client.statut_projet);
 
     // Check if client already has acompte payments specifically (not just any payment)
-    // Query for payments with type = "accompte" (case-insensitive check)
-    const { data: allPayments } = await supabase
-      .from("payments")
-      .select("id, type")
-      .eq("client_id", clientId);
+    const { data: allPayments } = paymentsResult;
 
     // Filter for acompte payments (check both lowercase and capitalized)
     const existingAcomptePayments = (allPayments || []).filter(
@@ -143,29 +145,31 @@ export async function POST(
     // 3. Create history entry (use the paymentType already determined above)
     const paymentTypeCapitalized = paymentType === "accompte" ? "Acompte" : "Paiement";
 
-    // 4. Add entry to historique with dynamic terminology
-    const { error: historiqueError } = await supabase
-      .from("historique")
-      .insert({
-        id: generateCuid(),
-        client_id: clientId,
-        date: now,
-        type: paymentType,
-        description: `${paymentTypeCapitalized} reçu: ${body.montant} MAD (${body.methode})${body.reference ? ` - Réf: ${body.reference}` : ""}`,
-        auteur: body.createdBy || "Utilisateur",
-        metadata: { paymentId: newPayment.id },
-        created_at: now,
-        updated_at: now,
-      });
-
-    // 4. Update client's derniere_maj
-    await supabase
-      .from("clients")
-      .update({
-        derniere_maj: now,
-        updated_at: now,
-      })
-      .eq("id", clientId);
+    // OPTIMIZATION: Parallelize history insert and client update
+    await Promise.all([
+      // 4. Add entry to historique with dynamic terminology
+      supabase
+        .from("historique")
+        .insert({
+          id: generateCuid(),
+          client_id: clientId,
+          date: now,
+          type: paymentType,
+          description: `${paymentTypeCapitalized} reçu: ${body.montant} MAD (${body.methode})${body.reference ? ` - Réf: ${body.reference}` : ""}`,
+          auteur: body.createdBy || "Utilisateur",
+          metadata: { paymentId: newPayment.id },
+          created_at: now,
+          updated_at: now,
+        }),
+      // 4. Update client's derniere_maj
+      supabase
+        .from("clients")
+        .update({
+          derniere_maj: now,
+          updated_at: now,
+        })
+        .eq("id", clientId)
+    ]);
 
     // 5. Check if client should progress to next stage automatically
     // If client is in "qualifie" stage and now has a payment, move to "acompte_recu"

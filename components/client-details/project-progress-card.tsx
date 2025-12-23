@@ -117,11 +117,21 @@ export function ProjectProgressCard({ client, onUpdate }: ProjectProgressCardPro
       if (clientResponse.ok) {
         const clientResult = await clientResponse.json()
         // IMPORTANT: Use skipApiCall=true to prevent cascading updates
+        // Force immediate UI update with fresh data
         onUpdate(clientResult.data, true)
         console.log("[Add Payment] Updated client data:", {
           statutProjet: clientResult.data.statutProjet,
           paymentsCount: clientResult.data.payments?.length || 0,
         })
+        
+        // OPTIMIZATION: Dispatch event to force component re-render
+        window.dispatchEvent(new CustomEvent('payment-updated', {
+          detail: {
+            clientId: client.id,
+            paymentId: result.data?.id,
+            paymentAdded: true
+          }
+        }))
       }
 
       setIsPaymentModalOpen(false)

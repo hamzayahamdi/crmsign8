@@ -49,12 +49,21 @@ export function useSWRFetch<T = any>(
     shouldFetch ? url : null,
     fetcher,
     {
+      // OPTIMIZATION: Enhanced caching and performance settings
       revalidateOnFocus: options?.revalidateOnFocus ?? true,
       revalidateOnReconnect: options?.revalidateOnReconnect ?? true,
       refreshInterval: options?.refreshInterval,
-      dedupingInterval: 2000, // Deduplicate requests within 2 seconds
+      dedupingInterval: 5000, // Deduplicate requests within 5 seconds (increased from 2s)
+      focusThrottleInterval: 5000, // Throttle revalidation on focus (prevent excessive refetches)
       errorRetryCount: 3,
       errorRetryInterval: 1000,
+      // OPTIMIZATION: Keep previous data while revalidating (better UX)
+      keepPreviousData: true,
+      // OPTIMIZATION: Retry on error with exponential backoff
+      shouldRetryOnError: true,
+
+      // OPTIMIZATION: Revalidate if stale (balance freshness and performance)
+      revalidateIfStale: true,
     }
   )
 
