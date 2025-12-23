@@ -181,8 +181,8 @@ export function QuickActionsSidebar({
     try {
       // Determine payment type before API call
       const isFirstPayment = !hasExistingAcompte();
-      const paymentType = isFirstPayment ? "acompte" : "paiement";
-      const paymentTypeCapitalized = isFirstPayment ? "Acompte" : "Paiement";
+      const paymentType = isFirstPayment ? "accompte" : "paiement";
+      const paymentTypeCapitalized = paymentType === "accompte" ? "Acompte" : "Paiement";
 
       // Save to database via API
       const response = await fetch(`/api/clients/${client.id}/payments`, {
@@ -207,10 +207,25 @@ export function QuickActionsSidebar({
       const result = await response.json();
       console.log("[Add Payment] Payment created in database:", result.data);
       console.log("[Add Payment] Stage progressed:", result.stageProgressed);
+      console.log("[Add Payment] New stage:", result.newStage);
+      console.log("[Add Payment] Updated status:", result.updatedStatus);
+      console.log("[Add Payment] Payment type from API:", result.data?.type || paymentType);
+      
+      // Use payment type from API response (most accurate) - normalize to lowercase for comparison
+      const actualPaymentType = (result.data?.type || paymentType)?.toLowerCase();
+      console.log("[Add Payment] Using payment type for toast:", actualPaymentType);
 
-      // Force refresh client data to ensure payments show up
+      // Small delay to ensure database has fully updated
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Force refresh client data to ensure payments and stage show up immediately
       const clientResponse = await fetch(`/api/clients/${client.id}`, {
         credentials: "include",
+        cache: "no-store", // Ensure we get fresh data
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
       });
 
       if (clientResponse.ok) {
@@ -218,11 +233,59 @@ export function QuickActionsSidebar({
         console.log("[Add Payment] Updated client data:", {
           statutProjet: clientResult.data.statutProjet,
           paymentsCount: clientResult.data.payments?.length || 0,
+          paymentTypes: clientResult.data.payments?.map((p: any) => ({ id: p.id, type: p.type, amount: p.amount })),
+          stageProgressed: result.stageProgressed,
+          expectedStage: result.newStage || result.updatedStatus,
         });
+
+        // Verify stage was updated correctly
+        if (result.stageProgressed && clientResult.data.statutProjet !== result.newStage) {
+          console.warn("[Add Payment] ⚠️ Stage mismatch! Expected:", result.newStage, "Got:", clientResult.data.statutProjet);
+        }
+
+        // CRITICAL: Verify the stage was actually updated in the refreshed data
+        if (result.stageProgressed && clientResult.data.statutProjet !== "acompte_recu") {
+          console.error("[Add Payment] ❌ CRITICAL: Stage not updated in refreshed data!", {
+            expected: "acompte_recu",
+            actual: clientResult.data.statutProjet,
+            stageProgressed: result.stageProgressed,
+            newStage: result.newStage
+          });
+          
+          // Force update the statutProjet if it's wrong
+          clientResult.data.statutProjet = "acompte_recu";
+          console.log("[Add Payment] 🔧 Forced statutProjet to acompte_recu");
+        }
 
         // IMPORTANT: Use skipApiCall=true to prevent cascading updates and flickering
         // This prevents the parent from making another API call
+        // Update immediately so Financement card and Quick Actions update
         onUpdate(clientResult.data, true);
+        
+        // Trigger a custom event to force re-render of all components
+        // Include the updated statutProjet in the event detail
+        window.dispatchEvent(new CustomEvent("client-updated", {
+          detail: { 
+            clientId: client.id, 
+            paymentAdded: true,
+            stageProgressed: result.stageProgressed,
+            newStage: result.newStage || "acompte_recu",
+            statutProjet: clientResult.data.statutProjet, // Include actual statutProjet
+          }
+        }));
+        
+        // Also dispatch stage-updated event for components that listen to it
+        if (result.stageProgressed) {
+          window.dispatchEvent(new CustomEvent("stage-updated", {
+            detail: {
+              clientId: client.id,
+              newStatus: "acompte_recu",
+              changedBy: userName,
+            }
+          }));
+        }
+      } else {
+        console.error("[Add Payment] Failed to refresh client data");
       }
 
       setIsPaymentModalOpen(false);
@@ -230,12 +293,21 @@ export function QuickActionsSidebar({
       // Check if stage was auto-progressed
       const wasAutoProgressed = result.stageProgressed || false;
 
-      toast({
-        title: `${paymentTypeCapitalized} enregistré`,
-        description: wasAutoProgressed
-          ? `${payment.amount.toLocaleString()} MAD ajouté avec succès. Statut changé automatiquement vers "Acompte reçu"."`
-          : `${payment.amount.toLocaleString()} MAD de ${paymentType} ajouté avec succès`,
-      });
+      // Show appropriate toast message based on ACTUAL payment type from API
+      // Use actualPaymentType which comes from the API response (most accurate)
+      if (actualPaymentType === "accompte") {
+        toast({
+          title: "Acompte reçu",
+          description: wasAutoProgressed
+            ? `${payment.amount.toLocaleString()} MAD ajouté avec succès. Statut changé automatiquement vers "Acompte reçu".`
+            : `${payment.amount.toLocaleString()} MAD d'acompte ajouté avec succès`,
+        });
+      } else {
+        toast({
+          title: "Paiement enregistré",
+          description: `${payment.amount.toLocaleString()} MAD de paiement ajouté avec succès`,
+        });
+      }
     } catch (error) {
       console.error("[Add Payment] Error:", error);
       toast({

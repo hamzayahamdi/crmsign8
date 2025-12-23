@@ -61,8 +61,28 @@ export function ProjectRoadmapCard({ client, onUpdate, onAddTask, onAddRdv, refr
   const [isRoadmapCollapsed, setIsRoadmapCollapsed] = useState(false)
   const [isActionsCollapsed, setIsActionsCollapsed] = useState(false)
 
-  // Use realtime stage history hook
-  const { stageHistory, isLoading: isLoadingHistory } = useStageHistory(client.id)
+  // Use realtime stage history hook with refresh trigger
+  const [stageHistoryRefreshTrigger, setStageHistoryRefreshTrigger] = useState(0)
+  const { stageHistory, isLoading: isLoadingHistory } = useStageHistory(client.id, stageHistoryRefreshTrigger)
+
+  // Listen for client-updated events to refresh stage history immediately
+  useEffect(() => {
+    const handleClientUpdated = async (event: CustomEvent) => {
+      if (event.detail?.clientId === client.id && event.detail?.stageProgressed) {
+        console.log('[ProjectRoadmap] ⚡ Stage progressed, refreshing stage history...', {
+          clientId: event.detail.clientId,
+          newStage: event.detail.newStage
+        })
+        // Trigger refresh of stage history
+        setStageHistoryRefreshTrigger(prev => prev + 1)
+      }
+    }
+    
+    window.addEventListener('client-updated', handleClientUpdated as EventListener)
+    return () => {
+      window.removeEventListener('client-updated', handleClientUpdated as EventListener)
+    }
+  }, [client.id])
 
   // Debug: Log when client prop changes
   useEffect(() => {

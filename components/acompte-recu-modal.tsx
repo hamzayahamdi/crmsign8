@@ -31,8 +31,8 @@ export function AcompteRecuModal({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!amount || isNaN(Number(amount))) {
-            toast.error("Veuillez saisir un montant valide")
+        if (amount === "" || amount === null || amount === undefined || isNaN(Number(amount)) || Number(amount) < 0) {
+            toast.error("Veuillez saisir un montant valide (0 ou plus)")
             return
         }
 

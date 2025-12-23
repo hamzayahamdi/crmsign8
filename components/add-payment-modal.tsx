@@ -24,6 +24,7 @@ export interface PaymentData {
   method: string;
   reference?: string;
   notes?: string;
+  paymentType?: "accompte" | "paiement"; // Explicit payment type from modal
 }
 
 export function AddPaymentModal({
@@ -60,8 +61,8 @@ export function AddPaymentModal({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.amount || formData.amount <= 0) {
-      newErrors.amount = "Le montant doit être supérieur à 0";
+    if (formData.amount === undefined || formData.amount === null || formData.amount < 0 || isNaN(formData.amount)) {
+      newErrors.amount = "Le montant doit être un nombre valide (0 ou plus)";
     }
     if (!formData.date) {
       newErrors.date = "La date du paiement est requise";
@@ -89,16 +90,21 @@ export function AddPaymentModal({
 
     setIsSubmitting(true);
     try {
+      // Determine payment type based on modal title (what user sees)
+      const isAcompteModal = !hasExistingAcompte();
+      const paymentDataWithType = {
+        ...formData,
+        paymentType: isAcompteModal ? "accompte" : "paiement" as const,
+      };
+      
       // Handle both async and sync onAddPayment functions
-      const result = onAddPayment(formData);
+      // The toast will be shown by the handler, not here
+      const result = onAddPayment(paymentDataWithType);
       if (result instanceof Promise) {
         await result;
       }
-
-      toast({
-        title: "Succès",
-        description: "Le paiement a été enregistré avec succès",
-      });
+      
+      // Don't show toast here - the handler (handleAddPayment) will show it with correct message
 
       // Reset form
       setFormData({
@@ -228,7 +234,7 @@ export function AddPaymentModal({
                   <Input
                     type="text"
                     inputMode="decimal"
-                    value={formData.amount > 0 ? formData.amount.toString() : ""}
+                    value={formData.amount >= 0 ? formData.amount.toString() : ""}
                     onChange={handleAmountChange}
                     placeholder="0"
                     required
@@ -249,7 +255,7 @@ export function AddPaymentModal({
                     {errors.amount}
                   </p>
                 )}
-                {formData.amount > 0 && !errors.amount && (
+                {formData.amount >= 0 && !errors.amount && (
                   <p className="text-xs text-white/40 mt-1.5">
                     {formatCurrency(formData.amount)}
                   </p>
@@ -372,7 +378,7 @@ export function AddPaymentModal({
               <div className="flex gap-3 pt-2">
                 <Button
                   type="submit"
-                  disabled={isSubmitting || formData.amount <= 0}
+                  disabled={isSubmitting || formData.amount < 0 || isNaN(formData.amount)}
                   className="flex-1 h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-medium shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {isSubmitting ? (

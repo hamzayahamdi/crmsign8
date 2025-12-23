@@ -1180,8 +1180,8 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
   }, [contact])
 
   const handleUpdateAcompte = async () => {
-    if (!acompteMontant || isNaN(Number(acompteMontant))) {
-      toast.error('Veuillez saisir un montant valide')
+    if (acompteMontant === "" || acompteMontant === null || acompteMontant === undefined || isNaN(Number(acompteMontant)) || Number(acompteMontant) < 0) {
+      toast.error('Veuillez saisir un montant valide (0 ou plus)')
       return
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -161,6 +161,19 @@ export function ProjectStatusStepperEnhanced({
     useState<ProjectStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [lastKnownStatus, setLastKnownStatus] = useState<ProjectStatus>(currentStatus);
+
+  // Force re-render when currentStatus changes
+  useEffect(() => {
+    if (lastKnownStatus !== currentStatus) {
+      console.log("[ProjectStatusStepper] 🔄 Status changed:", {
+        previous: lastKnownStatus,
+        current: currentStatus,
+        willUpdate: true
+      });
+      setLastKnownStatus(currentStatus);
+    }
+  }, [currentStatus, lastKnownStatus]);
 
   console.log(
     "[ProjectStatusStepper] 🎨 Rendering with status:",
@@ -182,8 +195,24 @@ export function ProjectStatusStepperEnhanced({
   // Use pendingStatus for immediate visual feedback during update
   // This ensures the UI shows the new status immediately, even before the API call completes
   const displayStatus = (isLoading && pendingStatus) ? pendingStatus : currentStatus;
-  const currentStep = PROJECT_STEPS.find((step) => step.key === displayStatus);
+  
+  // CRITICAL: Always use currentStatus from props (most up-to-date)
+  // Only use displayStatus (with pendingStatus) for visual feedback during manual changes
+  // For automatic stage progression (like acompte), always use currentStatus
+  const effectiveStatus = currentStatus; // Always use prop value for automatic updates
+  const currentStep = PROJECT_STEPS.find((step) => step.key === effectiveStatus);
   const currentOrder = currentStep?.order || 0;
+  
+  console.log("[ProjectStatusStepper] 🎯 Status for rendering:", {
+    effectiveStatus,
+    currentStatus,
+    displayStatus,
+    pendingStatus,
+    isLoading,
+    currentStep: currentStep?.label,
+    currentOrder,
+    willUseEffectiveStatus: true
+  });
 
   console.log("[ProjectStatusStepper] 🎯 Current step details:", {
     currentStep: currentStep?.label,

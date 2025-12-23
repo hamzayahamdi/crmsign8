@@ -30,9 +30,9 @@ export async function POST(
         const body = await request.json();
         const { montant, methode, reference, description, updateExisting, paymentId } = body;
 
-        if (!montant) {
+        if (montant === undefined || montant === null || isNaN(Number(montant)) || Number(montant) < 0) {
             return NextResponse.json(
-                { error: 'Montant est requis' },
+                { error: 'Montant doit être un nombre valide (0 ou plus)' },
                 { status: 400 }
             );
         }

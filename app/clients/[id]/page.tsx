@@ -128,6 +128,79 @@ export default function ClientDetailsPage() {
     return unsubscribe
   }, [clientId])
 
+  // Listen for client-updated events (e.g., when acompte is added)
+  useEffect(() => {
+    const handleClientUpdated = async (event: CustomEvent) => {
+      if (event.detail?.clientId === clientId) {
+        console.log('[Client Details] Client updated event received, refreshing client data...', {
+          clientId: event.detail.clientId,
+          paymentAdded: event.detail.paymentAdded,
+          stageProgressed: event.detail.stageProgressed,
+          newStage: event.detail.newStage,
+          statutProjet: event.detail.statutProjet
+        })
+        
+        // If stage was progressed, immediately update the client state optimistically
+        if (event.detail.stageProgressed && event.detail.newStage) {
+          console.log('[Client Details] ⚡ Optimistic stage update:', {
+            from: client?.statutProjet,
+            to: event.detail.newStage
+          });
+          setClient(prev => prev ? {
+            ...prev,
+            statutProjet: event.detail.newStage as any,
+            derniereMaj: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          } : null);
+        }
+        
+        // Wait a bit to ensure database commit
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        // Re-fetch client data to get updated stage and payments
+        try {
+          const response = await fetch(`/api/clients/${clientId}`, {
+            credentials: 'include',
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+            }
+          })
+          if (response.ok) {
+            const result = await response.json()
+            console.log('[Client Details] ✅ Client data refreshed after update:', {
+              statutProjet: result.data.statutProjet,
+              expectedStage: event.detail.newStage,
+              matches: result.data.statutProjet === event.detail.newStage,
+              paymentsCount: result.data.payments?.length || 0
+            })
+            
+            // CRITICAL: If stage doesn't match, force it
+            if (event.detail.stageProgressed && result.data.statutProjet !== event.detail.newStage) {
+              console.warn('[Client Details] ⚠️ Stage mismatch! Forcing update...', {
+                expected: event.detail.newStage,
+                actual: result.data.statutProjet
+              });
+              result.data.statutProjet = event.detail.newStage;
+            }
+            
+            setClient(result.data)
+            updateClientInStore(clientId, result.data)
+            setRefreshTrigger(prev => prev + 1) // Trigger refresh for components that depend on it
+          }
+        } catch (error) {
+          console.error('[Client Details] Error refreshing after client update:', error)
+        }
+      }
+    }
+    
+    window.addEventListener('client-updated', handleClientUpdated as EventListener)
+    return () => {
+      window.removeEventListener('client-updated', handleClientUpdated as EventListener)
+    }
+  }, [clientId, client?.statutProjet])
+
   // Listen for devis updates from real-time sync
   useEffect(() => {
     const handleDevisUpdate = async (event: CustomEvent) => {

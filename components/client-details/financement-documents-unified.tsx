@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   DollarSign,
   CheckCircle,
@@ -64,6 +64,8 @@ export function FinancementDocumentsUnified({
   const [updatingDevisId, setUpdatingDevisId] = useState<string | null>(null);
   const [editingMontantDevis, setEditingMontantDevis] = useState<Devis | null>(null);
   const [editingPayment, setEditingPayment] = useState<any | null>(null);
+  const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
+  const prevDeletingPaymentIdRef = useRef<string | null>(null);
   const [activeTab, setActiveTab] = useState<"devis" | "paiements">("devis");
   const devisList = client.devis || [];
   const paymentsList = client.payments || [];
@@ -75,9 +77,60 @@ export function FinancementDocumentsUnified({
       devisCount: devisList.length,
       paymentsCount: paymentsList.length,
       historiqueCount: client.historique?.length || 0,
+      statutProjet: client.statutProjet,
+      paymentTypes: paymentsList.map(p => ({ id: p.id, type: p.type, amount: p.amount })),
       devisList: devisList.map(d => ({ id: d.id, title: d.title, statut: d.statut }))
     })
-  }, [client.id, devisList.length, paymentsList.length])
+  }, [client.id, devisList.length, paymentsList.length, client.statutProjet])
+
+  // Listen for client update events to force re-render (both payment added and deleted)
+  useEffect(() => {
+    const handleClientUpdate = async (event: CustomEvent) => {
+      if (event.detail?.clientId === client.id && (event.detail?.paymentAdded || event.detail?.paymentDeleted)) {
+        console.log('[FinancementDocumentsUnified] Client update event received, forcing refresh', {
+          paymentAdded: event.detail.paymentAdded,
+          paymentDeleted: event.detail.paymentDeleted,
+          paymentId: event.detail.paymentId
+        });
+        
+        // Wait a bit for database commit if payment was deleted
+        if (event.detail.paymentDeleted) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+        
+        // Force a refresh by fetching latest client data
+        fetch(`/api/clients/${client.id}`, { 
+          credentials: "include", 
+          cache: "no-store",
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+          }
+        })
+          .then(res => res.json())
+          .then(result => {
+            if (result.data) {
+              // If payment was deleted, verify it's actually gone
+              if (event.detail.paymentDeleted && event.detail.paymentId) {
+                const paymentStillExists = result.data.payments?.some((p: any) => p.id === event.detail.paymentId);
+                if (paymentStillExists) {
+                  console.warn('[FinancementDocumentsUnified] ⚠️ Payment still exists, forcing removal');
+                  result.data.payments = result.data.payments.filter((p: any) => p.id !== event.detail.paymentId);
+                }
+              }
+              onUpdate(result.data, true);
+            } else if (result.success && result.data) {
+              onUpdate(result.data, true);
+            }
+          })
+          .catch(err => console.error('[FinancementDocumentsUnified] Error refreshing:', err));
+      }
+    };
+
+    window.addEventListener('client-updated', handleClientUpdate as EventListener);
+    return () => window.removeEventListener('client-updated', handleClientUpdate as EventListener);
+  }, [client.id, onUpdate])
+
 
   // Calculate financial metrics
   const acceptedDevis = devisList.filter((d) => d.statut === "accepte");
@@ -330,7 +383,23 @@ export function FinancementDocumentsUnified({
   };
 
   const handleDeletePayment = async (paymentId: string) => {
+    // Set loading state
+    setDeletingPaymentId(paymentId);
+    
     try {
+      // Find the payment to check its type before deletion
+      const paymentToDelete = client.payments?.find(p => p.id === paymentId);
+      const isAcompte = paymentToDelete?.type === "accompte" || paymentToDelete?.type === "Acompte";
+
+      // OPTIMISTIC UPDATE: Remove payment from UI immediately
+      const updatedPayments = client.payments?.filter(p => p.id !== paymentId) || [];
+      const optimisticClient = {
+        ...client,
+        payments: updatedPayments,
+      };
+      console.log("[Delete Payment] ⚡ Optimistic update - removing payment from UI immediately");
+      onUpdate(optimisticClient, true);
+
       const response = await fetch(
         `/api/clients/${client.id}/payments?paymentId=${paymentId}`,
         {
@@ -340,29 +409,97 @@ export function FinancementDocumentsUnified({
       );
 
       if (!response.ok) {
+        // Revert optimistic update on error
+        console.error("[Delete Payment] ❌ Delete failed, reverting optimistic update");
+        onUpdate(client, true);
         throw new Error("Failed to delete payment");
       }
 
+      const deleteResult = await response.json();
+      const stageReverted = deleteResult.stageReverted || false;
+
+      // Wait a bit to ensure database commit
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Force refresh client data to get updated payments and stage
       const clientResponse = await fetch(`/api/clients/${client.id}`, {
         credentials: "include",
+        cache: "no-store",
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
       });
 
       if (clientResponse.ok) {
         const clientResult = await clientResponse.json();
+        
+        // Verify the payment was actually deleted
+        const paymentStillExists = clientResult.data.payments?.some((p: any) => p.id === paymentId);
+        if (paymentStillExists) {
+          console.warn("[Delete Payment] ⚠️ Payment still exists after deletion, forcing removal");
+          clientResult.data.payments = clientResult.data.payments.filter((p: any) => p.id !== paymentId);
+        }
+        
+        // Update immediately so Quick Actions sidebar reflects the change
         onUpdate(clientResult.data, true);
+        
+        // Dispatch client-updated event to force all components to refresh
+        window.dispatchEvent(new CustomEvent("client-updated", {
+          detail: {
+            clientId: client.id,
+            paymentDeleted: true,
+            paymentId: paymentId,
+            stageReverted: stageReverted,
+            newStage: stageReverted ? "prise_de_besoin" : clientResult.data.statutProjet,
+            statutProjet: clientResult.data.statutProjet,
+          }
+        }));
+        
+        // Also dispatch stage-updated if stage was reverted
+        if (stageReverted) {
+          window.dispatchEvent(new CustomEvent("stage-updated", {
+            detail: {
+              clientId: client.id,
+              newStatus: "prise_de_besoin",
+              changedBy: "Système",
+            }
+          }));
+        }
+        
+        console.log("[Delete Payment] ✅ Client updated:", {
+          statutProjet: clientResult.data.statutProjet,
+          paymentsCount: clientResult.data.payments?.length || 0,
+          stageReverted,
+        });
+      } else {
+        console.error("[Delete Payment] ❌ Failed to refresh client data");
       }
 
-      toast({
-        title: "Acompte supprimé",
-        description: "L'acompte a été supprimé avec succès",
-      });
+      // Show appropriate toast message
+      if (isAcompte) {
+        toast({
+          title: "Acompte supprimé",
+          description: stageReverted
+            ? "L'acompte a été supprimé. Le statut est revenu à 'Prise de besoin'."
+            : "L'acompte a été supprimé avec succès",
+        });
+      } else {
+        toast({
+          title: "Paiement supprimé",
+          description: "Le paiement a été supprimé avec succès",
+        });
+      }
     } catch (error) {
       console.error("[Delete Payment] Error:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de supprimer l'acompte",
+        description: "Impossible de supprimer le paiement",
         variant: "destructive",
       });
+    } finally {
+      // Clear loading state
+      setDeletingPaymentId(null);
     }
   };
 
@@ -422,6 +559,26 @@ export function FinancementDocumentsUnified({
     date?: string;
     title?: string;
   }>({ open: false });
+
+  // Track previous deletingPaymentId to detect when deletion completes
+  useEffect(() => {
+    prevDeletingPaymentIdRef.current = deletingPaymentId;
+  }, [deletingPaymentId]);
+
+  // Close delete dialog when deletion completes (only if it was previously deleting)
+  useEffect(() => {
+    // Only close if: deletion was in progress (prev was not null) and now it's complete (current is null)
+    const wasDeleting = prevDeletingPaymentIdRef.current !== null;
+    const isComplete = deletingPaymentId === null;
+    
+    if (wasDeleting && isComplete && deleteDialog.open && deleteDialog.type === 'payment') {
+      // Small delay to ensure UI updates are complete
+      const timer = setTimeout(() => {
+        setDeleteDialog({ open: false });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [deletingPaymentId, deleteDialog.open, deleteDialog.type])
 
   const getPaymentMethodIcon = (method: string) => {
     switch (method) {
@@ -843,18 +1000,29 @@ export function FinancementDocumentsUnified({
               <div className="space-y-2">
                 {paymentsList.map((payment) => {
                   const isAcompte = payment.type === "accompte" || payment.type === "Acompte";
+                  const isDeleting = deletingPaymentId === payment.id;
                   return (
                     <motion.div
                       key={payment.id}
                       initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      animate={{ opacity: isDeleting ? 0.5 : 1, y: 0 }}
                       className={cn(
-                        "p-3 rounded-lg border-2 transition-all group shadow-lg",
+                        "p-3 rounded-lg border-2 transition-all group shadow-lg relative",
                         isAcompte
                           ? "border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-amber-900/20 to-amber-950/30 hover:border-amber-500/60 hover:shadow-amber-500/20"
-                          : "border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent hover:border-green-500/30 hover:shadow-green-500/10"
+                          : "border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent hover:border-green-500/30 hover:shadow-green-500/10",
+                        isDeleting && "pointer-events-none"
                       )}
                     >
+                      {/* Loading Overlay */}
+                      {isDeleting && (
+                        <div className="absolute inset-0 rounded-lg bg-black/50 backdrop-blur-sm flex items-center justify-center z-10">
+                          <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="w-5 h-5 text-white animate-spin" />
+                            <span className="text-xs text-white/80 font-medium">Suppression...</span>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           {/* Enhanced Icon */}
@@ -932,7 +1100,8 @@ export function FinancementDocumentsUnified({
                             variant="ghost"
                             size="icon"
                             onClick={() => setEditingPayment(payment)}
-                            className="h-6 w-6 text-blue-400/50 hover:text-blue-400 hover:bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                            disabled={isDeleting}
+                            className="h-6 w-6 text-blue-400/50 hover:text-blue-400 hover:bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
                             title="Modifier"
                           >
                             <Pencil className="w-3 h-3" />
@@ -949,7 +1118,8 @@ export function FinancementDocumentsUnified({
                                 date: payment.date,
                               })
                             }
-                            className="h-6 w-6 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                            disabled={isDeleting}
+                            className="h-6 w-6 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
                             title="Supprimer"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -974,7 +1144,13 @@ export function FinancementDocumentsUnified({
 
       <AlertDialog
         open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}
+        onOpenChange={(open) => {
+          // Prevent closing dialog during deletion
+          if (!open && (deletingPaymentId !== null || updatingDevisId !== null)) {
+            return;
+          }
+          setDeleteDialog((prev) => ({ ...prev, open }));
+        }}
       >
         <AlertDialogContent className="bg-[#171B22] border-white/10">
           <AlertDialogHeader>
@@ -1012,17 +1188,26 @@ export function FinancementDocumentsUnified({
               Annuler
             </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={deletingPaymentId !== null || updatingDevisId !== null}
               onClick={async () => {
                 if (deleteDialog.type === 'devis' && deleteDialog.devisId) {
                   await handleDeleteDevis(deleteDialog.devisId);
+                  setDeleteDialog({ open: false });
                 } else if (deleteDialog.type === 'payment' && deleteDialog.paymentId) {
                   await handleDeletePayment(deleteDialog.paymentId);
+                  // Dialog will close automatically via useEffect when deletion completes
                 }
-                setDeleteDialog({ open: false });
               }}
             >
-              Supprimer
+              {deletingPaymentId || updatingDevisId ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Suppression...</span>
+                </div>
+              ) : (
+                "Supprimer"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

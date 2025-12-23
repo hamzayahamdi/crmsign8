@@ -32,8 +32,8 @@ export function AcompteRecuOpportunityModal({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!montant || isNaN(Number(montant)) || Number(montant) <= 0) {
-            toast.error("Veuillez saisir un montant valide")
+        if (montant === "" || montant === null || montant === undefined || isNaN(Number(montant)) || Number(montant) < 0) {
+            toast.error("Veuillez saisir un montant valide (0 ou plus)")
             return
         }
 

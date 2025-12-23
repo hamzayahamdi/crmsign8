@@ -33,9 +33,16 @@ export async function POST(
         const body = await request.json();
         const { montant, methode, reference, description } = body;
 
-        if (!montant || !methode) {
+        if (montant === undefined || montant === null || isNaN(Number(montant)) || Number(montant) < 0) {
             return NextResponse.json(
-                { error: 'Montant et méthode de paiement sont requis' },
+                { error: 'Montant doit être un nombre valide (0 ou plus)' },
+                { status: 400 }
+            );
+        }
+        
+        if (!methode) {
+            return NextResponse.json(
+                { error: 'Méthode de paiement est requise' },
                 { status: 400 }
             );
         }

@@ -53,24 +53,38 @@ export function ProjectProgressCard({ client, onUpdate }: ProjectProgressCardPro
     const userName = user?.name || 'Admin'
 
     try {
-      // Determine payment type before API call
-      const hasAcompteStatus =
-        client.statutProjet === "acompte_recu" ||
-        client.statutProjet === "acompte_verse" ||
-        client.statutProjet === "conception" ||
-        client.statutProjet === "devis_negociation" ||
-        client.statutProjet === "accepte" ||
-        client.statutProjet === "premier_depot" ||
-        client.statutProjet === "projet_en_cours" ||
-        client.statutProjet === "chantier" ||
-        client.statutProjet === "facture_reglee"
+      // Use payment type from modal if provided (modal determines based on its title)
+      // Otherwise fallback to determining it
+      let paymentType: string
+      if (payment.paymentType) {
+        // Modal explicitly set the type - use it (this is the source of truth)
+        paymentType = payment.paymentType
+        console.log("[ProjectProgressCard] Using payment type from modal:", paymentType)
+      } else {
+        // Fallback: determine payment type
+        const hasAcompteStatus =
+          client.statutProjet === "acompte_recu" ||
+          client.statutProjet === "acompte_verse" ||
+          client.statutProjet === "conception" ||
+          client.statutProjet === "devis_negociation" ||
+          client.statutProjet === "accepte" ||
+          client.statutProjet === "premier_depot" ||
+          client.statutProjet === "projet_en_cours" ||
+          client.statutProjet === "chantier" ||
+          client.statutProjet === "facture_reglee"
 
-      const hasPayments = client.payments && client.payments.length > 0
-      const isFirstPayment = !hasAcompteStatus && !hasPayments
-      const paymentType = isFirstPayment ? "acompte" : "paiement"
-      const paymentTypeCapitalized = isFirstPayment ? "Acompte" : "Paiement"
+        // Check specifically for acompte payments, not just any payment
+        const hasAcomptePayment = client.payments && client.payments.some(
+          (p) => p.type === "accompte" || p.type === "Acompte"
+        )
+        const isFirstPayment = !hasAcompteStatus && !hasAcomptePayment
+        paymentType = isFirstPayment ? "accompte" : "paiement"
+        console.log("[ProjectProgressCard] Determined payment type (fallback):", paymentType)
+      }
+      
+      const paymentTypeCapitalized = paymentType === "accompte" ? "Acompte" : "Paiement"
 
-      // Save to database via API
+      // Save to database via API - ALWAYS send explicit paymentType
       const response = await fetch(`/api/clients/${client.id}/payments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -82,7 +96,7 @@ export function ProjectProgressCard({ client, onUpdate }: ProjectProgressCardPro
           reference: payment.reference || "",
           description: payment.notes || "",
           createdBy: userName,
-          paymentType: paymentType,
+          paymentType: paymentType, // Explicitly send the type
         }),
       })
 
@@ -115,12 +129,20 @@ export function ProjectProgressCard({ client, onUpdate }: ProjectProgressCardPro
       // Check if stage was auto-progressed
       const wasAutoProgressed = result.stageProgressed || false
 
-      toast({
-        title: `${paymentTypeCapitalized} enregistré`,
-        description: wasAutoProgressed
-          ? `${payment.amount.toLocaleString()} MAD ajouté avec succès. Statut changé automatiquement vers "Acompte reçu"."`
-          : `${payment.amount.toLocaleString()} MAD de ${paymentType} ajouté avec succès`,
-      })
+      // Show appropriate toast message based on payment type
+      if (paymentType === "accompte") {
+        toast({
+          title: "Acompte reçu",
+          description: wasAutoProgressed
+            ? `${payment.amount.toLocaleString()} MAD ajouté avec succès. Statut changé automatiquement vers "Acompte reçu".`
+            : `${payment.amount.toLocaleString()} MAD d'acompte ajouté avec succès`,
+        })
+      } else {
+        toast({
+          title: "Paiement enregistré",
+          description: `${payment.amount.toLocaleString()} MAD de paiement ajouté avec succès`,
+        })
+      }
     } catch (error) {
       console.error("[Add Payment] Error:", error)
       toast({

@@ -225,7 +225,7 @@ export function ClientDetailsHeader({
 
       {/* Project Status Timeline */}
       <ProjectStatusStepperEnhanced
-        key={`stepper-${client.id}-${client.statutProjet}-${Date.now()}`}
+        key={`stepper-${client.id}-${client.statutProjet}`}
         currentStatus={client.statutProjet}
         onStatusChange={async (newStatus) => {
           const now = new Date().toISOString();

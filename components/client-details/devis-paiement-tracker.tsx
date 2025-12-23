@@ -273,6 +273,10 @@ export function DevisPaiementTracker({
 
   const handleDeletePayment = async (paymentId: string) => {
     try {
+      // Find the payment to check its type before deletion
+      const paymentToDelete = client.payments?.find(p => p.id === paymentId);
+      const isAcompte = paymentToDelete?.type === "accompte" || paymentToDelete?.type === "Acompte";
+
       const response = await fetch(
         `/api/clients/${client.id}/payments?paymentId=${paymentId}`,
         {
@@ -285,24 +289,45 @@ export function DevisPaiementTracker({
         throw new Error("Failed to delete payment");
       }
 
+      const deleteResult = await response.json();
+      const stageReverted = deleteResult.stageReverted || false;
+
+      // Force refresh client data to get updated payments and stage
       const clientResponse = await fetch(`/api/clients/${client.id}`, {
         credentials: "include",
       });
 
       if (clientResponse.ok) {
         const clientResult = await clientResponse.json();
+        // Update immediately so Quick Actions sidebar reflects the change
         onUpdate(clientResult.data, true);
+        
+        console.log("[Delete Payment] Client updated:", {
+          statutProjet: clientResult.data.statutProjet,
+          paymentsCount: clientResult.data.payments?.length || 0,
+          stageReverted,
+        });
       }
 
-      toast({
-        title: "Acompte supprimé",
-        description: "L'acompte a été supprimé avec succès",
-      });
+      // Show appropriate toast message
+      if (isAcompte) {
+        toast({
+          title: "Acompte supprimé",
+          description: stageReverted
+            ? "L'acompte a été supprimé. Le statut est revenu à 'Prise de besoin'."
+            : "L'acompte a été supprimé avec succès",
+        });
+      } else {
+        toast({
+          title: "Paiement supprimé",
+          description: "Le paiement a été supprimé avec succès",
+        });
+      }
     } catch (error) {
       console.error("[Delete Payment] Error:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de supprimer l'acompte",
+        description: "Impossible de supprimer le paiement",
         variant: "destructive",
       });
     }

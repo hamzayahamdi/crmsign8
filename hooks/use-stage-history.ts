@@ -8,7 +8,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 /**
  * Hook to fetch and subscribe to stage history updates for a client
  */
-export function useStageHistory(clientId: string) {
+export function useStageHistory(clientId: string, refreshTrigger = 0) {
   const [stageHistory, setStageHistory] = useState<StageHistoryEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -86,7 +86,7 @@ export function useStageHistory(clientId: string) {
         supabase.removeChannel(channel)
       }
     }
-  }, [clientId])
+  }, [clientId, refreshTrigger])
 
   return { stageHistory, isLoading, error }
 }
