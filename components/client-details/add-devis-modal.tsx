@@ -158,9 +158,27 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
       }
 
       const newDevisId = result.data.id
-      console.log('[Attach Devis] New devis ID:', newDevisId)
+      console.log('[Attach Devis] ✅ Devis created successfully:', newDevisId)
 
-      // OPTIMIZATION: Dispatch upload complete event
+      // IMMEDIATE UPDATE: Add devis directly to client data from API response
+      const updatedClient = {
+        ...client,
+        devis: [...(client.devis || []), result.data],
+        derniereMaj: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+
+      // CRITICAL: Dispatch events FIRST (synchronously) before updating state
+      // Custom events are dispatched synchronously, so listeners will be notified immediately
+      window.dispatchEvent(new CustomEvent('devis-updated', {
+        detail: {
+          clientId: client.id,
+          devisId: newDevisId,
+          devisAdded: true,
+          devis: result.data
+        }
+      }))
+      
       window.dispatchEvent(new CustomEvent('devis-upload-complete', {
         detail: {
           clientId: client.id,
@@ -169,106 +187,23 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
         }
       }))
 
-      // Wait a moment for database to fully commit
-      await new Promise(resolve => setTimeout(resolve, 300))
+      window.dispatchEvent(new CustomEvent('client-updated', {
+        detail: {
+          clientId: client.id,
+          devisAdded: true,
+          devisId: newDevisId,
+          devis: result.data
+        }
+      }))
+      
+      // IMMEDIATE: Update parent component with devis already added
+      // Events are dispatched synchronously above, so this will trigger after listeners are notified
+      onSave(updatedClient, true)
 
-      // OPTIMIZATION: Force refresh client data with cache-busting headers
-      const clientResponse = await fetch(`/api/clients/${client.id}?t=${Date.now()}`, {
-        credentials: 'include',
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        },
+      toast({
+        title: "Devis attaché avec succès",
+        description: `Le fichier "${selectedFile.name}" a été ajouté comme devis`,
       })
-
-      if (clientResponse.ok) {
-        const clientResult = await clientResponse.json()
-        const clientData = clientResult.data || clientResult
-        
-        console.log('[Attach Devis] 📊 Fresh client data from server:', {
-          clientId: clientData.id,
-          devisCount: clientData.devis?.length || 0,
-          devisIds: clientData.devis?.map((d: any) => d.id) || [],
-          newDevisId,
-          hasNewDevis: clientData.devis?.some((d: any) => d.id === newDevisId) || false,
-        })
-
-        // Verify the new devis is in the response
-        const hasNewDevis = clientData.devis?.some((d: any) => d.id === newDevisId)
-        
-        if (!hasNewDevis) {
-          console.warn('[Attach Devis] ⚠️ New devis not found in response, adding optimistically')
-          // Add the devis optimistically if it's missing
-          if (result.data) {
-            clientData.devis = [...(clientData.devis || []), result.data]
-          }
-        }
-
-        // OPTIMIZATION: Dispatch events BEFORE updating to ensure optimistic UI
-        window.dispatchEvent(new CustomEvent('devis-upload-complete', {
-          detail: {
-            clientId: client.id,
-            devisId: newDevisId,
-            devis: result.data
-          }
-        }))
-        
-        // Dispatch devis-updated event with the real devis data
-        window.dispatchEvent(new CustomEvent('devis-updated', {
-          detail: {
-            clientId: client.id,
-            devisId: newDevisId,
-            devisAdded: true,
-            devis: result.data
-          }
-        }))
-
-        // Also dispatch client-updated event for broader compatibility
-        window.dispatchEvent(new CustomEvent('client-updated', {
-          detail: {
-            clientId: client.id,
-            devisAdded: true,
-            devisId: newDevisId,
-            devis: result.data
-          }
-        }))
-        
-        // Update parent component with fresh data AFTER events
-        onSave(clientData, true)
-
-        toast({
-          title: "Devis attaché avec succès",
-          description: `Le fichier "${selectedFile.name}" a été ajouté comme devis`,
-        })
-      } else {
-        console.error('[Attach Devis] Failed to fetch updated client data:', clientResponse.status)
-        // Even if fetch fails, try optimistic update with the devis we just created
-        if (result.data) {
-          console.log('[Attach Devis] Attempting optimistic update with new devis')
-          const optimisticClient = {
-            ...client,
-            devis: [...(client.devis || []), result.data]
-          }
-          onSave(optimisticClient, true)
-          
-          window.dispatchEvent(new CustomEvent('devis-updated', {
-            detail: {
-              clientId: client.id,
-              devisId: result.data.id,
-              devisAdded: true,
-              devis: result.data
-            }
-          }))
-        }
-        
-        toast({
-          title: "Devis attaché",
-          description: "Le devis a été ajouté. Si il n'apparaît pas, veuillez rafraîchir la page.",
-          variant: "default",
-        })
-      }
 
       // Reset state
       setSelectedFile(null)

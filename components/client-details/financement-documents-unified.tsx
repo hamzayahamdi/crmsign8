@@ -78,26 +78,28 @@ export function FinancementDocumentsUnified({
   const devisList = useMemo(() => {
     const baseList = client.devis || [];
     
-    // Check if the real devis (from pending) is now in the base list
-    if (pendingDevis && pendingDevis.realDevisId) {
+    // If we have pending devis, check if real devis is already in the list
+    if (pendingDevis?.realDevisId) {
       const realDevisExists = baseList.some(d => d.id === pendingDevis.realDevisId);
-      // If real devis exists, don't show pending anymore
+      // If real devis exists, immediately clear pending
       if (realDevisExists) {
+        // Use requestAnimationFrame for immediate but smooth clearing
+        requestAnimationFrame(() => {
+          setPendingDevis(null);
+        });
         return baseList;
       }
     }
     
-    // Add pending devis optimistically if it exists and real devis not found yet
-    if (pendingDevis) {
+    // Show pending devis only if upload is in progress and real devis not yet available
+    if (pendingDevis && !pendingDevis.realDevisId) {
       const pendingDevisItem: Devis = {
         id: pendingDevis.id,
         title: pendingDevis.fileName.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' '),
         montant: 0,
         date: new Date().toISOString(),
         statut: 'en_attente',
-        description: pendingDevis.progress < 100 
-          ? `Upload en cours: ${pendingDevis.fileName}` 
-          : `Finalisation: ${pendingDevis.fileName}`,
+        description: `Upload en cours: ${pendingDevis.fileName}`,
         fichier: null,
         created_by: user?.name || 'Utilisateur',
         createdAt: new Date().toISOString(),
@@ -106,26 +108,25 @@ export function FinancementDocumentsUnified({
         factureReglee: false,
         validatedAt: null,
       } as Devis;
-      // Put pending at the top
       return [pendingDevisItem, ...baseList];
     }
+    
     return baseList;
   }, [client.devis, client.id, forceRefresh, pendingDevis, user?.name])
   
   const paymentsList = useMemo(() => client.payments || [], [client.payments, client.id, forceRefresh])
 
-  // OPTIMIZATION: Watch for real devis to appear and smoothly transition away pending
+  // IMMEDIATE: Clear pending as soon as real devis appears in client data
   useEffect(() => {
-    if (pendingDevis?.realDevisId) {
-      const realDevisExists = client.devis?.some(d => d.id === pendingDevis.realDevisId);
+    if (pendingDevis?.realDevisId && client.devis) {
+      const realDevisExists = client.devis.some(d => d.id === pendingDevis.realDevisId);
       if (realDevisExists) {
-        console.log('[FinancementDocumentsUnified] ✅ Real devis detected, clearing pending after smooth transition');
-        // Small delay for smooth visual transition
-        const timeoutId = setTimeout(() => {
+        console.log('[FinancementDocumentsUnified] ✅ Real devis detected, clearing pending immediately');
+        // Clear immediately using requestAnimationFrame for smooth update
+        requestAnimationFrame(() => {
           setPendingDevis(null);
           setForceRefresh(prev => prev + 1);
-        }, 400);
-        return () => clearTimeout(timeoutId);
+        });
       }
     }
   }, [client.devis, pendingDevis?.realDevisId]);
@@ -146,10 +147,31 @@ export function FinancementDocumentsUnified({
     })
   }, [client.id, devisList.length, paymentsList.length, client.statutProjet, forceRefresh, pendingDevis])
 
+  // OPTIMIZATION: Force re-render immediately when devis or payments arrays change
   useEffect(() => {
     // Trigger re-render when devis or payments count changes
+    // This ensures the UI updates immediately when new devis is added
     setForceRefresh(prev => prev + 1)
-  }, [devisList.length, paymentsList.length])
+  }, [devisList.length, paymentsList.length, client.devis?.length, client.payments?.length])
+  
+  // CRITICAL: Watch client.devis directly for immediate updates
+  useEffect(() => {
+    if (client.devis && client.devis.length > 0) {
+      // Force refresh when devis array changes (new devis added)
+      setForceRefresh(prev => prev + 1)
+      
+      // If we have pending devis, check if any new devis matches
+      if (pendingDevis?.realDevisId) {
+        const realDevisExists = client.devis.some(d => d.id === pendingDevis.realDevisId)
+        if (realDevisExists) {
+          // Clear pending immediately
+          requestAnimationFrame(() => {
+            setPendingDevis(null)
+          })
+        }
+      }
+    }
+  }, [client.devis, pendingDevis?.realDevisId])
 
   // OPTIMIZATION: Listen for devis upload start/progress/complete events
   useEffect(() => {
@@ -180,10 +202,10 @@ export function FinancementDocumentsUnified({
 
     const handleDevisUploadComplete = (event: CustomEvent) => {
       if (event.detail?.clientId === client.id) {
-        console.log('[FinancementDocumentsUnified] Devis upload completed:', event.detail)
+        console.log('[FinancementDocumentsUnified] ✅ Devis upload completed, clearing pending immediately')
         const realDevisId = event.detail.devisId
         
-        // OPTIMIZATION: Update pending to track real devis ID and set progress to 100
+        // IMMEDIATE: Update pending to track real devis ID
         if (pendingDevis) {
           setPendingDevis(prev => prev ? {
             ...prev,
@@ -192,11 +214,8 @@ export function FinancementDocumentsUnified({
           } : null)
         }
         
-        // Force refresh to get the real devis
+        // Force immediate refresh
         setForceRefresh(prev => prev + 1)
-        
-        // The useEffect above will handle clearing pending when real devis appears
-        // Just ensure we refresh to get the latest data
       }
     }
 
@@ -233,38 +252,33 @@ export function FinancementDocumentsUnified({
           devisId: event.detail.devisId
         });
         
-        // OPTIMIZATION: Immediate optimistic update for devis
+        // IMMEDIATE: Update client with new devis data
         if (event.detail.devisAdded && event.detail.devis) {
-          console.log('[FinancementDocumentsUnified] ⚡ Optimistic devis update', {
+          console.log('[FinancementDocumentsUnified] ⚡ Immediate devis update', {
             devisId: event.detail.devisId,
             hasDevis: !!event.detail.devis
           })
           
-          // Update pending to track the real devis ID
-          if (pendingDevis && event.detail.devisId) {
-            setPendingDevis(prev => prev ? {
-              ...prev,
-              realDevisId: event.detail.devisId,
-              progress: 100
-            } : null)
-          }
+          // Check if devis is already in client data (from onSave)
+          const devisAlreadyExists = client.devis?.some(d => d.id === event.detail.devisId);
           
-          const optimisticClient = {
-            ...client,
-            devis: [...(client.devis || []), event.detail.devis]
-          }
-          onUpdate(optimisticClient, true)
-          setForceRefresh(prev => prev + 1)
-          
-          // Clear pending after a smooth transition delay once real devis is confirmed
-          setTimeout(() => {
-            const realDevisExists = optimisticClient.devis?.some(d => d.id === event.detail.devisId)
-            if (realDevisExists) {
-              console.log('[FinancementDocumentsUnified] ✅ Real devis confirmed, clearing pending after transition')
-              setPendingDevis(null)
-              setForceRefresh(prev => prev + 1)
+          if (!devisAlreadyExists) {
+            // Update client with new devis if not already present
+            const updatedClient = {
+              ...client,
+              devis: [...(client.devis || []), event.detail.devis]
             }
-          }, 400)
+            onUpdate(updatedClient, true)
+          }
+          
+          // IMMEDIATE: Clear pending and mark real devis ID
+          setPendingDevis(prev => prev ? {
+            ...prev,
+            realDevisId: event.detail.devisId,
+            progress: 100
+          } : null)
+          
+          setForceRefresh(prev => prev + 1)
         }
         
         // Wait a bit for database commit if payment was deleted
@@ -303,15 +317,8 @@ export function FinancementDocumentsUnified({
                   clientData.devis = [...(clientData.devis || []), event.detail.devis];
                 }
                 
-                // If real devis is now confirmed, clear pending after smooth transition
-                const finalDevisExists = devisExists || clientData.devis?.some((d: any) => d.id === event.detail.devisId);
-                if (finalDevisExists) {
-                  console.log('[FinancementDocumentsUnified] ✅ Real devis confirmed in response, clearing pending after transition');
-                  setTimeout(() => {
-                    setPendingDevis(null);
-                    setForceRefresh(prev => prev + 1);
-                  }, 400);
-                }
+                // IMMEDIATE: Clear pending - devis is confirmed
+                setPendingDevis(null);
               }
               
               onUpdate(clientData, true);
@@ -896,7 +903,7 @@ export function FinancementDocumentsUnified({
             {/* Devis List - Simplified */}
             {devisList.length > 0 || pendingDevis ? (
               <div className="space-y-2.5" key={`devis-list-${forceRefresh}-${devisList.length}-${pendingDevis?.id || ''}`}>
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence mode="sync">
                   {devisList.map((devis) => {
                   // Check if this is a pending devis (uploading)
                   const isPending = devis.id?.startsWith('pending-') || (pendingDevis && devis.id === pendingDevis.id)
@@ -953,19 +960,18 @@ export function FinancementDocumentsUnified({
 
                   return (
                     <motion.div
-                      key={isPending ? pendingDevis?.id : devis.id}
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      key={devis.id}
+                      initial={{ opacity: 0, y: 5 }}
                       animate={{ 
                         opacity: 1, 
-                        y: 0, 
-                        scale: 1,
-                        transition: { duration: 0.3, ease: "easeOut" }
+                        y: 0,
+                        transition: { duration: 0.2, ease: "easeOut" }
                       }}
                       exit={{ 
-                        opacity: 0, 
-                        scale: 0.95,
-                        transition: { duration: 0.2 }
+                        opacity: 0,
+                        transition: { duration: 0.15 }
                       }}
+                      layout
                       className={cn(
                         "p-3 rounded-lg border transition-all hover:shadow-sm hover:shadow-white/3 relative group",
                         isPending && "border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-transparent",
