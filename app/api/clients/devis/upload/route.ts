@@ -175,6 +175,7 @@ export async function POST(request: NextRequest) {
         description: `Devis attaché: ${originalName}`,
         statut: 'en_attente',
         created_by: uploadedBy,
+        created_at: now, // Explicitly set created_at (required by Supabase even if Prisma has default)
         validated_at: null,
         facture_reglee: false,
         date: now,
@@ -187,11 +188,27 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('[Upload Devis] Insert error:', insertError)
+      console.error('[Upload Devis] Insert error details:', JSON.stringify(insertError, null, 2))
+      console.error('[Upload Devis] Insert data attempted:', {
+        id: devisId,
+        client_id: clientId,
+        title: devisTitle,
+        montant: 0,
+        statut: 'en_attente',
+        created_by: uploadedBy,
+        created_at: now,
+        date: now,
+        updated_at: now
+      })
       // Try to delete uploaded file if devis creation fails
-      await serverSupabase.storage.from(BUCKET).remove([path])
+      try {
+        await serverSupabase.storage.from(BUCKET).remove([path])
+      } catch (cleanupError) {
+        console.error('[Upload Devis] Failed to cleanup uploaded file:', cleanupError)
+      }
       
       return NextResponse.json(
-        { error: 'Échec de la création du devis', details: insertError.message },
+        { error: 'Échec de la création du devis', details: insertError.message || insertError.hint || String(insertError) },
         { status: 500 }
       )
     }
@@ -232,13 +249,29 @@ export async function POST(request: NextRequest) {
       fileName: originalName
     })
   } catch (error: any) {
-    console.error('[Upload Devis] Error:', error)
+    console.error('[Upload Devis] Unexpected error:', error)
+    console.error('[Upload Devis] Error stack:', error.stack)
+    console.error('[Upload Devis] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+    
+    // Try to provide more helpful error message
+    let errorMessage = 'Erreur interne du serveur'
+    let errorDetails = error.message || String(error)
+    
+    if (error.message?.includes('Missing Supabase')) {
+      errorMessage = 'Configuration Supabase manquante'
+      errorDetails = 'Les variables d\'environnement Supabase ne sont pas configurées correctement'
+    } else if (error.message?.includes('storage')) {
+      errorMessage = 'Erreur de stockage'
+      errorDetails = 'Impossible d\'accéder au stockage Supabase'
+    }
+    
     return NextResponse.json(
-      { error: 'Erreur interne du serveur', details: error.message },
+      { error: errorMessage, details: errorDetails },
       { status: 500 }
     )
   }
 }
+
 
 
 

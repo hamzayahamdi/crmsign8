@@ -146,8 +146,34 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
       setUploadProgress(100)
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || errorData.details || 'Échec de l\'upload du devis')
+        let errorMessage = 'Échec de l\'upload du devis'
+        let errorDetails = ''
+        
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+          errorDetails = errorData.details || ''
+          
+          // Combine error message and details for better user feedback
+          if (errorDetails && errorDetails !== errorMessage) {
+            errorMessage = `${errorMessage}: ${errorDetails}`
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, try to get text response
+          const textResponse = await response.text().catch(() => '')
+          if (textResponse) {
+            errorMessage = textResponse
+          }
+        }
+        
+        console.error('[Attach Devis] Upload failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorMessage,
+          errorDetails
+        })
+        
+        throw new Error(errorMessage)
       }
 
       const result = await response.json()
@@ -211,18 +237,26 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
       onClose()
     } catch (error: any) {
       console.error('[Attach Devis] Error uploading devis:', error)
+      console.error('[Attach Devis] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      })
+      
+      // Extract error message
+      const errorMessage = error.message || error.toString() || 'Impossible d\'attacher le devis. Veuillez réessayer.'
       
       // OPTIMIZATION: Dispatch upload error event
       window.dispatchEvent(new CustomEvent('devis-upload-error', {
         detail: {
           clientId: client.id,
-          error: error.message
+          error: errorMessage
         }
       }))
       
       toast({
         title: "Erreur",
-        description: error.message || 'Impossible d\'attacher le devis. Veuillez réessayer.',
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
