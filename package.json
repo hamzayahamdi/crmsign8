@@ -53,7 +53,10 @@
     "db:update-urls": "tsx scripts/update-database-urls.ts",
     "db:fix-urls": "tsx scripts/fix-database-url.ts",
     "db:verify": "tsx scripts/verify-new-database.ts",
-    "db:migrate": "tsx scripts/migrate-database.ts"
+    "db:migrate": "tsx scripts/migrate-database.ts",
+    "db:migrate:safe": "tsx scripts/migrate-database-safe.ts",
+    "db:configure-sources": "tsx scripts/configure-source-databases.ts",
+    "db:update-destination": "tsx scripts/update-destination-database.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",

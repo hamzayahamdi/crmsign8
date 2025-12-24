@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, type ReactNode } from "react"
+import { useState, useEffect, useRef, type ReactNode } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { ArrowLeft } from "lucide-react"
@@ -57,6 +57,10 @@ export default function ClientDetailsPage() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [isCreatingTask, setIsCreatingTask] = useState(false)
+  
+  // Ref to track ongoing stage updates and prevent race conditions
+  const stageUpdateLockRef = useRef<string | null>(null)
+  const lastOptimisticStageRef = useRef<string | null>(null)
 
   useEffect(() => {
     // Fetch full client data from API (includes devis, historique, etc.)
@@ -142,6 +146,17 @@ export default function ClientDetailsPage() {
         
         // If stage was progressed, immediately update the client state optimistically
         if (event.detail.stageProgressed && event.detail.newStage) {
+          const updateId = `${clientId}-${event.detail.newStage}-${Date.now()}`
+          
+          // Skip if we're already updating to this stage
+          if (stageUpdateLockRef.current === updateId || lastOptimisticStageRef.current === event.detail.newStage) {
+            console.log('[Client Details] ⏭️ Skipping duplicate stage update:', event.detail.newStage)
+            return
+          }
+          
+          stageUpdateLockRef.current = updateId
+          lastOptimisticStageRef.current = event.detail.newStage
+          
           console.log('[Client Details] ⚡ Optimistic stage update:', {
             from: client?.statutProjet,
             to: event.detail.newStage
@@ -152,45 +167,61 @@ export default function ClientDetailsPage() {
             derniereMaj: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           } : null);
+          
+          // Clear lock after a delay
+          setTimeout(() => {
+            stageUpdateLockRef.current = null
+          }, 2000)
         }
         
-        // Wait a bit to ensure database commit
-        await new Promise(resolve => setTimeout(resolve, 300))
-        
-        // Re-fetch client data to get updated stage and payments
-        try {
-          const response = await fetch(`/api/clients/${clientId}`, {
-            credentials: 'include',
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache',
-            }
-          })
-          if (response.ok) {
-            const result = await response.json()
-            console.log('[Client Details] ✅ Client data refreshed after update:', {
-              statutProjet: result.data.statutProjet,
-              expectedStage: event.detail.newStage,
-              matches: result.data.statutProjet === event.detail.newStage,
-              paymentsCount: result.data.payments?.length || 0
+        // Only refetch if it's not a stage update (stage updates are handled optimistically)
+        // or if it's a payment update that might affect stage
+        if (!event.detail.stageProgressed || event.detail.paymentAdded) {
+          // Wait a bit to ensure database commit
+          await new Promise(resolve => setTimeout(resolve, 300))
+          
+          // Re-fetch client data to get updated payments and other data
+          try {
+            const response = await fetch(`/api/clients/${clientId}`, {
+              credentials: 'include',
+              cache: 'no-store',
+              headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+              }
             })
-            
-            // CRITICAL: If stage doesn't match, force it
-            if (event.detail.stageProgressed && result.data.statutProjet !== event.detail.newStage) {
-              console.warn('[Client Details] ⚠️ Stage mismatch! Forcing update...', {
-                expected: event.detail.newStage,
-                actual: result.data.statutProjet
-              });
-              result.data.statutProjet = event.detail.newStage;
+            if (response.ok) {
+              const result = await response.json()
+              console.log('[Client Details] ✅ Client data refreshed after update:', {
+                statutProjet: result.data.statutProjet,
+                expectedStage: event.detail.newStage,
+                matches: result.data.statutProjet === event.detail.newStage,
+                paymentsCount: result.data.payments?.length || 0
+              })
+              
+              // Only update if stage matches or if we don't have an optimistic update
+              const shouldUpdate = !event.detail.stageProgressed || 
+                result.data.statutProjet === event.detail.newStage ||
+                lastOptimisticStageRef.current === null
+              
+              if (shouldUpdate) {
+                // Preserve optimistic stage if it's newer
+                if (event.detail.stageProgressed && event.detail.newStage && 
+                    result.data.statutProjet !== event.detail.newStage) {
+                  console.log('[Client Details] ⚠️ Preserving optimistic stage:', event.detail.newStage)
+                  result.data.statutProjet = event.detail.newStage
+                }
+                
+                setClient(result.data)
+                updateClientInStore(clientId, result.data)
+                setRefreshTrigger(prev => prev + 1)
+              } else {
+                console.log('[Client Details] ⏭️ Skipping update - optimistic stage is newer')
+              }
             }
-            
-            setClient(result.data)
-            updateClientInStore(clientId, result.data)
-            setRefreshTrigger(prev => prev + 1) // Trigger refresh for components that depend on it
+          } catch (error) {
+            console.error('[Client Details] Error refreshing after client update:', error)
           }
-        } catch (error) {
-          console.error('[Client Details] Error refreshing after client update:', error)
         }
       }
     }
@@ -199,7 +230,7 @@ export default function ClientDetailsPage() {
     return () => {
       window.removeEventListener('client-updated', handleClientUpdated as EventListener)
     }
-  }, [clientId, client?.statutProjet])
+  }, [clientId])
 
   // Listen for devis updates from real-time sync
   useEffect(() => {
@@ -345,32 +376,40 @@ export default function ClientDetailsPage() {
     return () => window.removeEventListener('task-updated' as any, handleTaskUpdate)
   }, [clientId])
 
-  // Listen for stage updates from real-time sync
+  // Listen for stage updates from real-time sync (but don't refetch if we already have the optimistic update)
   useEffect(() => {
     const handleStageUpdate = async (event: CustomEvent) => {
-      if (event.detail.clientId === clientId) {
-        console.log('[Client Details] Stage updated, refreshing client data...')
-        try {
-          const response = await fetch(`/api/clients/${clientId}`, {
-            credentials: 'include'
-          })
-          if (response.ok) {
-            const result = await response.json()
-            console.log('[Client Details] Refreshed after stage update:', {
-              statutProjet: result.data.statutProjet,
-              updatedAt: result.data.updatedAt
-            })
-            setClient(result.data)
-          }
-        } catch (error) {
-          console.error('[Client Details] Error refreshing after stage update:', error)
+      if (event.detail?.clientId === clientId) {
+        const newStatus = event.detail.newStatus || event.detail.newStage
+        
+        // Skip if we already have this stage optimistically
+        if (lastOptimisticStageRef.current === newStatus || 
+            (client && client.statutProjet === newStatus)) {
+          console.log('[Client Details] ⏭️ Skipping stage-updated refetch - already have correct stage:', newStatus)
+          return
+        }
+        
+        console.log('[Client Details] Stage updated event received, updating optimistically:', {
+          newStatus,
+          currentStatus: client?.statutProjet
+        })
+        
+        // Update optimistically without refetching immediately
+        if (newStatus && client) {
+          setClient(prev => prev ? {
+            ...prev,
+            statutProjet: newStatus as any,
+            derniereMaj: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          } : null)
+          lastOptimisticStageRef.current = newStatus
         }
       }
     }
 
     window.addEventListener('stage-updated' as any, handleStageUpdate)
     return () => window.removeEventListener('stage-updated' as any, handleStageUpdate)
-  }, [clientId])
+  }, [clientId, client])
 
   const handleUpdateClient = async (updatedClient: Client, skipApiCall = false) => {
     try {
@@ -390,6 +429,9 @@ export default function ClientDetailsPage() {
 
       if (isStageUpdate) {
         console.log('[Client Details] ⚡ Stage update detected, forcing immediate UI update')
+        // Track optimistic stage to prevent zigzag
+        lastOptimisticStageRef.current = updatedClient.statutProjet
+        
         // Force immediate update for stage changes
         setClient(prev => {
           const updated = prev ? { ...prev, ...updatedClient } : updatedClient

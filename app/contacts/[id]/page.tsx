@@ -38,6 +38,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { CreatableSelect } from '@/components/creatable-select'
 import { Sidebar } from '@/components/sidebar'
 import { Header } from '@/components/header'
 import { AuthGuard } from '@/components/auth-guard'
@@ -861,6 +863,40 @@ interface ContactNote {
   isOpportunityNote?: boolean
 }
 
+// Sources list for dropdown
+const sources: { value: string; label: string }[] = [
+  { value: "magasin", label: "Magasin" },
+  { value: "site_web", label: "Site web" },
+  { value: "facebook", label: "Facebook" },
+  { value: "instagram", label: "Instagram" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "reference_client", label: "Recommandation" },
+  { value: "autre", label: "Autre" },
+]
+
+const magasins = ["📍 Casablanca", "📍 Rabat", "📍 Tanger", "📍 Marrakech", "📍 Bouskoura"]
+
+const commercials = [
+  "BOUCHEMAMA LAILA",
+  "AMANE HAMZA",
+  "ABOUTTAIB RANIA",
+  "EL AID HANANE",
+  "BELHAJ FADOUA",
+  "NAMIRA GHITA",
+  "KAITOUNI IDRISSI ALI",
+  "Autre"
+]
+
+const defaultVilles = [
+  "Agadir", "Aïn Harrouda", "Aïn Taoujdate", "Aït Melloul", "Al Hoceïma", "Azemmour", "Azrou",
+  "Béni Mellal", "Berkane", "Berrechid", "Boujdour", "Bouskoura", "Casablanca", "Chefchaouen",
+  "Dakhla", "Dar Bouazza", "El Aaiún", "El Jadida", "Errachidia", "Essaouira", "Fès", "Guelmim",
+  "Ifrane", "Imzouren", "Kénitra", "Khemisset", "Khouribga", "Ksar El Kebir", "Larache",
+  "Marrakech", "Meknès", "Mohammedia", "Nador", "Ouarzazate", "Oujda", "Rabat", "Safi", "Salé",
+  "Settat", "Sidi Bennour", "Sidi Ifni", "Sidi Kacem", "Sidi Slimane", "Skhirat", "Tanger",
+  "Taourirt", "Taroudant", "Taza", "Témara", "Tétouan", "Tifelt", "Tiznit", "Youssoufia", "Zagora",
+]
+
 function OverviewTab({ contact, architectName, architectNameMap, userNameMap, onUpdate, onEditAcompte }: { contact: ContactWithDetails; architectName: string | null; architectNameMap: Record<string, string>; userNameMap: Record<string, string>; onUpdate: () => void; onEditAcompte?: () => void }) {
   const [notes, setNotes] = useState<ContactNote[]>([])
   const [isAddingNote, setIsAddingNote] = useState(false)
@@ -885,6 +921,126 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
   const [acompteMontant, setAcompteMontant] = useState('')
   const [isSavingAcompte, setIsSavingAcompte] = useState(false)
   const [acomptePayment, setAcomptePayment] = useState<any>(null)
+
+  // Editable fields state
+  const [editingField, setEditingField] = useState<string | null>(null)
+  const [fieldValues, setFieldValues] = useState({
+    nom: contact.nom,
+    telephone: contact.telephone,
+    email: contact.email || '',
+    ville: contact.ville || '',
+    typeBien: contact.typeBien || leadData?.typeBien || '',
+    source: contact.source || leadData?.source || 'site_web',
+    magasin: contact.magasin || '',
+    commercialMagasin: (contact as any).commercialMagasin || '',
+    campaignName: (contact as any).campaignName || '',
+    adresse: contact.adresse || '',
+  })
+  const [isSavingField, setIsSavingField] = useState(false)
+  const [showCustomCommercial, setShowCustomCommercial] = useState(false)
+  const [customCommercialName, setCustomCommercialName] = useState('')
+
+  // Update fieldValues when contact or leadData changes
+  useEffect(() => {
+    setFieldValues({
+      nom: contact.nom,
+      telephone: contact.telephone,
+      email: contact.email || '',
+      ville: contact.ville || '',
+      typeBien: contact.typeBien || leadData?.typeBien || '',
+      source: contact.source || leadData?.source || 'site_web',
+      magasin: contact.magasin || '',
+      commercialMagasin: (contact as any).commercialMagasin || '',
+      campaignName: (contact as any).campaignName || '',
+      adresse: contact.adresse || '',
+    })
+    if ((contact as any).commercialMagasin && !commercials.includes((contact as any).commercialMagasin)) {
+      setShowCustomCommercial(true)
+      setCustomCommercialName((contact as any).commercialMagasin)
+    } else {
+      setShowCustomCommercial(false)
+      setCustomCommercialName('')
+    }
+  }, [contact, leadData])
+
+  // Handle saving field updates
+  const handleSaveField = async (fieldName: string) => {
+    if (isSavingField) return
+
+    try {
+      setIsSavingField(true)
+      const token = localStorage.getItem('token')
+      if (!token) {
+        toast.error('Token d\'authentification manquant')
+        return
+      }
+
+      const updateData: any = {}
+      
+      // If saving source, handle conditional fields
+      if (fieldName === 'source') {
+        updateData.source = fieldValues.source
+        
+        // Include conditional fields based on new source
+        if (fieldValues.source === 'magasin') {
+          if (fieldValues.magasin) updateData.magasin = fieldValues.magasin
+          if (fieldValues.commercialMagasin) updateData.commercialMagasin = fieldValues.commercialMagasin
+          // Clear tiktok field
+          updateData.campaignName = undefined
+        } else if (fieldValues.source === 'tiktok') {
+          if (fieldValues.campaignName) updateData.campaignName = fieldValues.campaignName
+          // Clear magasin fields
+          updateData.magasin = undefined
+          updateData.commercialMagasin = undefined
+        } else {
+          // Clear all conditional fields for other sources
+          updateData.magasin = undefined
+          updateData.commercialMagasin = undefined
+          updateData.campaignName = undefined
+        }
+      } else if (fieldName === 'magasin' || fieldName === 'commercialMagasin') {
+        // When saving magasin fields, also include source if it's magasin
+        updateData[fieldName] = fieldValues[fieldName as keyof typeof fieldValues]
+        if (fieldValues.source === 'magasin') {
+          updateData.source = fieldValues.source
+          if (fieldValues.magasin) updateData.magasin = fieldValues.magasin
+          if (fieldValues.commercialMagasin) updateData.commercialMagasin = fieldValues.commercialMagasin
+        }
+      } else if (fieldName === 'campaignName') {
+        // When saving campaignName, also include source if it's tiktok
+        updateData.campaignName = fieldValues.campaignName
+        if (fieldValues.source === 'tiktok') {
+          updateData.source = fieldValues.source
+        }
+      } else {
+        // For other fields, just save the field
+        updateData[fieldName] = fieldValues[fieldName as keyof typeof fieldValues]
+      }
+
+      const response = await fetch(`/api/contacts/${contact.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to update contact')
+      }
+
+      await onUpdate()
+      setEditingField(null)
+      toast.success('Information mise à jour avec succès')
+    } catch (error) {
+      console.error('Error updating field:', error)
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la mise à jour')
+    } finally {
+      setIsSavingField(false)
+    }
+  }
 
   // Check if there's an opportunity with acompte payment
   const hasAcomptePayment = () => {
@@ -1476,47 +1632,203 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {/* Nom */}
             <div className="group relative p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-blue-500/30 transition-all">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide flex items-center gap-1">
                   <User className="w-3 h-3 text-blue-400" />
                   Nom
                 </p>
-                <button
-                  onClick={() => handleCopy(contact.nom, 'nom')}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-slate-700/50"
-                  title="Copier"
-                >
-                  {copiedField === 'nom' ? (
-                    <Check className="w-3 h-3 text-green-400" />
+                <div className="flex items-center gap-1">
+                  {editingField === 'nom' ? (
+                    <>
+                      <button
+                        onClick={() => handleSaveField('nom')}
+                        disabled={isSavingField}
+                        className="p-0.5 rounded hover:bg-green-500/20 text-green-400"
+                        title="Enregistrer"
+                      >
+                        {isSavingField ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Check className="w-3 h-3" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingField(null)
+                          setFieldValues(prev => ({ ...prev, nom: contact.nom }))
+                        }}
+                        className="p-0.5 rounded hover:bg-red-500/20 text-red-400"
+                        title="Annuler"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </>
                   ) : (
-                    <Copy className="w-3 h-3 text-slate-400" />
+                    <>
+                      <button
+                        onClick={() => handleCopy(contact.nom, 'nom')}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-slate-700/50"
+                        title="Copier"
+                      >
+                        {copiedField === 'nom' ? (
+                          <Check className="w-3 h-3 text-green-400" />
+                        ) : (
+                          <Copy className="w-3 h-3 text-slate-400" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setEditingField('nom')}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-blue-500/20 text-blue-400"
+                        title="Modifier"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                    </>
                   )}
-                </button>
+                </div>
               </div>
-              <p className="text-xs font-light text-white">{contact.nom}</p>
+              {editingField === 'nom' ? (
+                <Input
+                  value={fieldValues.nom}
+                  onChange={(e) => setFieldValues(prev => ({ ...prev, nom: e.target.value }))}
+                  className="bg-slate-900/50 border-blue-500/40 text-white h-7 text-xs"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveField('nom')
+                    if (e.key === 'Escape') {
+                      setEditingField(null)
+                      setFieldValues(prev => ({ ...prev, nom: contact.nom }))
+                    }
+                  }}
+                />
+              ) : (
+                <p className="text-xs font-light text-white">{contact.nom}</p>
+              )}
             </div>
 
+            {/* Téléphone */}
             <div className="group relative p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-green-500/30 transition-all">
-              <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
-                <Phone className="w-3 h-3 text-green-400" />
-                Téléphone
-              </p>
-              <a
-                href={`tel:${contact.telephone}`}
-                className="text-xs font-light text-green-400 hover:text-green-300 transition-colors flex items-center gap-1 group/link"
-              >
-                {contact.telephone}
-                <ExternalLink className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity" />
-              </a>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide flex items-center gap-1">
+                  <Phone className="w-3 h-3 text-green-400" />
+                  Téléphone
+                </p>
+                {editingField === 'telephone' ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleSaveField('telephone')}
+                      disabled={isSavingField}
+                      className="p-0.5 rounded hover:bg-green-500/20 text-green-400"
+                    >
+                      {isSavingField ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Check className="w-3 h-3" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingField(null)
+                        setFieldValues(prev => ({ ...prev, telephone: contact.telephone }))
+                      }}
+                      className="p-0.5 rounded hover:bg-red-500/20 text-red-400"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setEditingField('telephone')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-green-500/20 text-green-400"
+                    title="Modifier"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+              {editingField === 'telephone' ? (
+                <Input
+                  value={fieldValues.telephone}
+                  onChange={(e) => setFieldValues(prev => ({ ...prev, telephone: e.target.value }))}
+                  className="bg-slate-900/50 border-green-500/40 text-white h-7 text-xs"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveField('telephone')
+                    if (e.key === 'Escape') {
+                      setEditingField(null)
+                      setFieldValues(prev => ({ ...prev, telephone: contact.telephone }))
+                    }
+                  }}
+                />
+              ) : (
+                <a
+                  href={`tel:${contact.telephone}`}
+                  className="text-xs font-light text-green-400 hover:text-green-300 transition-colors flex items-center gap-1 group/link"
+                >
+                  {contact.telephone}
+                  <ExternalLink className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                </a>
+              )}
             </div>
 
-            {contact.email && (
-              <div className="group relative p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-purple-500/30 transition-all">
-                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+            {/* Email */}
+            <div className="group relative p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-purple-500/30 transition-all">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide flex items-center gap-1">
                   <Mail className="w-3 h-3 text-purple-400" />
                   Email
                 </p>
+                {editingField === 'email' ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleSaveField('email')}
+                      disabled={isSavingField}
+                      className="p-0.5 rounded hover:bg-green-500/20 text-green-400"
+                    >
+                      {isSavingField ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Check className="w-3 h-3" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingField(null)
+                        setFieldValues(prev => ({ ...prev, email: contact.email || '' }))
+                      }}
+                      className="p-0.5 rounded hover:bg-red-500/20 text-red-400"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setEditingField('email')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-purple-500/20 text-purple-400"
+                    title="Modifier"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+              {editingField === 'email' ? (
+                <Input
+                  type="email"
+                  value={fieldValues.email}
+                  onChange={(e) => setFieldValues(prev => ({ ...prev, email: e.target.value }))}
+                  className="bg-slate-900/50 border-purple-500/40 text-white h-7 text-xs"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveField('email')
+                    if (e.key === 'Escape') {
+                      setEditingField(null)
+                      setFieldValues(prev => ({ ...prev, email: contact.email || '' }))
+                    }
+                  }}
+                />
+              ) : contact.email ? (
                 <a
                   href={`mailto:${contact.email}`}
                   className="text-xs font-light text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1 break-all group/link"
@@ -1524,36 +1836,453 @@ function OverviewTab({ contact, architectName, architectNameMap, userNameMap, on
                   {contact.email}
                   <ExternalLink className="w-3 h-3 shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
                 </a>
-              </div>
-            )}
+              ) : (
+                <p className="text-xs font-light text-slate-500 italic">Aucun email</p>
+              )}
+            </div>
 
-            {contact.ville && (
-              <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all">
-                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+            {/* Ville */}
+            <div className="group relative p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/30 transition-all">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide flex items-center gap-1">
                   <MapPin className="w-3 h-3 text-emerald-400" />
                   Ville
                 </p>
-                <p className="text-xs font-light text-white">{contact.ville}</p>
+                {editingField === 'ville' ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleSaveField('ville')}
+                      disabled={isSavingField}
+                      className="p-0.5 rounded hover:bg-green-500/20 text-green-400"
+                    >
+                      {isSavingField ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Check className="w-3 h-3" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingField(null)
+                        setFieldValues(prev => ({ ...prev, ville: contact.ville || '' }))
+                      }}
+                      className="p-0.5 rounded hover:bg-red-500/20 text-red-400"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setEditingField('ville')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-emerald-500/20 text-emerald-400"
+                    title="Modifier"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                )}
               </div>
-            )}
+              {editingField === 'ville' ? (
+                <CreatableSelect
+                  value={fieldValues.ville}
+                  onValueChange={(value) => setFieldValues(prev => ({ ...prev, ville: value }))}
+                  options={defaultVilles}
+                  placeholder="Sélectionner une ville"
+                  searchPlaceholder="Rechercher..."
+                  emptyText="Tapez pour créer"
+                />
+              ) : contact.ville ? (
+                <p className="text-xs font-light text-white">{contact.ville}</p>
+              ) : (
+                <p className="text-xs font-light text-slate-500 italic">Aucune ville</p>
+              )}
+            </div>
 
-            {(contact.typeBien || leadData?.typeBien) && (
-              <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-red-500/30 transition-all">
-                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+            {/* Type de bien */}
+            <div className="group relative p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-red-500/30 transition-all">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide flex items-center gap-1">
                   <Home className="w-3 h-3 text-red-400" />
                   Type de bien
                 </p>
-                <p className="text-xs font-light text-white">{contact.typeBien || leadData?.typeBien}</p>
+                {editingField === 'typeBien' ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleSaveField('typeBien')}
+                      disabled={isSavingField}
+                      className="p-0.5 rounded hover:bg-green-500/20 text-green-400"
+                    >
+                      {isSavingField ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Check className="w-3 h-3" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingField(null)
+                        setFieldValues(prev => ({ ...prev, typeBien: contact.typeBien || leadData?.typeBien || '' }))
+                      }}
+                      className="p-0.5 rounded hover:bg-red-500/20 text-red-400"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setEditingField('typeBien')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-red-500/20 text-red-400"
+                    title="Modifier"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                )}
               </div>
-            )}
+              {editingField === 'typeBien' ? (
+                <Select
+                  value={fieldValues.typeBien || undefined}
+                  onValueChange={(value) => setFieldValues(prev => ({ ...prev, typeBien: value }))}
+                >
+                  <SelectTrigger className="bg-slate-900/50 border-red-500/40 text-white h-7 text-xs">
+                    <SelectValue placeholder="Type de bien" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
+                    <SelectItem value="Villa" className="text-white text-xs">Villa</SelectItem>
+                    <SelectItem value="Appartement" className="text-white text-xs">Appartement</SelectItem>
+                    <SelectItem value="B2B" className="text-white text-xs">B2B</SelectItem>
+                    <SelectItem value="Autre" className="text-white text-xs">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (contact.typeBien || leadData?.typeBien) ? (
+                <p className="text-xs font-light text-white">{contact.typeBien || leadData?.typeBien}</p>
+              ) : (
+                <p className="text-xs font-light text-slate-500 italic">Aucun type</p>
+              )}
+            </div>
 
-            {leadData?.source && (
-              <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-cyan-500/30 transition-all">
-                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+            {/* Source - Now with Select dropdown */}
+            <div className="group relative p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-cyan-500/30 transition-all">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide flex items-center gap-1">
                   <ExternalLink className="w-3 h-3 text-cyan-400" />
                   Source
                 </p>
-                <p className="text-xs font-light text-white capitalize">{leadData.source}</p>
+                {editingField === 'source' ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleSaveField('source')}
+                      disabled={isSavingField}
+                      className="p-0.5 rounded hover:bg-green-500/20 text-green-400"
+                    >
+                      {isSavingField ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Check className="w-3 h-3" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingField(null)
+                        setFieldValues(prev => ({ ...prev, source: contact.source || leadData?.source || 'site_web' }))
+                      }}
+                      className="p-0.5 rounded hover:bg-red-500/20 text-red-400"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setEditingField('source')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-cyan-500/20 text-cyan-400"
+                    title="Modifier"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+              {editingField === 'source' ? (
+                <Select
+                  value={fieldValues.source}
+                  onValueChange={(value) => {
+                    setFieldValues(prev => ({
+                      ...prev,
+                      source: value,
+                      // Clear conditional fields when source changes
+                      magasin: value !== 'magasin' ? '' : prev.magasin,
+                      commercialMagasin: value !== 'magasin' ? '' : prev.commercialMagasin,
+                      campaignName: value !== 'tiktok' ? '' : prev.campaignName,
+                    }))
+                    if (value !== 'magasin') {
+                      setShowCustomCommercial(false)
+                      setCustomCommercialName('')
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-slate-900/50 border-cyan-500/40 text-white h-7 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
+                    {sources.map((source) => (
+                      <SelectItem key={source.value} value={source.value} className="text-white text-xs">
+                        {source.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (contact.source || leadData?.source || fieldValues.source) ? (
+                <p className="text-xs font-light text-white capitalize">
+                  {sources.find(s => s.value === (contact.source || leadData?.source || fieldValues.source))?.label || (contact.source || leadData?.source || fieldValues.source)}
+                </p>
+              ) : (
+                <p className="text-xs font-light text-slate-500 italic">Aucune source</p>
+              )}
+            </div>
+
+            {/* Conditional: Magasin fields when source is magasin */}
+            {(() => {
+              // Determine if source is magasin (check both current state and fieldValues)
+              const isSourceMagasin = 
+                fieldValues.source === 'magasin' || 
+                contact.source === 'magasin' || 
+                leadData?.source === 'magasin'
+              
+              // Show fields if:
+              // 1. Source is magasin (regardless of editing state), OR
+              // 2. Currently editing source and selecting magasin, OR
+              // 3. Currently editing magasin/commercial fields (they should stay visible)
+              return isSourceMagasin || 
+                     (editingField === 'source' && fieldValues.source === 'magasin') ||
+                     editingField === 'magasin' || 
+                     editingField === 'commercialMagasin'
+            })() && (
+              <>
+                <div className="group relative p-2 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide flex items-center gap-1">
+                      <Building2 className="w-3 h-3 text-purple-400" />
+                      Magasin
+                    </p>
+                    {editingField === 'magasin' ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleSaveField('magasin')}
+                          disabled={isSavingField}
+                          className="p-0.5 rounded hover:bg-green-500/20 text-green-400"
+                        >
+                          {isSavingField ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Check className="w-3 h-3" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingField(null)
+                            setFieldValues(prev => ({ ...prev, magasin: contact.magasin || '' }))
+                          }}
+                          className="p-0.5 rounded hover:bg-red-500/20 text-red-400"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setEditingField('magasin')}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-purple-500/20 text-purple-400"
+                        title="Modifier"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  {editingField === 'magasin' ? (
+                    <Select
+                      value={fieldValues.magasin || undefined}
+                      onValueChange={(value) => setFieldValues(prev => ({ ...prev, magasin: value }))}
+                    >
+                      <SelectTrigger className="bg-slate-900/50 border-purple-500/40 text-white h-7 text-xs">
+                        <SelectValue placeholder="Sélectionner un magasin" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
+                        {magasins.map((mag) => (
+                          <SelectItem key={mag} value={mag} className="text-white text-xs">
+                            {mag}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (contact.magasin || fieldValues.magasin) ? (
+                    <p className="text-xs font-light text-white">{contact.magasin || fieldValues.magasin}</p>
+                  ) : (
+                    <p className="text-xs font-light text-slate-500 italic">Aucun magasin</p>
+                  )}
+                </div>
+
+                <div className="group relative p-2 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide flex items-center gap-1">
+                      <User className="w-3 h-3 text-purple-400" />
+                      Commercial
+                    </p>
+                    {editingField === 'commercialMagasin' ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleSaveField('commercialMagasin')}
+                          disabled={isSavingField}
+                          className="p-0.5 rounded hover:bg-green-500/20 text-green-400"
+                        >
+                          {isSavingField ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Check className="w-3 h-3" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingField(null)
+                            setFieldValues(prev => ({ ...prev, commercialMagasin: (contact as any).commercialMagasin || '' }))
+                          }}
+                          className="p-0.5 rounded hover:bg-red-500/20 text-red-400"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setEditingField('commercialMagasin')}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-purple-500/20 text-purple-400"
+                        title="Modifier"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  {editingField === 'commercialMagasin' ? (
+                    <div className="space-y-1">
+                      <Select
+                        value={showCustomCommercial ? "Autre" : (fieldValues.commercialMagasin || undefined)}
+                        onValueChange={(value) => {
+                          if (value === "Autre") {
+                            setShowCustomCommercial(true)
+                            setFieldValues(prev => ({ ...prev, commercialMagasin: customCommercialName || '' }))
+                          } else {
+                            setShowCustomCommercial(false)
+                            setCustomCommercialName("")
+                            setFieldValues(prev => ({ ...prev, commercialMagasin: value }))
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="bg-slate-900/50 border-purple-500/40 text-white h-7 text-xs">
+                          <SelectValue placeholder="Sélectionner..." />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800/95 backdrop-blur-xl border-slate-600/50">
+                          {commercials.map((commercial) => (
+                            <SelectItem key={commercial} value={commercial} className="text-white text-xs">
+                              {commercial}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {showCustomCommercial && (
+                        <div className="flex items-center gap-1">
+                          <Input
+                            value={customCommercialName}
+                            onChange={(e) => {
+                              setCustomCommercialName(e.target.value)
+                              setFieldValues(prev => ({ ...prev, commercialMagasin: e.target.value }))
+                            }}
+                            className="bg-slate-900/50 border-purple-500/40 text-white h-7 text-xs flex-1"
+                            placeholder="Nom du commercial"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && customCommercialName.trim()) {
+                                handleSaveField('commercialMagasin')
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={() => handleSaveField('commercialMagasin')}
+                            disabled={isSavingField || !customCommercialName.trim()}
+                            className="p-1 rounded hover:bg-green-500/20 text-green-400 disabled:opacity-50"
+                            title="Enregistrer"
+                          >
+                            {isSavingField ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Check className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : ((contact as any).commercialMagasin || fieldValues.commercialMagasin) ? (
+                    <p className="text-xs font-light text-white">{(contact as any).commercialMagasin || fieldValues.commercialMagasin}</p>
+                  ) : (
+                    <p className="text-xs font-light text-slate-500 italic">Aucun commercial</p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Conditional: Campaign Name when source is tiktok */}
+            {((editingField === 'source' && fieldValues.source === 'tiktok') || (!editingField && (contact.source === 'tiktok' || leadData?.source === 'tiktok'))) && (
+              <div className="group relative p-2 rounded-lg bg-pink-500/10 border border-pink-500/30">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] font-light text-slate-400 uppercase tracking-wide flex items-center gap-1">
+                    <ExternalLink className="w-3 h-3 text-pink-400" />
+                    Nom de la campagne
+                  </p>
+                  {editingField === 'campaignName' ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleSaveField('campaignName')}
+                        disabled={isSavingField}
+                        className="p-0.5 rounded hover:bg-green-500/20 text-green-400"
+                      >
+                        {isSavingField ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Check className="w-3 h-3" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingField(null)
+                          setFieldValues(prev => ({ ...prev, campaignName: (contact as any).campaignName || '' }))
+                        }}
+                        className="p-0.5 rounded hover:bg-red-500/20 text-red-400"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setEditingField('campaignName')}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-pink-500/20 text-pink-400"
+                      title="Modifier"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+                {editingField === 'campaignName' ? (
+                  <Input
+                    value={fieldValues.campaignName}
+                    onChange={(e) => setFieldValues(prev => ({ ...prev, campaignName: e.target.value }))}
+                    className="bg-slate-900/50 border-pink-500/40 text-white h-7 text-xs"
+                    autoFocus
+                    placeholder="Nom de la campagne TikTok"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveField('campaignName')
+                      if (e.key === 'Escape') {
+                        setEditingField(null)
+                        setFieldValues(prev => ({ ...prev, campaignName: (contact as any).campaignName || '' }))
+                      }
+                    }}
+                  />
+                ) : ((contact as any).campaignName || fieldValues.campaignName) ? (
+                  <p className="text-xs font-light text-white">{(contact as any).campaignName || fieldValues.campaignName}</p>
+                ) : (
+                  <p className="text-xs font-light text-slate-500 italic">Aucune campagne</p>
+                )}
               </div>
             )}
           </div>

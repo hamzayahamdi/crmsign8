@@ -5,6 +5,10 @@ import { getServerSupabase } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
 
+// Vercel timeout configuration - increase for large file uploads
+export const maxDuration = 60 // 60 seconds for Pro plan, 10s for Hobby
+export const runtime = 'nodejs' // Use Node.js runtime for better file handling
+
 // Generate CUID-like ID
 function generateCuid(): string {
   const timestamp = Date.now().toString(36)
@@ -123,26 +127,117 @@ export async function POST(request: NextRequest) {
 
     // 2. Upload file to Supabase storage
     const serverSupabase = getServerSupabase()
-    const timestamp = Date.now()
+    let timestamp = Date.now()
     const originalName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '_')
-    const path = `clients/${clientId}/devis/${timestamp}_${originalName}`
+    let path = `clients/${clientId}/devis/${timestamp}_${originalName}`
 
-    // Convert file to bytes
-    const arrayBuffer = await file.arrayBuffer()
+    console.log('[Upload Devis] Starting upload:', {
+      fileName: originalName,
+      fileSize: file.size,
+      fileType: file.type,
+      path
+    })
+
+    // Convert file to bytes with timeout protection
+    let arrayBuffer: ArrayBuffer
+    try {
+      // Add timeout for large file reading (30 seconds)
+      arrayBuffer = await Promise.race([
+        file.arrayBuffer(),
+        new Promise<ArrayBuffer>((_, reject) => 
+          setTimeout(() => reject(new Error('File reading timeout')), 30000)
+        )
+      ])
+    } catch (readError: any) {
+      console.error('[Upload Devis] File read error:', readError)
+      return NextResponse.json(
+        { 
+          error: 'Erreur lors de la lecture du fichier', 
+          details: readError.message || 'Le fichier est peut-être trop volumineux ou corrompu' 
+        },
+        { status: 400 }
+      )
+    }
+
     const bytes = new Uint8Array(arrayBuffer)
 
-    // Upload to storage
-    const { error: uploadError } = await serverSupabase.storage
-      .from(BUCKET)
-      .upload(path, bytes, {
-        contentType: file.type || 'application/octet-stream',
-        upsert: false, // Don't overwrite existing files
-      })
+    // Upload to storage with timeout and retry logic
+    let uploadError: any = null
+    let uploadAttempts = 0
+    const maxAttempts = 2
+    let uploadSuccess = false
+
+    while (uploadAttempts < maxAttempts && !uploadSuccess) {
+      uploadAttempts++
+      try {
+        console.log(`[Upload Devis] Upload attempt ${uploadAttempts}/${maxAttempts}`, { path, fileSize: bytes.length })
+        
+        const uploadPromise = serverSupabase.storage
+          .from(BUCKET)
+          .upload(path, bytes, {
+            contentType: file.type || 'application/octet-stream',
+            upsert: false, // Don't overwrite existing files
+            cacheControl: '3600',
+          })
+
+        // Add timeout for upload (50 seconds)
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Upload timeout - le fichier est trop volumineux')), 50000)
+        )
+
+        const result = await Promise.race([uploadPromise, timeoutPromise]) as any
+        
+        if (result.error) {
+          uploadError = result.error
+          // If it's a duplicate file error, try with a new timestamp
+          if (result.error.message?.includes('already exists') && uploadAttempts < maxAttempts) {
+            timestamp = Date.now()
+            path = `clients/${clientId}/devis/${timestamp}_${originalName}`
+            uploadError = null
+            continue
+          }
+        } else {
+          // Success
+          uploadSuccess = true
+          uploadError = null
+          break
+        }
+      } catch (timeoutError: any) {
+        uploadError = timeoutError
+        console.error(`[Upload Devis] Upload attempt ${uploadAttempts} failed:`, timeoutError)
+        if (uploadAttempts >= maxAttempts) {
+          return NextResponse.json(
+            { 
+              error: 'Échec de l\'upload du fichier', 
+              details: timeoutError.message || 'Le téléchargement a pris trop de temps. Veuillez réessayer avec un fichier plus petit ou vérifier votre connexion internet.' 
+            },
+            { status: 500 }
+          )
+        }
+      }
+    }
 
     if (uploadError) {
-      console.error('[Upload Devis] Storage upload error:', uploadError)
+      console.error('[Upload Devis] Storage upload error after retries:', uploadError)
+      console.error('[Upload Devis] Upload error details:', JSON.stringify(uploadError, null, 2))
+      
+      // Provide more specific error messages
+      let errorMessage = 'Échec de l\'upload du fichier'
+      let errorDetails = uploadError.message || String(uploadError)
+      
+      if (uploadError.message?.includes('timeout')) {
+        errorMessage = 'Timeout lors de l\'upload'
+        errorDetails = 'Le fichier est trop volumineux ou la connexion est trop lente. Veuillez réessayer.'
+      } else if (uploadError.message?.includes('size')) {
+        errorMessage = 'Fichier trop volumineux'
+        errorDetails = 'La taille du fichier dépasse la limite autorisée.'
+      } else if (uploadError.message?.includes('network') || uploadError.message?.includes('fetch')) {
+        errorMessage = 'Erreur réseau'
+        errorDetails = 'Problème de connexion lors de l\'upload. Veuillez vérifier votre connexion internet.'
+      }
+      
       return NextResponse.json(
-        { error: 'Échec de l\'upload du fichier', details: uploadError.message },
+        { error: errorMessage, details: errorDetails },
         { status: 500 }
       )
     }

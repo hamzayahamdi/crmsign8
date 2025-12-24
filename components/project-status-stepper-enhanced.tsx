@@ -338,6 +338,7 @@ export function ProjectStatusStepperEnhanced({
     return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
   };
 
+  // Calculate progress percentage with smooth transition
   const progressPercentage = ((currentOrder + 1) / PROJECT_STEPS.length) * 100;
 
   // Show loading overlay during update
@@ -567,11 +568,15 @@ export function ProjectStatusStepperEnhanced({
         {/* Progress Bar */}
         <div className="mt-3 md:mt-4 w-full h-1.5 md:h-2 bg-white/5 rounded-full overflow-hidden">
           <motion.div
-            initial={{ width: 0 }}
+            initial={false}
             animate={{ width: `${progressPercentage}%` }}
-            transition={{ duration: 1, ease: "easeOut" }}
+            transition={{ 
+              duration: 0.4, 
+              ease: [0.4, 0, 0.2, 1], // Custom easing for smooth, quick animation
+              type: "tween"
+            }}
             className={cn(
-              "h-full bg-gradient-to-r rounded-full",
+              "h-full bg-gradient-to-r rounded-full transition-colors duration-300",
               currentStep?.gradient || "from-blue-400 to-blue-500",
             )}
           />

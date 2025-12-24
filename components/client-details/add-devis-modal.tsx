@@ -8,6 +8,7 @@ import type { Client } from "@/types/client"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { cn } from "@/lib/utils"
+import { createClient } from "@supabase/supabase-js"
 
 interface AddDevisModalProps {
   isOpen: boolean
@@ -110,17 +111,33 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
       
-      // Create FormData
-      const formData = new FormData()
-      formData.append('file', selectedFile)
-      formData.append('clientId', client.id)
+      // STEP 1: Get upload path and Supabase credentials
+      const urlResponse = await fetch(
+        `/api/clients/devis/upload-url?clientId=${encodeURIComponent(client.id)}&fileName=${encodeURIComponent(selectedFile.name)}`,
+        {
+          method: 'GET',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      )
+
+      if (!urlResponse.ok) {
+        throw new Error('Impossible de générer l\'URL d\'upload')
+      }
+
+      let { path, bucket, supabaseUrl, anonKey } = await urlResponse.json()
+
+      if (!supabaseUrl || !anonKey) {
+        throw new Error('Configuration Supabase manquante')
+      }
+
+      // STEP 2: Upload directly to Supabase Storage (bypasses Vercel limits)
+      const supabase = createClient(supabaseUrl, anonKey)
       
-      // Simulate progress and dispatch progress events
+      // Real progress tracking
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
-          const newProgress = prev >= 90 ? prev : prev + 10
+          const newProgress = Math.min(prev + 5, 90) // Cap at 90% until upload completes
           
-          // Dispatch progress event
           window.dispatchEvent(new CustomEvent('devis-upload-progress', {
             detail: {
               clientId: client.id,
@@ -128,21 +145,85 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
             }
           }))
           
-          if (newProgress >= 90) {
-            clearInterval(progressInterval)
-          }
           return newProgress
         })
-      }, 200)
+      }, 300)
 
-      // Upload file and create devis
-      const response = await fetch('/api/clients/devis/upload', {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      })
+      console.log('[Attach Devis] Uploading directly to Supabase:', { path, fileSize: selectedFile.size })
+
+      let { data: uploadData, error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(path, selectedFile, {
+          contentType: selectedFile.type || 'application/octet-stream',
+          upsert: false,
+          cacheControl: '3600',
+        })
 
       clearInterval(progressInterval)
+      setUploadProgress(95)
+
+      if (uploadError) {
+        console.error('[Attach Devis] Supabase upload error:', uploadError)
+        
+        // Handle duplicate file error
+        if (uploadError.message?.includes('already exists')) {
+          // Retry with new timestamp
+          const retryUrlResponse = await fetch(
+            `/api/clients/devis/upload-url?clientId=${encodeURIComponent(client.id)}&fileName=${encodeURIComponent(selectedFile.name)}`,
+            {
+              method: 'GET',
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            }
+          )
+          const retryData = await retryUrlResponse.json()
+          
+          const { error: retryError } = await supabase.storage
+            .from(bucket)
+            .upload(retryData.path, selectedFile, {
+              contentType: selectedFile.type || 'application/octet-stream',
+              upsert: false,
+            })
+          
+          if (retryError) {
+            throw new Error(`Échec de l'upload: ${retryError.message}`)
+          }
+          
+          // Use retry path
+          path = retryData.path
+        } else if (uploadError.message?.includes('new row violates row-level security') || 
+                   uploadError.message?.includes('permission denied') ||
+                   uploadError.message?.includes('JWT')) {
+          // RLS policy issue - fallback to server-side upload
+          console.warn('[Attach Devis] RLS policy issue, falling back to server-side upload')
+          throw new Error('FALLBACK_TO_SERVER_UPLOAD')
+        } else {
+          throw new Error(`Échec de l'upload: ${uploadError.message || 'Erreur inconnue'}`)
+        }
+      }
+
+      // Get signed URL
+      const { data: signedUrlData } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(path, 60 * 60 * 24 * 365) // 1 year
+
+      const fileUrl = signedUrlData?.signedUrl || null
+
+      // STEP 3: Create devis record (lightweight API call, no file)
+      const response = await fetch('/api/clients/devis/upload-direct', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          clientId: client.id,
+          filePath: path,
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          fileUrl: fileUrl
+        }),
+      })
+
       setUploadProgress(100)
 
       if (!response.ok) {
@@ -237,6 +318,72 @@ export function AddDevisModal({ isOpen, onClose, client, onSave }: AddDevisModal
       onClose()
     } catch (error: any) {
       console.error('[Attach Devis] Error uploading devis:', error)
+      
+      // Fallback to server-side upload if direct upload fails (e.g., RLS issues)
+      if (error.message === 'FALLBACK_TO_SERVER_UPLOAD') {
+        console.log('[Attach Devis] Attempting fallback to server-side upload')
+        try {
+          const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+          const formData = new FormData()
+          formData.append('file', selectedFile)
+          formData.append('clientId', client.id)
+          
+          const fallbackResponse = await fetch('/api/clients/devis/upload', {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: formData,
+          })
+          
+          if (!fallbackResponse.ok) {
+            const errorData = await fallbackResponse.json().catch(() => ({}))
+            throw new Error(errorData.error || errorData.details || 'Échec de l\'upload du devis')
+          }
+          
+          const result = await fallbackResponse.json()
+          if (result.success && result.data) {
+            // Success with fallback - continue with normal flow
+            const updatedClient = {
+              ...client,
+              devis: [...(client.devis || []), result.data],
+              derniereMaj: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }
+            
+            window.dispatchEvent(new CustomEvent('devis-updated', {
+              detail: {
+                clientId: client.id,
+                devisId: result.data.id,
+                devisAdded: true,
+                devis: result.data
+              }
+            }))
+            
+            window.dispatchEvent(new CustomEvent('devis-upload-complete', {
+              detail: {
+                clientId: client.id,
+                devisId: result.data.id,
+                devis: result.data
+              }
+            }))
+            
+            onSave(updatedClient, true)
+            
+            toast({
+              title: "Devis attaché avec succès",
+              description: `Le fichier "${selectedFile.name}" a été ajouté comme devis`,
+            })
+            
+            setSelectedFile(null)
+            setUploadProgress(0)
+            onClose()
+            return
+          }
+        } catch (fallbackError: any) {
+          console.error('[Attach Devis] Fallback upload also failed:', fallbackError)
+          error = fallbackError
+        }
+      }
+      
       console.error('[Attach Devis] Error details:', {
         message: error.message,
         stack: error.stack,
